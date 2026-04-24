@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OVERTRIP - No Destination</title>
+  <meta
+    name="description"
+    content="OVERTRIP é uma marca lifestyle de experiências, comunidade, estrada e natureza."
+  >
+  <meta property="og:title" content="OVERTRIP - No Destination">
+  <meta
+    property="og:description"
+    content="Marca lifestyle para quem troca o roteiro óbvio por natureza, presença e conexão real."
+  >
+  <meta property="og:image" content="assets/images/hero.jpg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Inter+Tight:wght@400;500;600;700;800;900&display=swap"
+    rel="stylesheet"
+  >
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="no-js">
+  <!-- Header fixo: os links apontam para os ids das seções abaixo. -->
+  <header class="site-header">
+    <div class="container nav-shell">
+      <a class="brand" href="#top" aria-label="OVERTRIP">
+        <span class="brand-name">OVERTRIP</span>
+        <span class="brand-tag">No Destination</span>
+      </a>
+
+      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav">
+        Menu
+      </button>
+
+      <nav class="site-nav" id="site-nav" aria-label="Principal">
+        <a href="#proxima">Próxima trip</a>
+        <a href="#sobre">Sobre</a>
+        <a href="#universo">Universo</a>
+        <a href="#como">Como funciona?</a>
+        <a href="#galeria">Memórias</a>
+        <a href="#vozes">Vozes</a>
+        <a href="#faq">FAQ</a>
+      </nav>
+    </div>
+  </header>
+  <button class="menu-backdrop" type="button" aria-label="Fechar menu"></button>
+
+  <main>
+    <section class="hero" id="top">
+      <div class="hero-media">
+        <img src="assets/images/hero.jpg" alt="Estrada serpenteando por vale verde ao amanhecer">
+      </div>
+      <div class="hero-overlay"></div>
+
+      <div class="hero-content reveal">
+        <p class="section-kicker centered">
+          <span></span>
+          No Destination
+          <span></span>
+        </p>
+        <h1>
+          Quando a estrada chama,
+          <br>o destino vira <em>detalhe.</em>
+        </h1>
+        <p class="hero-lead">
+          OVERTRIP é lifestyle, comunidade e estrada. Pra quem troca o roteiro óbvio por natureza,
+          presença e conexão real.
+        </p>
+        <div class="hero-actions">
+          <a class="button" href="#proxima">Ver próxima expedição</a>
+          <!-- Links com .wa-link recebem a URL final do WhatsApp pelo script.js. -->
+          <a
+            class="button button-outline wa-link"
+            data-wa-message="Oi OVERTRIP! Quero saber mais sobre o movimento e as próximas experiências."
+            href="#"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Entrar no movimento
+          </a>
+        </div>
+      </div>
+
+      <div class="hero-footer">
+        <span>OVERTRIP</span>
+        <span>Move Different</span>
+        <span>No Destination</span>
+      </div>
+    </section>
+
+    <!-- Próxima experiência em destaque: edite este bloco a cada novo embarque. -->
+    <section class="section section-light" id="proxima">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">OVERTRIP Expeditions</p>
+            <h2>A próxima estrada já tem data.</h2>
+          </div>
+          <p class="status-pill"><span></span>Próximo embarque aberto</p>
+        </div>
+
+        <article class="feature-card">
+          <div class="feature-media">
+            <img src="assets/images/pureza-rn.jpg" alt="Olheiro de Pureza em meio à vegetação natural">
+          </div>
+          <div class="feature-content">
+            <div>
+              <p class="section-kicker">Capítulo 02 - Maio 2026</p>
+              <h3>Olheiro de Pureza</h3>
+              <p class="feature-copy">
+                Águas claras, bate-papo na estrada e o silêncio que só lugar bom tem.
+                Vai com a gente.
+              </p>
+            </div>
+
+            <div class="detail-grid">
+              <div class="detail-item">
+                <span>Data</span>
+                <strong>17/05/2026</strong>
+              </div>
+              <div class="detail-item">
+                <span>Saída</span>
+                <strong>00h00</strong>
+              </div>
+              <div class="detail-item">
+                <span>Retorno</span>
+                <strong>16h30</strong>
+              </div>
+              <div class="detail-item">
+                <span>Encontro</span>
+                <strong>Parque da Liberdade, CG</strong>
+              </div>
+              <div class="detail-item highlight">
+                <span>Investimento</span>
+                <strong>R$ 130,00</strong>
+              </div>
+              <div class="detail-item">
+                <span>Vagas</span>
+                <strong>Limitadas</strong>
+              </div>
+            </div>
+
+            <p class="feature-includes">
+              Inclui transporte, organização e curadoria da experiência.
+            </p>
+
+            <a
+              class="button button-dark feature-button wa-link"
+              data-wa-message="Fala! Tenho interesse na experiência Olheiro de Pureza 👀"
+              href="#"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <span>Reservar via WhatsApp</span>
+              <span aria-hidden="true">-&gt;</span>
+            </a>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section section-paper" id="sobre">
+      <div class="container split-layout">
+        <div class="media-block reveal">
+          <img src="assets/images/gallery-3.jpg" alt="Café com vista para montanhas">
+        </div>
+
+        <div class="text-block reveal">
+          <p class="section-kicker">Sobre a OVERTRIP</p>
+          <h2>
+            Nasceu entre amigos.
+            <br> Cresceu como <em>movimento.</em>
+          </h2>
+          <div class="stack-copy">
+            <p>
+              Em 2023, uma turma de amigos começou a viajar junto. Pouco roteiro, muita estrada e a
+              sensação de que o melhor não era o lugar - era a energia de ir junto.
+            </p>
+            <p class="strong-copy">
+              Hoje, OVERTRIP é comunidade, identidade e estilo de vida. Para quem entende que a viagem
+              é o estilo de vida, não o destino final.
+            </p>
+          </div>
+          <div class="tag-list">
+            <span>No Destination</span>
+            <span>Move Different</span>
+            <span>Tribo OVERTRIP</span>
+            <span>Natureza</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Universo da marca: apresenta as frentes OVERTRIP sem parecer agência de turismo. -->
+    <section class="section section-light brand-universe" id="universo">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">Universo OVERTRIP</p>
+            <h2>Uma marca para viver a viagem além do destino.</h2>
+          </div>
+          <p class="section-support">
+            O movimento se divide em experiências, comunidade e produtos para quem carrega a estrada como estilo de vida.
+          </p>
+        </div>
+
+        <div class="universe-grid">
+          <article class="universe-card reveal">
+            <span>01</span>
+            <h3>OVERTRIP Expeditions</h3>
+            <p>Experiências autorais com natureza, estrada, logística e presença real.</p>
+          </article>
+
+          <article class="universe-card reveal">
+            <span>02</span>
+            <h3>TRIBO OVERTRIP</h3>
+            <p>A comunidade de quem embarca junto, troca rota, cria história e continua conectado depois da trip.</p>
+          </article>
+
+          <article class="universe-card reveal">
+            <span>03</span>
+            <h3>OVERTRIP Store <small>em breve</small></h3>
+            <p>Produtos para levar a identidade da marca para fora da estrada: camisetas, bonés, garrafas e acessórios.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-dark section-how" id="como">
+      <div class="container">
+        <div class="section-head compact-head">
+          <div>
+            <p class="section-kicker muted">Como funciona?</p>
+            <h2>Sem letra miúda. <em>Só estrada.</em></h2>
+          </div>
+        </div>
+
+        <div class="cards-grid">
+          <article class="info-card reveal">
+            <div class="card-top">
+              <span>01 - OVERTRIP</span>
+              <i></i>
+            </div>
+            <h3>Curadoria de experiência</h3>
+            <p>
+              Rota, logística, paradas e ritmo pensados para transformar uma viagem simples em memória coletiva.
+            </p>
+          </article>
+          <article class="info-card reveal accent-line">
+            <div class="card-top">
+              <span>02 - OVERTRIP</span>
+              <i></i>
+            </div>
+            <h3>Vagas limitadas</h3>
+            <p>
+              Expedições enxutas pra preservar a vibe. Cada trip tem cara, nome e história - não é excursão.
+            </p>
+          </article>
+          <article class="info-card reveal">
+            <div class="card-top">
+              <span>03 - OVERTRIP</span>
+              <i></i>
+            </div>
+            <h3>Experiência coletiva</h3>
+            <p>
+              Roteiro, trilha e convivência pensados pra quem quer presença real, não só foto pronta.
+            </p>
+          </article>
+        </div>
+
+      </div>
+
+      <!-- Faixa de texto em loop; aria-hidden evita leitura repetitiva por leitores de tela. -->
+      <div class="marquee-shell" aria-hidden="true">
+        <div class="marquee-track">
+          <div class="marquee-group">
+            <span class="arrow-mark accent" aria-hidden="true"></span>
+            <span>Move Different</span>
+            <span class="dash-mark light" aria-hidden="true"></span>
+            <span>No Destination</span>
+            <span class="arrow-mark accent" aria-hidden="true"></span>
+            <span>Move Different</span>
+            <span class="dash-mark light" aria-hidden="true"></span>
+            <span>No Destination</span>
+          </div>
+          <div class="marquee-group">
+            <span class="arrow-mark accent" aria-hidden="true"></span>
+            <span>Move Different</span>
+            <span class="dash-mark light" aria-hidden="true"></span>
+            <span>No Destination</span>
+            <span class="arrow-mark accent" aria-hidden="true"></span>
+            <span>Move Different</span>
+            <span class="dash-mark light" aria-hidden="true"></span>
+            <span>No Destination</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-light" id="galeria">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">Galeria - Memória OVERTRIP</p>
+            <h2>Memórias que já fazem parte da OVERTRIP.</h2>
+          </div>
+          <a
+            class="text-link wa-link"
+            data-wa-message="Oi OVERTRIP! Quero saber mais sobre o movimento e as próximas experiências."
+            href="#"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Ver tudo
+          </a>
+        </div>
+
+        <div class="gallery-grid">
+          <article class="gallery-card gallery-large reveal">
+            <div class="gallery-image">
+              <img src="assets/images/gallery-2.jpg" alt="Paisagem montanhosa com atmosfera de aventura">
+            </div>
+            <div class="gallery-copy">
+              <p class="section-kicker">Capítulo 01</p>
+              <h3>Cachoeira do Paraíso - Bonito - PE</h3>
+              <p>Nascer do sol, trilha e silêncio que reorganiza a mente.</p>
+            </div>
+          </article>
+
+          <article class="gallery-card reveal">
+            <div class="gallery-image short">
+              <img src="assets/images/gallery-1.jpg" alt="Noite de fogueira em experiência coletiva">
+            </div>
+            <div class="gallery-copy">
+              <p class="section-kicker">Camping na Pedra do Altar - Barra de Santana - PB</p>
+              <h3>Noite de fogueira</h3>
+              <p>Quando a trip continua mesmo com o motor desligado.</p>
+            </div>
+          </article>
+
+          <article class="gallery-card reveal">
+            <div class="gallery-image short">
+              <img src="assets/images/gallery-3.jpg" alt="Café na serra com vista aberta">
+            </div>
+            <div class="gallery-copy">
+              <p class="section-kicker">Capítulo 02</p>
+              <h3>Praia de Coqueirinho - Conde - PB</h3>
+              <p>Bate-papo, vista alta e gente que vira família.</p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-paper" id="vozes">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">Vozes da comunidade</p>
+            <h2>Quem foi, conta com os próprios olhos.</h2>
+          </div>
+          <p class="section-support">
+            Depoimentos reais de quem embarcou nas últimas expedições e voltou com mais do que foto no celular.
+          </p>
+        </div>
+
+        <div class="testimonials-grid">
+          <figure class="quote-card reveal">
+            <span class="quote-mark">"</span>
+            <blockquote>
+              Fui pra conhecer um lugar. Voltei com 12 amigos novos e uma cabeça diferente.
+            </blockquote>
+            <figcaption>
+              <img src="assets/images/testimonial-1.jpg" alt="Letícia">
+              <div>
+                <strong>Letícia</strong>
+                <span>Cariri - 2024</span>
+              </div>
+            </figcaption>
+          </figure>
+
+          <figure class="quote-card reveal">
+            <span class="quote-mark">"</span>
+            <blockquote>
+              Não é viagem, é uma pausa do automático. Cada parada tinha um propósito.
+            </blockquote>
+            <figcaption>
+              <img src="assets/images/testimonial-2.jpg" alt="Rafael">
+              <div>
+                <strong>Rafael</strong>
+                <span>Pedra do Baú - 2024</span>
+              </div>
+            </figcaption>
+          </figure>
+
+          <figure class="quote-card reveal">
+            <span class="quote-mark">"</span>
+            <blockquote>
+              Fui sozinha e em duas horas era como se conhecesse todo mundo há anos.
+            </blockquote>
+            <figcaption>
+              <img src="assets/images/testimonial-3.jpg" alt="Mariana">
+              <div>
+                <strong>Mariana</strong>
+                <span>Serra - 2025</span>
+              </div>
+            </figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-light" id="faq">
+      <div class="container faq-layout">
+        <div class="faq-intro reveal">
+          <p class="section-kicker">FAQ rápido</p>
+          <h2>Antes de embarcar, tira a dúvida.</h2>
+          <p>
+            As perguntas que mais aparecem no nosso WhatsApp. Se a sua não está aí, é só chamar.
+          </p>
+          <a
+            class="text-link wa-link"
+            data-wa-message="Oi! Tenho algumas dúvidas sobre como funciona uma expedição da OVERTRIP. Pode me ajudar?"
+            href="#"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Tirar dúvida no WhatsApp
+          </a>
+        </div>
+
+        <div class="faq-list">
+          <details class="faq-item reveal">
+            <summary>
+              <span>01</span>
+              <strong>Posso embarcar sozinho(a)?</strong>
+            </summary>
+            <div class="faq-body">
+              <p>
+                Pode, e a maioria vem assim. A vibe da expedição existe justamente pra você não se sentir só -
+                em poucas horas você já está conectado com o grupo.
+              </p>
+              <a
+                class="text-link wa-link"
+                data-wa-message="Oi! Posso embarcar sozinho(a) na próxima expedição? Queria entender melhor."
+                href="#"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Quero ir sozinho(a)
+              </a>
+            </div>
+          </details>
+
+          <details class="faq-item reveal">
+            <summary>
+              <span>02</span>
+              <strong>Como confirmo minha vaga?</strong>
+            </summary>
+            <div class="faq-body">
+              <p>
+                A reserva é feita com 50% do valor da experiência. O restante deve ser quitado até 48h antes
+                do embarque. Aceitamos PIX e cartão; pagamentos no cartão podem ter acréscimo de taxas/juros
+                da operadora.
+              </p>
+              <a
+                class="text-link wa-link"
+                data-wa-message="Quero garantir minha vaga na Olheiro de Pureza (17/05/2026). Como faço o pagamento?"
+                href="#"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Reservar agora
+              </a>
+            </div>
+          </details>
+
+          <details class="faq-item reveal">
+            <summary>
+              <span>03</span>
+              <strong>O que está incluso no investimento?</strong>
+            </summary>
+            <div class="faq-body">
+              <p>
+                Inclui transporte, organização e curadoria da experiência. Alimentação, entradas ou itens extras
+                são informados antes da reserva.
+              </p>
+              <a
+                class="text-link wa-link"
+                data-wa-message="Fala, OVERTRIP! Tenho interesse na expedição Olheiro de Pureza (17/05/2026). Pode me passar os próximos passos?"
+                href="#"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Ver detalhes da próxima
+              </a>
+            </div>
+          </details>
+
+          <details class="faq-item reveal">
+            <summary>
+              <span>04</span>
+              <strong>Precisa de experiência ou preparo físico?</strong>
+            </summary>
+            <div class="faq-body">
+              <p>
+                Cada expedição tem um nível de intensidade. Antes da reserva, informamos se a experiência é
+                leve, moderada ou exige mais preparo físico.
+              </p>
+              <a
+                class="text-link wa-link"
+                data-wa-message="Oi! Tenho algumas dúvidas sobre como funciona uma expedição da OVERTRIP. Pode me ajudar?"
+                href="#"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Falar com a organização
+              </a>
+            </div>
+          </details>
+
+          <details class="faq-item reveal">
+            <summary>
+              <span>05</span>
+              <strong>Posso desistir? Tem reembolso?</strong>
+            </summary>
+            <div class="faq-body">
+              <p>
+                Desistências em até 7 dias após a confirmação da reserva podem ter reembolso integral. Após
+                esse prazo, o sinal não é reembolsável. Situações excepcionais, como problemas de saúde
+                comprovados, são analisadas individualmente pela OVERTRIP.
+              </p>
+              <a
+                class="text-link wa-link"
+                data-wa-message="Oi! Tenho algumas dúvidas sobre como funciona uma expedição da OVERTRIP. Pode me ajudar?"
+                href="#"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Combinar comigo
+              </a>
+            </div>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-paper final-cta" id="cta">
+      <div class="container narrow reveal">
+        <p class="section-kicker">Embarque</p>
+        <h2>
+          Entre no movimento.
+          <br>O destino vem depois.
+        </h2>
+        <p>
+          Receba as próximas experiências, acompanhe os drops da marca e faça parte de uma comunidade que vive a estrada como estilo de vida.
+        </p>
+        <div class="hero-actions centered-actions">
+          <a
+            class="button button-dark wa-link"
+            data-wa-message="Quero entrar no movimento OVERTRIP e receber as próximas experiências em primeira mão."
+            href="#"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Entrar no movimento
+          </a>
+          <a
+            class="button button-light wa-link"
+            data-wa-message="Oi OVERTRIP! Quero saber mais sobre o movimento e as próximas experiências."
+            href="#"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Falar com a organização
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div class="footer-brand">
+        <h3>OVERTRIP</h3>
+        <p class="section-kicker">No Destination - Move Different</p>
+        <p>Marca lifestyle de experiências, comunidade, produtos e estrada. Desde 2023.</p>
+      </div>
+
+      <div>
+        <p class="footer-title">Marca</p>
+        <a href="#proxima">OVERTRIP Expeditions</a>
+        <a href="#universo">Tribo OVERTRIP</a>
+        <a href="#universo">OVERTRIP Store</a>
+        <a href="#como">Como funciona?</a>
+        <a href="#galeria">Memórias</a>
+        <a href="#faq">FAQ</a>
+      </div>
+
+      <div>
+        <p class="footer-title">Contato</p>
+        <a
+          class="wa-link"
+          data-wa-message="Oi OVERTRIP! Quero saber mais sobre o movimento e as próximas experiências."
+          href="#"
+          target="_blank"
+          rel="noreferrer"
+        >
+          WhatsApp
+        </a>
+        <a href="#">Instagram</a>
+        <a href="#">Campina Grande - PB</a>
+      </div>
+    </div>
+
+    <div class="container footer-bottom">
+      <span>© <span id="current-year"></span> OVERTRIP</span>
+      <span>Made on the road</span>
+    </div>
+  </footer>
+
+  <!-- Botão flutuante de WhatsApp: o número é definido no script.js. -->
+  <a
+    class="floating-wa wa-link"
+    data-wa-message="Oi OVERTRIP! Quero saber mais sobre o movimento e as próximas experiências."
+    href="#"
+    target="_blank"
+    rel="noreferrer"
+    aria-label="Falar no WhatsApp"
+  >
+    <svg class="floating-wa-icon" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M19.05 4.91A9.82 9.82 0 0 0 12.03 2C6.61 2 2.2 6.4 2.2 11.82c0 1.73.45 3.42 1.3 4.9L2 22l5.44-1.42a9.8 9.8 0 0 0 4.58 1.16h.01c5.42 0 9.83-4.41 9.83-9.83a9.77 9.77 0 0 0-2.81-7Zm-7.02 15.17h-.01a8.15 8.15 0 0 1-4.15-1.13l-.3-.18-3.23.85.87-3.15-.2-.32a8.16 8.16 0 0 1-1.25-4.33c0-4.5 3.66-8.16 8.17-8.16 2.18 0 4.23.85 5.76 2.39a8.1 8.1 0 0 1 2.39 5.78c0 4.5-3.67 8.16-8.15 8.16Zm4.48-6.11c-.24-.12-1.4-.69-1.62-.77-.22-.08-.38-.12-.54.12-.16.24-.62.77-.76.93-.14.16-.28.18-.52.06-.24-.12-1-.37-1.91-1.17-.7-.63-1.18-1.41-1.32-1.65-.14-.24-.01-.37.1-.49.11-.11.24-.28.36-.42.12-.14.16-.24.24-.4.08-.16.04-.3-.02-.42-.06-.12-.54-1.3-.74-1.78-.2-.48-.4-.42-.54-.43l-.46-.01c-.16 0-.42.06-.64.3-.22.24-.84.82-.84 2s.86 2.32.98 2.48c.12.16 1.68 2.57 4.07 3.6.57.25 1.02.4 1.37.51.58.18 1.1.15 1.52.09.46-.07 1.4-.57 1.6-1.12.2-.55.2-1.02.14-1.12-.06-.1-.22-.16-.46-.28Z"/>
+    </svg>
+  </a>
+
+  <script src="js/script.js"></script>
+</body>
+</html>
