@@ -1,7 +1,8 @@
 document.body.classList.remove("no-js");
 document.body.classList.add("js");
 
-const waNumber = "5583999999999";
+// Edite apenas este valor quando tiver o WhatsApp oficial. Use DDI + DDD + número, sem espaços.
+const whatsappNumber = "55SEUNUMEROAQUI";
 const waLinks = document.querySelectorAll(".wa-link");
 const currentYear = document.querySelector("#current-year");
 const revealElements = document.querySelectorAll(".reveal");
@@ -74,7 +75,12 @@ const bindHoverClass = (elements) => {
 waLinks.forEach((link) => {
   // Cada link define sua própria mensagem no atributo data-wa-message.
   const message = link.dataset.waMessage || "";
-  link.href = `https://wa.me/${waNumber}?text=${encodeURIComponent(message)}`;
+  const encodedMessage = encodeURIComponent(message);
+  const hasConfiguredNumber = /^\d{12,13}$/.test(whatsappNumber);
+
+  link.href = hasConfiguredNumber
+    ? `https://wa.me/${whatsappNumber}?text=${encodedMessage}`
+    : `https://wa.me/?text=${encodedMessage}`;
 });
 
 if (currentYear) {

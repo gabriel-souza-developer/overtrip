@@ -1,25 +1,27 @@
-# OVERTRIP - Landing Page
+# OVERTRIP - No Destination
 
-Landing page estática da OVERTRIP, criada com HTML, CSS e JavaScript puro.
+Landing page estática da OVERTRIP, uma marca lifestyle nascida de viagens entre amigos e construída em torno de estrada, natureza, comunidade e experiências autorais.
 
-## Estrutura
+## Sobre o Projeto
 
-```text
-overtrip-site/
-├── index.html              # Estrutura e conteúdo da página
-├── css/
-│   └── styles.css          # Estilos, responsividade e animações visuais
-├── js/
-│   └── script.js           # Menu, WhatsApp, scroll, FAQ e animações
-├── assets/
-│   ├── images/             # Fotos usadas nas seções da landing page
-│   └── brand/              # Arquivos de marca/logotipo
-└── reference-src/          # Projeto original de referência, mantido separado
-```
+O site apresenta a OVERTRIP como um movimento, não como uma agência de turismo tradicional. A comunicação evita linguagem institucional e reforça a ideia de viver a viagem como estilo de vida, com foco em presença, conexão e memórias reais.
 
-## Pontos de edição rápida
+## Estrutura da Página
 
-- Próxima experiência: edite o bloco `#proxima` em `index.html`.
-- Número do WhatsApp: edite `waNumber` em `js/script.js`.
-- Imagens: adicione novas fotos em `assets/images/` e atualize o `src` no HTML.
-- Cores, fontes e espaçamentos globais: edite as variáveis no topo de `css/styles.css`.
+- Hero com posicionamento da marca, slogan e chamada principal.
+- Próxima experiência em destaque, com data, horários, investimento, vagas e reserva via WhatsApp.
+- Sobre a OVERTRIP, explicando a origem do movimento.
+- Universo da marca, reunindo expedições, comunidade e futura loja.
+- Como funciona, com pilares simples da experiência.
+- Galeria de memórias com viagens anteriores.
+- Vozes da comunidade com depoimentos textuais.
+- FAQ com dúvidas principais antes do embarque.
+- CTA final e rodapé institucional.
+
+## Identidade
+
+A interface usa uma estética minimalista, com bastante respiro, tipografia forte e cores ligadas à natureza e ao lifestyle da marca. A base visual combina fundo claro, texto escuro, verde musgo e destaque em laranja queimado.
+
+## Tecnologia
+
+Projeto desenvolvido com HTML, CSS e JavaScript puro, sem dependências de framework. A estrutura é responsiva, mobile-first e inclui interações leves como menu mobile, scroll suave, FAQ expansível, animações de entrada, hover em imagens e botão fixo de WhatsApp.

@@ -14,6 +14,10 @@
   --radius-xl: 1.5rem;
   --radius-lg: 1rem;
   --container: min(1400px, calc(100vw - 2rem));
+  --section-y: clamp(4.8rem, 8vw, 6.3rem);
+  --section-head-space: clamp(2.25rem, 4vw, 2.8rem);
+  --copy-width: 34rem;
+  --copy-leading: 1.7;
   --shadow-soft: 0 24px 60px rgba(17, 17, 17, 0.08);
   --ease-soft: cubic-bezier(0.16, 1, 0.3, 1);
   --image-zoom-duration: 2.2s;
@@ -337,7 +341,7 @@ h2 em {
 .faq-body p,
 .final-cta p,
 .footer-brand p {
-  line-height: 1.75;
+  line-height: var(--copy-leading);
 }
 
 .hero-lead {
@@ -374,7 +378,7 @@ h2 em {
 }
 
 .section {
-  padding: 6.3rem 0;
+  padding: var(--section-y) 0;
 }
 
 /* Shared section shells */
@@ -399,7 +403,7 @@ h2 em {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  margin-bottom: 2.6rem;
+  margin-bottom: var(--section-head-space);
 }
 
 .section-kicker {
@@ -471,7 +475,7 @@ h2 {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 1.55rem;
+  gap: clamp(1.35rem, 3vw, 1.65rem);
   padding: 2.2rem 1.75rem;
 }
 
@@ -496,7 +500,6 @@ h2 {
   color: var(--text-soft);
   max-width: 27rem;
   font-size: 0.95rem;
-  line-height: 1.7;
 }
 
 .feature-includes {
@@ -571,7 +574,7 @@ h2 {
 
 .stack-copy {
   margin-top: 1.9rem;
-  max-width: 34rem;
+  max-width: var(--copy-width);
 }
 
 .stack-copy p,
@@ -665,7 +668,7 @@ h2 {
   margin: 1rem 0 0;
   color: var(--text-soft);
   font-size: 0.84rem;
-  line-height: 1.65;
+  line-height: var(--copy-leading);
 }
 
 /* How it works */
@@ -679,7 +682,7 @@ h2 {
 
 .info-card {
   background: var(--ink);
-  padding: 2.35rem 1.5rem 2rem;
+  padding: clamp(2rem, 5vw, 2.35rem) clamp(1.5rem, 4vw, 2rem) 2rem;
   transition: background-color 220ms ease, transform 220ms ease;
 }
 
@@ -876,6 +879,7 @@ h2 {
 .quote-card {
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
   padding: 1.75rem;
   background: var(--bone);
   border: 1px solid rgba(17, 17, 17, 0.1);
@@ -904,17 +908,10 @@ h2 {
 
 .quote-card figcaption {
   display: flex;
-  align-items: center;
-  gap: 0.8rem;
+  align-items: flex-start;
   margin-top: 1.75rem;
   padding-top: 1.25rem;
   border-top: 1px solid var(--line);
-}
-
-.quote-card figcaption img {
-  width: 3rem;
-  height: 3rem;
-  border-radius: 50%;
 }
 
 .quote-card figcaption strong {
@@ -1252,10 +1249,6 @@ body.js .reveal.is-visible {
 }
 
 @media (min-width: 980px) {
-  .section {
-    padding: 5rem 0;
-  }
-
   .hero-content {
     padding-top: 8rem;
     padding-bottom: 6.9rem;
@@ -1266,7 +1259,6 @@ body.js .reveal.is-visible {
   }
 
   .feature-content {
-    gap: 1.65rem;
     padding: 2.6rem 3rem;
   }
 
