@@ -2,7 +2,7 @@ document.body.classList.remove("no-js");
 document.body.classList.add("js");
 
 // Edite apenas este valor quando tiver o WhatsApp oficial. Use DDI + DDD + número, sem espaços.
-const whatsappNumber = "55SEUNUMEROAQUI";
+const whatsappNumber = "5583987745549";
 const waLinks = document.querySelectorAll(".wa-link");
 const currentYear = document.querySelector("#current-year");
 const revealElements = document.querySelectorAll(".reveal");

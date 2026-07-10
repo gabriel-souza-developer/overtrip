@@ -138,6 +138,7 @@ h3,
   box-shadow: 0 24px 70px rgba(17, 17, 17, 0.42);
   backdrop-filter: blur(22px);
   transform: translateX(-50%);
+  letter-spacing: 0.32em;
 }
 
 .menu-backdrop {
@@ -152,7 +153,7 @@ h3,
 .hero-footer,
 .status-pill,
 .footer-bottom {
-  font-size: 0.6rem;
+  font-size: 0.83rem;
   font-weight: 700;
   letter-spacing: 0.32em;
   text-transform: uppercase;
