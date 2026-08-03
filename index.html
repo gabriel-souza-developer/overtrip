@@ -17,6 +17,7 @@
   <meta name="robots" content="index, follow, max-image-preview:large">
 
   <link rel="canonical" href="https://overtrip.com.br/">
+  <link rel="stylesheet" href="css/styles.css">
 
   <!-- Open Graph -->
   <meta property="og:type" content="website">
@@ -77,8 +78,6 @@
     rel="stylesheet"
   >
 
-  <link rel="stylesheet" href="/css/styles.css">
-  
   <!-- Schema.org -->
   <script type="application/ld+json">
   {
@@ -118,7 +117,7 @@
 
       <nav class="site-nav" id="site-nav" aria-label="Principal">
         <a href="#proxima">Próxima trip</a>
-        <a href="#sobre">Sobre</a>
+        <a href="#sobre">Nossa história</a>
         <a href="#universo">Universo</a>
         <a href="#como">Como funciona?</a>
         <a href="#galeria">Memórias</a>
@@ -146,7 +145,6 @@
           Quando a estrada chama,
           <br>o destino vira <em>detalhe.</em>
         </h1>
-        <!-- OVERTRIP é um movimento de experiências, comunidade e estrada. Pra quem troca o roteiro óbvio por natureza, presença e conexão real. -->
         <p class="hero-lead">
          OVERTRIP é uma agência de experiências e uma comunidade para quem acredita que a melhor parte da viagem começa muito antes do destino.
         </p>
@@ -172,7 +170,7 @@
       </div>
     </section>
 
-    <!-- Próxima experiência em destaque: edite este bloco a cada novo embarque. -->
+    <!-- Próximos embarques: datas, valores e destinos abaixo são ilustrativos — troque pelos embarques confirmados. -->
     <section class="section section-light" id="proxima">
       <div class="container">
         <div class="section-head">
@@ -183,96 +181,197 @@
           <p class="status-pill"><span></span>Próximo embarque aberto</p>
         </div>
 
-        <article class="feature-card">
-          <div class="feature-media">
-            <img src="assets/images/pureza-rn.jpg" alt="Olheiro de Pureza em meio à vegetação natural" loading="lazy" decoding="async">
-          </div>
-          <div class="feature-content">
-            <div>
-              <p class="section-kicker">Capítulo 02 - Maio 2026</p>
-              <h3>Olheiro de Pureza</h3>
-              <p class="feature-copy">
-                Águas claras, bate-papo na estrada e o silêncio que só lugar bom tem.
-                Vai com a gente.
-              </p>
+        <div class="trip-grid">
+          <article class="trip-card reveal">
+            <div class="trip-media">
+              <img src="assets/images/pico-do-jabre.jpg" alt="Trilha com vista panorâmica no Pico do Jabre" loading="lazy" decoding="async">
             </div>
-
-            <div class="detail-grid">
-              <div class="detail-item">
-                <span>Data</span>
-                <strong>17/05/2026</strong>
+            <div class="trip-body">
+              <span class="trip-status open">Vagas abertas</span>
+              <p class="trip-kicker">Capítulo 03 · Setembro 2026</p>
+              <h3>Pico do Jabre</h3>
+              <p class="trip-location">Maturéia - PB</p>
+              <div class="trip-meta">
+                <span>13/09/2026</span>
+                <span>Saída 05h00</span>
               </div>
-              <div class="detail-item">
-                <span>Saída</span>
-                <strong>00h00</strong>
-              </div>
-              <div class="detail-item">
-                <span>Retorno</span>
-                <strong>16h30</strong>
-              </div>
-              <div class="detail-item">
-                <span>Encontro</span>
-                <strong>Parque da Liberdade, CG</strong>
-              </div>
-              <div class="detail-item highlight">
-                <span>Investimento</span>
-                <strong>R$ 130,00</strong>
-              </div>
-              <div class="detail-item">
-                <span>Vagas</span>
-                <strong>Limitadas</strong>
-              </div>
+              <p class="trip-price">R$ 150,00</p>
+              <a
+                class="button button-dark wa-link"
+                data-wa-message="Fala! Tenho interesse na expedição Pico do Jabre (13/09/2026) 🏔️"
+                href="#"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Reservar via WhatsApp
+              </a>
             </div>
+          </article>
 
-            <p class="feature-includes">
-              Inclui transporte, organização e curadoria da experiência.
-            </p>
+          <article class="trip-card reveal">
+            <div class="trip-media">
+              <img src="assets/images/vale-do-catimbau.jpg" alt="Formações rochosas do Vale do Catimbau" loading="lazy" decoding="async">
+            </div>
+            <div class="trip-body">
+              <span class="trip-status last">Últimas vagas</span>
+              <p class="trip-kicker">Capítulo 04 · Outubro 2026</p>
+              <h3>Vale do Catimbau</h3>
+              <p class="trip-location">Buíque - PE</p>
+              <div class="trip-meta">
+                <span>04/10/2026</span>
+                <span>Saída 04h00</span>
+              </div>
+              <p class="trip-price">R$ 180,00</p>
+              <a
+                class="button button-dark wa-link"
+                data-wa-message="Fala! Quero garantir minha vaga na expedição Vale do Catimbau (04/10/2026) 🌵"
+                href="#"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Reservar via WhatsApp
+              </a>
+            </div>
+          </article>
 
-            <a
-              class="button button-dark feature-button wa-link"
-              data-wa-message="Fala! Tenho interesse na experiência Olheiro de Pureza 👀"
-              href="#"
-              target="_blank"
-              rel="noreferrer"
-            >
-              <span>Reservar via WhatsApp</span>
-              <span aria-hidden="true">-&gt;</span>
-            </a>
-          </div>
-        </article>
+          <article class="trip-card reveal">
+            <div class="trip-media">
+              <img src="assets/images/praia-de-tambaba.jpg" alt="Falésias e mar na Praia de Tambaba" loading="lazy" decoding="async">
+            </div>
+            <div class="trip-body">
+              <span class="trip-status open">Vagas abertas</span>
+              <p class="trip-kicker">Capítulo 05 · Outubro 2026</p>
+              <h3>Praia de Tambaba</h3>
+              <p class="trip-location">Conde - PB</p>
+              <div class="trip-meta">
+                <span>25/10/2026</span>
+                <span>Saída 06h00</span>
+              </div>
+              <p class="trip-price">R$ 140,00</p>
+              <a
+                class="button button-dark wa-link"
+                data-wa-message="Fala! Tenho interesse na experiência Praia de Tambaba (25/10/2026) 🌊"
+                href="#"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Reservar via WhatsApp
+              </a>
+            </div>
+          </article>
+
+          <article class="trip-card reveal">
+            <div class="trip-media">
+              <img src="assets/images/pedra-caida.jpg" alt="Cachoeira de Pedra Caída vista de longe" loading="lazy" decoding="async">
+            </div>
+            <div class="trip-body">
+              <span class="trip-status soon">Em breve · lista de espera</span>
+              <p class="trip-kicker">Capítulo 06 · Novembro 2026 · Expedição especial</p>
+              <h3>Cachoeira de Pedra Caída</h3>
+              <p class="trip-location">Buriticupu - MA</p>
+              <div class="trip-meta">
+                <span>21 a 23/11/2026</span>
+                <span>Saída sexta 22h00</span>
+              </div>
+              <p class="trip-price">R$ 450,00</p>
+              <a
+                class="button button-outline wa-link"
+                data-wa-message="Oi! Quero entrar na lista de espera da expedição Pedra Caída (21 a 23/11/2026) 🏕️"
+                href="#"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Entrar na lista de espera
+              </a>
+            </div>
+          </article>
+        </div>
       </div>
     </section>
 
+    <!-- Sobre + Nossa história: uma única seção, foto dos amigos e a linha do tempo abaixo do texto. -->
     <section class="section section-paper" id="sobre">
-      <div class="container split-layout">
-        <div class="media-block reveal">
-          <img src="assets/images/amigos-na-cachoeira.jpg" alt="Amigos na cachoeira" loading="lazy" decoding="async">
+      <div class="container">
+        <div class="split-layout">
+          <div class="media-block reveal">
+            <img src="assets/images/amigos-na-cachoeira.jpg" alt="Amigos na cachoeira" loading="lazy" decoding="async">
+          </div>
+
+          <div class="text-block reveal">
+            <p class="section-kicker">Sobre a OVERTRIP</p>
+            <h2>
+              Nasceu na estrada.
+              <br> Virou <em>comunidade</em>
+            </h2>
+            <div class="stack-copy">
+              <p>
+                A OVERTRIP começou em 2023 entre amigos que decidiram viajar de um jeito diferente.
+                Pouco roteiro. Muita presença.
+              </p>
+              <p class="strong-copy">
+                O destino nunca foi o ponto.
+                O que importava era o que acontecia no caminho.
+              </p>
+              <p>
+               Hoje, a OVERTRIP reúne pessoas que acreditam que viajar também é conhecer gente, criar histórias e viver experiências que continuam depois da volta.
+              </p>
+            </div>
+            <div class="tag-list">
+              <span>Turismo</span>
+              <span>Experiências</span>
+              <span>Comunidade</span>
+              <span>No Destination</span>
+            </div>
+          </div>
         </div>
 
-        <div class="text-block reveal">
-          <p class="section-kicker">Sobre a OVERTRIP</p>
-          <h2>
-            Nasceu na estrada.
-            <br> Virou <em>comunidade</em>
-          </h2>
-          <div class="stack-copy">
-            <p>
-              A OVERTRIP começou em 2023 entre amigos que decidiram viajar de um jeito diferente.
-              Pouco roteiro. Muita presença.
-            </p>
-            <p class="strong-copy">
-              O destino nunca foi o ponto.
-              O que importava era o que acontecia no caminho.
-            </p>
-            <p>
-             Hoje, a OVERTRIP reúne pessoas que acreditam que viajar também é conhecer gente, criar histórias e viver experiências que continuam depois da volta.
-            </p>
-          </div>
-          <div class="tag-list">
-            <span>Turismo</span>
-            <span>Experiências</span>
-            <span>Comunidade</span>
-            <span>No Destination</span>
+        <!-- Linha do tempo: marcos ilustrativos, ajuste datas e textos conforme a história real da marca. -->
+        <div class="origin-timeline">
+          <p class="section-kicker">Linha do tempo</p>
+
+          <div class="timeline">
+            <ol class="timeline-track">
+              <li class="timeline-point reveal">
+                <span class="timeline-year">2023</span>
+                <span class="timeline-dot" aria-hidden="true"></span>
+                <div class="timeline-copy">
+                  <h3>A primeira estrada</h3>
+                  <p>Um grupo de amigos troca o roteiro óbvio por uma viagem sem destino fixo. Nasce a ideia que viraria OVERTRIP.</p>
+                </div>
+              </li>
+              <li class="timeline-point reveal">
+                <span class="timeline-year">2024</span>
+                <span class="timeline-dot" aria-hidden="true"></span>
+                <div class="timeline-copy">
+                  <h3>OVERTRIP vira marca</h3>
+                  <p>Sai do papel a primeira expedição organizada, com curadoria, logística e identidade próprias.</p>
+                </div>
+              </li>
+              <li class="timeline-point reveal">
+                <span class="timeline-year">2024</span>
+                <span class="timeline-dot" aria-hidden="true"></span>
+                <div class="timeline-copy">
+                  <h3>A comunidade aparece</h3>
+                  <p>Quem viaja uma vez, volta. Surge o núcleo do que hoje chamamos de Tribo OVERTRIP.</p>
+                </div>
+              </li>
+              <li class="timeline-point reveal">
+                <span class="timeline-year">2025</span>
+                <span class="timeline-dot" aria-hidden="true"></span>
+                <div class="timeline-copy">
+                  <h3>Primeira expedição fora da Paraíba</h3>
+                  <p>A OVERTRIP cruza a fronteira do estado e leva o "No Destination" para novos destinos.</p>
+                </div>
+              </li>
+              <li class="timeline-point reveal">
+                <span class="timeline-year">2026</span>
+                <span class="timeline-dot" aria-hidden="true"></span>
+                <div class="timeline-copy">
+                  <h3>OVERTRIP Store no horizonte</h3>
+                  <p>O universo da marca ganha um novo capítulo: produtos para viver o Move Different fora da estrada.</p>
+                </div>
+              </li>
+            </ol>
           </div>
         </div>
       </div>
@@ -434,6 +533,17 @@
               <p>Quando a trip continua mesmo com o motor desligado.</p>
             </div>
           </article>
+
+          <article class="gallery-card reveal">
+            <div class="gallery-image short">
+              <img src="assets/images/pureza-rn.jpg" alt="Olheiro de Pureza em meio à vegetação natural" loading="lazy" decoding="async">
+            </div>
+            <div class="gallery-copy">
+              <p class="section-kicker">Maio 2026</p>
+              <h3>Olheiro de Pureza - RN</h3>
+              <p>Águas claras e a resenha que quase atrasou a volta.</p>
+            </div>
+          </article>
         </div>
 
       </div>
@@ -549,7 +659,7 @@
               </p>
               <a
                 class="text-link wa-link"
-                data-wa-message="Quero garantir minha vaga na Olheiro de Pureza (17/05/2026). Como faço o pagamento?"
+                data-wa-message="Quero garantir minha vaga na próxima expedição da OVERTRIP. Como faço o pagamento?"
                 href="#"
                 target="_blank"
                 rel="noreferrer"
@@ -571,7 +681,7 @@
               </p>
               <a
                 class="text-link wa-link"
-                data-wa-message="Fala, OVERTRIP! Tenho interesse na expedição Olheiro de Pureza (17/05/2026). Pode me passar os próximos passos?"
+                data-wa-message="Fala, OVERTRIP! Tenho interesse na próxima expedição. Pode me passar os próximos passos?"
                 href="#"
                 target="_blank"
                 rel="noreferrer"
