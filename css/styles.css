@@ -1,3 +1,6 @@
+/* ==========================================================================
+   1. VARIÁVEIS GLOBAIS
+   ========================================================================== */
 :root {
   /* Brand palette */
   --bone: oklch(0.965 0 0);
@@ -23,6 +26,9 @@
   --image-zoom-duration: 2.2s;
 }
 
+/* ==========================================================================
+   2. RESET / ELEMENTOS BASE
+   ========================================================================== */
 * {
   box-sizing: border-box;
 }
@@ -67,7 +73,54 @@ button {
   margin: 0 auto;
 }
 
-/* Header */
+/* Tipografia compartilhada por várias seções (títulos e parágrafos) */
+.brand-name,
+h1,
+h2,
+h3,
+.footer-brand h3,
+.quote-card blockquote,
+.marquee-track {
+  font-family: "Inter Tight", sans-serif;
+  letter-spacing: -0.035em;
+}
+
+h1 {
+  margin: 0;
+  font-size: 2.1rem;
+  font-weight: 800;
+  line-height: 1.05;
+}
+
+h1 em,
+h2 em {
+  font-style: italic;
+  font-weight: 500;
+  color: var(--rust);
+}
+
+h2 {
+  margin: 0;
+  font-size: 2.15rem;
+  line-height: 1;
+  font-weight: 800;
+}
+
+.hero-lead,
+.section-support,
+.stack-copy p,
+.info-card p,
+.gallery-copy p,
+.faq-intro p,
+.faq-body p,
+.final-cta p,
+.footer-brand p {
+  line-height: var(--copy-leading);
+}
+
+/* ==========================================================================
+   3. HEADER / NAVEGAÇÃO
+   ========================================================================== */
 .site-header {
   position: fixed;
   inset: 0 0 auto;
@@ -96,17 +149,6 @@ button {
   line-height: 1;
   color: var(--bone);
   mix-blend-mode: difference;
-}
-
-.brand-name,
-h1,
-h2,
-h3,
-.footer-brand h3,
-.quote-card blockquote,
-.marquee-track {
-  font-family: "Inter Tight", sans-serif;
-  letter-spacing: -0.035em;
 }
 
 .brand-name {
@@ -139,17 +181,18 @@ h3,
   backdrop-filter: blur(22px);
   transform: translateX(-50%);
   letter-spacing: 0.32em;
+  justify-self: center;
 }
 
 .menu-backdrop {
   display: none;
 }
 
+/* Rótulos em uppercase compartilhados por várias seções */
 .site-nav a,
 .footer-title,
 .section-kicker,
 .card-top span,
-.detail-item span,
 .hero-footer,
 .status-pill,
 .footer-bottom {
@@ -166,10 +209,6 @@ h3,
   color: var(--bone);
   opacity: 0.78;
   transition: background-color 180ms ease, opacity 180ms ease;
-}
-
-.site-nav {
-  justify-self: center;
 }
 
 .site-nav a:hover,
@@ -209,7 +248,9 @@ h3,
   backdrop-filter: blur(2px);
 }
 
-/* Buttons */
+/* ==========================================================================
+   4. BOTÕES E LINKS (compartilhados por todas as seções)
+   ========================================================================== */
 .button {
   display: inline-flex;
   align-items: center;
@@ -223,15 +264,6 @@ h3,
   font-size: 0.84rem;
   font-weight: 500;
   transition: background-color 220ms ease, color 220ms ease, border-color 220ms ease;
-}
-
-.text-link:hover,
-.text-link:focus-visible,
-.site-nav a:hover,
-.site-nav a:focus-visible,
-.site-footer a:hover,
-.site-footer a:focus-visible {
-  transform: translateY(-1px);
 }
 
 .button-outline {
@@ -266,7 +298,118 @@ h3,
   background: rgba(17, 17, 17, 0.05);
 }
 
-/* Hero */
+.text-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  transition: color 220ms ease, transform 220ms ease;
+}
+
+.text-link::after {
+  content: "->";
+}
+
+.text-link:hover,
+.text-link:focus-visible {
+  color: var(--moss);
+}
+
+.text-link:hover,
+.text-link:focus-visible,
+.site-nav a:hover,
+.site-nav a:focus-visible,
+.site-footer a:hover,
+.site-footer a:focus-visible {
+  transform: translateY(-1px);
+}
+
+/* ==========================================================================
+   5. UTILITÁRIOS DE SEÇÃO (usados em quase toda a página)
+   ========================================================================== */
+.section {
+  padding: var(--section-y) 0;
+}
+
+.section-light {
+  background: var(--bone);
+}
+
+.section-paper {
+  background: var(--paper);
+}
+
+.section-dark {
+  background: var(--ink);
+  color: var(--bone);
+}
+
+.section-how {
+  padding-bottom: 0;
+}
+
+.section-head {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-bottom: var(--section-head-space);
+}
+
+.section-kicker {
+  margin: 0 0 1.5rem;
+  color: var(--text-soft);
+}
+
+.section-dark .section-kicker,
+.section-dark .card-top span {
+  color: rgba(245, 243, 239, 0.6);
+}
+
+.section-support {
+  max-width: 24rem;
+  color: var(--text-soft);
+  margin: 0;
+  font-size: 0.84rem;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: fit-content;
+  padding: 0.65rem 0.95rem;
+  border: 1px solid rgba(17, 17, 17, 0.16);
+  border-radius: 999px;
+}
+
+.status-pill span {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: var(--rust);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.5; transform: scale(0.95); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+/* Grids de 2 colunas compartilhados por Sobre, FAQ, Footer e Universo */
+.split-layout,
+.faq-layout,
+.footer-grid,
+.universe-grid {
+  display: grid;
+  gap: 2rem;
+}
+
+/* ==========================================================================
+   6. HERO
+   ========================================================================== */
 .hero {
   position: relative;
   min-height: 100svh;
@@ -318,33 +461,6 @@ h3,
   background: var(--rust);
 }
 
-h1 {
-  margin: 0;
-  font-size: 2.1rem;
-  font-weight: 800;
-  line-height: 1.05;
-}
-
-h1 em,
-h2 em {
-  font-style: italic;
-  font-weight: 500;
-  color: var(--rust);
-}
-
-.hero-lead,
-.section-support,
-.feature-copy,
-.stack-copy p,
-.info-card p,
-.gallery-copy p,
-.faq-intro p,
-.faq-body p,
-.final-cta p,
-.footer-brand p {
-  line-height: var(--copy-leading);
-}
-
 .hero-lead {
   width: min(32rem, 100%);
   margin: 1.5rem auto 0;
@@ -378,162 +494,46 @@ h2 em {
   display: none;
 }
 
-.section {
-  padding: var(--section-y) 0;
+/* ==========================================================================
+   7. PRÓXIMA TRIP (grid de embarques)
+   ========================================================================== */
+/* Filtro de mês, acima do grid */
+.trip-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 1.75rem;
 }
 
-/* Shared section shells */
-.section-light {
-  background: var(--bone);
+.trip-filter-btn {
+  padding: 0.55rem 1.15rem;
+  border-radius: 999px;
+  border: 1px solid rgba(17, 17, 17, 0.18);
+  background: transparent;
+  color: var(--text-soft);
+  font-family: "Inter Tight", sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease;
 }
 
-.section-paper {
-  background: var(--paper);
+.trip-filter-btn:hover {
+  border-color: rgba(17, 17, 17, 0.32);
 }
 
-.section-dark {
+.trip-filter-btn.is-active {
   background: var(--ink);
+  border-color: var(--ink);
   color: var(--bone);
 }
 
-.section-how {
-  padding-bottom: 0;
+.trip-card.is-hidden {
+  display: none;
 }
 
-.section-head {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  margin-bottom: var(--section-head-space);
-}
-
-.section-kicker {
-  margin: 0 0 1.5rem;
-  color: var(--text-soft);
-}
-
-.section-dark .section-kicker,
-.section-dark .card-top span {
-  color: rgba(245, 243, 239, 0.6);
-}
-
-h2 {
-  margin: 0;
-  font-size: 2.15rem;
-  line-height: 1;
-  font-weight: 800;
-}
-
-.status-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.6rem;
-  width: fit-content;
-  padding: 0.65rem 0.95rem;
-  border: 1px solid rgba(17, 17, 17, 0.16);
-  border-radius: 999px;
-}
-
-.status-pill span {
-  width: 0.45rem;
-  height: 0.45rem;
-  border-radius: 50%;
-  background: var(--rust);
-  animation: pulse 1.6s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 0.5; transform: scale(0.95); }
-  50% { opacity: 1; transform: scale(1); }
-}
-
-/* Next experience */
-.feature-card {
-  display: grid;
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-xl);
-  background: var(--bone);
-  box-shadow: var(--shadow-soft);
-}
-
-.feature-media {
-  overflow: hidden;
-  aspect-ratio: 16 / 10;
-  min-height: 0;
-}
-
-.feature-media img {
-  min-height: 0;
-  transform: scale(1) translate3d(0, 0, 0);
-  transform-origin: center center;
-  backface-visibility: hidden;
-  will-change: transform;
-  transition: transform var(--image-zoom-duration) var(--ease-soft);
-}
-
-.feature-content {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: clamp(1.35rem, 3vw, 1.65rem);
-  padding: 2.2rem 1.75rem;
-}
-
-.feature-button {
-  justify-content: space-between;
-  width: 100%;
-  min-height: 3.3rem;
-  padding-inline: 1.4rem;
-}
-
-.feature-content h3,
-.gallery-copy h3,
-.info-card h3 {
-  margin: 0;
-  font-size: 2.15rem;
-  line-height: 1;
-  font-weight: 800;
-}
-
-.feature-copy {
-  margin: 0.9rem 0 0;
-  color: var(--text-soft);
-  max-width: 27rem;
-  font-size: 0.95rem;
-}
-
-.feature-includes {
-  margin: -0.65rem 0 0;
-  color: var(--text-soft);
-  font-size: 0.78rem;
-  line-height: 1.55;
-}
-
-.detail-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  column-gap: 2.7rem;
-  row-gap: 1.45rem;
-  padding: 1.35rem 0;
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-}
-
-.detail-item strong {
-  display: block;
-  margin-top: 0.5rem;
-  font-family: "Inter Tight", sans-serif;
-  font-size: 1rem;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-}
-
-.detail-item.highlight strong {
-  color: var(--rust);
-}
-
-/* Grid de próximos embarques — mesma linguagem visual do feature-card */
 .trip-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -572,13 +572,19 @@ h2 {
 .trip-body {
   display: flex;
   flex-direction: column;
-  gap: 0.65rem;
+  gap: 0.55rem;
   padding: 1.5rem 1.5rem 1.75rem;
   flex: 1;
 }
 
+/* Duas etiquetas lado a lado: vagas reais + nível de intensidade */
+.trip-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 .trip-status {
-  align-self: flex-start;
   padding: 0.3rem 0.75rem;
   border-radius: 999px;
   font-family: "Inter Tight", sans-serif;
@@ -591,6 +597,22 @@ h2 {
 .trip-status.open { background: rgba(52, 78, 51, 0.12); color: var(--moss); }
 .trip-status.last { background: rgba(212, 91, 45, 0.12); color: var(--rust); }
 .trip-status.soon { background: rgba(17, 17, 17, 0.08); color: var(--text-soft); }
+
+.trip-intensity {
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  font-family: "Inter Tight", sans-serif;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+
+.trip-intensity.leve { border-color: rgba(52, 78, 51, 0.3); color: var(--moss); }
+.trip-intensity.moderada { border-color: rgba(212, 91, 45, 0.3); color: var(--rust); }
+.trip-intensity.intensa { border-color: rgba(17, 17, 17, 0.3); color: var(--ink); }
 
 .trip-kicker {
   margin: 0.4rem 0 0;
@@ -617,13 +639,35 @@ h2 {
 }
 
 .trip-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem 0.9rem;
-  padding: 0.85rem 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 1rem;
+  row-gap: 0.75rem;
+  margin: 0.4rem 0 0;
+  padding: 0.9rem 0;
   border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.trip-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.trip-detail span {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
   color: var(--text-soft);
-  font-size: 0.78rem;
+}
+
+.trip-detail strong {
+  font-family: "Inter Tight", sans-serif;
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
 .trip-includes {
@@ -631,8 +675,7 @@ h2 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.4rem 0.75rem;
   margin: 0;
-  padding: 0.85rem 0 0;
-  border-top: 1px solid var(--line);
+  padding: 0;
   list-style: none;
 }
 
@@ -656,7 +699,8 @@ h2 {
   display: flex;
   flex-direction: column;
   gap: 0.65rem;
-  padding-top: 0.9rem;
+  margin-top: auto;
+  padding-top: 1rem;
 }
 
 .trip-price {
@@ -671,15 +715,9 @@ h2 {
   width: 100%;
 }
 
-.split-layout,
-.faq-layout,
-.footer-grid,
-.universe-grid {
-  display: grid;
-  gap: 2rem;
-}
-
-/* About */
+/* ==========================================================================
+   8. SOBRE + NOSSA HISTÓRIA
+   ========================================================================== */
 .media-block {
   overflow: hidden;
   border-radius: var(--radius-xl);
@@ -692,12 +730,6 @@ h2 {
   backface-visibility: hidden;
   will-change: transform;
   transition: transform var(--image-zoom-duration) var(--ease-soft);
-}
-
-.feature-card:hover .feature-media img,
-.feature-card.is-hovered .feature-media img,
-.feature-card:focus-within .feature-media img {
-  transform: scale(1.035) translate3d(0, 0, 0);
 }
 
 .split-layout:hover .media-block img,
@@ -750,7 +782,46 @@ h2 {
   background: rgba(255, 255, 255, 0.35);
 }
 
-/* History timeline — vive dentro da seção #sobre, abaixo do texto/foto */
+/* Barra de números — cartão escuro dentro da seção clara, dá contraste
+   e reforça credibilidade logo depois do texto de origem. */
+.stats-bar {
+  margin-top: clamp(3rem, 6vw, 4.5rem);
+  padding: clamp(2rem, 5vw, 2.75rem) clamp(1.5rem, 4vw, 2.5rem);
+  border-radius: var(--radius-xl);
+  background: var(--ink);
+  color: var(--bone);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2rem 1.5rem;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  text-align: center;
+}
+
+.stat-item strong {
+  font-family: "Inter Tight", sans-serif;
+  font-size: clamp(2rem, 4vw, 2.6rem);
+  font-weight: 800;
+  line-height: 1;
+  color: var(--rust);
+}
+
+.stat-item span {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-invert);
+}
+
+/* Linha do tempo — vive dentro da seção #sobre, abaixo do texto/foto */
 .origin-timeline {
   margin-top: clamp(3rem, 6vw, 4.5rem);
   padding-top: clamp(2.5rem, 5vw, 3.5rem);
@@ -843,12 +914,48 @@ h2 {
   background: var(--line);
 }
 
+/* Mobile: em vez do carrossel horizontal, empilha os marcos verticalmente
+   com uma linha de conexão à esquerda — mais fácil de ler com o polegar. */
 @media (max-width: 720px) {
-  .timeline-track { gap: 2rem; }
-  .timeline-point { flex: 0 0 200px; }
+  .timeline-track {
+    flex-direction: column;
+    gap: 0;
+    overflow: visible;
+    padding: 0;
+  }
+
+  .timeline-point {
+    flex: none;
+    padding: 0 0 2rem 1.5rem;
+  }
+
+  .timeline-point:last-child {
+    padding-bottom: 0;
+  }
+
+  .timeline-point::before {
+    top: 0.35rem;
+    left: 0.3rem;
+    right: auto;
+    width: 2px;
+    height: 100%;
+  }
+
+  .timeline-year {
+    position: static;
+    display: block;
+    margin-bottom: 0.4rem;
+  }
+
+  .timeline-dot {
+    top: 0.35rem;
+    left: 0;
+  }
 }
 
-/* Brand universe */
+/* ==========================================================================
+   9. UNIVERSO DA MARCA
+   ========================================================================== */
 .brand-universe {
   border-top: 1px solid var(--line);
 }
@@ -908,7 +1015,9 @@ h2 {
   line-height: var(--copy-leading);
 }
 
-/* How it works */
+/* ==========================================================================
+   10. COMO FUNCIONA (cards + faixa "Move Different")
+   ========================================================================== */
 .cards-grid {
   display: grid;
   gap: 1px;
@@ -941,9 +1050,11 @@ h2 {
 }
 
 .info-card h3 {
-  margin-top: 3.1rem;
+  margin: 3.1rem 0 0;
   color: var(--bone);
   font-size: 2.25rem;
+  line-height: 1;
+  font-weight: 800;
 }
 
 .info-card p {
@@ -956,7 +1067,6 @@ h2 {
   background: rgba(245, 243, 239, 0.04);
 }
 
-/* Moving tagline */
 .marquee-shell {
   overflow: hidden;
   margin-top: 4.2rem;
@@ -998,18 +1108,12 @@ h2 {
   flex: 0 0 auto;
 }
 
-.arrow-mark {
-  color: var(--rust);
-}
-
-.dash-mark {
-  color: rgba(245, 243, 239, 0.42);
-}
-
+.arrow-mark,
 .arrow-mark.accent {
   color: var(--rust);
 }
 
+.dash-mark,
 .dash-mark.light {
   color: rgba(245, 243, 239, 0.42);
 }
@@ -1026,59 +1130,27 @@ h2 {
   line-height: 1;
 }
 
-.text-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
-  transition: color 220ms ease, transform 220ms ease;
-}
-
-.text-link::after {
-  content: "->";
-}
-
-.text-link:hover,
-.text-link:focus-visible {
-  color: var(--moss);
-}
-
-/* Gallery */
-.gallery-grid,
-.testimonials-grid {
+/* ==========================================================================
+   11. GALERIA (memórias)
+   ========================================================================== */
+.gallery-grid {
   display: grid;
   gap: 1.5rem;
-}
-
-.gallery-grid {
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-}
-
-.testimonials-grid {
-  width: 100%;
-  margin-inline: 0;
-  gap: 1rem;
-}
-
-.gallery-card,
-.quote-card {
-  overflow: hidden;
-  border-radius: var(--radius-xl);
 }
 
 .gallery-card {
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  border-radius: var(--radius-xl);
   background: var(--paper);
   border: 1px solid var(--line);
 }
 
 .gallery-image {
   overflow: hidden;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 3 / 3;
 }
 
 .gallery-image img {
@@ -1097,11 +1169,12 @@ h2 {
 }
 
 .gallery-copy {
-  padding: 1.35rem 1.4rem 1.5rem;
+  padding: 1.5rem 1.5rem 1.75rem;
   flex: 1;
 }
 
 .gallery-copy h3 {
+  margin: 0;
   font-family: "Inter Tight", sans-serif;
   font-size: 1.3rem;
   font-weight: 800;
@@ -1115,19 +1188,51 @@ h2 {
   font-size: 0.86rem;
 }
 
-.section-support {
-  max-width: 24rem;
-  color: var(--text-soft);
-  margin: 0;
-  font-size: 0.84rem;
+/* ==========================================================================
+   12. VOZES / DEPOIMENTOS
+   ========================================================================== */
+.rating-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
 }
 
-/* Testimonials */
+.rating-stars {
+  color: var(--rust);
+  font-size: 0.95rem;
+  letter-spacing: 0.15em;
+}
+
+.rating-bar strong {
+  font-family: "Inter Tight", sans-serif;
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.rating-bar span:last-child {
+  color: var(--text-soft);
+  font-size: 0.78rem;
+}
+
+.testimonials-grid {
+  display: grid;
+  gap: 1rem;
+  width: 100%;
+  margin-inline: 0;
+}
+
 .quote-card {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  /* <figure> tem margem padrão do navegador (1em 40px); zerada para
+     não descolar o card do grid, especialmente no mobile. */
+  margin: 0;
   padding: 1.75rem;
+  overflow: hidden;
+  border-radius: var(--radius-xl);
   background: var(--bone);
   border: 1px solid rgba(17, 17, 17, 0.1);
   transition: border-color 220ms ease;
@@ -1135,6 +1240,13 @@ h2 {
 
 .quote-card:hover {
   border-color: rgba(17, 17, 17, 0.22);
+}
+
+.quote-rating {
+  color: var(--rust);
+  font-size: 0.85rem;
+  letter-spacing: 0.15em;
+  margin-bottom: 0.5rem;
 }
 
 .quote-mark {
@@ -1173,7 +1285,9 @@ h2 {
   color: var(--text-soft);
 }
 
-/* FAQ */
+/* ==========================================================================
+   13. FAQ
+   ========================================================================== */
 .faq-list {
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
@@ -1234,7 +1348,36 @@ h2 {
   max-width: 42rem;
 }
 
-/* Final CTA */
+/* Selo de confiança, dentro da coluna .faq-intro */
+.trust-badges {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 2.25rem;
+  padding-top: 2.25rem;
+  border-top: 1px solid var(--line);
+}
+
+.trust-item span {
+  display: block;
+  margin-bottom: 0.2rem;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+
+.trust-item strong {
+  font-family: "Inter Tight", sans-serif;
+  font-size: 0.86rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* ==========================================================================
+   14. CTA FINAL
+   ========================================================================== */
 .final-cta {
   text-align: center;
 }
@@ -1254,43 +1397,13 @@ h2 {
   justify-content: center;
 }
 
-/* Footer */
+/* ==========================================================================
+   15. FOOTER
+   ========================================================================== */
 .site-footer {
   background: var(--bone);
   border-top: 1px solid var(--line);
   padding: 3.9rem 0 1.8rem;
-}
-
-/* Floating WhatsApp button */
-.floating-wa {
-  position: fixed;
-  right: 1.15rem;
-  bottom: 1.15rem;
-  z-index: 60;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 3.4rem;
-  height: 3.4rem;
-  padding: 0;
-  border-radius: 50%;
-  background: #25d366;
-  color: #ffffff;
-  box-shadow: 0 16px 30px rgba(17, 17, 17, 0.18);
-  transition: transform 220ms ease, box-shadow 220ms ease, background-color 220ms ease;
-}
-
-.floating-wa:hover,
-.floating-wa:focus-visible {
-  transform: translateY(-2px);
-  box-shadow: 0 20px 34px rgba(17, 17, 17, 0.22);
-  background: #1fbe5d;
-}
-
-.floating-wa-icon {
-  width: 1.55rem;
-  height: 1.55rem;
-  fill: currentColor;
 }
 
 .footer-grid {
@@ -1330,8 +1443,44 @@ h2 {
   color: var(--text-soft);
 }
 
+/* ==========================================================================
+   16. BOTÃO FLUTUANTE DE WHATSAPP
+   ========================================================================== */
+.floating-wa {
+  position: fixed;
+  right: 1.15rem;
+  bottom: 1.15rem;
+  z-index: 60;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.4rem;
+  height: 3.4rem;
+  padding: 0;
+  border-radius: 50%;
+  background: #25d366;
+  color: #ffffff;
+  box-shadow: 0 16px 30px rgba(17, 17, 17, 0.18);
+  transition: transform 220ms ease, box-shadow 220ms ease, background-color 220ms ease;
+}
+
+.floating-wa:hover,
+.floating-wa:focus-visible {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 34px rgba(17, 17, 17, 0.22);
+  background: #1fbe5d;
+}
+
+.floating-wa-icon {
+  width: 1.55rem;
+  height: 1.55rem;
+  fill: currentColor;
+}
+
+/* ==========================================================================
+   17. ANIMAÇÃO DE ENTRADA (.reveal via IntersectionObserver no script.js)
+   ========================================================================== */
 body.js .reveal {
-  /* Elementos .reveal aparecem suavemente quando entram na tela via IntersectionObserver. */
   opacity: 0;
   transform: translateY(16px);
   transition: opacity 700ms cubic-bezier(0.2, 0.7, 0.2, 1), transform 700ms cubic-bezier(0.2, 0.7, 0.2, 1);
@@ -1342,12 +1491,17 @@ body.js .reveal.is-visible {
   transform: translateY(0);
 }
 
+/* ==========================================================================
+   18. RESPONSIVIDADE
+   ========================================================================== */
+
+/* --- A partir de 720px: layout deixa de ser mobile-first ---------------- */
 @media (min-width: 720px) {
-  /* A partir daqui o layout deixa de ser mobile-first e ganha colunas/menus horizontais. */
   :root {
     --container: min(1400px, calc(100vw - 6rem));
   }
 
+  /* Header */
   .nav-shell {
     display: flex;
     justify-content: space-between;
@@ -1384,17 +1538,25 @@ body.js .reveal.is-visible {
     background: transparent;
   }
 
-  .hero-actions {
-    flex-direction: row;
-    justify-content: center;
-  }
-
+  /* Utilitários de seção */
   h1 {
     font-size: 3rem;
   }
 
   h2 {
     font-size: 3.5rem;
+  }
+
+  .section-head {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: end;
+  }
+
+  /* Hero */
+  .hero-actions {
+    flex-direction: row;
+    justify-content: center;
   }
 
   .hero-footer {
@@ -1405,34 +1567,9 @@ body.js .reveal.is-visible {
     display: inline;
   }
 
-  .section-head {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: end;
-  }
-
-  .feature-card {
-    grid-template-columns: minmax(0, 1.55fr) minmax(21rem, 0.95fr);
-    align-items: stretch;
-  }
-
-  .feature-media {
-    aspect-ratio: auto;
-    position: relative;
-    align-self: stretch;
-    min-height: clamp(28rem, 38vw, 34rem);
-  }
-
-  .feature-media img {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    min-height: 0;
-  }
-
-  .feature-content {
-    padding: 2.6rem 2.7rem;
+  /* Sobre + Nossa história */
+  .stats-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .split-layout {
@@ -1440,41 +1577,43 @@ body.js .reveal.is-visible {
     gap: 4.8rem;
   }
 
-  .cards-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
+  /* Universo da marca */
   .universe-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
+  /* Como funciona */
+  .cards-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  /* Vozes / Depoimentos */
   .testimonials-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 1.25rem;
   }
 
+  /* FAQ */
   .faq-layout {
     grid-template-columns: minmax(18rem, 0.42fr) minmax(0, 1fr);
     gap: 4.3rem;
   }
 
+  /* Footer */
   .footer-grid {
     grid-template-columns: 2.4fr 1fr 1fr;
   }
 }
 
+/* --- A partir de 980px --------------------------------------------------- */
 @media (min-width: 980px) {
-  .hero-content {
-    padding-top: 8rem;
-    padding-bottom: 6.9rem;
-  }
-
   h1 {
     font-size: 3.5rem;
   }
 
-  .feature-content {
-    padding: 2.6rem 3rem;
+  .hero-content {
+    padding-top: 8rem;
+    padding-bottom: 6.9rem;
   }
 
   .quote-card blockquote {
@@ -1487,6 +1626,7 @@ body.js .reveal.is-visible {
   }
 }
 
+/* --- A partir de 1200px --------------------------------------------------- */
 @media (min-width: 1200px) {
   h1 {
     font-size: 4.2rem;
@@ -1501,10 +1641,7 @@ body.js .reveal.is-visible {
   }
 }
 
-.section.section-how {
-  padding-bottom: 0;
-}
-
+/* --- Movimento reduzido (acessibilidade) ---------------------------------- */
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

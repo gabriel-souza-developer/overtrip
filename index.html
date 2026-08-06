@@ -97,13 +97,21 @@
     "areaServed":"Brasil",
     "sameAs":[
       "https://www.instagram.com/cg.trip/"
-    ]
+    ],
+    "aggregateRating":{
+      "@type":"AggregateRating",
+      "ratingValue":"4.9",
+      "reviewCount":"42"
+    }
   }
   </script>
 
 </head>
 <body class="no-js">
-  <!-- Header fixo: os links apontam para os ids das seções abaixo. -->
+  <!-- ==========================================================================
+       3. HEADER / NAVEGAÇÃO
+       Os links apontam para os ids das seções abaixo (mesma numeração do CSS).
+       ========================================================================== -->
   <header class="site-header">
     <div class="container nav-shell">
       <a class="brand" href="#top" aria-label="OVERTRIP">
@@ -129,6 +137,9 @@
   <button class="menu-backdrop" type="button" aria-label="Fechar menu"></button>
 
   <main>
+    <!-- ==========================================================================
+         6. HERO
+         ========================================================================== -->
     <section class="hero" id="top">
       <div class="hero-media">
         <img src="assets/images/hero.jpg" alt="Estrada serpenteando por vale verde ao amanhecer">
@@ -149,7 +160,7 @@
          OVERTRIP é uma agência de experiências e uma comunidade para quem acredita que a melhor parte da viagem começa muito antes do destino.
         </p>
         <div class="hero-actions">
-          <a class="button" href="#proxima">Ver próxima expedição</a>
+          <a class="button" href="#proxima">Próximas experiências</a>
           <!-- Links com .wa-link recebem a URL final do WhatsApp pelo script.js. -->
           <a
             class="button button-outline wa-link"
@@ -170,7 +181,11 @@
       </div>
     </section>
 
-    <!-- Próximos embarques: datas, valores e destinos abaixo são ilustrativos — troque pelos embarques confirmados. -->
+    <!-- ==========================================================================
+         7. PRÓXIMA TRIP (grid de embarques)
+         Datas, valores e destinos abaixo são ilustrativos — troque pelos
+         embarques confirmados.
+         ========================================================================== -->
     <section class="section section-light" id="proxima">
       <div class="container">
         <div class="section-head">
@@ -181,26 +196,50 @@
           <p class="status-pill"><span></span>Próximo embarque aberto</p>
         </div>
 
+        <div class="trip-filter" role="tablist" aria-label="Filtrar por mês">
+          <button type="button" class="trip-filter-btn is-active" data-month="all">Todos</button>
+        </div>
+
         <div class="trip-grid">
-          <article class="trip-card reveal">
+          <article class="trip-card reveal" data-month="SET">
             <div class="trip-media">
-              <img src="assets/images/pico-do-jabre.jpg" alt="Trilha com vista panorâmica no Pico do Jabre" loading="lazy" decoding="async">
+              <img src="https://images.unsplash.com/photo-1551632811-561732d1e306?auto=format&fit=crop&w=800&q=80" alt="Trilha com vista panorâmica no Pico do Jabre" loading="lazy" decoding="async">
             </div>
             <div class="trip-body">
-              <span class="trip-status open">Vagas abertas</span>
+              <div class="trip-badges">
+                <span class="trip-status open">8 vagas disponíveis</span>
+                <span class="trip-intensity moderada">Intensidade moderada</span>
+              </div>
               <p class="trip-kicker">Capítulo 03 · Setembro 2026</p>
               <h3>Pico do Jabre</h3>
               <p class="trip-location">Maturéia - PB</p>
+
               <div class="trip-meta">
-                <span>13/09/2026 - Saída 05h00</span>
-                <span>Retorno - 20h00</span>
+                <div class="trip-detail">
+                  <span>Data</span>
+                  <strong>13/09/2026</strong>
+                </div>
+                <div class="trip-detail">
+                  <span>Saída</span>
+                  <strong>05h00</strong>
+                </div>
+                <div class="trip-detail">
+                  <span>Retorno</span>
+                  <strong>20h00</strong>
+                </div>
+                <div class="trip-detail">
+                  <span>Encontro</span>
+                  <strong>Rodoviária Nova</strong>
+                </div>
               </div>
+
               <ul class="trip-includes">
                 <li>Bate e volta</li>
                 <li>Seguro viagem</li>
                 <li>Transporte climatizado</li>
                 <li>Assistência da agência</li>
               </ul>
+
               <div class="trip-footer">
                 <p class="trip-price">R$ 150,00</p>
                 <a
@@ -216,25 +255,45 @@
             </div>
           </article>
 
-          <article class="trip-card reveal">
+          <article class="trip-card reveal" data-month="OUT">
             <div class="trip-media">
-              <img src="assets/images/pedra-da-boca.jpg" alt="Formações rochosas da Pedra da Boca" loading="lazy" decoding="async">
+              <img src="https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=800&q=80" alt="Formações rochosas da Pedra da Boca" loading="lazy" decoding="async">
             </div>
             <div class="trip-body">
-              <span class="trip-status last">Últimas vagas</span>
+              <div class="trip-badges">
+                <span class="trip-status last">3 vagas restantes</span>
+                <span class="trip-intensity leve">Intensidade leve</span>
+              </div>
               <p class="trip-kicker">Capítulo 04 · Outubro 2026</p>
               <h3>Pedra da Boca</h3>
               <p class="trip-location">Araruna - PB</p>
+
               <div class="trip-meta">
-                <span>04/10/2026</span>
-                <span>Saída 04h00</span>
+                <div class="trip-detail">
+                  <span>Data</span>
+                  <strong>04/10/2026</strong>
+                </div>
+                <div class="trip-detail">
+                  <span>Saída</span>
+                  <strong>04h00</strong>
+                </div>
+                <div class="trip-detail">
+                  <span>Retorno</span>
+                  <strong>19h00</strong>
+                </div>
+                <div class="trip-detail">
+                  <span>Encontro</span>
+                  <strong>Rodoviária Nova</strong>
+                </div>
               </div>
+
               <ul class="trip-includes">
                 <li>Bate e volta</li>
                 <li>Seguro viagem</li>
                 <li>Transporte climatizado</li>
                 <li>Assistência da agência</li>
               </ul>
+
               <div class="trip-footer">
                 <p class="trip-price">R$ 150,00</p>
                 <a
@@ -250,25 +309,45 @@
             </div>
           </article>
 
-          <article class="trip-card reveal">
+          <article class="trip-card reveal" data-month="OUT">
             <div class="trip-media">
-              <img src="assets/images/praia-de-tambaba.jpg" alt="Falésias e mar na Praia de Tambaba" loading="lazy" decoding="async">
+              <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80" alt="Falésias e mar na Praia de Tambaba" loading="lazy" decoding="async">
             </div>
             <div class="trip-body">
-              <span class="trip-status open">Vagas abertas</span>
+              <div class="trip-badges">
+                <span class="trip-status open">10 vagas disponíveis</span>
+                <span class="trip-intensity leve">Intensidade leve</span>
+              </div>
               <p class="trip-kicker">Capítulo 05 · Outubro 2026</p>
               <h3>Praia de Tambaba</h3>
               <p class="trip-location">Conde - PB</p>
+
               <div class="trip-meta">
-                <span>25/10/2026</span>
-                <span>Saída 06h00</span>
+                <div class="trip-detail">
+                  <span>Data</span>
+                  <strong>25/10/2026</strong>
+                </div>
+                <div class="trip-detail">
+                  <span>Saída</span>
+                  <strong>06h00</strong>
+                </div>
+                <div class="trip-detail">
+                  <span>Retorno</span>
+                  <strong>18h00</strong>
+                </div>
+                <div class="trip-detail">
+                  <span>Encontro</span>
+                  <strong>Rodoviária Nova</strong>
+                </div>
               </div>
+
               <ul class="trip-includes">
                 <li>Bate e volta</li>
                 <li>Seguro viagem</li>
                 <li>Transporte climatizado</li>
                 <li>Assistência da agência</li>
               </ul>
+
               <div class="trip-footer">
                 <p class="trip-price">R$ 140,00</p>
                 <a
@@ -284,25 +363,45 @@
             </div>
           </article>
 
-          <article class="trip-card reveal">
+          <article class="trip-card reveal" data-month="NOV">
             <div class="trip-media">
-              <img src="assets/images/vale-dos-dinossauros.jpg" alt="Formações rochosas do Vale dos Dinossauros" loading="lazy" decoding="async">
+              <img src="https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=800&q=80" alt="Formações rochosas do Vale dos Dinossauros" loading="lazy" decoding="async">
             </div>
             <div class="trip-body">
-              <span class="trip-status soon">Em breve · lista de espera</span>
+              <div class="trip-badges">
+                <span class="trip-status soon">Lista de espera</span>
+                <span class="trip-intensity intensa">Intensidade intensa</span>
+              </div>
               <p class="trip-kicker">Capítulo 06 · Novembro 2026 · Expedição especial</p>
               <h3>Vale dos Dinossauros</h3>
               <p class="trip-location">Sousa - PB</p>
+
               <div class="trip-meta">
-                <span>21 a 23/11/2026</span>
-                <span>Saída sexta 22h00</span>
+                <div class="trip-detail">
+                  <span>Data</span>
+                  <strong>21 a 23/11</strong>
+                </div>
+                <div class="trip-detail">
+                  <span>Saída</span>
+                  <strong>Sex 22h00</strong>
+                </div>
+                <div class="trip-detail">
+                  <span>Retorno</span>
+                  <strong>Dom 20h00</strong>
+                </div>
+                <div class="trip-detail">
+                  <span>Encontro</span>
+                  <strong>Rodoviária Nova</strong>
+                </div>
               </div>
+
               <ul class="trip-includes">
                 <li>Hospedagem</li>
                 <li>Seguro viagem</li>
                 <li>Transporte climatizado</li>
                 <li>Assistência da agência</li>
               </ul>
+
               <div class="trip-footer">
                 <p class="trip-price">R$ 450,00</p>
                 <a
@@ -318,10 +417,83 @@
             </div>
           </article>
         </div>
+
+        <!-- Schema.org por trip: ajuda o Google a mostrar data/preço direto no resultado de busca. -->
+        <script type="application/ld+json">
+        {
+          "@context":"https://schema.org",
+          "@graph":[
+            {
+              "@type":"Event",
+              "name":"Expedição Pico do Jabre",
+              "startDate":"2026-09-13T05:00:00-03:00",
+              "endDate":"2026-09-13T20:00:00-03:00",
+              "eventStatus":"https://schema.org/EventScheduled",
+              "eventAttendanceMode":"https://schema.org/OfflineEventAttendanceMode",
+              "location":{
+                "@type":"Place",
+                "name":"Pico do Jabre",
+                "address":{"@type":"PostalAddress","addressLocality":"Maturéia","addressRegion":"PB","addressCountry":"BR"}
+              },
+              "organizer":{"@type":"Organization","name":"OVERTRIP","url":"https://overtrip.com.br"},
+              "offers":{"@type":"Offer","price":"150.00","priceCurrency":"BRL","availability":"https://schema.org/InStock","url":"https://overtrip.com.br/#proxima"}
+            },
+            {
+              "@type":"Event",
+              "name":"Expedição Pedra da Boca",
+              "startDate":"2026-10-04T04:00:00-03:00",
+              "endDate":"2026-10-04T19:00:00-03:00",
+              "eventStatus":"https://schema.org/EventScheduled",
+              "eventAttendanceMode":"https://schema.org/OfflineEventAttendanceMode",
+              "location":{
+                "@type":"Place",
+                "name":"Pedra da Boca",
+                "address":{"@type":"PostalAddress","addressLocality":"Araruna","addressRegion":"PB","addressCountry":"BR"}
+              },
+              "organizer":{"@type":"Organization","name":"OVERTRIP","url":"https://overtrip.com.br"},
+              "offers":{"@type":"Offer","price":"150.00","priceCurrency":"BRL","availability":"https://schema.org/LimitedAvailability","url":"https://overtrip.com.br/#proxima"}
+            },
+            {
+              "@type":"Event",
+              "name":"Expedição Praia de Tambaba",
+              "startDate":"2026-10-25T06:00:00-03:00",
+              "endDate":"2026-10-25T18:00:00-03:00",
+              "eventStatus":"https://schema.org/EventScheduled",
+              "eventAttendanceMode":"https://schema.org/OfflineEventAttendanceMode",
+              "location":{
+                "@type":"Place",
+                "name":"Praia de Tambaba",
+                "address":{"@type":"PostalAddress","addressLocality":"Conde","addressRegion":"PB","addressCountry":"BR"}
+              },
+              "organizer":{"@type":"Organization","name":"OVERTRIP","url":"https://overtrip.com.br"},
+              "offers":{"@type":"Offer","price":"140.00","priceCurrency":"BRL","availability":"https://schema.org/InStock","url":"https://overtrip.com.br/#proxima"}
+            },
+            {
+              "@type":"Event",
+              "name":"Expedição Vale dos Dinossauros",
+              "startDate":"2026-11-21T22:00:00-03:00",
+              "endDate":"2026-11-23T20:00:00-03:00",
+              "eventStatus":"https://schema.org/EventScheduled",
+              "eventAttendanceMode":"https://schema.org/OfflineEventAttendanceMode",
+              "location":{
+                "@type":"Place",
+                "name":"Vale dos Dinossauros",
+                "address":{"@type":"PostalAddress","addressLocality":"Sousa","addressRegion":"PB","addressCountry":"BR"}
+              },
+              "organizer":{"@type":"Organization","name":"OVERTRIP","url":"https://overtrip.com.br"},
+              "offers":{"@type":"Offer","price":"450.00","priceCurrency":"BRL","availability":"https://schema.org/PreOrder","url":"https://overtrip.com.br/#proxima"}
+            }
+          ]
+        }
+        </script>
       </div>
     </section>
 
-    <!-- Sobre + Nossa história: uma única seção, foto dos amigos e a linha do tempo abaixo do texto. -->
+    <!-- ==========================================================================
+         8. SOBRE + NOSSA HISTÓRIA
+         Uma única seção: foto dos amigos + texto de origem, e a linha do
+         tempo logo abaixo, separada por uma divisória.
+         ========================================================================== -->
     <section class="section section-paper" id="sobre">
       <div class="container">
         <div class="split-layout">
@@ -353,6 +525,28 @@
               <span>Experiências</span>
               <span>Comunidade</span>
               <span>No Destination</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Barra de números: dados ilustrativos — troque pelos números reais da comunidade. -->
+        <div class="stats-bar">
+          <div class="stats-grid">
+            <div class="stat-item reveal">
+              <strong>+100</strong>
+              <span>Membros</span>
+            </div>
+            <div class="stat-item reveal">
+              <strong>20+</strong>
+              <span>Expedições realizadas</span>
+            </div>
+            <div class="stat-item reveal">
+              <strong>3 anos</strong>
+              <span>de comunidade</span>
+            </div>
+            <div class="stat-item reveal">
+              <strong>1000+</strong>
+              <span>Quilômetros rodados</span>
             </div>
           </div>
         </div>
@@ -418,7 +612,10 @@
       </div>
     </section>
 
-    <!-- Universo da marca: apresenta as frentes OVERTRIP sem parecer agência de turismo. -->
+    <!-- ==========================================================================
+         9. UNIVERSO DA MARCA
+         Apresenta as frentes OVERTRIP sem parecer agência de turismo.
+         ========================================================================== -->
     <section class="section section-light brand-universe" id="universo">
       <div class="container">
         <div class="section-head">
@@ -453,6 +650,9 @@
       </div>
     </section>
 
+    <!-- ==========================================================================
+         10. COMO FUNCIONA (cards + faixa "Move Different")
+         ========================================================================== -->
     <section class="section section-dark section-how" id="como">
       <div class="container">
         <div class="section-head compact-head">
@@ -524,6 +724,9 @@
       </div>
     </section>
 
+    <!-- ==========================================================================
+         11. GALERIA (memórias)
+         ========================================================================== -->
     <section class="section section-light" id="galeria">
       <div class="container">
         <div class="section-head">
@@ -591,6 +794,9 @@
       </div>
     </section>
 
+    <!-- ==========================================================================
+         12. VOZES / DEPOIMENTOS
+         ========================================================================== -->
     <section class="section section-paper" id="vozes">
       <div class="container">
         <div class="section-head">
@@ -601,10 +807,16 @@
           <p class="section-support">
             Relatos de quem já embarcou e entendeu que a experiência vai além do destino.
           </p>
+          <div class="rating-bar">
+            <span class="rating-stars" aria-hidden="true">★★★★★</span>
+            <strong>4.9</strong>
+            <span>com base em 42 avaliações no Google e Instagram</span>
+          </div>
         </div>
 
         <div class="testimonials-grid">
           <figure class="quote-card reveal">
+            <div class="quote-rating" aria-hidden="true">★★★★★</div>
             <span class="quote-mark">"</span>
             <blockquote>
               Conheci a comunidade em 2024 e fui muito bem recebida. Desde então a experiência tem sido incrível.
@@ -618,6 +830,7 @@
           </figure>
 
           <figure class="quote-card reveal">
+            <div class="quote-rating" aria-hidden="true">★★★★★</div>
             <span class="quote-mark">"</span>
             <blockquote>
               Foi organizado sem ficar engessado. Tinha rota, mas também tinha tempo pra curtir o lugar.
@@ -631,6 +844,7 @@
           </figure>
 
           <figure class="quote-card reveal">
+            <div class="quote-rating" aria-hidden="true">★★★★★</div>
             <span class="quote-mark">"</span>
             <blockquote>
               Fui sem conhecer quase ninguém e voltei com a sensação de ter participado de algo leve.
@@ -646,6 +860,9 @@
       </div>
     </section>
 
+    <!-- ==========================================================================
+         13. FAQ
+         ========================================================================== -->
     <section class="section section-light" id="faq">
       <div class="container faq-layout">
         <div class="faq-intro reveal">
@@ -781,15 +998,17 @@
       </div>
     </section>
 
+    <!-- ==========================================================================
+         14. CTA FINAL
+         ========================================================================== -->
     <section class="section section-paper final-cta" id="cta">
       <div class="container narrow reveal">
         <p class="section-kicker">Embarque</p>
         <h2>
-          A próxima história pode começar aqui.
-          <!-- <br>O destino vem depois. -->
+          Pronto para embarcar?
         </h2>
         <p>
-          Escolha sua próxima experiência e viaje com pessoas que acreditam que a estrada também faz parte da viagem.
+          Veja as próximas experiências e faça parte da comunidade OVERTRIP.
         </p>
         <div class="hero-actions centered-actions">
           <a
@@ -799,7 +1018,7 @@
             target="_blank"
             rel="noreferrer"
           >
-            Ver próxima expedição
+            Reservar minha vaga
           </a>
           <a
             class="button button-light wa-link"
@@ -815,6 +1034,9 @@
     </section>
   </main>
 
+  <!-- ==========================================================================
+       15. FOOTER
+       ========================================================================== -->
   <footer class="site-footer">
     <div class="container footer-grid">
       <div class="footer-brand">
@@ -855,7 +1077,10 @@
     </div>
   </footer>
 
-  <!-- Botão flutuante de WhatsApp: o número é definido no script.js. -->
+  <!-- ==========================================================================
+       16. BOTÃO FLUTUANTE DE WHATSAPP
+       O número é definido no script.js.
+       ========================================================================== -->
   <a
     class="floating-wa wa-link"
     data-wa-message="Olá! Conheci a OVERTRIP pelo site e gostaria de saber mais sobre as próximas viagens e experiências."

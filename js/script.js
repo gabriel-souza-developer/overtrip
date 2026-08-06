@@ -13,7 +13,6 @@ const menuBackdrop = document.querySelector(".menu-backdrop");
 const detailsItems = document.querySelectorAll(".faq-item");
 const marqueeTrack = document.querySelector(".marquee-track");
 const galleryCards = document.querySelectorAll(".gallery-card");
-const featureCards = document.querySelectorAll(".feature-card");
 const mediaBlocks = document.querySelectorAll(".media-block");
 
 const setMenuOpen = (isOpen) => {
@@ -72,6 +71,58 @@ const bindHoverClass = (elements) => {
   });
 };
 
+// ---------------------------------------------------------------------------
+// Analytics: dispara um evento a cada clique em link de WhatsApp, informando
+// em qual seção da página e em qual card/link o clique aconteceu. Funciona
+// com Google Tag Manager (dataLayer) ou GA4 (gtag) — o que já estiver
+// instalado no site. Se nenhum dos dois existir, só loga no console (não
+// quebra nada e ajuda a testar antes de conectar um analytics de verdade).
+// ---------------------------------------------------------------------------
+const getWaLinkSection = (link) => {
+  if (link.classList.contains("floating-wa")) {
+    return "floating_button";
+  }
+
+  const section = link.closest("section");
+  if (section?.id) {
+    return section.id;
+  }
+
+  if (link.closest(".site-footer")) {
+    return "footer";
+  }
+
+  if (link.closest(".site-header")) {
+    return "header";
+  }
+
+  return "unknown";
+};
+
+const trackWhatsAppClick = (link) => {
+  const tripCard = link.closest(".trip-card");
+  const tripName = tripCard?.querySelector("h3")?.textContent?.trim();
+
+  const eventPayload = {
+    event: "whatsapp_click",
+    wa_section: getWaLinkSection(link),
+    wa_label: link.textContent.trim(),
+    wa_trip: tripName || null,
+  };
+
+  if (window.dataLayer && typeof window.dataLayer.push === "function") {
+    window.dataLayer.push(eventPayload);
+  } else if (typeof window.gtag === "function") {
+    window.gtag("event", "whatsapp_click", {
+      section: eventPayload.wa_section,
+      label: eventPayload.wa_label,
+      trip: eventPayload.wa_trip,
+    });
+  } else {
+    console.log("[analytics]", eventPayload);
+  }
+};
+
 waLinks.forEach((link) => {
   // Cada link define sua própria mensagem no atributo data-wa-message.
   const message = link.dataset.waMessage || "";
@@ -81,6 +132,8 @@ waLinks.forEach((link) => {
   link.href = hasConfiguredNumber
     ? `https://wa.me/${whatsappNumber}?text=${encodedMessage}`
     : `https://wa.me/?text=${encodedMessage}`;
+
+  link.addEventListener("click", () => trackWhatsAppClick(link));
 });
 
 if (currentYear) {
@@ -158,7 +211,6 @@ detailsItems.forEach((item) => {
 });
 
 bindHoverClass(galleryCards);
-bindHoverClass(featureCards);
 bindHoverClass(mediaBlocks);
 
 if (marqueeTrack) {
@@ -194,6 +246,52 @@ if (marqueeTrack) {
     },
     { once: true }
   );
+}
+
+// ---------------------------------------------------------------------------
+// Filtro de mês na grade de próximos embarques (#proxima). Os botões de mês
+// são gerados automaticamente a partir dos data-month presentes nos cards,
+// então adicionar uma trip em um mês novo já cria o botão sozinho.
+// ---------------------------------------------------------------------------
+const tripFilter = document.querySelector(".trip-filter");
+const tripCards = document.querySelectorAll(".trip-card[data-month]");
+
+if (tripFilter && tripCards.length) {
+  const months = Array.from(
+    new Set(Array.from(tripCards).map((card) => card.dataset.month))
+  );
+
+  months.forEach((month) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "trip-filter-btn";
+    button.dataset.month = month;
+    button.textContent = month;
+    tripFilter.appendChild(button);
+  });
+
+  const filterButtons = tripFilter.querySelectorAll(".trip-filter-btn");
+
+  const applyFilter = (month) => {
+    tripCards.forEach((card) => {
+      const shouldShow = month === "all" || card.dataset.month === month;
+      card.classList.toggle("is-hidden", !shouldShow);
+    });
+
+    filterButtons.forEach((button) => {
+      button.classList.toggle("is-active", button.dataset.month === month);
+    });
+  };
+
+  tripFilter.addEventListener("click", (event) => {
+    const button = event.target.closest(".trip-filter-btn");
+
+    if (!button) {
+      return;
+    }
+
+    applyFilter(button.dataset.month);
+  });
 }
 
 if ("IntersectionObserver" in window) {
