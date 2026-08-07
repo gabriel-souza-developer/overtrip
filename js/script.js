@@ -1,7 +1,489 @@
 document.body.classList.remove("no-js");
 document.body.classList.add("js");
 
-// Edite apenas este valor quando tiver o WhatsApp oficial. Use DDI + DDD + número, sem espaços.
+// ---------------------------------------------------------------------------
+// DADOS
+// Próximas trips, galeria de memórias e depoimentos ficam centralizados
+//---------------------------------------------------------------------------
+
+const TRIPS = [
+  {
+    title: "Excurssão | Bonito - PE",
+    // location: "Bonito - PE",
+    city: "Bonito",
+    region: "PE",
+    // chapterLabel: "Capítulo 03 · Setembro 2026",
+    month: "SET",
+    dateDisplay: "13/09/2026 (domingo)",
+    departure: "03h30",
+    returnTime: "17h",
+    meetingPoint: "Rodoviária Nova",
+    meetingMapsQuery: "Rodoviária Nova, Campina Grande - PB",
+    priceDisplay: "R$ 165,00 por pessoa",
+    priceValue: "165.00",
+    // Sem contagem de vagas informada — evite inventar um número aqui.
+    statusClass: "open",
+    statusLabel: "Vagas abertas",
+    intensityClass: "leve",
+    intensityLabel: "Intensidade leve",
+    includes: [
+      "Transporte climatizado (ida e volta)",
+      "Seguro de viagem",
+      "Assistência equipe OVERTRIP",
+      "Taxa de entrada no Camping do Mágico (Day-use)",
+    ],
+    image: "assets/images/riacho-e-area-do-restaurante-capimgdomagico.jpg",
+    imageAlt: "Piscina natural de águas claras em Bonito - PE",
+    buttonLabel: "Reservar via WhatsApp",
+    buttonClass: "button-dark",
+    waMessage: "Fala! Tenho interesse na excursão a Bonito - PE (13/09/2026) e quero saber mais detalhes.",
+    // Usado só no schema.org (Google) — não aparece no card.
+    startDateISO: "2026-09-06T03:30:00-03:00",
+    availabilitySchema: "https://schema.org/InStock",
+  },
+];
+
+// Cada memória pode ter várias fotos — a primeira é a capa do card.
+const GALLERY = [
+  {
+    title: "Praia de Coqueirinho - Conde - PB",
+    date: "28 de maio de 2023",
+    description: "Bate-papo, vista alta e gente que vira família.",
+    images: [
+      { src: "assets/images/praia-de-coqueirinho.jpg", alt: "Pôr do sol na praia com grupo de amigos em clima de descontração" },
+      { src: "assets/images/pedacinho-da-prainha-coqueirinho.jpg", alt: "Falésias e mar na praia" },
+
+    ],
+  },
+  {
+    title: "Cachoeira do Paraíso - Bonito - PE",
+    date: "14 de abril de 2024",
+    description: "Cachoeira, trilha e silêncio que reorganiza a mente.",
+    images: [
+      { src: "assets/images/cachoeira-do-paraiso-bonito-pe.jpg", alt: "Cachoeira com piscina natural em meio à vegetação, vista de cima" },
+      { src: "assets/images/cachoeira-do-paraiso-bonito2-pe.jpg", alt: "Cachoeira em meio à mata fechada" },
+    ],
+  },
+  {
+    title: "Camping no Rio do Feijão - Barra de Santana - PB",
+    date: "22 de julho de 2023",
+    description: "Quando a trip continua mesmo com o motor desligado.",
+    images: [
+      { src: "assets/images/camping-rio-do-feijao.jpg", alt: "Camping à beira de rio com grupo de amigos em clima de descontração" },
+      { src: "assets/images/camping-rio-do-feijao2.jpg", alt: "Barracas montadas à beira do rio ao entardecer" },
+      { src: "assets/images/estrelas-camping.jpg", alt: "Estrelas à noite" },
+    ],
+  },
+  {
+    title: "Olheiro de Pureza - Pureza - RN",
+    date: "17 de maio de 2026",
+    description: "Águas claras e a resenha que quase atrasou a volta.",
+    images: [
+      { src: "assets/images/turma-olheiro-pureza.jpg", alt: "Grupo de viajantes no olheiro de Pureza" },
+      { src: "assets/images/pureza-rn.jpg", alt: "Olheiro de Pureza em meio à vegetação natural" },
+      { src: "assets/images/nascente-pureza-rn.jpg", alt: "Nascente de águas cristalinas entre as pedras" },
+    ],
+  },
+];
+
+// Depoimentos: rating de 1 a 5. Adicione quantos quiser — o carrossel
+// se ajusta sozinho.
+const TESTIMONIALS = [
+  {
+    name: "Anna",
+    place: "Barra de Santana - 2024",
+    rating: 5,
+    quote: "Entrei sem conhecer ninguém e, no fim da viagem, parecia que já fazia parte do grupo há muito tempo."
+  },
+  {
+    name: "Lívia",
+    place: "Pedreira de Boa Vista - 2024",
+    rating: 5,
+    quote: "Viajar em grupo sempre me deixava insegura, mas me senti muito à vontade. Com certeza quero participar das próximas.",
+  },
+  {
+    name: "Helton",
+    place: "Pedra do Altar - 2025",
+    rating: 5,
+    quote: "Toda viagem com vocês é muito bom, galera tranquila, me sinto muito avontade.",
+  },
+  {
+    name: "Mateus",
+    place: "Cachoeira do Paraíso, Bonito - PE - 2024",
+    rating: 5,
+    quote: "Achei que ia só conhecer a cachoeira, mas o melhor acabou sendo a convivência com a galera durante os rolês.",
+  },
+  {
+    name: "Diego",
+    place: "Camping Rio do Feijão - 2023",
+    rating: 5,
+    quote: "O que mais gostei foi a forma como todo mundo foi tratado. Dá pra perceber que existe um cuidado genuíno com quem viaja.",
+  },
+];
+
+// ---------------------------------------------------------------------------
+// RENDER: Próxima trip (cards + schema.org gerado a partir do mesmo dado)
+// ---------------------------------------------------------------------------
+const buildTripCardHTML = (trip) => {
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(trip.meetingMapsQuery)}`;
+  const includesHTML = trip.includes.map((item) => `<li>${item}</li>`).join("");
+// <p class="trip-location">${trip.location}</p>
+
+  return `
+    <article class="trip-card reveal" data-month="${trip.month}">
+      <div class="trip-media">
+        <img src="${trip.image}" alt="${trip.imageAlt}" loading="lazy" decoding="async">
+      </div>
+      <div class="trip-body">
+        <div class="trip-badges">
+          <span class="trip-status ${trip.statusClass}">${trip.statusLabel}</span>
+          <span class="trip-intensity ${trip.intensityClass}">${trip.intensityLabel}</span>
+        </div>
+        <h3>${trip.title}</h3>
+        
+
+        <div class="trip-meta">
+          <div class="trip-detail">
+            <span>Data</span>
+            <strong>${trip.dateDisplay}</strong>
+          </div>
+          <div class="trip-detail">
+            <span>Saída</span>
+            <strong>${trip.departure}</strong>
+          </div>
+          <div class="trip-detail">
+            <span>Retorno</span>
+            <strong>${trip.returnTime}</strong>
+          </div>
+          <div class="trip-detail">
+            <span>Encontro</span>
+            <a class="trip-map-link" href="${mapsUrl}" target="_blank" rel="noreferrer">${trip.meetingPoint}</a>
+          </div>
+        </div>
+
+        <ul class="trip-includes">${includesHTML}</ul>
+
+        <div class="trip-footer">
+          <p class="trip-price">${trip.priceDisplay}</p>
+          <a
+            class="button ${trip.buttonClass} wa-link"
+            data-wa-message="${trip.waMessage}"
+            href="#"
+            target="_blank"
+            rel="noreferrer"
+          >
+            ${trip.buttonLabel}
+          </a>
+        </div>
+      </div>
+    </article>
+  `;
+};
+
+const buildTripSchema = (trip) => {
+  const schema = {
+    "@type": "Event",
+    name: `Expedição ${trip.title}`,
+    startDate: trip.startDateISO,
+    eventStatus: "https://schema.org/EventScheduled",
+    eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+    location: {
+      "@type": "Place",
+      name: trip.title,
+      address: {
+        "@type": "PostalAddress",
+        addressLocality: trip.city,
+        addressRegion: trip.region,
+        addressCountry: "BR",
+      },
+    },
+    organizer: { "@type": "Organization", name: "OVERTRIP", url: "https://overtrip.com.br" },
+    offers: {
+      "@type": "Offer",
+      price: trip.priceValue,
+      priceCurrency: "BRL",
+      availability: trip.availabilitySchema,
+      url: "https://overtrip.com.br/#proxima",
+    },
+  };
+
+  if (trip.endDateISO) {
+    schema.endDate = trip.endDateISO;
+  }
+
+  return schema;
+};
+
+const renderTrips = () => {
+  const grid = document.querySelector("#trip-grid");
+
+  if (!grid) {
+    return;
+  }
+
+  grid.innerHTML = TRIPS.map(buildTripCardHTML).join("");
+
+  // Schema.org por trip: gerado a partir do mesmo array acima, então nunca
+  // fica dessincronizado do que aparece visualmente no card.
+  const schemaScript = document.createElement("script");
+  schemaScript.type = "application/ld+json";
+  schemaScript.textContent = JSON.stringify({
+    "@context": "https://schema.org",
+    "@graph": TRIPS.map(buildTripSchema),
+  });
+  document.head.appendChild(schemaScript);
+};
+
+// ---------------------------------------------------------------------------
+// RENDER: Galeria + lightbox (modal com todas as fotos de cada memória)
+// ---------------------------------------------------------------------------
+const buildGalleryCardHTML = (entry, index) => {
+  const cover = entry.images[0];
+  const extraCount = entry.images.length - 1;
+  const badge = extraCount > 0
+    ? `<span class="gallery-photo-count">+${extraCount} foto${extraCount > 1 ? "s" : ""}</span>`
+    : "";
+
+  return `
+    <article
+      class="gallery-card reveal"
+      data-gallery-index="${index}"
+      tabindex="0"
+      role="button"
+      aria-label="Ver fotos de ${entry.title}"
+    >
+      <div class="gallery-image">
+        <img src="${cover.src}" alt="${cover.alt}" loading="lazy" decoding="async">
+        ${badge}
+      </div>
+      <div class="gallery-copy">
+        <h3>${entry.title}</h3>
+        <p>${entry.description}</p>
+        <p>${entry.date}</p>
+      </div>
+    </article>
+  `;
+};
+
+const renderGallery = () => {
+  const grid = document.querySelector("#gallery-grid");
+
+  if (!grid) {
+    return;
+  }
+
+  grid.innerHTML = GALLERY.map(buildGalleryCardHTML).join("");
+};
+
+const setupLightbox = () => {
+  const lightbox = document.querySelector("#gallery-lightbox");
+  const grid = document.querySelector("#gallery-grid");
+
+  if (!lightbox || !grid) {
+    return;
+  }
+
+  const imageEl = lightbox.querySelector(".lightbox-image");
+  const counterEl = lightbox.querySelector(".lightbox-counter");
+  const titleEl = lightbox.querySelector(".lightbox-title");
+  const descEl = lightbox.querySelector(".lightbox-desc");
+  const prevBtn = lightbox.querySelector(".lightbox-prev");
+  const nextBtn = lightbox.querySelector(".lightbox-next");
+
+  let currentEntry = null;
+  let currentIndex = 0;
+
+  const renderCurrentImage = () => {
+    if (!currentEntry) {
+      return;
+    }
+
+    const image = currentEntry.images[currentIndex];
+    imageEl.src = image.src;
+    imageEl.alt = image.alt;
+    counterEl.textContent = `${currentIndex + 1} / ${currentEntry.images.length}`;
+    titleEl.textContent = currentEntry.title;
+    descEl.textContent = currentEntry.description;
+
+    const hasMultiple = currentEntry.images.length > 1;
+    prevBtn.hidden = !hasMultiple;
+    nextBtn.hidden = !hasMultiple;
+  };
+
+  const openLightbox = (entry) => {
+    currentEntry = entry;
+    currentIndex = 0;
+    renderCurrentImage();
+    lightbox.classList.add("is-open");
+    lightbox.setAttribute("aria-hidden", "false");
+    document.body.classList.add("menu-locked");
+  };
+
+  const closeLightbox = () => {
+    lightbox.classList.remove("is-open");
+    lightbox.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("menu-locked");
+    currentEntry = null;
+  };
+
+  const showNext = () => {
+    if (!currentEntry) {
+      return;
+    }
+    currentIndex = (currentIndex + 1) % currentEntry.images.length;
+    renderCurrentImage();
+  };
+
+  const showPrev = () => {
+    if (!currentEntry) {
+      return;
+    }
+    currentIndex = (currentIndex - 1 + currentEntry.images.length) % currentEntry.images.length;
+    renderCurrentImage();
+  };
+
+  const openFromCard = (card) => {
+    const index = Number(card.dataset.galleryIndex);
+    const entry = GALLERY[index];
+    if (entry) {
+      openLightbox(entry);
+    }
+  };
+
+  grid.addEventListener("click", (event) => {
+    const card = event.target.closest(".gallery-card");
+    if (card) {
+      openFromCard(card);
+    }
+  });
+
+  grid.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+    const card = event.target.closest(".gallery-card");
+    if (!card) {
+      return;
+    }
+    event.preventDefault();
+    openFromCard(card);
+  });
+
+  lightbox.querySelectorAll("[data-lightbox-close]").forEach((element) => {
+    element.addEventListener("click", closeLightbox);
+  });
+
+  nextBtn.addEventListener("click", showNext);
+  prevBtn.addEventListener("click", showPrev);
+
+  document.addEventListener("keydown", (event) => {
+    if (!lightbox.classList.contains("is-open")) {
+      return;
+    }
+    if (event.key === "Escape") {
+      closeLightbox();
+    } else if (event.key === "ArrowRight") {
+      showNext();
+    } else if (event.key === "ArrowLeft") {
+      showPrev();
+    }
+  });
+};
+
+// ---------------------------------------------------------------------------
+// RENDER: Depoimentos + carrossel (arraste, clique nas setas ou use o mouse)
+// ---------------------------------------------------------------------------
+const buildTestimonialHTML = (testimonial) => {
+  const stars = "★".repeat(testimonial.rating) + "☆".repeat(5 - testimonial.rating);
+
+  return `
+    <figure class="quote-card reveal">
+      <div class="quote-rating" aria-hidden="true">${stars}</div>
+      <span class="quote-mark">"</span>
+      <blockquote>${testimonial.quote}</blockquote>
+      <figcaption>
+        <div>
+          <strong>${testimonial.name}</strong>
+          <span>${testimonial.place}</span>
+        </div>
+      </figcaption>
+    </figure>
+  `;
+};
+
+const renderTestimonials = () => {
+  const track = document.querySelector("#testimonials-track");
+
+  if (!track) {
+    return;
+  }
+
+  track.innerHTML = TESTIMONIALS.map(buildTestimonialHTML).join("");
+};
+
+const setupTestimonialCarousel = () => {
+  const track = document.querySelector("#testimonials-track");
+  const prevBtn = document.querySelector(".carousel-prev");
+  const nextBtn = document.querySelector(".carousel-next");
+
+  if (!track || !prevBtn || !nextBtn) {
+    return;
+  }
+
+  const scrollByCard = (direction) => {
+    const card = track.querySelector(".quote-card");
+    if (!card) {
+      return;
+    }
+    const cardWidth = card.getBoundingClientRect().width;
+    const gap = parseFloat(getComputedStyle(track).columnGap || "16");
+    track.scrollBy({ left: direction * (cardWidth + gap), behavior: "smooth" });
+  };
+
+  prevBtn.addEventListener("click", () => scrollByCard(-1));
+  nextBtn.addEventListener("click", () => scrollByCard(1));
+
+  // Arrastar com o mouse (além do gesto nativo de swipe em touch/trackpad).
+  let isDragging = false;
+  let dragStartX = 0;
+  let scrollStartLeft = 0;
+
+  track.addEventListener("pointerdown", (event) => {
+    isDragging = true;
+    track.classList.add("is-dragging");
+    dragStartX = event.clientX;
+    scrollStartLeft = track.scrollLeft;
+    track.setPointerCapture(event.pointerId);
+  });
+
+  track.addEventListener("pointermove", (event) => {
+    if (!isDragging) {
+      return;
+    }
+    track.scrollLeft = scrollStartLeft - (event.clientX - dragStartX);
+  });
+
+  const stopDragging = () => {
+    isDragging = false;
+    track.classList.remove("is-dragging");
+  };
+
+  track.addEventListener("pointerup", stopDragging);
+  track.addEventListener("pointerleave", stopDragging);
+  track.addEventListener("pointercancel", stopDragging);
+};
+
+// Renderiza tudo isso ANTES do restante do script, para que os elementos
+// (.wa-link, .reveal, .trip-card[data-month]) já existam quando o resto
+// do código for consultá-los abaixo.
+renderTrips();
+renderGallery();
+renderTestimonials();
+
+// ---------------------------------------------------------------------------
+// COMPORTAMENTO GERAL DO SITE
+// ---------------------------------------------------------------------------
+
 const whatsappNumber = "5583987745549";
 const waLinks = document.querySelectorAll(".wa-link");
 const currentYear = document.querySelector("#current-year");
@@ -212,6 +694,8 @@ detailsItems.forEach((item) => {
 
 bindHoverClass(galleryCards);
 bindHoverClass(mediaBlocks);
+setupLightbox();
+setupTestimonialCarousel();
 
 if (marqueeTrack) {
   let groupWidth = 0;
