@@ -48,7 +48,7 @@ const GALLERY = [
   {
     title: "Praia de Coqueirinho - Conde - PB",
     date: "28 de maio de 2023",
-    description: "Bate-papo, vista alta e gente que vira família.",
+    description: "Um dia de praia, estrada e boas lembranças para levar na bagagem.",
     images: [
       { src: "assets/images/praia-de-coqueirinho.jpg", alt: "Pôr do sol na praia com grupo de amigos em clima de descontração" },
       { src: "assets/images/pedacinho-da-prainha-coqueirinho.jpg", alt: "Falésias e mar na praia" },
@@ -58,7 +58,7 @@ const GALLERY = [
   {
     title: "Cachoeira do Paraíso - Bonito - PE",
     date: "14 de abril de 2024",
-    description: "Cachoeira, trilha e silêncio que reorganiza a mente.",
+    description: "Trilha, cachoeira e um lugar que faz a gente desacelerar",
     images: [
       { src: "assets/images/cachoeira-do-paraiso-bonito-pe.jpg", alt: "Cachoeira com piscina natural em meio à vegetação, vista de cima" },
       { src: "assets/images/cachoeira-do-paraiso-bonito2-pe.jpg", alt: "Cachoeira em meio à mata fechada" },
@@ -67,7 +67,7 @@ const GALLERY = [
   {
     title: "Camping no Rio do Feijão - Barra de Santana - PB",
     date: "22 de julho de 2023",
-    description: "Quando a trip continua mesmo com o motor desligado.",
+    description: "Fogueira, céu estrelado e a simplicidade de estar presente",
     images: [
       { src: "assets/images/camping-rio-do-feijao.jpg", alt: "Camping à beira de rio com grupo de amigos em clima de descontração" },
       { src: "assets/images/camping-rio-do-feijao2.jpg", alt: "Barracas montadas à beira do rio ao entardecer" },
@@ -77,7 +77,7 @@ const GALLERY = [
   {
     title: "Olheiro de Pureza - Pureza - RN",
     date: "17 de maio de 2026",
-    description: "Águas claras e a resenha que quase atrasou a volta.",
+    description: "Águas cristalinas, risadas e uma viagem para guardar na memória.",
     images: [
       { src: "assets/images/turma-olheiro-pureza.jpg", alt: "Grupo de viajantes no olheiro de Pureza" },
       { src: "assets/images/pureza-rn.jpg", alt: "Olheiro de Pureza em meio à vegetação natural" },
