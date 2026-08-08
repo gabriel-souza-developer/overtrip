@@ -8,7 +8,7 @@ document.body.classList.add("js");
 
 const TRIPS = [
   {
-    title: "Excurssão | Bonito - PE",
+    title: "Excursão | Bonito - PE",
     // location: "Bonito - PE",
     city: "Bonito",
     region: "PE",
@@ -38,7 +38,7 @@ const TRIPS = [
     buttonClass: "button-dark",
     waMessage: "Fala! Tenho interesse na excursão a Bonito - PE (13/09/2026) e quero saber mais detalhes.",
     // Usado só no schema.org (Google) — não aparece no card.
-    startDateISO: "2026-09-06T03:30:00-03:00",
+    startDateISO: "2026-09-13T03:30:00-03:00",
     availabilitySchema: "https://schema.org/InStock",
   },
 ];
@@ -75,7 +75,7 @@ const GALLERY = [
     ],
   },
   {
-    title: "Olheiro de Pureza - Pureza - RN",
+    title: "Olheiro de Pureza - RN",
     date: "17 de maio de 2026",
     description: "Águas cristalinas, risadas e uma viagem para guardar na memória.",
     images: [
@@ -105,7 +105,7 @@ const TESTIMONIALS = [
     name: "Helton",
     place: "Pedra do Altar - 2025",
     rating: 5,
-    quote: "Toda viagem com vocês é muito bom, galera tranquila, me sinto muito avontade.",
+    quote: "Toda viagem com vocês é muito boa, galera tranquila, me sinto muito à vontade.",
   },
   {
     name: "Mateus",
