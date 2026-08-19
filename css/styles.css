@@ -534,9 +534,15 @@ h2 {
   display: none;
 }
 
+/* Mobile: 1 coluna cheia até a margem do container — igual a todos os
+   outros grids do site (galeria, universo, depoimentos etc.). O limite de
+   largura por card (que evita um card gigante sozinho numa tela larga) só
+   entra a partir de 720px — ver seção 18. Não dê ao .trip-card nenhum
+   "width" fixo em lugar nenhum: quem define o tamanho dele é sempre o
+   grid, nunca o card. */
 .trip-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: 1fr;
   gap: 1.5rem;
   margin-top: 2.5rem;
 }
@@ -549,7 +555,6 @@ h2 {
   border-radius: var(--radius-xl);
   background: var(--bone);
   box-shadow: var(--shadow-soft);
-  width: 370px;
 }
 
 .trip-media {
@@ -594,7 +599,6 @@ h2 {
   font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  padding: 0.3rem 0.75rem;
 }
 
 .trip-status.open { background: rgba(52, 78, 51, 0.12); color: var(--moss); }
@@ -611,7 +615,6 @@ h2 {
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--text-soft);
-  padding: 0.3rem 0.75rem;
 }
 
 .trip-intensity.leve { border-color: rgba(52, 78, 51, 0.3); color: var(--moss); }
@@ -727,12 +730,11 @@ h2 {
 }
 
 .trip-price {
-  margin: 0.3rem 0.75rem;
+  margin: 0;
   font-family: "Inter Tight", sans-serif;
   font-size: 1.15rem;
   font-weight: 700;
   color: var(--rust);
-  text-align: center;
 }
 
 .trip-card .button {
@@ -849,7 +851,6 @@ h2 {
 .origin-timeline {
   margin-top: clamp(3rem, 6vw, 4.5rem);
   padding-top: clamp(2.5rem, 5vw, 3.5rem);
-  border-top: 1px solid var(--line);
 }
 
 .origin-timeline > .section-kicker {
@@ -1362,7 +1363,49 @@ h2 {
 }
 
 /* ==========================================================================
-   12. VOZES / DEPOIMENTOS
+   12. MAPA (lugares que já visitamos)
+   ========================================================================== */
+.visited-map {
+  height: 22rem;
+  margin-top: 3.5rem;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+
+/* Só se a Leaflet não carregar (ver js/map.js) */
+.visited-map-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-soft);
+  font-size: 0.86rem;
+  background: var(--paper);
+}
+
+/* Ajustes finos do popup da Leaflet pra combinar com a identidade visual do site */
+.visited-map .leaflet-popup-content-wrapper {
+  border-radius: var(--radius-lg);
+  font-family: "Inter", sans-serif;
+}
+
+.visited-map .leaflet-popup-content h3 {
+  margin: 0 0 0.25rem;
+  font-family: "Inter Tight", sans-serif;
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.visited-map .leaflet-popup-content p {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 0.78rem;
+}
+
+/* ==========================================================================
+   13. VOZES / DEPOIMENTOS
    ========================================================================== */
 .rating-bar {
   display: flex;
@@ -1512,7 +1555,7 @@ h2 {
 }
 
 /* ==========================================================================
-   13. FAQ
+   14. FAQ
    ========================================================================== */
 .faq-list {
   border-top: 1px solid var(--line);
@@ -1602,7 +1645,7 @@ h2 {
 }
 
 /* ==========================================================================
-   14. CTA FINAL
+   15. CTA FINAL
    ========================================================================== */
 .final-cta {
   text-align: center;
@@ -1624,7 +1667,7 @@ h2 {
 }
 
 /* ==========================================================================
-   15. FOOTER
+   16. FOOTER
    ========================================================================== */
 .site-footer {
   background: var(--bone);
@@ -1670,7 +1713,7 @@ h2 {
 }
 
 /* ==========================================================================
-   16. BOTÃO FLUTUANTE DE WHATSAPP
+   17. BOTÃO FLUTUANTE DE WHATSAPP
    ========================================================================== */
 .floating-wa {
   position: fixed;
@@ -1704,7 +1747,7 @@ h2 {
 }
 
 /* ==========================================================================
-   17. ANIMAÇÃO DE ENTRADA (.reveal via IntersectionObserver no script.js)
+   18. ANIMAÇÃO DE ENTRADA (.reveal via IntersectionObserver no script.js)
    ========================================================================== */
 body.js .reveal {
   opacity: 0;
@@ -1718,7 +1761,7 @@ body.js .reveal.is-visible {
 }
 
 /* ==========================================================================
-   18. RESPONSIVIDADE
+   19. RESPONSIVIDADE
    ========================================================================== */
 
 /* --- A partir de 720px: layout deixa de ser mobile-first ---------------- */
@@ -1793,6 +1836,15 @@ body.js .reveal.is-visible {
     display: inline;
   }
 
+  /* Próxima trip — a partir daqui vira grid de verdade: colunas de até
+     340px, colapsando as vazias (auto-fit) para não sobrar espaço morto
+     quando há poucas trips. No mobile o card fica full-width (regra base
+     na seção 7). */
+  .trip-grid {
+    grid-template-columns: repeat(auto-fit, minmax(260px, 340px));
+    justify-content: start;
+  }
+
   /* Sobre + Nossa história */
   .stats-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1811,6 +1863,11 @@ body.js .reveal.is-visible {
   /* Como funciona */
   .cards-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  /* Mapa */
+  .visited-map {
+    height: 28rem;
   }
 
   /* FAQ */

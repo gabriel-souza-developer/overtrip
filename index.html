@@ -96,15 +96,18 @@
     },
     "areaServed":"Brasil",
     "sameAs":[
-      "https://www.instagram.com/cg.trip/"
+      "https://www.instagram.com/overtrip.br/"
     ],
     "aggregateRating":{
       "@type":"AggregateRating",
       "ratingValue":"4.9",
-      "reviewCount":"42"
+      "reviewCount":"20"
     }
   }
   </script>
+
+  <!-- Leaflet (mapa de lugares visitados, seção 12) — CSS precisa vir antes do JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
 </head>
 <body class="no-js">
@@ -201,6 +204,12 @@
         <!-- Os cards abaixo (e o schema.org correspondente) são renderizados
              pelo js/script.js a partir do array TRIPS -->
         <div class="trip-grid" id="trip-grid"></div>
+        <noscript>
+  <p class="noscript-note">
+    Ative o JavaScript no navegador para ver as próximas expedições, ou
+    <a href="https://wa.me/5583987745549" target="_blank" rel="noreferrer">fale direto no WhatsApp</a>.
+  </p>
+</noscript>
       </div>
     </section>
 
@@ -460,6 +469,10 @@
         <!-- Os cards abaixo são renderizados pelo js/script.js a partir do
              array GALLERY. -->
         <div class="gallery-grid" id="gallery-grid"></div>
+
+<noscript>
+  <p class="noscript-note">Ative o JavaScript para ver as fotos da galeria.</p>
+</noscript>
       </div>
     </section>
 
@@ -485,7 +498,33 @@
     </div>
 
     <!-- ==========================================================================
-         12. VOZES / DEPOIMENTOS
+         12. MAPA (lugares que já visitamos)
+         Mapa gerado por js/map.js (Leaflet + OpenStreetMap), num arquivo à
+         parte do script.js principal. Coordenadas aproximadas — ver
+         comentário no topo do js/map.js pra ajustar.
+         ========================================================================== -->
+    <section class="section section-paper" id="mapa">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">Onde já estivemos</p>
+            <h2>Um mapa da estrada até aqui.</h2>
+          </div>
+          <p class="section-support">
+            Cada pin é uma memória. Clique para ver o lugar e a data da viagem.
+          </p>
+        </div>
+
+        <div class="visited-map" id="visited-map"></div>
+
+        <noscript>
+          <p class="noscript-note">Ative o JavaScript para ver o mapa dos lugares que já visitamos.</p>
+        </noscript>
+      </div>
+    </section>
+
+    <!-- ==========================================================================
+         13. VOZES / DEPOIMENTOS
          ========================================================================== -->
     <section class="section section-paper" id="vozes">
       <div class="container">
@@ -500,7 +539,7 @@
           <div class="rating-bar">
             <span class="rating-stars" aria-hidden="true">★★★★★</span>
             <strong>4.9</strong>
-            <span>com base em 42 avaliações no Google e Instagram</span>
+            <span>com base em 20 avaliações no Google e Instagram</span>
           </div>
         </div>
 
@@ -513,11 +552,15 @@
             <button type="button" class="carousel-nav carousel-next" aria-label="Próximo depoimento">›</button>
           </div>
         </div>
+
+        <noscript>
+  <p class="noscript-note">Ative o JavaScript para ver os depoimentos.</p>
+</noscript>
       </div>
     </section>
 
     <!-- ==========================================================================
-         13. FAQ
+         14. FAQ
          ========================================================================== -->
     <section class="section section-light" id="faq">
       <div class="container faq-layout">
@@ -655,7 +698,7 @@
     </section>
 
     <!-- ==========================================================================
-         14. CTA FINAL
+         15. CTA FINAL
          ========================================================================== -->
     <section class="section section-paper final-cta" id="cta">
       <div class="container narrow reveal">
@@ -691,7 +734,7 @@
   </main>
 
   <!-- ==========================================================================
-       15. FOOTER
+       16. FOOTER
        ========================================================================== -->
   <footer class="site-footer">
     <div class="container footer-grid">
@@ -722,7 +765,7 @@
         >
           WhatsApp
         </a>
-        <a href="https://www.instagram.com/cg.trip/" target="_blank" rel="noreferrer">Instagram</a>
+        <a href="https://www.instagram.com/overtrip.br/" target="_blank" rel="noreferrer">Instagram</a>
         <a href="https://www.google.com/maps/search/?api=1&query=Campina+Grande+PB" target="_blank" rel="noreferrer">Campina Grande - PB</a>
       </div>
     </div>
@@ -734,7 +777,7 @@
   </footer>
 
   <!-- ==========================================================================
-       16. BOTÃO FLUTUANTE DE WHATSAPP
+       17. BOTÃO FLUTUANTE DE WHATSAPP
        ========================================================================== -->
   <a
     class="floating-wa wa-link"
@@ -750,5 +793,9 @@
   </a>
 
   <script src="js/script.js"></script>
+
+  <!-- Leaflet + o mapa de lugares visitados, num arquivo à parte -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="js/map.js"></script>
 </body>
 </html>
