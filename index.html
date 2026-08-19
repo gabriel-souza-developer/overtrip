@@ -70,7 +70,7 @@
   <link
     rel="preload"
     as="image"
-    href="/assets/images/hero.jpg"
+    href="/assets/images/estrada-no-vale-ao-amanhecer.jpg"
   >
 
   <link
@@ -106,14 +106,13 @@
   }
   </script>
 
-  <!-- Leaflet (mapa de lugares visitados, seção 12) — CSS precisa vir antes do JS -->
+  <!-- Leaflet (mapa de lugares visitados, seção 12) -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
 </head>
 <body class="no-js">
   <!-- ==========================================================================
        3. HEADER / NAVEGAÇÃO
-       Os links apontam para os ids das seções abaixo (mesma numeração do CSS).
        ========================================================================== -->
   <header class="site-header">
     <div class="container nav-shell">
@@ -129,6 +128,7 @@
       <nav class="site-nav" id="site-nav" aria-label="Principal">
         <a href="#proxima">Próxima trip</a>
         <a href="#sobre">Nossa história</a>
+        <a href="#mapa">Onde já estivemos</a>
         <a href="#universo">Universo</a>
         <a href="#como">Como funciona?</a>
         <a href="#galeria">Memórias</a>
@@ -145,7 +145,7 @@
          ========================================================================== -->
     <section class="hero" id="top">
       <div class="hero-media">
-        <img src="assets/images/hero.jpg" alt="Estrada serpenteando por vale verde ao amanhecer">
+        <img src="assets/images/estrada-no-vale-ao-amanhecer.jpg" alt="Estrada serpenteando por vale verde ao amanhecer">
       </div>
       <div class="hero-overlay"></div>
 
@@ -194,7 +194,7 @@
             <p class="section-kicker">OVERTRIP Expeditions</p>
             <h2>A próxima estrada já tem data.</h2>
           </div>
-          <p class="status-pill"><span></span>Próximo embarque aberto</p>
+          <p class="status-pill" id="proxima-status"><span></span>Próximo embarque aberto</p>
         </div>
 
         <div class="trip-filter" role="tablist" aria-label="Filtrar por mês">
@@ -220,7 +220,7 @@
       <div class="container">
         <div class="split-layout">
           <div class="media-block reveal">
-            <img src="assets/images/amigos-na-cachoeira.jpg" alt="Amigos na cachoeira" loading="lazy" decoding="async">
+            <img src="assets/images/grupo-na-cachoeira.jpg" alt="Amigos na cachoeira" loading="lazy" decoding="async">
           </div>
 
           <div class="text-block reveal">
@@ -250,8 +250,6 @@
             </div>
           </div>
         </div>
-
-        <!-- Barra de números: -->
         <div class="stats-bar">
           <div class="stats-grid">
             <div class="stat-item reveal">
@@ -259,11 +257,11 @@
               <span>Membros</span>
             </div>
             <div class="stat-item reveal">
-              <strong>+30</strong>
+              <strong id="stat-trips-count">+30</strong>
               <span>Excursões realizadas</span>
             </div>
             <div class="stat-item reveal">
-              <strong>3 anos</strong>
+              <strong id="stat-years-count">3 anos</strong>
               <span>de comunidade</span>
             </div>
             <div class="stat-item reveal">
@@ -279,7 +277,9 @@
 
           <div class="timeline">
             <ol class="timeline-track">
-              <li class="timeline-point reveal">
+              <!-- data-year no primeiro ponto alimenta o cálculo de
+                   "X anos de comunidade" na stats-bar acima. -->
+              <li class="timeline-point reveal" data-year="2022">
                 <span class="timeline-year">2022</span>
                 <span class="timeline-dot" aria-hidden="true"></span>
                 <div class="timeline-copy">
@@ -335,8 +335,31 @@
     </section>
 
     <!-- ==========================================================================
-         9. UNIVERSO DA MARCA
-         Apresenta as frentes OVERTRIP sem parecer agência de turismo.
+         9. MAPA (lugares que já visitamos)
+         Mapa gerado por js/map.js (Leaflet + OpenStreetMap)
+         ========================================================================== -->
+    <section class="section section-light" id="mapa">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">Onde já estivemos</p>
+            <h2>Um mapa da estrada até aqui.</h2>
+          </div>
+          <p class="section-support">
+            Cada pin é uma memória. Clique para ver o lugar e a data da viagem.
+          </p>
+        </div>
+
+        <div class="visited-map" id="visited-map"></div>
+
+        <noscript>
+          <p class="noscript-note">Ative o JavaScript para ver o mapa dos lugares que já visitamos.</p>
+        </noscript>
+      </div>
+    </section>
+
+    <!-- ==========================================================================
+         10. UNIVERSO DA MARCA
          ========================================================================== -->
     <section class="section section-light brand-universe" id="universo">
       <div class="container">
@@ -373,7 +396,7 @@
     </section>
 
     <!-- ==========================================================================
-         10. COMO FUNCIONA (cards + faixa "Move Different")
+         11. COMO FUNCIONA (cards + faixa "Move Different")
          ========================================================================== -->
     <section class="section section-dark section-how" id="como">
       <div class="container">
@@ -447,7 +470,7 @@
     </section>
 
     <!-- ==========================================================================
-         11. GALERIA (memórias)
+         12. GALERIA (memórias)
          ========================================================================== -->
     <section class="section section-light" id="galeria">
       <div class="container">
@@ -497,31 +520,32 @@
       </div>
     </div>
 
-    <!-- ==========================================================================
-         12. MAPA (lugares que já visitamos)
-         Mapa gerado por js/map.js (Leaflet + OpenStreetMap), num arquivo à
-         parte do script.js principal. Coordenadas aproximadas — ver
-         comentário no topo do js/map.js pra ajustar.
-         ========================================================================== -->
-    <section class="section section-paper" id="mapa">
-      <div class="container">
-        <div class="section-head">
-          <div>
-            <p class="section-kicker">Onde já estivemos</p>
-            <h2>Um mapa da estrada até aqui.</h2>
-          </div>
-          <p class="section-support">
-            Cada pin é uma memória. Clique para ver o lugar e a data da viagem.
-          </p>
-        </div>
+    <!-- Modal do Pix: aberto via JS ao clicar em "Pagar com Pix" num card de
+         trip. O QR e a chave são gerados/preenchidos pelo script.js
+         (setupPixModal/buildPixPayload) — não tem valor fixo no código,
+         de propósito -->
+    <div class="lightbox pix-modal" id="pix-modal" aria-hidden="true">
+      <div class="lightbox-backdrop" data-pix-close></div>
+      <div class="lightbox-dialog pix-modal-dialog" role="dialog" aria-modal="true" aria-label="Pagamento via Pix">
+        <button type="button" class="lightbox-close" data-pix-close aria-label="Fechar">×</button>
 
-        <div class="visited-map" id="visited-map"></div>
+        <p class="section-kicker">Pagamento via Pix</p>
+        <h3 id="pix-modal-title"></h3>
+        <p class="pix-modal-price" id="pix-modal-price"></p>
 
-        <noscript>
-          <p class="noscript-note">Ative o JavaScript para ver o mapa dos lugares que já visitamos.</p>
-        </noscript>
+        <img class="pix-qr-image" id="pix-qr-image" src="" alt="QR Code Pix para pagamento da OVERTRIP" width="240" height="240" loading="lazy">
+
+        <p class="pix-key-label">Chave Pix (e-mail)</p>
+        <p class="pix-key-value" id="pix-key-value"></p>
+
+        <button type="button" class="button button-dark" id="pix-copy-btn">Copiar código Pix</button>
+
+        <p class="pix-modal-note">
+          Aponte a câmera do app do seu banco pro QR Code, ou copie o código e cole na opção "Pix Copia e Cola".
+          Confirme o comprovante com a gente pelo WhatsApp pra garantir sua vaga.
+        </p>
       </div>
-    </section>
+    </div>
 
     <!-- ==========================================================================
          13. VOZES / DEPOIMENTOS

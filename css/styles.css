@@ -398,6 +398,19 @@ h2 {
   50% { opacity: 1; transform: scale(1); }
 }
 
+/* Variante do status-pill quando não há nenhuma trip com vagas abertas —
+   ver updateProximaStatus() em script.js. Bolinha parada (sem animação de
+   "ao vivo"), pra não passar falsa urgência quando não há vaga nenhuma. */
+.status-pill.status-pill-closed {
+  border-color: var(--line);
+  color: var(--text-soft);
+}
+
+.status-pill.status-pill-closed span {
+  background: var(--text-soft);
+  animation: none;
+}
+
 /* Grids de 2 colunas compartilhados por Sobre, FAQ, Footer e Universo */
 .split-layout,
 .faq-layout,
@@ -558,8 +571,15 @@ h2 {
 }
 
 .trip-media {
+  position: relative;
   overflow: hidden;
   aspect-ratio: 4 / 3;
+  cursor: pointer;
+}
+
+.trip-media:focus-visible {
+  outline: 2px solid var(--rust);
+  outline-offset: -2px;
 }
 
 .trip-media img {
@@ -1291,6 +1311,93 @@ h2 {
   cursor: pointer;
 }
 
+/* Modal do Pix: reaproveita a estrutura do .lightbox (backdrop, fechar,
+   abrir/fechar via JS), mas troca o tema escuro/largo (feito pra fotos)
+   por um cartão claro e estreito (feito pra leitura + QR code). */
+.pix-modal-dialog {
+  width: min(26rem, calc(100vw - 2rem));
+  padding: 2rem 1.75rem 1.75rem;
+  background: var(--paper);
+  color: var(--ink);
+  text-align: center;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.pix-modal-dialog .lightbox-close {
+  background: rgba(17, 17, 17, 0.08);
+  color: var(--ink);
+}
+
+.pix-modal-dialog h3 {
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.pix-modal-price {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-soft);
+}
+
+.pix-qr-image {
+  width: 12rem;
+  height: 12rem;
+  margin: 0.5rem 0;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  background: #fff;
+}
+
+.pix-key-label {
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+
+.pix-key-value {
+  margin: 0;
+  padding: 0.5rem 0.85rem;
+  border-radius: var(--radius-lg);
+  background: rgba(17, 17, 17, 0.05);
+  font-family: "Inter Tight", sans-serif;
+  font-weight: 600;
+  word-break: break-all;
+}
+
+.pix-modal-dialog #pix-copy-btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.pix-modal-dialog #pix-copy-btn.is-copied {
+  background: var(--moss);
+}
+
+.pix-modal-note {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--text-soft);
+}
+
+/* Rodapé do card de trip: preço + os dois botões de pagamento lado a lado
+   (empilham no mobile). */
+.trip-footer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.trip-footer-actions .button {
+  flex: 1 1 auto;
+  justify-content: center;
+  white-space: nowrap;
+}
+
 .lightbox-media {
   position: relative;
   display: flex;
@@ -1366,6 +1473,14 @@ h2 {
    12. MAPA (lugares que já visitamos)
    ========================================================================== */
 .visited-map {
+  position: relative;
+  /* Cria um novo "contexto de empilhamento" pro mapa. Sem isso, o z-index
+     interno do Leaflet (controles de zoom, popups etc. chegam a usar até
+     1000) compete direto com elementos fixos da página, como o header
+     (z-index: 50) — e pode aparecer flutuando por cima dele ao rolar.
+     Com o z-index aqui, tudo que o Leaflet desenha fica "preso" dentro
+     deste elemento, nunca acima do que está fora dele. */
+  z-index: 0;
   height: 22rem;
   margin-top: 3.5rem;
   border-radius: var(--radius-xl);

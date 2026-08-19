@@ -1,29 +1,20 @@
 document.body.classList.remove("no-js");
 document.body.classList.add("js");
 
-// ---------------------------------------------------------------------------
-// DADOS
 // Próximas trips, galeria de memórias e depoimentos ficam centralizados
-//---------------------------------------------------------------------------
+
 
 const TRIPS = [
   {
     title: "Excursão | Bonito - PE",
-    // location: "Bonito - PE",
     city: "Bonito",
     region: "PE",
-    // chapterLabel: "Capítulo 03 · Setembro 2026",
     month: "SET",
-    dateDisplay: "13/09/2026 (domingo)",
-    departure: "03h30",
     returnTime: "17h",
     meetingPoint: "Rodoviária Nova",
     meetingMapsQuery: "Rodoviária Nova, Campina Grande - PB",
     priceDisplay: "R$ 165,00 por pessoa",
     priceValue: "165.00",
-    // Sem contagem de vagas informada — evite inventar um número aqui.
-    statusClass: "open",
-    statusLabel: "Vagas abertas",
     intensityClass: "leve",
     intensityLabel: "Intensidade leve",
     includes: [
@@ -32,26 +23,31 @@ const TRIPS = [
       "Assistência equipe OVERTRIP",
       "Taxa de entrada no Camping do Mágico (Day-use)",
     ],
-    image: "assets/images/riacho-e-area-do-restaurante-capimgdomagico.jpg",
-    imageAlt: "Piscina natural de águas claras em Bonito - PE",
+    // Cada trip pode ter várias fotos — a primeira é a capa do card
+    images: [
+      { src: "assets/images/bonito-riacho-restaurante.jpg", alt: "Piscina natural de águas claras em Bonito - PE" },
+      { src: "assets/images/cachoeira-do-paraiso-piscina-natural.jpg", alt: "Piscina natural de águas claras em Bonito - PE" },
+    ],
     buttonLabel: "Reservar via WhatsApp",
     buttonClass: "button-dark",
     waMessage: "Fala! Tenho interesse na excursão a Bonito - PE (13/09/2026) e quero saber mais detalhes.",
-    // Usado só no schema.org (Google) — não aparece no card.
+    // Única fonte da data/hora de saída: data exibida no card, hora de
+    // saída exibida no card, contagem regressiva e schema.org (Google)
+    // são TODOS calculados a partir deste campo 
+    
     startDateISO: "2026-09-13T03:30:00-03:00",
     availabilitySchema: "https://schema.org/InStock",
   },
 ];
 
-// Cada memória pode ter várias fotos — a primeira é a capa do card.
 const GALLERY = [
   {
     title: "Praia de Coqueirinho - Conde - PB",
     date: "28 de maio de 2023",
     description: "Um dia de praia, estrada e boas lembranças para levar na bagagem.",
     images: [
-      { src: "assets/images/praia-de-coqueirinho.jpg", alt: "Pôr do sol na praia com grupo de amigos em clima de descontração" },
-      { src: "assets/images/pedacinho-da-prainha-coqueirinho.jpg", alt: "Falésias e mar na praia" },
+      { src: "assets/images/coqueirinho-praia-vista-aerea.jpg", alt: "Pôr do sol na praia com grupo de amigos em clima de descontração" },
+      { src: "assets/images/coqueirinho-praia-guarda-sols.jpg", alt: "Falésias e mar na praia" },
 
     ],
   },
@@ -60,8 +56,8 @@ const GALLERY = [
     date: "14 de abril de 2024",
     description: "Trilha, cachoeira e um lugar que faz a gente desacelerar",
     images: [
-      { src: "assets/images/cachoeira-do-paraiso-bonito-pe.jpg", alt: "Cachoeira com piscina natural em meio à vegetação, vista de cima" },
-      { src: "assets/images/cachoeira-do-paraiso-bonito2-pe.jpg", alt: "Cachoeira em meio à mata fechada" },
+      { src: "assets/images/cachoeira-do-paraiso-piscina-natural.jpg", alt: "Cachoeira com piscina natural em meio à vegetação, vista de cima" },
+      { src: "assets/images/cachoeira-do-paraiso-queda-dagua.jpg", alt: "Cachoeira em meio à mata fechada" },
     ],
   },
   {
@@ -69,9 +65,9 @@ const GALLERY = [
     date: "22 de julho de 2023",
     description: "Fogueira, céu estrelado e a simplicidade de estar presente",
     images: [
-      { src: "assets/images/camping-rio-do-feijao.jpg", alt: "Camping à beira de rio com grupo de amigos em clima de descontração" },
-      { src: "assets/images/camping-rio-do-feijao2.jpg", alt: "Barracas montadas à beira do rio ao entardecer" },
-      { src: "assets/images/estrelas-camping.jpg", alt: "Estrelas à noite" },
+      { src: "assets/images/rio-do-feijao-camping-tendas.jpg", alt: "Camping à beira de rio com grupo de amigos em clima de descontração" },
+      { src: "assets/images/rio-do-feijao-camping-entardecer.jpg", alt: "Barracas montadas à beira do rio ao entardecer" },
+      { src: "assets/images/rio-do-feijao-ceu-estrelado.jpg", alt: "Estrelas à noite" },
     ],
   },
   {
@@ -79,15 +75,14 @@ const GALLERY = [
     date: "17 de maio de 2026",
     description: "Águas cristalinas, risadas e uma viagem para guardar na memória.",
     images: [
-      { src: "assets/images/turma-olheiro-pureza.jpg", alt: "Grupo de viajantes no olheiro de Pureza" },
-      { src: "assets/images/pureza-rn.jpg", alt: "Olheiro de Pureza em meio à vegetação natural" },
-      { src: "assets/images/nascente-pureza-rn.jpg", alt: "Nascente de águas cristalinas entre as pedras" },
+      { src: "assets/images/pureza-olheiro-grupo.jpg", alt: "Grupo de viajantes no olheiro de Pureza" },
+      { src: "assets/images/pureza-olheiro-banho.jpg", alt: "Olheiro de Pureza em meio à vegetação natural" },
+      { src: "assets/images/pureza-nascente-azul.jpg", alt: "Nascente de águas cristalinas entre as pedras" },
     ],
   },
 ];
 
-// Depoimentos: rating de 1 a 5. Adicione quantos quiser — o carrossel
-// se ajusta sozinho.
+// Depoimentos: rating de 1 a 5. 
 const TESTIMONIALS = [
   {
     name: "Anna",
@@ -121,35 +116,102 @@ const TESTIMONIALS = [
   },
 ];
 
-// ---------------------------------------------------------------------------
+
 // RENDER: Próxima trip (cards + schema.org gerado a partir do mesmo dado)
-// ---------------------------------------------------------------------------
-const buildTripCardHTML = (trip) => {
+
+
+const formatTripDate = (isoString) => {
+  const date = new Date(isoString);
+  const datePart = new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    timeZone: "America/Sao_Paulo",
+  }).format(date);
+  const weekday = new Intl.DateTimeFormat("pt-BR", {
+    weekday: "long",
+    timeZone: "America/Sao_Paulo",
+  }).format(date);
+  return `${datePart} (${weekday})`;
+};
+
+const formatTripTime = (isoString) => {
+  const date = new Date(isoString);
+  const formatted = new Intl.DateTimeFormat("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "America/Sao_Paulo",
+  }).format(date);
+  return formatted.replace(":", "h");
+};
+
+// matemática (data de hoje vs. data da trip), não estimativa.
+const getCountdownBadge = (trip) => {
+  const tripDate = new Date(trip.startDateISO);
+  const today = new Date();
+
+  // Zera a hora dos dois lados pra contar em dias de calendário cheios,
+  // não em blocos de 24h exatas (evita "faltam 0 dias" na véspera à noite).
+  const tripMidnight = new Date(tripDate.getFullYear(), tripDate.getMonth(), tripDate.getDate());
+  const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const daysLeft = Math.round((tripMidnight - todayMidnight) / (1000 * 60 * 60 * 24));
+
+  if (daysLeft < 0) {
+    return { label: "Vagas encerradas", statusClass: "soon" };
+  }
+  if (daysLeft === 0) {
+    return { label: "É hoje!", statusClass: "last" };
+  }
+  if (daysLeft === 1) {
+    return { label: "Falta 1 dia", statusClass: "last" };
+  }
+  if (daysLeft <= 7) {
+    return { label: `Faltam ${daysLeft} dias`, statusClass: "last" };
+  }
+  return { label: `Faltam ${daysLeft} dias`, statusClass: "open" };
+};
+
+const buildTripCardHTML = (trip, tripIndex) => {
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(trip.meetingMapsQuery)}`;
   const includesHTML = trip.includes.map((item) => `<li>${item}</li>`).join("");
-// <p class="trip-location">${trip.location}</p>
+  const countdown = getCountdownBadge(trip);
+  const dateDisplay = formatTripDate(trip.startDateISO);
+  const departure = formatTripTime(trip.startDateISO);
+
+  const cover = trip.images[0];
+  const extraCount = trip.images.length - 1;
+  const photoBadge = extraCount > 0
+    ? `<span class="gallery-photo-count">+${extraCount} foto${extraCount > 1 ? "s" : ""}</span>`
+    : "";
 
   return `
     <article class="trip-card reveal" data-month="${trip.month}">
-      <div class="trip-media">
-        <img src="${trip.image}" alt="${trip.imageAlt}" loading="lazy" decoding="async">
+      <div
+        class="trip-media"
+        data-trip-index="${tripIndex}"
+        tabindex="0"
+        role="button"
+        aria-label="Ver fotos de ${trip.title}"
+      >
+        <img src="${cover.src}" alt="${cover.alt}" loading="lazy" decoding="async">
+        ${photoBadge}
       </div>
       <div class="trip-body">
         <div class="trip-badges">
-          <span class="trip-status ${trip.statusClass}">${trip.statusLabel}</span>
+          <span class="trip-status ${countdown.statusClass}">${countdown.label}</span>
           <span class="trip-intensity ${trip.intensityClass}">${trip.intensityLabel}</span>
         </div>
         <h3>${trip.title}</h3>
-        
 
         <div class="trip-meta">
           <div class="trip-detail">
             <span>Data</span>
-            <strong>${trip.dateDisplay}</strong>
+            <strong>${dateDisplay}</strong>
           </div>
           <div class="trip-detail">
             <span>Saída</span>
-            <strong>${trip.departure}</strong>
+            <strong>${departure}</strong>
           </div>
           <div class="trip-detail">
             <span>Retorno</span>
@@ -165,15 +227,24 @@ const buildTripCardHTML = (trip) => {
 
         <div class="trip-footer">
           <p class="trip-price">${trip.priceDisplay}</p>
-          <a
-            class="button ${trip.buttonClass} wa-link"
-            data-wa-message="${trip.waMessage}"
-            href="#"
-            target="_blank"
-            rel="noreferrer"
-          >
-            ${trip.buttonLabel}
-          </a>
+          <div class="trip-footer-actions">
+            <a
+              class="button ${trip.buttonClass} wa-link"
+              data-wa-message="${trip.waMessage}"
+              href="#"
+              target="_blank"
+              rel="noreferrer"
+            >
+              ${trip.buttonLabel}
+            </a>
+            <button
+              type="button"
+              class="button button-outline pix-trigger"
+              data-pix-trip-index="${tripIndex}"
+            >
+              Pagar com Pix
+            </button>
+          </div>
         </div>
       </div>
     </article>
@@ -214,6 +285,27 @@ const buildTripSchema = (trip) => {
   return schema;
 };
 
+// Um trip "abre vaga" quando ainda não passou da data — mesma regra que já decide o selo "Vagas encerradas" de cada card (getCountdownBadge).
+const isTripOpen = (trip) => getCountdownBadge(trip).statusClass !== "soon";
+
+const updateProximaStatus = () => {
+  const statusEl = document.querySelector("#proxima-status");
+
+  if (!statusEl) {
+    return;
+  }
+
+  const hasOpenTrip = TRIPS.some(isTripOpen);
+  const label = TRIPS.length === 0
+    ? "Nenhuma expedição agendada"
+    : hasOpenTrip
+      ? "Próximo embarque aberto"
+      : "Vagas encerradas por enquanto";
+
+  statusEl.classList.toggle("status-pill-closed", !hasOpenTrip);
+  statusEl.innerHTML = `<span></span>${label}`;
+};
+
 const renderTrips = () => {
   const grid = document.querySelector("#trip-grid");
 
@@ -221,10 +313,10 @@ const renderTrips = () => {
     return;
   }
 
-  grid.innerHTML = TRIPS.map(buildTripCardHTML).join("");
+  grid.innerHTML = TRIPS.map((trip, index) => buildTripCardHTML(trip, index)).join("");
+  updateProximaStatus();
 
-  // Schema.org por trip: gerado a partir do mesmo array acima, então nunca
-  // fica dessincronizado do que aparece visualmente no card.
+  // Schema.org por trip: gerado a partir do mesmo array acima
   const schemaScript = document.createElement("script");
   schemaScript.type = "application/ld+json";
   schemaScript.textContent = JSON.stringify({
@@ -234,9 +326,8 @@ const renderTrips = () => {
   document.head.appendChild(schemaScript);
 };
 
-// ---------------------------------------------------------------------------
 // RENDER: Galeria + lightbox (modal com todas as fotos de cada memória)
-// ---------------------------------------------------------------------------
+
 const buildGalleryCardHTML = (entry, index) => {
   const cover = entry.images[0];
   const extraCount = entry.images.length - 1;
@@ -275,11 +366,19 @@ const renderGallery = () => {
   grid.innerHTML = GALLERY.map(buildGalleryCardHTML).join("");
 };
 
+// Traduz uma trip pro mesmo formato { title, description, images }
+const getTripLightboxEntry = (trip) => ({
+  title: trip.title,
+  description: `${formatTripDate(trip.startDateISO)} · ${trip.priceDisplay}`,
+  images: trip.images,
+});
+
 const setupLightbox = () => {
   const lightbox = document.querySelector("#gallery-lightbox");
-  const grid = document.querySelector("#gallery-grid");
+  const galleryGrid = document.querySelector("#gallery-grid");
+  const tripGrid = document.querySelector("#trip-grid");
 
-  if (!lightbox || !grid) {
+  if (!lightbox || (!galleryGrid && !tripGrid)) {
     return;
   }
 
@@ -342,7 +441,7 @@ const setupLightbox = () => {
     renderCurrentImage();
   };
 
-  const openFromCard = (card) => {
+  const openFromGalleryCard = (card) => {
     const index = Number(card.dataset.galleryIndex);
     const entry = GALLERY[index];
     if (entry) {
@@ -350,14 +449,22 @@ const setupLightbox = () => {
     }
   };
 
-  grid.addEventListener("click", (event) => {
+  const openFromTripMedia = (media) => {
+    const index = Number(media.dataset.tripIndex);
+    const trip = TRIPS[index];
+    if (trip) {
+      openLightbox(getTripLightboxEntry(trip));
+    }
+  };
+
+  galleryGrid?.addEventListener("click", (event) => {
     const card = event.target.closest(".gallery-card");
     if (card) {
-      openFromCard(card);
+      openFromGalleryCard(card);
     }
   });
 
-  grid.addEventListener("keydown", (event) => {
+  galleryGrid?.addEventListener("keydown", (event) => {
     if (event.key !== "Enter" && event.key !== " ") {
       return;
     }
@@ -366,7 +473,26 @@ const setupLightbox = () => {
       return;
     }
     event.preventDefault();
-    openFromCard(card);
+    openFromGalleryCard(card);
+  });
+
+  tripGrid?.addEventListener("click", (event) => {
+    const media = event.target.closest(".trip-media");
+    if (media) {
+      openFromTripMedia(media);
+    }
+  });
+
+  tripGrid?.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+    const media = event.target.closest(".trip-media");
+    if (!media) {
+      return;
+    }
+    event.preventDefault();
+    openFromTripMedia(media);
   });
 
   lightbox.querySelectorAll("[data-lightbox-close]").forEach((element) => {
@@ -474,15 +600,170 @@ const setupTestimonialCarousel = () => {
 };
 
 // Renderiza tudo isso ANTES do restante do script, para que os elementos
-// (.wa-link, .reveal, .trip-card[data-month]) já existam quando o resto
-// do código for consultá-los abaixo.
+// (.wa-link, .reveal, .trip-card[data-month]) já existam quando o resto do código for consultá-los abaixo.
+// "X anos de comunidade" na stats-bar, calculado a partir do data-year do
+// primeiro ponto da timeline (#sobre) — muda um valor, o outro segue junto.
+const updateYearsCount = () => {
+  const statEl = document.querySelector("#stat-years-count");
+  const firstTimelinePoint = document.querySelector(".timeline-point[data-year]");
+
+  if (!statEl || !firstTimelinePoint) {
+    return;
+  }
+
+  const startYear = Number(firstTimelinePoint.dataset.year);
+
+  if (!startYear) {
+    return;
+  }
+
+  const years = new Date().getFullYear() - startYear;
+  statEl.textContent = years > 0 ? `${years} anos` : "1º ano";
+};
+
+
+// PIX: gera o "Pix Copia e Cola" (BR Code, padrão do Banco Central) a partir da chave abaixo, sem embutir um valor fixo — a pessoa confirma o valor.
+// Referência do formato: manual "BR Code" do Bacen (EMV/QRCPS-MPM).
+
+const PIX_KEY = "contato@overtrip.com.br";
+const PIX_MERCHANT_NAME = "OVERTRIP";
+const PIX_MERCHANT_CITY = "CAMPINA GRANDE";
+
+// Monta um campo TLV (Tag-Length-Value): id de 2 dígitos + tamanho de 2
+// dígitos + o valor. É o formato básico de todo campo do BR Code.
+const pixField = (id, value) => `${id}${String(value.length).padStart(2, "0")}${value}`;
+
+// CRC16-CCITT (polinômio 0x1021, valor inicial 0xFFFF) — checksum exigidos pelo Bacen no último campo do payload, senão nenhum app de banco lê o QR.
+const crc16ccitt = (payload) => {
+  let crc = 0xffff;
+
+  for (let i = 0; i < payload.length; i += 1) {
+    crc ^= payload.charCodeAt(i) << 8;
+    for (let bit = 0; bit < 8; bit += 1) {
+      crc = (crc & 0x8000) !== 0 ? (crc << 1) ^ 0x1021 : crc << 1;
+      crc &= 0xffff;
+    }
+  }
+
+  return crc.toString(16).toUpperCase().padStart(4, "0");
+};
+
+const buildPixPayload = () => {
+  const merchantAccountInfo =
+    pixField("00", "br.gov.bcb.pix") + pixField("01", PIX_KEY);
+
+  const additionalData = pixField("05", "***"); // txid genérico ("sem referência")
+
+  const payloadWithoutCrc =
+    pixField("00", "01") + // Payload Format Indicator
+    pixField("26", merchantAccountInfo) + // Dados da chave Pix
+    pixField("52", "0000") + // Merchant Category Code
+    pixField("53", "986") + // Moeda: Real (ISO 4217)
+    pixField("58", "BR") + // País
+    pixField("59", PIX_MERCHANT_NAME.slice(0, 25)) +
+    pixField("60", PIX_MERCHANT_CITY.slice(0, 15)) +
+    pixField("62", additionalData) +
+    "6304"; // ID + tamanho do próprio campo de CRC
+
+  return payloadWithoutCrc + crc16ccitt(payloadWithoutCrc);
+};
+
+const setupPixModal = () => {
+  const modal = document.querySelector("#pix-modal");
+  const tripGrid = document.querySelector("#trip-grid");
+
+  if (!modal || !tripGrid) {
+    return;
+  }
+
+  const titleEl = modal.querySelector("#pix-modal-title");
+  const priceEl = modal.querySelector("#pix-modal-price");
+  const qrImage = modal.querySelector("#pix-qr-image");
+  const keyValueEl = modal.querySelector("#pix-key-value");
+  const copyBtn = modal.querySelector("#pix-copy-btn");
+  const payload = buildPixPayload();
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(payload)}`;
+
+  const openPixModal = (trip) => {
+    if (titleEl) {
+      titleEl.textContent = trip.title;
+    }
+    if (priceEl) {
+      priceEl.textContent = `Valor total: ${trip.priceDisplay} (ou o sinal de 50%, conforme política de reserva)`;
+    }
+    if (qrImage) {
+      qrImage.src = qrCodeUrl;
+    }
+    if (keyValueEl) {
+      keyValueEl.textContent = PIX_KEY;
+    }
+
+    modal.classList.add("is-open");
+    modal.setAttribute("aria-hidden", "false");
+    document.body.classList.add("menu-locked");
+  };
+
+  const closePixModal = () => {
+    modal.classList.remove("is-open");
+    modal.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("menu-locked");
+  };
+
+  tripGrid.addEventListener("click", (event) => {
+    const trigger = event.target.closest(".pix-trigger");
+    if (!trigger) {
+      return;
+    }
+
+    const index = Number(trigger.dataset.pixTripIndex);
+    const trip = TRIPS[index];
+    if (!trip) {
+      return;
+    }
+
+    trackPixClick(trip);
+    openPixModal(trip);
+  });
+
+  modal.querySelectorAll("[data-pix-close]").forEach((element) => {
+    element.addEventListener("click", closePixModal);
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (!modal.classList.contains("is-open")) {
+      return;
+    }
+    if (event.key === "Escape") {
+      closePixModal();
+    }
+  });
+
+  copyBtn?.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(payload);
+      copyBtn.textContent = "Código copiado!";
+      copyBtn.classList.add("is-copied");
+    } catch (error) {
+      // Clipboard API pode falhar em contexto não-seguro (http) ou permissão
+      // negada — nesse caso a pessoa ainda pode selecionar a chave manualmente.
+      console.warn("[pix] Não foi possível copiar automaticamente:", error);
+      copyBtn.textContent = "Não deu pra copiar — selecione a chave acima";
+    }
+
+    window.setTimeout(() => {
+      copyBtn.textContent = "Copiar código Pix";
+      copyBtn.classList.remove("is-copied");
+    }, 2500);
+  });
+};
+
 renderTrips();
 renderGallery();
 renderTestimonials();
+updateYearsCount();
 
-// ---------------------------------------------------------------------------
 // COMPORTAMENTO GERAL DO SITE
-// ---------------------------------------------------------------------------
+
 
 const whatsappNumber = "5583987745549";
 const waLinks = document.querySelectorAll(".wa-link");
@@ -553,13 +834,11 @@ const bindHoverClass = (elements) => {
   });
 };
 
-// ---------------------------------------------------------------------------
-// Analytics: dispara um evento a cada clique em link de WhatsApp, informando
-// em qual seção da página e em qual card/link o clique aconteceu. Funciona
+
+// Analytics: dispara um evento a cada clique em link de WhatsApp, informando em qual seção da página e em qual card/link o clique aconteceu. Funciona
 // com Google Tag Manager (dataLayer) ou GA4 (gtag) — o que já estiver
-// instalado no site. Se nenhum dos dois existir, só loga no console (não
-// quebra nada e ajuda a testar antes de conectar um analytics de verdade).
-// ---------------------------------------------------------------------------
+// instalado no site.
+
 const getWaLinkSection = (link) => {
   if (link.classList.contains("floating-wa")) {
     return "floating_button";
@@ -600,6 +879,21 @@ const trackWhatsAppClick = (link) => {
       label: eventPayload.wa_label,
       trip: eventPayload.wa_trip,
     });
+  } else {
+    console.log("[analytics]", eventPayload);
+  }
+};
+
+const trackPixClick = (trip) => {
+  const eventPayload = {
+    event: "pix_click",
+    pix_trip: trip.title,
+  };
+
+  if (window.dataLayer && typeof window.dataLayer.push === "function") {
+    window.dataLayer.push(eventPayload);
+  } else if (typeof window.gtag === "function") {
+    window.gtag("event", "pix_click", { trip: eventPayload.pix_trip });
   } else {
     console.log("[analytics]", eventPayload);
   }
@@ -695,6 +989,7 @@ detailsItems.forEach((item) => {
 bindHoverClass(galleryCards);
 bindHoverClass(mediaBlocks);
 setupLightbox();
+setupPixModal();
 setupTestimonialCarousel();
 
 if (marqueeTrack) {
@@ -732,11 +1027,10 @@ if (marqueeTrack) {
   );
 }
 
-// ---------------------------------------------------------------------------
+
 // Filtro de mês na grade de próximos embarques (#proxima). Os botões de mês
-// são gerados automaticamente a partir dos data-month presentes nos cards,
-// então adicionar uma trip em um mês novo já cria o botão sozinho.
-// ---------------------------------------------------------------------------
+// são gerados automaticamente a partir dos data-month presentes nos cards, então adicionar uma trip em um mês novo já cria o botão sozinho.
+
 const tripFilter = document.querySelector(".trip-filter");
 const tripCards = document.querySelectorAll(".trip-card[data-month]");
 

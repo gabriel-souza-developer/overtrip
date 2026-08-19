@@ -1,10 +1,7 @@
-// ---------------------------------------------------------------------------
+
 // MAPA DE LUGARES JÁ VISITADOS (#visited-map)
 // Leaflet + OpenStreetMap (sem chave de API, sem cadastro).
 
-// Dica pra pegar a coordenada certa: abrir o lugar no Google Maps, clicar com o botão
-// direito bem em cima do ponto > primeira opção mostra "lat, lng".
-// ---------------------------------------------------------------------------
 const VISITED_PLACES = [
   {
     title: "Praia de Coqueirinho",
@@ -209,6 +206,19 @@ const buildPopupHTML = (place) => `
   <p>${place.place} · ${place.date}</p>
 `;
 
+// "Excursões realizadas" na stats-bar (#sobre): usa o total de pins aqui
+// embaixo como fonte
+
+const updateTripsCountStat = () => {
+  const statEl = document.querySelector("#stat-trips-count");
+
+  if (!statEl) {
+    return;
+  }
+
+  statEl.textContent = `+${VISITED_PLACES.length}`;
+};
+
 const initVisitedMap = () => {
   const container = document.querySelector("#visited-map");
 
@@ -249,7 +259,7 @@ const initVisitedMap = () => {
     const group = L.featureGroup(markers);
     map.fitBounds(group.getBounds().pad(0.3));
   } else {
-    // Fallback: centraliza no Nordeste caso a lista fique vazia um dia.
+    // Fallback: centraliza no Nordeste
     map.setView([-7.5, -35.5], 6);
   }
 
@@ -260,8 +270,13 @@ const initVisitedMap = () => {
   });
 };
 
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initVisitedMap);
-} else {
+const initPage = () => {
+  updateTripsCountStat();
   initVisitedMap();
+};
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initPage);
+} else {
+  initPage();
 }
