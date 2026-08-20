@@ -22,8 +22,8 @@
   --copy-width: 34rem;
   --copy-leading: 1.7;
   --shadow-soft: 0 24px 60px rgba(17, 17, 17, 0.08);
-  --ease-soft: cubic-bezier(0.16, 1, 0.3, 1);
-  --image-zoom-duration: 2.2s;
+  --ease-soft: cubic-bezier(0.33, 1, 0.68, 1);
+  --image-zoom-duration: 0.6s;
 }
 
 /* ==========================================================================
@@ -568,6 +568,7 @@ h2 {
   border-radius: var(--radius-xl);
   background: var(--bone);
   box-shadow: var(--shadow-soft);
+  transform: translateZ(0);
 }
 
 .trip-media {
@@ -575,6 +576,12 @@ h2 {
   overflow: hidden;
   aspect-ratio: 4 / 3;
   cursor: pointer;
+  /* Promove o contêiner (que recorta a imagem nas bordas arredondadas) pra
+     sua própria camada de composição — igual a imagem já tem via
+     will-change abaixo. Sem isso, o navegador recalcula o recorte
+     arredondado a cada frame da animação de zoom, e é isso que causa o
+     tremor/cintilação na borda, principalmente em fotos com textura. */
+  transform: translateZ(0);
 }
 
 .trip-media:focus-visible {
@@ -768,6 +775,9 @@ h2 {
   overflow: hidden;
   border-radius: var(--radius-xl);
   min-height: 23rem;
+  /* Mesmo motivo das outras duas imagens com zoom no site: contêiner que
+     recorta precisa da própria camada de composição. */
+  transform: translateZ(0);
 }
 
 .media-block img {
@@ -1193,6 +1203,7 @@ h2 {
   border: 1px solid var(--line);
   cursor: pointer;
   transition: border-color 220ms ease;
+  transform: translateZ(0);
 }
 
 .gallery-card:hover,
@@ -1209,6 +1220,10 @@ h2 {
   position: relative;
   overflow: hidden;
   aspect-ratio: 3 / 3;
+  /* Mesmo motivo do .trip-media acima: contêiner que recorta precisa da
+     própria camada de composição, senão o recorte arredondado "treme"
+     junto com a imagem durante o zoom. */
+  transform: translateZ(0);
 }
 
 .gallery-image img {
@@ -1889,6 +1904,10 @@ body.js .reveal.is-visible {
   .nav-shell {
     display: flex;
     justify-content: space-between;
+    /* Piso de respiro entre a logo e o menu — mesmo que o menu cresça (mais
+       um link, por exemplo), o space-between abaixo nunca deixa esse
+       espaço menor que isto. */
+    gap: 2rem;
   }
 
   .menu-toggle {
@@ -1900,7 +1919,10 @@ body.js .reveal.is-visible {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 2rem;
+    /* Reduzido de 2rem: com 8 links, o valor original deixava o menu quase
+       do tamanho do container inteiro, sobrando pouco respiro ao lado da
+       logo mesmo usando justify-content: space-between no .nav-shell. */
+    gap: 1.35rem;
     width: auto;
     padding: 0;
     border: 0;
@@ -1915,6 +1937,12 @@ body.js .reveal.is-visible {
     padding: 0;
     border-radius: 0;
     white-space: nowrap;
+    /* .site-nav a herda letter-spacing: 0.32em da regra compartilhada (ver
+       seção 3, usada também em kickers, footer etc.). No menu do gaveta
+       mobile isso funciona bem, mas em 8 links lado a lado no desktop
+       cada palavra fica bem mais larga que o necessário — reduzindo aqui,
+       só neste breakpoint, sobra respiro pra logo sem mudar o resto. */
+    letter-spacing: 0.12em;
   }
 
   .site-nav a:hover,

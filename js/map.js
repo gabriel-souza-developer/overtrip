@@ -259,7 +259,7 @@ const initVisitedMap = () => {
     const group = L.featureGroup(markers);
     map.fitBounds(group.getBounds().pad(0.3));
   } else {
-    // Fallback: centraliza no Nordeste
+    // Fallback: centraliza no Nordeste caso a lista fique vazia um dia.
     map.setView([-7.5, -35.5], 6);
   }
 
