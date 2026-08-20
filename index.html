@@ -346,11 +346,27 @@
             <h2>Um mapa da estrada até aqui.</h2>
           </div>
           <p class="section-support">
-            Cada pin é uma memória. Clique para ver o lugar e a data da viagem.
+            Cada ponto no mapa é uma memória coletiva. Clique nos marcadores ou na lista pra explorar os destinos visitados saindo de Campina Grande.
           </p>
         </div>
 
-        <div class="visited-map" id="visited-map"></div>
+        <!-- Mapa + lista lateral de destinos, ambos preenchidos pelo
+             js/map.js a partir de VISITED_PLACES. A lista é gerada por
+             DESTINO ÚNICO (agrupando visitas repetidas ao mesmo lugar em
+             datas diferentes), não por pin — ver getUniqueDestinations()
+             no map.js. -->
+        <div class="map-shell">
+          <div class="visited-map" id="visited-map"></div>
+
+          <aside class="map-sidebar">
+            <div class="map-sidebar-head">
+              <p class="map-sidebar-kicker">Destinos &amp; roteiros</p>
+              <span class="map-sidebar-count" id="map-destinations-count"></span>
+            </div>
+            <div class="map-sidebar-list" id="map-destinations-list"></div>
+            <p class="map-sidebar-footnote">Novos destinos entram a cada nova experiência.</p>
+          </aside>
+        </div>
 
         <noscript>
           <p class="noscript-note">Ative o JavaScript para ver o mapa dos lugares que já visitamos.</p>

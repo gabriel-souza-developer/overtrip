@@ -22,6 +22,11 @@
   --copy-width: 34rem;
   --copy-leading: 1.7;
   --shadow-soft: 0 24px 60px rgba(17, 17, 17, 0.08);
+  /* Curva mais linear e duração mais curta que a versão anterior — aquela
+     combinação (easing muito agressivo + quase 2s) tinha uma "cauda" de
+     movimento imperceptível a olho nu, mas grande o bastante pra obrigar
+     o navegador a re-amostrar a imagem a cada frame por muito tempo — é
+     isso que aparecia como tremor/cintilação no zoom dos cards. */
   --ease-soft: cubic-bezier(0.33, 1, 0.68, 1);
   --image-zoom-duration: 0.6s;
 }
@@ -1487,6 +1492,23 @@ h2 {
 /* ==========================================================================
    12. MAPA (lugares que já visitamos)
    ========================================================================== */
+
+/* Grid do mapa + sidebar de destinos. Empilhado no mobile (mapa em cima,
+   lista embaixo); vira duas colunas a partir de 980px — ver seção 19.
+
+   --map-height fica declarada aqui (e sobrescrita nos breakpoints) porque
+   tanto o .visited-map quanto o .map-sidebar-list se baseiam nela pra
+   sempre ter a MESMA altura, em vez de duplicar o número em vários lugares
+   e correr o risco de dessincronizar (foi exatamente isso que causava a
+   sidebar esticando a página pra baixo, sem bater com o tamanho do mapa). */
+.map-shell {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  margin-top: 3.5rem;
+  --map-height: 22rem;
+}
+
 .visited-map {
   position: relative;
   /* Cria um novo "contexto de empilhamento" pro mapa. Sem isso, o z-index
@@ -1496,8 +1518,7 @@ h2 {
      Com o z-index aqui, tudo que o Leaflet desenha fica "preso" dentro
      deste elemento, nunca acima do que está fora dele. */
   z-index: 0;
-  height: 22rem;
-  margin-top: 3.5rem;
+  height: var(--map-height);
   border-radius: var(--radius-xl);
   overflow: hidden;
   border: 1px solid var(--line);
@@ -1532,6 +1553,261 @@ h2 {
   margin: 0;
   color: var(--text-soft);
   font-size: 0.78rem;
+}
+
+.visited-map .popup-dates {
+  margin-top: 0.35rem !important;
+  color: var(--rust) !important;
+  font-weight: 600;
+}
+
+/* Pins customizados (L.divIcon no map.js) — substituem o marcador azul
+   padrão do Leaflet pela cor da marca. O hub (Campina Grande) é maior e
+   escuro, pra se destacar como ponto de partida, não como destino. */
+.overtrip-pin-icon {
+  background: transparent;
+  border: 0;
+}
+
+/* Pin "radar": ponto branco no centro, anel sólido e um brilho difuso ao
+   redor — o iconSize/iconAnchor no map.js casam exatamente com esse
+   tamanho pra ancorar certinho na coordenada. O anel e o glow "vazam"
+   visualmente pra fora da caixa do ícone sem precisar de espaço extra,
+   já que box-shadow não conta pro layout. */
+.overtrip-pin {
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--bone);
+  box-shadow:
+    0 0 0 5px var(--rust),
+    0 0 0 13px rgba(212, 91, 45, 0.28),
+    0 3px 8px rgba(17, 17, 17, 0.3);
+  transition: transform 180ms ease;
+}
+
+.overtrip-pin--hub {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  background: var(--ink);
+ /*  box-shadow: 0 0 0 4px rgba(17, 17, 17, 0.16), 0 4px 12px rgba(17, 17, 17, 0.35); */
+  color: var(--bone);
+  font-family: "Inter Tight", sans-serif;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.overtrip-pin--active {
+  transform: scale(1.25);
+}
+
+/* Sidebar "Destinos & roteiros" */
+.map-sidebar {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  background: var(--bone);
+  box-shadow: var(--shadow-soft);
+  overflow: hidden;
+}
+
+.map-sidebar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.15rem 1.35rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.map-sidebar-kicker {
+  margin: 0;
+  font-family: "Inter Tight", sans-serif;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+
+.map-sidebar-count {
+  flex: 0 0 auto;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(212, 91, 45, 0.12);
+  color: var(--rust);
+  font-family: "Inter Tight", sans-serif;
+  font-size: 0.68rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.map-sidebar-list {
+  flex: 1;
+  min-height: 0;
+  /* 5.6rem ≈ altura do cabeçalho + rodapé da sidebar (.map-sidebar-head +
+     .map-sidebar-footnote). Descontando isso de --map-height, a lista fica
+     exatamente do tamanho do "miolo" do mapa ao lado, nunca mais alta. */
+  max-height: calc(var(--map-height) - 5.6rem);
+  overflow-y: auto;
+  /* Firefox: barra fina, na cor do site em vez do padrão do SO */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(212, 91, 45, 0.35) transparent;
+}
+
+/* Chrome/Safari/Edge: mesmo padrão visual já usado no carrossel de
+   depoimentos (.testimonials-track), só que vertical aqui. */
+.map-sidebar-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.map-sidebar-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.map-sidebar-list::-webkit-scrollbar-thumb {
+  background: rgba(212, 91, 45, 0.35);
+  border-radius: 999px;
+}
+
+.map-sidebar-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(212, 91, 45, 0.55);
+}
+
+.map-destination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.85rem 1.35rem;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 180ms ease;
+}
+
+.map-sidebar-list .map-destination:last-child {
+  border-bottom: 0;
+}
+
+.map-destination:hover,
+.map-destination:focus-visible {
+  background: rgba(212, 91, 45, 0.07);
+}
+
+.map-destination.is-active {
+  background: var(--ink);
+}
+
+.map-destination.is-active .map-destination-title,
+.map-destination.is-active .map-destination-subtitle {
+  color: var(--bone);
+}
+
+.map-destination-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.map-destination-icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 50%;
+  background: rgba(17, 17, 17, 0.06);
+  color: var(--text-soft);
+  font-size: 0.55rem;
+  font-weight: 800;
+  transition: background-color 180ms ease, color 180ms ease;
+}
+
+/* O pin (ícone de localização) vem do map.js como SVG inline — ver
+   PIN_ICON_SVG — pra ficar nítido em qualquer tela, sem depender de fonte
+   de ícones externa. */
+.map-destination-icon svg {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+.map-destination.is-hub .map-destination-icon {
+  background: var(--ink);
+  color: var(--bone);
+}
+
+/* Item selecionado: o círculo vira laranja sólido (mesma cor da marca),
+   pra reforçar "esse é o pin aceso agora no mapa". */
+.map-destination.is-active .map-destination-icon {
+  background: var(--rust);
+  color: var(--bone);
+}
+
+.map-destination-text {
+  min-width: 0;
+}
+
+.map-destination-title {
+  display: block;
+  margin: 0;
+  font-family: "Inter Tight", sans-serif;
+  font-size: 0.84rem;
+  font-weight: 700;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.map-destination-subtitle {
+  display: block;
+  margin: 0.1rem 0 0;
+  font-size: 0.7rem;
+  color: var(--text-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.map-destination.is-active .map-destination-subtitle {
+  color: rgba(245, 243, 239, 0.65);
+}
+
+.map-destination-action {
+  flex: 0 0 auto;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+  white-space: nowrap;
+}
+
+.map-destination.is-active .map-destination-action {
+  color: var(--rust);
+}
+
+.map-sidebar-footnote {
+  margin: 0;
+  padding: 0.85rem 1.35rem;
+  border-top: 1px solid var(--line);
+  color: var(--text-soft);
+  font-size: 0.7rem;
+  text-align: center;
 }
 
 /* ==========================================================================
@@ -2009,8 +2285,8 @@ body.js .reveal.is-visible {
   }
 
   /* Mapa */
-  .visited-map {
-    height: 28rem;
+  .map-shell {
+    --map-height: 28rem;
   }
 
   /* FAQ */
@@ -2038,6 +2314,26 @@ body.js .reveal.is-visible {
 
   .quote-card blockquote {
     font-size: 1.05rem;
+  }
+
+  /* Mapa: a partir daqui cabe mapa + sidebar lado a lado. Abaixo disso,
+     a sidebar fica empilhada embaixo do mapa (regra-base da seção 12).
+
+     O bug da sidebar "vazando" pra baixo da página vinha daqui: sem uma
+     altura explícita no .map-shell, a track do grid virava do tamanho do
+     MAIOR item (a lista inteira, sem cap), e não do mapa — então o
+     .map-sidebar (height: 100%) herdava essa altura gigante em vez da
+     altura real do mapa ao lado. Fixando a altura do grid em si (mesmo
+     valor de --map-height), a sidebar passa a ter altura de verdade e a
+     lista rola dentro dela, batendo com o tamanho do mapa. */
+  .map-shell {
+    grid-template-columns: minmax(0, 1fr) 22rem;
+    align-items: stretch;
+    height: var(--map-height);
+  }
+
+  .map-sidebar-list {
+    max-height: none;
   }
 }
 
