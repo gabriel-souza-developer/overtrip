@@ -7,34 +7,41 @@ document.body.classList.add("js");
 const TRIPS = [
   {
     title: "Excursão | Bonito - PE",
+    category: "Cachoeiras, Piscinas e atividades radicais",
+  
+    description: "Day use no Camping do Mágico: cachoeiras, piscinas naturais, teleférico e um dia inteiro de lazer saindo de Campina Grande.",
     city: "Bonito",
     region: "PE",
     month: "SET",
     returnTime: "17h",
+    meetingCity: "Campina Grande - PB",
     meetingPoint: "Rodoviária Nova",
     meetingMapsQuery: "Rodoviária Nova, Campina Grande - PB",
-    priceDisplay: "R$ 165,00 por pessoa",
+    priceDisplay: "R$ 165,00",
+    priceUnit: "por pessoa",
     priceValue: "165.00",
     intensityClass: "leve",
     intensityLabel: "Intensidade leve",
     includes: [
-      "Transporte climatizado (ida e volta)",
-      "Seguro de viagem",
-      "Assistência equipe OVERTRIP",
-      "Taxa de entrada no Camping do Mágico (Day-use)",
+      "Cachoeiras e piscinas naturais",
+      "Piscinas cloradas (adulto e infantil)",
+      "Bar e restaurante no local",
+      "Esportes radicais disponíveis à parte (tirolesa, rapel, arvorismo)",
     ],
-    // Cada trip pode ter várias fotos — a primeira é a capa do card
+    includesHighlight: "Taxa day use, transporte categoria turismo, seguro de viagem e assistência da equipe OVERTRIP já inclusos.",
+
     images: [
       { src: "assets/images/bonito-riacho-restaurante.jpg", alt: "Piscina natural de águas claras em Bonito - PE" },
       { src: "assets/images/cachoeira-do-paraiso-piscina-natural.jpg", alt: "Piscina natural de águas claras em Bonito - PE" },
+      { src: "assets/images/por_sol_teleferico_pernambuco.jpg", alt: "Teleférico em Bonito - PE" },
+      { src: "assets/images/tirolesa-capimgdomagico.jpg", alt: "Atividades radicais no camping do mágico" },
+       { src: "assets/images/Seja bem vindo-bonito.jpg", alt: "Seja bem-vindo a Bonito - PE" },
+       { src: "assets/images/piscina-capimgdomagico.jpg", alt: "Piscina natural de águas claras em Bonito - PE" },
     ],
-    buttonLabel: "Reservar via WhatsApp",
+    buttonLabel: "Reservar",
     buttonClass: "button-dark",
     waMessage: "Fala! Tenho interesse na excursão a Bonito - PE (13/09/2026) e quero saber mais detalhes.",
-    // Única fonte da data/hora de saída: data exibida no card, hora de
-    // saída exibida no card, contagem regressiva e schema.org (Google)
-    // são TODOS calculados a partir deste campo 
-    
+   
     startDateISO: "2026-09-13T03:30:00-03:00",
     availabilitySchema: "https://schema.org/InStock",
   },
@@ -172,12 +179,47 @@ const getCountdownBadge = (trip) => {
   return { label: `Faltam ${daysLeft} dias`, statusClass: "open" };
 };
 
+const TRIP_ICON_CALENDAR = `
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
+  </svg>
+`;
+const TRIP_ICON_CLOCK = `
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>
+  </svg>
+`;
+const TRIP_ICON_PIN = `
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11Z"/><circle cx="12" cy="10" r="2.5"/>
+  </svg>
+`;
+const TRIP_ICON_CHECK_CIRCLE = `
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.3 2.3 4.7-4.8"/>
+  </svg>
+`;
+const TRIP_ICON_SHIELD = `
+ <svg fill="#000000" width="800px" height="800px" viewBox="-4 -2 24 24" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin" class="jam jam-shield-check"><path d='M2 4.386V8a9.02 9.02 0 0 0 3.08 6.787L8 17.342l2.92-2.555A9.019 9.019 0 0 0 14 8V4.386l-6-2.25-6 2.25zM.649 2.756L8 0l7.351 2.757a1 1 0 0 1 .649.936V8c0 3.177-1.372 6.2-3.763 8.293L8 20l-4.237-3.707A11.019 11.019 0 0 1 0 8V3.693a1 1 0 0 1 .649-.936zm6.29 7.512l3.536-3.536a1 1 0 0 1 1.414 1.414L7.646 12.39a1 1 0 0 1-1.414 0l-2.121-2.121a1 1 0 0 1 1.414-1.414l1.414 1.414z'/></svg>
+`;
+const PIX_BUTTON_ICON = `
+  <svg class="button-pix-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>
+    <path d="M14 14h3v3h-3ZM19 14h2M14 19h2M19 19h2"/>
+  </svg>
+`;
+
 const buildTripCardHTML = (trip, tripIndex) => {
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(trip.meetingMapsQuery)}`;
-  const includesHTML = trip.includes.map((item) => `<li>${item}</li>`).join("");
+  const includesHTML = trip.includes
+    .map((item) => `<li><span class="trip-includes-icon" aria-hidden="true">${TRIP_ICON_CHECK_CIRCLE}</span><span>${item}</span></li>`)
+    .join("");
   const countdown = getCountdownBadge(trip);
   const dateDisplay = formatTripDate(trip.startDateISO);
   const departure = formatTripTime(trip.startDateISO);
+  // "Intensidade leve" -> "leve", só pro selo compacto sobre a imagem
+  // ("NÍVEL: LEVE"); o texto completo continua disponível em trip.intensityLabel.
+  const levelWord = trip.intensityLabel.replace(/^Intensidade\s*/i, "");
 
   const cover = trip.images[0];
   const extraCount = trip.images.length - 1;
@@ -195,38 +237,50 @@ const buildTripCardHTML = (trip, tripIndex) => {
         aria-label="Ver fotos de ${trip.title}"
       >
         <img src="${cover.src}" alt="${cover.alt}" loading="lazy" decoding="async">
+        <span class="trip-media-category">${trip.category}</span>
+        <span class="trip-media-status ${countdown.statusClass}">${countdown.label}</span>
+        <span class="trip-media-intensity">Nível: ${levelWord}</span>
         ${photoBadge}
       </div>
       <div class="trip-body">
-        <div class="trip-badges">
-          <span class="trip-status ${countdown.statusClass}">${countdown.label}</span>
-          <span class="trip-intensity ${trip.intensityClass}">${trip.intensityLabel}</span>
-        </div>
         <h3>${trip.title}</h3>
+        <p class="trip-description">${trip.description}</p>
 
-        <div class="trip-meta">
-          <div class="trip-detail">
-            <span>Data</span>
-            <strong>${dateDisplay}</strong>
+        <div class="trip-meta-list">
+          <div class="trip-meta-row">
+            <span class="trip-meta-icon" aria-hidden="true">${TRIP_ICON_CALENDAR}</span>
+            <span>${dateDisplay}</span>
           </div>
-          <div class="trip-detail">
-            <span>Saída</span>
-            <strong>${departure}</strong>
+          <div class="trip-meta-row">
+            <span class="trip-meta-icon trip-meta-icon--muted" aria-hidden="true">${TRIP_ICON_CLOCK}</span>
+            <span>${departure} às ${trip.returnTime}</span>
           </div>
-          <div class="trip-detail">
-            <span>Retorno</span>
-            <strong>${trip.returnTime}</strong>
-          </div>
-          <div class="trip-detail">
-            <span>Encontro</span>
-            <a class="trip-map-link" href="${mapsUrl}" target="_blank" rel="noreferrer">${trip.meetingPoint}</a>
+          <div class="trip-meta-row">
+            <span class="trip-meta-icon trip-meta-icon--muted" aria-hidden="true">${TRIP_ICON_PIN}</span>
+            <a class="trip-map-link" href="${mapsUrl}" target="_blank" rel="noreferrer">${trip.meetingCity} (${trip.meetingPoint})</a>
           </div>
         </div>
 
-        <ul class="trip-includes">${includesHTML}</ul>
+        <details class="trip-includes-toggle">
+          <summary><span class="trip-includes-toggle-label">Ver roteiro &amp; o que inclui</span></summary>
+          <div class="trip-includes-body">
+            <p class="trip-includes-heading">O que você vai viver</p>
+            <ul class="trip-includes">${includesHTML}</ul>
+            <div class="trip-includes-highlight">
+              <span class="trip-includes-highlight-icon" aria-hidden="true">${TRIP_ICON_SHIELD}</span>
+              <span>${trip.includesHighlight}</span>
+            </div>
+          </div>
+        </details>
 
         <div class="trip-footer">
-          <p class="trip-price">${trip.priceDisplay}</p>
+          <div class="trip-price-block">
+            <span class="trip-price-info">
+              <span class="trip-price-label">Investimento</span>
+              <span class="trip-price-unit">${trip.priceUnit}</span>
+            </span>
+            <span class="trip-price-value">${trip.priceDisplay}</span>
+          </div>
           <div class="trip-footer-actions">
             <a
               class="button ${trip.buttonClass} wa-link"
@@ -239,10 +293,11 @@ const buildTripCardHTML = (trip, tripIndex) => {
             </a>
             <button
               type="button"
-              class="button button-outline pix-trigger"
+              class="button button-pix pix-trigger"
               data-pix-trip-index="${tripIndex}"
             >
-              Pagar com Pix
+              ${PIX_BUTTON_ICON}
+              Pagar Pix
             </button>
           </div>
         </div>
@@ -306,6 +361,20 @@ const updateProximaStatus = () => {
   statusEl.innerHTML = `<span></span>${label}`;
 };
 
+// Troca o texto do "Ver roteiro & o que inclui" -> "Ocultar detalhes" (e
+// vice-versa) conforme cada <details> do card é aberto/fechado. Cada card
+// é independente — abrir um não fecha os outros (diferente do FAQ).
+const bindTripIncludesToggles = () => {
+  document.querySelectorAll(".trip-includes-toggle").forEach((details) => {
+    details.addEventListener("toggle", () => {
+      const label = details.querySelector(".trip-includes-toggle-label");
+      if (label) {
+        label.textContent = details.open ? "Ocultar detalhes" : "Ver roteiro & o que inclui";
+      }
+    });
+  });
+};
+
 const renderTrips = () => {
   const grid = document.querySelector("#trip-grid");
 
@@ -315,6 +384,7 @@ const renderTrips = () => {
 
   grid.innerHTML = TRIPS.map((trip, index) => buildTripCardHTML(trip, index)).join("");
   updateProximaStatus();
+  bindTripIncludesToggles();
 
   // Schema.org por trip: gerado a partir do mesmo array acima
   const schemaScript = document.createElement("script");
@@ -679,10 +749,29 @@ const setupPixModal = () => {
   const titleEl = modal.querySelector("#pix-modal-title");
   const priceEl = modal.querySelector("#pix-modal-price");
   const qrImage = modal.querySelector("#pix-qr-image");
+  const qrFallback = modal.querySelector("#pix-qr-fallback");
   const keyValueEl = modal.querySelector("#pix-key-value");
   const copyBtn = modal.querySelector("#pix-copy-btn");
   const payload = buildPixPayload();
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(payload)}`;
+
+  // Se o QR não carregar (rede bloqueada, provedor fora do ar etc.), esconde
+  // a imagem quebrada e mostra o aviso — a chave/código continuam
+  // funcionando normalmente, então o pagamento não fica travado por isso.
+  if (qrImage) {
+    qrImage.addEventListener("error", () => {
+      qrImage.classList.add("has-error");
+      if (qrFallback) {
+        qrFallback.hidden = false;
+      }
+    });
+    qrImage.addEventListener("load", () => {
+      qrImage.classList.remove("has-error");
+      if (qrFallback) {
+        qrFallback.hidden = true;
+      }
+    });
+  }
 
   const openPixModal = (trip) => {
     if (titleEl) {
@@ -692,6 +781,11 @@ const setupPixModal = () => {
       priceEl.textContent = `Valor total: ${trip.priceDisplay} (ou o sinal de 50%, conforme política de reserva)`;
     }
     if (qrImage) {
+    
+      qrImage.classList.remove("has-error");
+      if (qrFallback) {
+        qrFallback.hidden = true;
+      }
       qrImage.src = qrCodeUrl;
     }
     if (keyValueEl) {

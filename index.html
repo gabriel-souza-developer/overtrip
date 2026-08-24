@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <!-- SEO -->
-  <title>OVERTRIP | Expedições, Turismo e Experiências saindo de Campina Grande - PB</title>
+  <title>OVERTRIP | Expedições e Turismo saindo de Campina Grande e Pocinhos - PB</title>
 
   <meta
     name="description"
@@ -71,6 +71,7 @@
     rel="preload"
     as="image"
     href="/assets/images/estrada-no-vale-ao-amanhecer.jpg"
+    fetchpriority="high"
   >
 
   <link
@@ -109,6 +110,58 @@
   <!-- Leaflet (mapa de lugares visitados, seção 12) -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
+  <!-- Schema.org FAQPage: mesmo conteúdo da seção 14, pra habilitar rich
+       results de FAQ no Google. Se o texto de alguma pergunta mudar no
+       HTML, atualizar aqui também (não é gerado dinamicamente). -->
+  <script type="application/ld+json">
+  {
+    "@context":"https://schema.org",
+    "@type":"FAQPage",
+    "mainEntity":[
+      {
+        "@type":"Question",
+        "name":"Posso embarcar sozinho(a)?",
+        "acceptedAnswer":{
+          "@type":"Answer",
+          "text":"Pode sim. As experiências são pensadas para acolher quem chega sozinho(a), em casal ou com amigos. Antes do embarque, a organização aproxima o grupo e passa as informações principais."
+        }
+      },
+      {
+        "@type":"Question",
+        "name":"Como confirmo minha vaga?",
+        "acceptedAnswer":{
+          "@type":"Answer",
+          "text":"A reserva é feita com 50% do valor da experiência. O restante deve ser quitado até 48h antes do embarque. Aceitamos Pix e cartão; pagamentos no cartão podem ter acréscimo de taxas/juros da operadora."
+        }
+      },
+      {
+        "@type":"Question",
+        "name":"O que está incluso no investimento?",
+        "acceptedAnswer":{
+          "@type":"Answer",
+          "text":"Inclui transporte, organização e curadoria da experiência. Alimentação, entradas ou itens extras são informados antes da reserva."
+        }
+      },
+      {
+        "@type":"Question",
+        "name":"Precisa de experiência ou preparo físico?",
+        "acceptedAnswer":{
+          "@type":"Answer",
+          "text":"Cada expedição tem um nível de intensidade. Antes da reserva, informamos se a experiência é leve, moderada ou exige mais preparo físico."
+        }
+      },
+      {
+        "@type":"Question",
+        "name":"Posso desistir? Tem reembolso?",
+        "acceptedAnswer":{
+          "@type":"Answer",
+          "text":"A reserva movimenta organização, logística e parceiros. Por isso, a política de desistência é informada antes do pagamento e considera a proximidade do embarque e os custos já assumidos. Situações excepcionais, como problemas de saúde comprovados, são analisadas individualmente."
+        }
+      }
+    ]
+  }
+  </script>
+
 </head>
 <body class="no-js">
   <!-- ==========================================================================
@@ -145,7 +198,7 @@
          ========================================================================== -->
     <section class="hero" id="top">
       <div class="hero-media">
-        <img src="assets/images/estrada-no-vale-ao-amanhecer.jpg" alt="Estrada serpenteando por vale verde ao amanhecer">
+        <img src="assets/images/estrada-no-vale-ao-amanhecer.jpg" alt="Estrada serpenteando por vale verde ao amanhecer" fetchpriority="high">
       </div>
       <div class="hero-overlay"></div>
 
@@ -253,18 +306,38 @@
         <div class="stats-bar">
           <div class="stats-grid">
             <div class="stat-item reveal">
+              <span class="stat-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+              </span>
               <strong>+100</strong>
               <span>Membros</span>
             </div>
             <div class="stat-item reveal">
+              <span class="stat-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894L8.106 3.447a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15"/><path d="M9 3.236v15"/>
+                </svg>
+              </span>
               <strong id="stat-trips-count">+30</strong>
               <span>Excursões realizadas</span>
             </div>
             <div class="stat-item reveal">
+              <span class="stat-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
+                </svg>
+              </span>
               <strong id="stat-years-count">3 anos</strong>
               <span>de comunidade</span>
             </div>
             <div class="stat-item reveal">
+              <span class="stat-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 13v8"/><path d="M12 3v3"/><path d="M4 6a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h13a2 2 0 0 0 1.152-.365l3.424-2.317a1 1 0 0 0 0-1.635l-3.424-2.318A2 2 0 0 0 17 6z"/>
+                </svg>
+              </span>
               <strong>+5.000</strong>
               <span>Quilômetros rodados</span>
             </div>
@@ -346,15 +419,11 @@
             <h2>Um mapa da estrada até aqui.</h2>
           </div>
           <p class="section-support">
-            Cada ponto no mapa é uma memória coletiva. Clique nos marcadores ou na lista pra explorar os destinos visitados saindo de Campina Grande.
+            Cada ponto no mapa é uma memória coletiva. Clique nos marcadores ou na lista pra explorar os destinos visitados saindo de Campina Grande e Pocinhos - PB.
           </p>
         </div>
 
-        <!-- Mapa + lista lateral de destinos, ambos preenchidos pelo
-             js/map.js a partir de VISITED_PLACES. A lista é gerada por
-             DESTINO ÚNICO (agrupando visitas repetidas ao mesmo lugar em
-             datas diferentes), não por pin — ver getUniqueDestinations()
-             no map.js. -->
+        <!-- Mapa + lista lateral de destinos: ambos preenchidos pelo js/map.js -->
         <div class="map-shell">
           <div class="visited-map" id="visited-map"></div>
 
@@ -391,21 +460,36 @@
 
         <div class="universe-grid">
           <article class="universe-card reveal">
-            <span>01</span>
+            <span class="universe-card-number">01</span>
             <h3>OVERTRIP Expeditions</h3>
             <p>Experiências autorais com logística, curadoria e presença real.</p>
+            <a class="button button-dark universe-card-cta" href="#proxima">
+              Ver próximas trips
+              <span class="universe-card-cta-arrow" aria-hidden="true">↗</span>
+            </a>
           </article>
 
           <article class="universe-card reveal">
-            <span>02</span>
-            <h3>COMUNIDADE OVERTRIP</h3>
+            <span class="universe-card-number">02</span>
+            <h3>Comunidade OVERTRIP</h3>
             <p>A comunidade de quem embarca junto, troca rota, cria história e continua conectado depois da trip.</p>
+            <a
+              class="button button-dark universe-card-cta wa-link"
+              data-wa-message="Oi! Quero entrar no grupo da comunidade OVERTRIP."
+              href="#"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Entrar no grupo
+              <span class="universe-card-cta-arrow" aria-hidden="true">↗</span>
+            </a>
           </article>
 
           <article class="universe-card reveal">
-            <span>03</span>
+            <span class="universe-card-number">03</span>
             <h3>OVERTRIP Store <small>em breve</small></h3>
             <p>Produtos para levar a identidade da marca para fora da estrada: camisetas, bonés, garrafas e acessórios.</p>
+            <span class="button universe-card-cta universe-card-cta-disabled" aria-disabled="true">Aguarde lançamentos</span>
           </article>
         </div>
       </div>
@@ -427,7 +511,7 @@
           <article class="info-card reveal">
             <div class="card-top">
               <span>01 - Escolha</span>
-              <i></i>
+              <i aria-hidden="true"></i>
             </div>
             <h3>Escolha sua próxima experiência.</h3>
             <p>
@@ -437,7 +521,7 @@
           <article class="info-card reveal accent-line">
             <div class="card-top">
               <span>02 - Reserve</span>
-              <i></i>
+              <i aria-hidden="true"></i>
             </div>
             <h3>Reserve sua vaga</h3>
             <p>
@@ -447,7 +531,7 @@
           <article class="info-card reveal">
             <div class="card-top">
               <span>03 - Embarque</span>
-              <i></i>
+              <i aria-hidden="true"></i>
             </div>
             <h3>Embarque</h3>
             <p>
@@ -549,7 +633,12 @@
         <h3 id="pix-modal-title"></h3>
         <p class="pix-modal-price" id="pix-modal-price"></p>
 
-        <img class="pix-qr-image" id="pix-qr-image" src="" alt="QR Code Pix para pagamento da OVERTRIP" width="240" height="240" loading="lazy">
+        <div class="pix-qr-frame">
+          <img class="pix-qr-image" id="pix-qr-image" src="" alt="QR Code Pix para pagamento da OVERTRIP" width="240" height="240">
+          <p class="pix-qr-fallback" id="pix-qr-fallback" hidden>
+            Não deu pra carregar o QR agora. Use a chave Pix logo abaixo — copiar o código funciona igual.
+          </p>
+        </div>
 
         <p class="pix-key-label">Chave Pix (e-mail)</p>
         <p class="pix-key-value" id="pix-key-value"></p>

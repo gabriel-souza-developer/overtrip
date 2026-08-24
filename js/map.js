@@ -226,13 +226,7 @@ const PIN_ICON_SVG = `
   </svg>
 `;
 
-const MAP_SELECT_ZOOM = 12; // zoom aplicado ao clicar num item da lista/pin
-
-// Agrupa VISITED_PLACES por coordenada (arredondada a 3 casas, ~110m de
-// tolerância) — visitas em datas diferentes ao MESMO lugar (ex: Cachoeira
-// de Ouricuri em 2023, 2024 e 2025) viram um destino só, com todas as datas
-// listadas no popup. Evita pins empilhados exatamente um em cima do outro
-// e é a mesma lista usada na sidebar "Destinos & roteiros".
+const MAP_SELECT_ZOOM = 12; 
 const getUniqueDestinations = () => {
   const byCoordinate = new Map();
 

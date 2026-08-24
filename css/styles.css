@@ -494,18 +494,34 @@ h2 {
   margin-top: 2.35rem;
 }
 
+.hero-actions .button {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
 .hero-footer {
   position: absolute;
   inset: auto 0 0;
   z-index: 1;
   display: flex;
   justify-content: space-between;
-  gap: 1rem;
-  padding: 0.9rem 1.5rem;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.15rem;
   border-top: 1px solid var(--line-light);
   background: rgba(17, 17, 17, 0.24);
   backdrop-filter: blur(12px);
   color: rgba(245, 243, 239, 0.72);
+  /* No mobile a fonte/letter-spacing herdados da regra de rótulos em
+     uppercase (seção 3) são largos demais e faziam "OVERTRIP" e
+     "NO DESTINATION" quebrarem linha e ficarem colados. Reduzido aqui;
+     volta ao tamanho original a partir de 720px (ver seção 19). */
+  font-size: 0.56rem;
+  letter-spacing: 0.12em;
+}
+
+.hero-footer span {
+  white-space: nowrap;
 }
 
 .hero-footer span:nth-child(2) {
@@ -607,114 +623,132 @@ h2 {
   transform: scale(1.035) translate3d(0, 0, 0);
 }
 
+/* Selos sobre a foto: categoria (sup. esquerda), status/vagas (sup.
+   direita) e nível de intensidade (inf. direita) — três cantos livres,
+   já que o "+N fotos" (gallery-photo-count) ocupa o inf. esquerdo aqui
+   dentro do trip-media (ver regra específica mais abaixo). */
+.trip-media-category,
+.trip-media-status,
+.trip-media-intensity {
+  position: absolute;
+  z-index: 1;
+  padding: 0.28rem 0.55rem;
+  border-radius: 999px;
+  font-family: "Inter Tight", sans-serif;
+  font-size: 0.52rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--bone);
+}
+
+.trip-media-category {
+  top: 0.75rem;
+  left: 0.75rem;
+
+  max-width: 62%;
+  white-space: normal;
+  line-height: 1.3;
+  background: rgba(17, 17, 17, 0.7);
+  backdrop-filter: blur(6px);
+}
+
+.trip-media-status {
+  top: 0.75rem;
+  right: 0.75rem;
+  max-width: 46%;
+  white-space: normal;
+  line-height: 1.3;
+  text-align: right;
+}
+
+.trip-media-status.open { background: rgba(52, 78, 51, 0.88); }
+.trip-media-status.last { background: rgba(212, 91, 45, 0.92); }
+.trip-media-status.soon { background: rgba(17, 17, 17, 0.62); }
+
+.trip-media-intensity {
+  bottom: 0.75rem;
+  right: 0.75rem;
+  background: rgba(17, 17, 17, 0.7);
+  backdrop-filter: blur(6px);
+}
+
+/* O badge de fotos (compartilhado com a galeria) nasce no canto inferior
+   direito — dentro do trip-media ele precisa ir pro esquerdo, porque o
+   direito já é ocupado pelo selo de nível acima. */
+.trip-media .gallery-photo-count {
+  right: auto;
+  left: 0.75rem;
+}
+
 .trip-body {
   display: flex;
   flex-direction: column;
-  gap: 0.55rem;
+  gap: 0.6rem;
   padding: 1.5rem 1.5rem 1.75rem;
   flex: 1;
 }
 
-/* Duas etiquetas lado a lado: vagas reais + nível de intensidade */
-.trip-badges {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 0.5rem;
-  text-align: center;
-}
-
-.trip-status {
-  padding: 0.3rem 0.75rem;
-  border-radius: 999px;
-  font-family: "Inter Tight", sans-serif;
-  font-size: 0.62rem;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-}
-
-.trip-status.open { background: rgba(52, 78, 51, 0.12); color: var(--moss); }
-.trip-status.last { background: rgba(212, 91, 45, 0.12); color: var(--rust); }
-.trip-status.soon { background: rgba(17, 17, 17, 0.08); color: var(--text-soft); }
-
-.trip-intensity {
-  padding: 0.3rem 0.75rem;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  font-family: "Inter Tight", sans-serif;
-  font-size: 0.62rem;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--text-soft);
-}
-
-.trip-intensity.leve { border-color: rgba(52, 78, 51, 0.3); color: var(--moss); }
-.trip-intensity.moderada { border-color: rgba(212, 91, 45, 0.3); color: var(--rust); }
-.trip-intensity.intensa { border-color: rgba(17, 17, 17, 0.3); color: var(--ink); }
-
-.trip-kicker {
-  margin: 0.4rem 0 0;
-  color: var(--text-soft);
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-}
-
 .trip-body h3 {
-  margin: 0.25rem 0;
+  margin: 0;
+  color: var(--ink);
   font-family: "Inter Tight", sans-serif;
-  font-size: 1.35rem;
+  font-size: 1.3rem;
   font-weight: 800;
   letter-spacing: -0.02em;
-  line-height: 1.1;
+  line-height: 1.15;
 }
 
-.trip-location {
+.trip-description {
   margin: 0;
   color: var(--text-soft);
   font-size: 0.82rem;
+  line-height: 1.45;
 }
 
-.trip-meta {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  column-gap: 1rem;
-  row-gap: 0.75rem;
-  margin: 0.4rem 0 0;
-  padding: 0.9rem 0;
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-}
 
-.trip-detail {
+.trip-meta-list {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 0.55rem;
+  margin: 0.2rem 0 0;
+  padding: 0.9rem 0;
+  border-top: 1px solid var(--line);
 }
 
-.trip-detail span {
-  font-size: 0.6rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+.trip-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: "Inter Tight", sans-serif;
+  font-size: 0.84rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.trip-meta-icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  width: 1.05rem;
+  height: 1.05rem;
+  color: var(--rust);
+}
+
+/* Só o calendário (data) fica laranja — reforça a informação mais
+   importante pra quem já sabe o dia que quer decidir. Relógio e local
+   ficam neutros, sem competir com esse destaque. */
+.trip-meta-icon--muted {
   color: var(--text-soft);
 }
 
-.trip-detail strong {
-  font-family: "Inter Tight", sans-serif;
-  font-size: 0.88rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
+.trip-meta-icon svg {
+  width: 100%;
+  height: 100%;
 }
 
 /* Ponto de encontro vira link clicável pro Google Maps */
 .trip-map-link {
-  font-family: "Inter Tight", sans-serif;
-  font-size: 0.88rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
   color: var(--ink);
   text-decoration: underline;
   text-underline-offset: 2px;
@@ -728,10 +762,57 @@ h2 {
   text-decoration-color: var(--rust);
 }
 
+/* "Ver roteiro & o que inclui" — <details> recolhido por padrão, mesmo
+   padrão semântico do FAQ, mas cada card abre/fecha por conta própria. */
+.trip-includes-toggle summary {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  list-style: none;
+  cursor: pointer;
+  color: var(--rust);
+  font-family: "Inter Tight", sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.trip-includes-toggle summary::-webkit-details-marker {
+  display: none;
+}
+
+.trip-includes-toggle summary::after {
+  content: "→";
+  transition: transform 220ms ease;
+}
+
+.trip-includes-toggle[open] summary::after {
+  transform: rotate(90deg);
+}
+
+.trip-includes-body {
+  margin-top: 0.85rem;
+  padding: 1rem 1.1rem;
+  /* Tom quente com leve tintura da cor da marca, em vez do cinza neutro
+     genérico do --paper — deixa o quadro claramente "destacado" sem
+     competir com o resto do card. */
+  border: 1px solid rgba(212, 91, 45, 0.16);
+  border-radius: var(--radius-lg);
+  background: rgba(212, 91, 45, 0.05);
+}
+
+.trip-includes-heading {
+  margin: 0 0 0.75rem;
+  color: var(--ink);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .trip-includes {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.4rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -740,37 +821,101 @@ h2 {
 .trip-includes li {
   display: flex;
   align-items: flex-start;
-  gap: 0.4rem;
-  color: var(--text-soft);
-  font-size: 0.75rem;
+  gap: 0.55rem;
+  color: var(--ink);
+  font-size: 0.82rem;
   line-height: 1.35;
 }
 
-.trip-includes li::before {
-  content: "✓";
+.trip-includes-icon {
   flex: 0 0 auto;
-  color: var(--moss);
-  font-weight: 700;
+  display: inline-flex;
+  width: 1.1rem;
+  height: 1.1rem;
+  margin-top: 0.05rem;
+  /* var(--moss) é o verde "oficial" do site, mas é bem dessaturado — some
+     e lê como preto quando usado sozinho (sem um fundo colorido por trás,
+     como acontece nos badges de status). Isolado ao lado do texto, precisa
+     de um verde mais vivo pra realmente comunicar "incluso". */
+  color: #2f9e5b;
+}
+
+.trip-includes-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Linha de resumo em destaque, no rodapé do card de "o que inclui" —
+   reforça os itens mais relevantes (segurança/equipe) numa frase só. */
+.trip-includes-highlight {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.9rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(212, 91, 45, 0.16);
+  color: var(--text-soft);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.trip-includes-highlight-icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  width: 1rem;
+  height: 1rem;
+  color: #2f9e5b;
+}
+
+.trip-includes-highlight-icon svg {
+  width: 100%;
+  height: 100%;
 }
 
 .trip-footer {
   display: flex;
   flex-direction: column;
-  gap: 0.65rem;
+  gap: 0.9rem;
   margin-top: auto;
-  padding-top: 0.5rem;
+  padding-top: 1rem;
 }
 
-.trip-price {
-  margin: 0;
-  font-family: "Inter Tight", sans-serif;
-  font-size: 1.15rem;
+.trip-price-block {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.trip-price-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.trip-price-label {
+  font-size: 0.66rem;
   font-weight: 700;
-  color: var(--rust);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-soft);
 }
 
-.trip-card .button {
-  width: 100%;
+.trip-price-unit {
+  font-family: "Inter", sans-serif;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+
+.trip-price-value {
+  font-family: "Inter Tight", sans-serif;
+  font-size: 1.4rem;
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--rust);
 }
 
 /* ==========================================================================
@@ -862,8 +1007,26 @@ h2 {
 .stat-item {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 0.35rem;
   text-align: center;
+}
+
+.stat-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.35rem;
+  height: 2.35rem;
+  margin-bottom: 0.25rem;
+  border-radius: 50%;
+  background: rgba(212, 91, 45, 0.16);
+  color: var(--rust);
+}
+
+.stat-icon svg {
+  width: 1.15rem;
+  height: 1.15rem;
 }
 
 .stat-item strong {
@@ -1029,8 +1192,11 @@ h2 {
 }
 
 .universe-card {
+  display: flex;
+  flex-direction: column;
   min-height: 17rem;
   padding: 1.75rem;
+  gap: 1rem;
   background: var(--bone);
   transition: background-color 220ms ease, transform 220ms ease;
 }
@@ -1039,9 +1205,8 @@ h2 {
   background: rgba(255, 255, 255, 0.44);
 }
 
-.universe-card span {
+.universe-card-number {
   display: inline-block;
-  margin-bottom: 3.6rem;
   color: var(--text-soft);
   font-size: 0.6rem;
   font-weight: 700;
@@ -1049,7 +1214,7 @@ h2 {
 }
 
 .universe-card h3 {
-  margin: 0;
+  margin: 0.5rem;
   font-size: 1.75rem;
   line-height: 1;
 }
@@ -1069,10 +1234,40 @@ h2 {
 
 .universe-card p {
   max-width: 22rem;
-  margin: 1rem 0 0;
+  margin: 0.5rem;
   color: var(--text-soft);
   font-size: 0.84rem;
   line-height: var(--copy-leading);
+}
+
+
+.universe-card-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.universe-card-cta-arrow {
+  display: inline-flex;
+  transition: transform 180ms ease;
+}
+
+.universe-card-cta:hover .universe-card-cta-arrow,
+.universe-card-cta:focus-visible .universe-card-cta-arrow {
+  transform: translate(2px, -2px);
+}
+
+
+.universe-card-cta-disabled {
+  background: transparent;
+  border-color: var(--line);
+  color: var(--text-soft);
+  cursor: default;
+  pointer-events: none;
 }
 
 /* ==========================================================================
@@ -1360,13 +1555,39 @@ h2 {
   color: var(--text-soft);
 }
 
-.pix-qr-image {
+.pix-qr-frame {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 12rem;
   height: 12rem;
   margin: 0.5rem 0;
   border-radius: var(--radius-lg);
   border: 1px solid var(--line);
   background: #fff;
+  overflow: hidden;
+}
+
+.pix-qr-image {
+  width: 100%;
+  height: 100%;
+}
+
+/* Se o QR não carregar (rede bloqueada, indisponibilidade momentânea etc.),
+   some com a imagem quebrada e mostra esse aviso no lugar — ver
+   setupPixModal() no script.js, que alterna a visibilidade via onerror/onload. */
+.pix-qr-image.has-error {
+  display: none;
+}
+
+.pix-qr-fallback {
+  margin: 0;
+  padding: 0 1rem;
+  color: var(--text-soft);
+  font-size: 0.72rem;
+  line-height: 1.45;
+  text-align: center;
 }
 
 .pix-key-label {
@@ -1404,18 +1625,43 @@ h2 {
   color: var(--text-soft);
 }
 
-/* Rodapé do card de trip: preço + os dois botões de pagamento lado a lado
-   (empilham no mobile). */
+
 .trip-footer-actions {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 0.6rem;
 }
 
 .trip-footer-actions .button {
-  flex: 1 1 auto;
+  flex: 1 1 0;
+  width: auto;
+  min-height: 2.85rem;
+  padding: 0.7rem 0.6rem;
   justify-content: center;
   white-space: nowrap;
+  font-size: 0.76rem;
+}
+
+/* Botão do Pix: cor própria (verde-água, cor associada ao Pix), separado
+   visualmente do CTA principal — não usa mais .button-outline (aquele é
+   pensado pro hero, sobre foto, via mix-blend-mode). */
+.button-pix {
+  gap: 0.4rem;
+  background: rgba(15, 168, 143, 0.12);
+  border-color: rgba(15, 168, 143, 0.35);
+  color: #0f8a76;
+}
+
+.button-pix:hover,
+.button-pix:focus-visible {
+  background: rgba(15, 168, 143, 0.2);
+  border-color: rgba(15, 168, 143, 0.5);
+}
+
+.button-pix-icon {
+  flex: 0 0 auto;
+  width: 1rem;
+  height: 1rem;
 }
 
 .lightbox-media {
@@ -2072,6 +2318,11 @@ h2 {
   justify-content: center;
 }
 
+.centered-actions .button {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
 /* ==========================================================================
    16. FOOTER
    ========================================================================== */
@@ -2249,6 +2500,8 @@ body.js .reveal.is-visible {
 
   .hero-footer {
     padding-inline: 2rem;
+    font-size: 0.83rem;
+    letter-spacing: 0.32em;
   }
 
   .hero-footer span:nth-child(2) {
@@ -2260,7 +2513,7 @@ body.js .reveal.is-visible {
      quando há poucas trips. No mobile o card fica full-width (regra base
      na seção 7). */
   .trip-grid {
-    grid-template-columns: repeat(auto-fit, minmax(260px, 340px));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 400px));
     justify-content: start;
   }
 
