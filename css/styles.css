@@ -2,14 +2,11 @@
    1. VARIÁVEIS GLOBAIS
    ========================================================================== */
 :root {
-  /* Brand palette */
   --bone: oklch(0.965 0 0);
   --paper: oklch(0.94 0 0);
   --ink: oklch(0.16 0 0);
   --moss: oklch(0.34 0.025 155);
   --rust: oklch(0.66 0.17 48);
-
-  /* Layout and motion tokens */
   --line: rgba(17, 17, 17, 0.1);
   --line-light: rgba(245, 243, 239, 0.16);
   --text-soft: oklch(0.45 0 0);
@@ -22,11 +19,6 @@
   --copy-width: 34rem;
   --copy-leading: 1.7;
   --shadow-soft: 0 24px 60px rgba(17, 17, 17, 0.08);
-  /* Curva mais linear e duração mais curta que a versão anterior — aquela
-     combinação (easing muito agressivo + quase 2s) tinha uma "cauda" de
-     movimento imperceptível a olho nu, mas grande o bastante pra obrigar
-     o navegador a re-amostrar a imagem a cada frame por muito tempo — é
-     isso que aparecia como tremor/cintilação no zoom dos cards. */
   --ease-soft: cubic-bezier(0.33, 1, 0.68, 1);
   --image-zoom-duration: 0.6s;
 }
@@ -78,7 +70,6 @@ button {
   margin: 0 auto;
 }
 
-/* Tipografia compartilhada por várias seções (títulos e parágrafos) */
 .brand-name,
 h1,
 h2,
@@ -193,7 +184,6 @@ h2 {
   display: none;
 }
 
-/* Rótulos em uppercase compartilhados por várias seções */
 .site-nav a,
 .footer-title,
 .section-kicker,
@@ -403,9 +393,6 @@ h2 {
   50% { opacity: 1; transform: scale(1); }
 }
 
-/* Variante do status-pill quando não há nenhuma trip com vagas abertas —
-   ver updateProximaStatus() em script.js. Bolinha parada (sem animação de
-   "ao vivo"), pra não passar falsa urgência quando não há vaga nenhuma. */
 .status-pill.status-pill-closed {
   border-color: var(--line);
   color: var(--text-soft);
@@ -416,7 +403,6 @@ h2 {
   animation: none;
 }
 
-/* Grids de 2 colunas compartilhados por Sobre, FAQ, Footer e Universo */
 .split-layout,
 .faq-layout,
 .footer-grid,
@@ -512,10 +498,6 @@ h2 {
   background: rgba(17, 17, 17, 0.24);
   backdrop-filter: blur(12px);
   color: rgba(245, 243, 239, 0.72);
-  /* No mobile a fonte/letter-spacing herdados da regra de rótulos em
-     uppercase (seção 3) são largos demais e faziam "OVERTRIP" e
-     "NO DESTINATION" quebrarem linha e ficarem colados. Reduzido aqui;
-     volta ao tamanho original a partir de 720px (ver seção 19). */
   font-size: 0.56rem;
   letter-spacing: 0.12em;
 }
@@ -531,7 +513,7 @@ h2 {
 /* ==========================================================================
    7. PRÓXIMA TRIP (grid de embarques)
    ========================================================================== */
-/* Filtro de mês, acima do grid */
+
 .trip-filter {
   display: flex;
   flex-wrap: wrap;
@@ -568,12 +550,6 @@ h2 {
   display: none;
 }
 
-/* Mobile: 1 coluna cheia até a margem do container — igual a todos os
-   outros grids do site (galeria, universo, depoimentos etc.). O limite de
-   largura por card (que evita um card gigante sozinho numa tela larga) só
-   entra a partir de 720px — ver seção 18. Não dê ao .trip-card nenhum
-   "width" fixo em lugar nenhum: quem define o tamanho dele é sempre o
-   grid, nunca o card. */
 .trip-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -597,11 +573,6 @@ h2 {
   overflow: hidden;
   aspect-ratio: 4 / 3;
   cursor: pointer;
-  /* Promove o contêiner (que recorta a imagem nas bordas arredondadas) pra
-     sua própria camada de composição — igual a imagem já tem via
-     will-change abaixo. Sem isso, o navegador recalcula o recorte
-     arredondado a cada frame da animação de zoom, e é isso que causa o
-     tremor/cintilação na borda, principalmente em fotos com textura. */
   transform: translateZ(0);
 }
 
@@ -623,12 +594,7 @@ h2 {
   transform: scale(1.035) translate3d(0, 0, 0);
 }
 
-/* Selos sobre a foto: categoria (sup. esquerda), status/vagas (sup.
-   direita) e nível de intensidade (inf. direita) — três cantos livres,
-   já que o "+N fotos" (gallery-photo-count) ocupa o inf. esquerdo aqui
-   dentro do trip-media (ver regra específica mais abaixo). */
 .trip-media-category,
-.trip-media-status,
 .trip-media-intensity {
   position: absolute;
   z-index: 1;
@@ -646,26 +612,12 @@ h2 {
 .trip-media-category {
   top: 0.75rem;
   left: 0.75rem;
-
   max-width: 62%;
   white-space: normal;
   line-height: 1.3;
   background: rgba(17, 17, 17, 0.7);
   backdrop-filter: blur(6px);
 }
-
-.trip-media-status {
-  top: 0.75rem;
-  right: 0.75rem;
-  max-width: 46%;
-  white-space: normal;
-  line-height: 1.3;
-  text-align: right;
-}
-
-.trip-media-status.open { background: rgba(52, 78, 51, 0.88); }
-.trip-media-status.last { background: rgba(212, 91, 45, 0.92); }
-.trip-media-status.soon { background: rgba(17, 17, 17, 0.62); }
 
 .trip-media-intensity {
   bottom: 0.75rem;
@@ -674,9 +626,6 @@ h2 {
   backdrop-filter: blur(6px);
 }
 
-/* O badge de fotos (compartilhado com a galeria) nasce no canto inferior
-   direito — dentro do trip-media ele precisa ir pro esquerdo, porque o
-   direito já é ocupado pelo selo de nível acima. */
 .trip-media .gallery-photo-count {
   right: auto;
   left: 0.75rem;
@@ -707,7 +656,6 @@ h2 {
   line-height: 1.45;
 }
 
-
 .trip-meta-list {
   display: flex;
   flex-direction: column;
@@ -735,9 +683,6 @@ h2 {
   color: var(--rust);
 }
 
-/* Só o calendário (data) fica laranja — reforça a informação mais
-   importante pra quem já sabe o dia que quer decidir. Relógio e local
-   ficam neutros, sem competir com esse destaque. */
 .trip-meta-icon--muted {
   color: var(--text-soft);
 }
@@ -747,7 +692,6 @@ h2 {
   height: 100%;
 }
 
-/* Ponto de encontro vira link clicável pro Google Maps */
 .trip-map-link {
   color: var(--ink);
   text-decoration: underline;
@@ -762,8 +706,6 @@ h2 {
   text-decoration-color: var(--rust);
 }
 
-/* "Ver roteiro & o que inclui" — <details> recolhido por padrão, mesmo
-   padrão semântico do FAQ, mas cada card abre/fecha por conta própria. */
 .trip-includes-toggle summary {
   display: flex;
   align-items: center;
@@ -792,9 +734,6 @@ h2 {
 .trip-includes-body {
   margin-top: 0.85rem;
   padding: 1rem 1.1rem;
-  /* Tom quente com leve tintura da cor da marca, em vez do cinza neutro
-     genérico do --paper — deixa o quadro claramente "destacado" sem
-     competir com o resto do card. */
   border: 1px solid rgba(212, 91, 45, 0.16);
   border-radius: var(--radius-lg);
   background: rgba(212, 91, 45, 0.05);
@@ -833,10 +772,6 @@ h2 {
   width: 1.1rem;
   height: 1.1rem;
   margin-top: 0.05rem;
-  /* var(--moss) é o verde "oficial" do site, mas é bem dessaturado — some
-     e lê como preto quando usado sozinho (sem um fundo colorido por trás,
-     como acontece nos badges de status). Isolado ao lado do texto, precisa
-     de um verde mais vivo pra realmente comunicar "incluso". */
   color: #2f9e5b;
 }
 
@@ -845,8 +780,6 @@ h2 {
   height: 100%;
 }
 
-/* Linha de resumo em destaque, no rodapé do card de "o que inclui" —
-   reforça os itens mais relevantes (segurança/equipe) numa frase só. */
 .trip-includes-highlight {
   display: flex;
   align-items: center;
@@ -925,8 +858,6 @@ h2 {
   overflow: hidden;
   border-radius: var(--radius-xl);
   min-height: 23rem;
-  /* Mesmo motivo das outras duas imagens com zoom no site: contêiner que
-     recorta precisa da própria camada de composição. */
   transform: translateZ(0);
 }
 
@@ -988,8 +919,6 @@ h2 {
   background: rgba(255, 255, 255, 0.35);
 }
 
-/* Barra de números — cartão escuro dentro da seção clara, dá contraste
-   e reforça credibilidade logo depois do texto de origem. */
 .stats-bar {
   margin-top: clamp(3rem, 6vw, 4.5rem);
   padding: clamp(2rem, 5vw, 2.75rem) clamp(1.5rem, 4vw, 2.5rem);
@@ -1045,7 +974,6 @@ h2 {
   color: var(--text-invert);
 }
 
-/* Linha do tempo — vive dentro da seção #sobre, abaixo do texto/foto */
 .origin-timeline {
   margin-top: clamp(3rem, 6vw, 4.5rem);
   padding-top: clamp(2.5rem, 5vw, 3.5rem);
@@ -1126,7 +1054,6 @@ h2 {
   color: var(--text-invert);
 }
 
-/* Caso a timeline seja usada numa seção clara/paper em vez da escura */
 .section-light .timeline-copy p,
 .section-paper .timeline-copy p {
   color: var(--text-soft);
@@ -1137,8 +1064,6 @@ h2 {
   background: var(--line);
 }
 
-/* Mobile: em vez do carrossel horizontal, empilha os marcos verticalmente
-   com uma linha de conexão à esquerda — mais fácil de ler com o polegar. */
 @media (max-width: 720px) {
   .timeline-track {
     flex-direction: column;
@@ -1240,7 +1165,6 @@ h2 {
   line-height: var(--copy-leading);
 }
 
-
 .universe-card-cta {
   display: inline-flex;
   align-items: center;
@@ -1260,7 +1184,6 @@ h2 {
 .universe-card-cta:focus-visible .universe-card-cta-arrow {
   transform: translate(2px, -2px);
 }
-
 
 .universe-card-cta-disabled {
   background: transparent;
@@ -1420,9 +1343,6 @@ h2 {
   position: relative;
   overflow: hidden;
   aspect-ratio: 3 / 3;
-  /* Mesmo motivo do .trip-media acima: contêiner que recorta precisa da
-     própria camada de composição, senão o recorte arredondado "treme"
-     junto com a imagem durante o zoom. */
   transform: translateZ(0);
 }
 
@@ -1441,7 +1361,6 @@ h2 {
   transform: scale(1.045) translate3d(0, 0, 0);
 }
 
-/* Badge "+N fotos" no canto da capa, quando a memória tem mais de uma imagem */
 .gallery-photo-count {
   position: absolute;
   right: 0.75rem;
@@ -1477,7 +1396,6 @@ h2 {
   font-size: 0.86rem;
 }
 
-/* Lightbox: modal com todas as fotos da memória selecionada */
 .lightbox {
   display: none;
   position: fixed;
@@ -1526,9 +1444,6 @@ h2 {
   cursor: pointer;
 }
 
-/* Modal do Pix: reaproveita a estrutura do .lightbox (backdrop, fechar,
-   abrir/fechar via JS), mas troca o tema escuro/largo (feito pra fotos)
-   por um cartão claro e estreito (feito pra leitura + QR code). */
 .pix-modal-dialog {
   width: min(26rem, calc(100vw - 2rem));
   padding: 2rem 1.75rem 1.75rem;
@@ -1574,9 +1489,6 @@ h2 {
   height: 100%;
 }
 
-/* Se o QR não carregar (rede bloqueada, indisponibilidade momentânea etc.),
-   some com a imagem quebrada e mostra esse aviso no lugar — ver
-   setupPixModal() no script.js, que alterna a visibilidade via onerror/onload. */
 .pix-qr-image.has-error {
   display: none;
 }
@@ -1625,7 +1537,6 @@ h2 {
   color: var(--text-soft);
 }
 
-
 .trip-footer-actions {
   display: flex;
   flex-wrap: nowrap;
@@ -1642,9 +1553,6 @@ h2 {
   font-size: 0.76rem;
 }
 
-/* Botão do Pix: cor própria (verde-água, cor associada ao Pix), separado
-   visualmente do CTA principal — não usa mais .button-outline (aquele é
-   pensado pro hero, sobre foto, via mix-blend-mode). */
 .button-pix {
   gap: 0.4rem;
   background: rgba(15, 168, 143, 0.12);
@@ -1739,14 +1647,6 @@ h2 {
    12. MAPA (lugares que já visitamos)
    ========================================================================== */
 
-/* Grid do mapa + sidebar de destinos. Empilhado no mobile (mapa em cima,
-   lista embaixo); vira duas colunas a partir de 980px — ver seção 19.
-
-   --map-height fica declarada aqui (e sobrescrita nos breakpoints) porque
-   tanto o .visited-map quanto o .map-sidebar-list se baseiam nela pra
-   sempre ter a MESMA altura, em vez de duplicar o número em vários lugares
-   e correr o risco de dessincronizar (foi exatamente isso que causava a
-   sidebar esticando a página pra baixo, sem bater com o tamanho do mapa). */
 .map-shell {
   display: grid;
   grid-template-columns: 1fr;
@@ -1757,12 +1657,6 @@ h2 {
 
 .visited-map {
   position: relative;
-  /* Cria um novo "contexto de empilhamento" pro mapa. Sem isso, o z-index
-     interno do Leaflet (controles de zoom, popups etc. chegam a usar até
-     1000) compete direto com elementos fixos da página, como o header
-     (z-index: 50) — e pode aparecer flutuando por cima dele ao rolar.
-     Com o z-index aqui, tudo que o Leaflet desenha fica "preso" dentro
-     deste elemento, nunca acima do que está fora dele. */
   z-index: 0;
   height: var(--map-height);
   border-radius: var(--radius-xl);
@@ -1770,7 +1664,6 @@ h2 {
   border: 1px solid var(--line);
 }
 
-/* Só se a Leaflet não carregar (ver js/map.js) */
 .visited-map-error {
   display: flex;
   align-items: center;
@@ -1782,7 +1675,6 @@ h2 {
   background: var(--paper);
 }
 
-/* Ajustes finos do popup da Leaflet pra combinar com a identidade visual do site */
 .visited-map .leaflet-popup-content-wrapper {
   border-radius: var(--radius-lg);
   font-family: "Inter", sans-serif;
@@ -1807,19 +1699,11 @@ h2 {
   font-weight: 600;
 }
 
-/* Pins customizados (L.divIcon no map.js) — substituem o marcador azul
-   padrão do Leaflet pela cor da marca. O hub (Campina Grande) é maior e
-   escuro, pra se destacar como ponto de partida, não como destino. */
 .overtrip-pin-icon {
   background: transparent;
   border: 0;
 }
 
-/* Pin "radar": ponto branco no centro, anel sólido e um brilho difuso ao
-   redor — o iconSize/iconAnchor no map.js casam exatamente com esse
-   tamanho pra ancorar certinho na coordenada. O anel e o glow "vazam"
-   visualmente pra fora da caixa do ícone sem precisar de espaço extra,
-   já que box-shadow não conta pro layout. */
 .overtrip-pin {
   display: block;
   width: 10px;
@@ -1840,7 +1724,6 @@ h2 {
   width: 30px;
   height: 30px;
   background: var(--ink);
- /*  box-shadow: 0 0 0 4px rgba(17, 17, 17, 0.16), 0 4px 12px rgba(17, 17, 17, 0.35); */
   color: var(--bone);
   font-family: "Inter Tight", sans-serif;
   font-size: 0.6rem;
@@ -1852,7 +1735,6 @@ h2 {
   transform: scale(1.25);
 }
 
-/* Sidebar "Destinos & roteiros" */
 .map-sidebar {
   display: flex;
   flex-direction: column;
@@ -1898,18 +1780,12 @@ h2 {
 .map-sidebar-list {
   flex: 1;
   min-height: 0;
-  /* 5.6rem ≈ altura do cabeçalho + rodapé da sidebar (.map-sidebar-head +
-     .map-sidebar-footnote). Descontando isso de --map-height, a lista fica
-     exatamente do tamanho do "miolo" do mapa ao lado, nunca mais alta. */
   max-height: calc(var(--map-height) - 5.6rem);
   overflow-y: auto;
-  /* Firefox: barra fina, na cor do site em vez do padrão do SO */
   scrollbar-width: thin;
   scrollbar-color: rgba(212, 91, 45, 0.35) transparent;
 }
 
-/* Chrome/Safari/Edge: mesmo padrão visual já usado no carrossel de
-   depoimentos (.testimonials-track), só que vertical aqui. */
 .map-sidebar-list::-webkit-scrollbar {
   width: 6px;
 }
@@ -1983,9 +1859,6 @@ h2 {
   transition: background-color 180ms ease, color 180ms ease;
 }
 
-/* O pin (ícone de localização) vem do map.js como SVG inline — ver
-   PIN_ICON_SVG — pra ficar nítido em qualquer tela, sem depender de fonte
-   de ícones externa. */
 .map-destination-icon svg {
   width: 0.85rem;
   height: 0.85rem;
@@ -1996,8 +1869,6 @@ h2 {
   color: var(--bone);
 }
 
-/* Item selecionado: o círculo vira laranja sólido (mesma cor da marca),
-   pra reforçar "esse é o pin aceso agora no mapa". */
 .map-destination.is-active .map-destination-icon {
   background: var(--rust);
   color: var(--bone);
@@ -2084,7 +1955,6 @@ h2 {
   font-size: 0.78rem;
 }
 
-/* Carrossel: arraste, deslize (touch/trackpad) ou use as setas */
 .testimonials-carousel {
   position: relative;
   margin-top: 1rem;
@@ -2148,8 +2018,6 @@ h2 {
   flex-direction: column;
   justify-content: space-between;
   scroll-snap-align: start;
-  /* <figure> tem margem padrão do navegador (1em 40px); zerada para
-     não descolar o card do grid, especialmente no mobile. */
   margin: 0;
   padding: 1.75rem;
   overflow: hidden;
@@ -2269,33 +2137,6 @@ h2 {
   max-width: 42rem;
 }
 
-/* Selo de confiança, dentro da coluna .faq-intro */
-.trust-badges {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  margin-top: 2.25rem;
-  padding-top: 2.25rem;
-  border-top: 1px solid var(--line);
-}
-
-.trust-item span {
-  display: block;
-  margin-bottom: 0.2rem;
-  font-size: 0.62rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--text-soft);
-}
-
-.trust-item strong {
-  font-family: "Inter Tight", sans-serif;
-  font-size: 0.86rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-}
-
 /* ==========================================================================
    15. CTA FINAL
    ========================================================================== */
@@ -2347,11 +2188,30 @@ h2 {
 }
 
 .site-footer a {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
   margin-top: 0.85rem;
   color: var(--text-soft);
   font-size: 0.84rem;
   transition: color 220ms ease, transform 220ms ease;
+}
+
+.icon-whatsapp,
+.icon-instagram {
+  width: 1.05rem;
+  height: 1.05rem;
+  flex: 0 0 auto;
+}
+
+.icon-whatsapp {
+  fill: currentColor;
+}
+
+.text-link svg {
+  width: 0.95rem;
+  height: 0.95rem;
+  flex: 0 0 auto;
 }
 
 .footer-title {
@@ -2361,12 +2221,36 @@ h2 {
 
 .footer-bottom {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
-  gap: 1rem;
+  align-items: center;
+  gap: 0.75rem 1rem;
   margin-top: 3rem;
   padding-top: 1.4rem;
   border-top: 1px solid var(--line);
   color: var(--text-soft);
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 500;
+  font-size: 0.78rem;
+}
+
+.footer-credit-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: color 220ms ease;
+}
+
+.footer-credit-link:hover,
+.footer-credit-link:focus-visible {
+  color: var(--rust);
+}
+
+.icon-github {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
 }
 
 /* ==========================================================================
@@ -2427,13 +2311,9 @@ body.js .reveal.is-visible {
     --container: min(1400px, calc(100vw - 6rem));
   }
 
-  /* Header */
   .nav-shell {
     display: flex;
     justify-content: space-between;
-    /* Piso de respiro entre a logo e o menu — mesmo que o menu cresça (mais
-       um link, por exemplo), o space-between abaixo nunca deixa esse
-       espaço menor que isto. */
     gap: 2rem;
   }
 
@@ -2446,9 +2326,6 @@ body.js .reveal.is-visible {
     display: flex;
     align-items: center;
     justify-content: center;
-    /* Reduzido de 2rem: com 8 links, o valor original deixava o menu quase
-       do tamanho do container inteiro, sobrando pouco respiro ao lado da
-       logo mesmo usando justify-content: space-between no .nav-shell. */
     gap: 1.35rem;
     width: auto;
     padding: 0;
@@ -2464,11 +2341,6 @@ body.js .reveal.is-visible {
     padding: 0;
     border-radius: 0;
     white-space: nowrap;
-    /* .site-nav a herda letter-spacing: 0.32em da regra compartilhada (ver
-       seção 3, usada também em kickers, footer etc.). No menu do gaveta
-       mobile isso funciona bem, mas em 8 links lado a lado no desktop
-       cada palavra fica bem mais larga que o necessário — reduzindo aqui,
-       só neste breakpoint, sobra respiro pra logo sem mudar o resto. */
     letter-spacing: 0.12em;
   }
 
@@ -2477,7 +2349,6 @@ body.js .reveal.is-visible {
     background: transparent;
   }
 
-  /* Utilitários de seção */
   h1 {
     font-size: 3rem;
   }
@@ -2492,7 +2363,6 @@ body.js .reveal.is-visible {
     align-items: end;
   }
 
-  /* Hero */
   .hero-actions {
     flex-direction: row;
     justify-content: center;
@@ -2508,16 +2378,11 @@ body.js .reveal.is-visible {
     display: inline;
   }
 
-  /* Próxima trip — a partir daqui vira grid de verdade: colunas de até
-     340px, colapsando as vazias (auto-fit) para não sobrar espaço morto
-     quando há poucas trips. No mobile o card fica full-width (regra base
-     na seção 7). */
   .trip-grid {
     grid-template-columns: repeat(auto-fit, minmax(280px, 400px));
     justify-content: start;
   }
 
-  /* Sobre + Nossa história */
   .stats-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
@@ -2527,28 +2392,23 @@ body.js .reveal.is-visible {
     gap: 4.8rem;
   }
 
-  /* Universo da marca */
   .universe-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  /* Como funciona */
   .cards-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  /* Mapa */
   .map-shell {
     --map-height: 28rem;
   }
 
-  /* FAQ */
   .faq-layout {
     grid-template-columns: minmax(18rem, 0.42fr) minmax(0, 1fr);
     gap: 4.3rem;
   }
 
-  /* Footer */
   .footer-grid {
     grid-template-columns: 2.4fr 1fr 1fr;
   }
@@ -2569,16 +2429,6 @@ body.js .reveal.is-visible {
     font-size: 1.05rem;
   }
 
-  /* Mapa: a partir daqui cabe mapa + sidebar lado a lado. Abaixo disso,
-     a sidebar fica empilhada embaixo do mapa (regra-base da seção 12).
-
-     O bug da sidebar "vazando" pra baixo da página vinha daqui: sem uma
-     altura explícita no .map-shell, a track do grid virava do tamanho do
-     MAIOR item (a lista inteira, sem cap), e não do mapa — então o
-     .map-sidebar (height: 100%) herdava essa altura gigante em vez da
-     altura real do mapa ao lado. Fixando a altura do grid em si (mesmo
-     valor de --map-height), a sidebar passa a ter altura de verdade e a
-     lista rola dentro dela, batendo com o tamanho do mapa. */
   .map-shell {
     grid-template-columns: minmax(0, 1fr) 22rem;
     align-items: stretch;
