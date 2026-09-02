@@ -1,5 +1,7 @@
-// MAPA DE LUGARES JÁ VISITADOS (#visited-map)
-// Leaflet + OpenStreetMap (sem chave de API, sem cadastro).
+/* ==========================================================================
+   MAPA DE LUGARES JÁ VISITADOS (#visited-map)
+   Leaflet + tiles públicas da OpenStreetMap — sem chave de API, sem cadastro.
+   ========================================================================== */
 
 const VISITED_PLACES = [
   {
@@ -191,13 +193,13 @@ const VISITED_PLACES = [
     lat: -6.969040924975116,
     lng: -34.84027133564893,
   },
-   {
+  {
     title: "Praia Formosa",
     place: "Cabedelo - PB",
     date: "15 de agosto de 2026",
     lat: -6.971145747428147,
     lng: -34.82810720679983,
-  }
+  },
 ];
 
 // Bases da OVERTRIP — pontos de partida das expedições.
@@ -209,16 +211,15 @@ const OVERTRIP_HUBS = [
     lat: -7.2384718,
     lng: -35.8958641,
   },
-    {
+  {
     title: "Pocinhos - PB",
     subtitle: "Ponto de partida",
     code: "PC",
-    lat: -7.077597792300147, 
+    lat: -7.077597792300147,
     lng: -36.060032319318815,
   },
 ];
 
-// Ícone de localização (pin) usado em cada linha da sidebar de destinos —
 const PIN_ICON_SVG = `
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
     <path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11Z"/>
@@ -226,7 +227,18 @@ const PIN_ICON_SVG = `
   </svg>
 `;
 
-const MAP_SELECT_ZOOM = 12; 
+// Zoom aplicado ao clicar num item da lista ou num pin.
+const MAP_SELECT_ZOOM = 12;
+
+/* ==========================================================================
+   MONTAGEM DOS DADOS: destinos únicos + popups
+   ========================================================================== */
+
+// Agrupa VISITED_PLACES por coordenada (arredondada a 3 casas, ~110m de
+// tolerância) — visitas em datas diferentes ao MESMO lugar (ex: Cachoeira
+// de Ouricuri em 2023, 2024 e 2025) viram um destino só, com todas as datas
+// listadas no popup. Evita pins empilhados um em cima do outro e é a mesma
+// lista usada na sidebar "Destinos & roteiros".
 const getUniqueDestinations = () => {
   const byCoordinate = new Map();
 
@@ -262,17 +274,19 @@ const buildPopupHTML = (destination) => {
   `;
 };
 
+/* ==========================================================================
+   PINS E SIDEBAR
+   ========================================================================== */
+
 // Pin customizado (substitui o marcador azul padrão do Leaflet pelas cores
-// da marca). Cada hub usa uma variante maior e escura, com sua sigla (code)
-// dentro — assim, várias bases ficam visualmente diferentes dos destinos
-// sem precisar de um ícone por cidade.
+// da marca). Hubs usam uma variante maior e escura, com a sigla (code)
+// dentro; destinos usam um ponto pequeno com anel/glow ao redor (ver
+// .overtrip-pin no CSS) — o tamanho "visual" vem do box-shadow, não da
+// caixa do ícone, por isso iconSize é só o pontinho em si (10px).
 const createPinIcon = (entry) =>
   L.divIcon({
     className: "overtrip-pin-icon",
     html: `<span class="overtrip-pin ${entry.isHub ? "overtrip-pin--hub" : ""}">${entry.isHub ? entry.code : ""}</span>`,
-    // O pin de destino agora é um ponto pequeno com anel/glow ao redor (ver
-    // .overtrip-pin no CSS) — o tamanho "visual" vem do box-shadow, não da
-    // caixa do ícone, por isso o iconSize aqui é só o pontinho em si (10px).
     iconSize: entry.isHub ? [30, 30] : [10, 10],
     iconAnchor: entry.isHub ? [15, 15] : [5, 5],
     popupAnchor: [0, entry.isHub ? -18 : -16],
@@ -305,7 +319,8 @@ const buildSidebarItemHTML = (entry, index) => `
   </button>
 `;
 
-// expedições já rolaram", já que voltar num lugar também conta.
+// "+N expedições já rolaram" na stats-bar — conta cada visita individual
+// (repetir um lugar em datas diferentes também conta).
 const updateTripsCountStat = () => {
   const statEl = document.querySelector("#stat-trips-count");
 
@@ -316,6 +331,10 @@ const updateTripsCountStat = () => {
   statEl.textContent = `+${VISITED_PLACES.length}`;
 };
 
+/* ==========================================================================
+   INICIALIZAÇÃO DO MAPA
+   ========================================================================== */
+
 const initVisitedMap = () => {
   const container = document.querySelector("#visited-map");
   const sidebarList = document.querySelector("#map-destinations-list");
@@ -325,7 +344,7 @@ const initVisitedMap = () => {
   }
 
   // Se a Leaflet não carregou (CDN bloqueado, sem internet no momento etc.),
-  // mostra um aviso em vez de deixar o quadro em branco sem explicação 
+  // mostra um aviso em vez de deixar o quadro em branco sem explicação.
   if (typeof L === "undefined") {
     console.warn(
       "[map.js] A biblioteca Leaflet não carregou — verifique se " +
@@ -351,14 +370,12 @@ const initVisitedMap = () => {
     scrollWheelZoom: false,
   });
 
-
-  // OpenStreetMap, por isso a atribuição pede os dois créditos.
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors ' +
-      '&copy; <a href="https://carto.com/attributions">CARTO</a>',
-    subdomains: "abcd",
-    maxZoom: 20,
+  // Tiles públicas da OpenStreetMap — sem chave de API. (A CARTO, usada
+  // antes, passou a exigir cadastro/chave para o estilo "Voyager".)
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    subdomains: "abc",
+    maxZoom: 19,
   }).addTo(map);
 
   const markers = entries.map((entry) => {
@@ -373,11 +390,9 @@ const initVisitedMap = () => {
     const group = L.featureGroup(markers);
     map.fitBounds(group.getBounds().pad(0.25));
   } else {
-    // Fallback: centraliza no Nordeste
+    // Fallback: centraliza no Nordeste.
     map.setView([-7.5, -35.5], 6);
   }
-
-  // Sidebar: gera a lista a partir dos mesmos "entries" dos pins
 
   const sidebarButtons = [];
 
@@ -399,7 +414,7 @@ const initVisitedMap = () => {
     });
   };
 
-  // Clicar num item da lista (ou num pin) dá zoom até lá e abre o popup.
+  // Clicar num item da lista ou num pin dá zoom até lá e abre o popup.
   const selectEntry = (index) => {
     const entry = entries[index];
     const marker = markers[index];
@@ -420,11 +435,11 @@ const initVisitedMap = () => {
   });
 
   markers.forEach((marker, index) => {
-    marker.on("click", () => setActiveIndex(index));
+    marker.on("click", () => selectEntry(index));
   });
 
-  // O scroll da página não fica "preso" pelo zoom do mapa — só ativa o
-  // zoom por scroll depois que a pessoa clica dentro do mapa de propósito.
+  // O scroll da página não fica "preso" pelo zoom do mapa — só ativa o zoom
+  // por scroll depois que a pessoa clica dentro do mapa de propósito.
   container.addEventListener("click", () => {
     map.scrollWheelZoom.enable();
   });

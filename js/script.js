@@ -1,14 +1,15 @@
 document.body.classList.remove("no-js");
 document.body.classList.add("js");
 
-// Próximas trips, galeria de memórias e depoimentos ficam centralizados
-
+/* ==========================================================================
+   DADOS: TRIPS, GALERIA E DEPOIMENTOS
+   Fonte única — todo o HTML dessas seções é gerado a partir destes arrays.
+   ========================================================================== */
 
 const TRIPS = [
   {
-    title: "Excursão | Bonito - PE",
+    title: "EXPEDIÇÃO BONITO - PE",
     category: "Cachoeiras, Piscinas e atividades radicais",
-  
     description: "Day use no Camping do Mágico: cachoeiras, piscinas naturais, teleférico e um dia inteiro de lazer saindo de Campina Grande.",
     city: "Bonito",
     region: "PE",
@@ -29,19 +30,17 @@ const TRIPS = [
       "Esportes radicais disponíveis à parte (tirolesa, rapel, arvorismo)",
     ],
     includesHighlight: "Taxa day use, transporte categoria turismo, seguro de viagem e assistência da equipe OVERTRIP já inclusos.",
-
     images: [
       { src: "assets/images/bonito-riacho-restaurante.jpg", alt: "Piscina natural de águas claras em Bonito - PE" },
       { src: "assets/images/cachoeira-do-paraiso-piscina-natural.jpg", alt: "Piscina natural de águas claras em Bonito - PE" },
       { src: "assets/images/por_sol_teleferico_pernambuco.jpg", alt: "Teleférico em Bonito - PE" },
       { src: "assets/images/tirolesa-capimgdomagico.jpg", alt: "Atividades radicais no camping do mágico" },
-       { src: "assets/images/Seja bem vindo-bonito.jpg", alt: "Seja bem-vindo a Bonito - PE" },
-       { src: "assets/images/piscina-capimgdomagico.jpg", alt: "Piscina natural de águas claras em Bonito - PE" },
+      { src: "assets/images/Seja bem vindo-bonito.jpg", alt: "Seja bem-vindo a Bonito - PE" },
+      { src: "assets/images/piscina-capimgdomagico.jpg", alt: "Piscina natural de águas claras em Bonito - PE" },
     ],
     buttonLabel: "Reservar",
     buttonClass: "button-dark",
-    waMessage: "Fala! Tenho interesse na excursão a Bonito - PE (13/09/2026) e quero saber mais detalhes.",
-   
+    waMessage: "Fala! Tenho interesse na expedição a Bonito - PE (13/09/2026) e quero saber mais detalhes.",
     startDateISO: "2026-09-13T03:30:00-03:00",
     availabilitySchema: "https://schema.org/InStock",
   },
@@ -55,7 +54,6 @@ const GALLERY = [
     images: [
       { src: "assets/images/coqueirinho-praia-vista-aerea.jpg", alt: "Pôr do sol na praia com grupo de amigos em clima de descontração" },
       { src: "assets/images/coqueirinho-praia-guarda-sols.jpg", alt: "Falésias e mar na praia" },
-
     ],
   },
   {
@@ -89,13 +87,13 @@ const GALLERY = [
   },
 ];
 
-// Depoimentos: rating de 1 a 5. 
+// rating vai de 1 a 5 — o carrossel desenha as estrelas a partir daqui.
 const TESTIMONIALS = [
   {
     name: "Anna",
     place: "Barra de Santana - 2024",
     rating: 5,
-    quote: "Entrei sem conhecer ninguém e, no fim da viagem, parecia que já fazia parte do grupo há muito tempo."
+    quote: "Entrei sem conhecer ninguém e, no fim da viagem, parecia que já fazia parte do grupo há muito tempo.",
   },
   {
     name: "Lívia",
@@ -123,9 +121,9 @@ const TESTIMONIALS = [
   },
 ];
 
-
-// RENDER: Próxima trip (cards + schema.org gerado a partir do mesmo dado)
-
+/* ==========================================================================
+   FORMATAÇÃO DE DATA E STATUS DE VAGAS
+   ========================================================================== */
 
 const formatTripDate = (isoString) => {
   const date = new Date(isoString);
@@ -153,13 +151,15 @@ const formatTripTime = (isoString) => {
   return formatted.replace(":", "h");
 };
 
-// matemática (data de hoje vs. data da trip), não estimativa.
+// Usada só pra decidir se uma trip ainda "abre vaga" (ver isTripOpen). O
+// selo visual de contagem de dias foi removido do card, mas essa lógica de
+// data continua sendo a fonte de verdade sobre o status geral da seção.
 const getCountdownBadge = (trip) => {
   const tripDate = new Date(trip.startDateISO);
   const today = new Date();
 
-  // Zera a hora dos dois lados pra contar em dias de calendário cheios,
-  // não em blocos de 24h exatas (evita "faltam 0 dias" na véspera à noite).
+  // Zera a hora dos dois lados pra contar em dias de calendário cheios, não
+  // em blocos de 24h exatas (evita "faltam 0 dias" na véspera à noite).
   const tripMidnight = new Date(tripDate.getFullYear(), tripDate.getMonth(), tripDate.getDate());
   const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const daysLeft = Math.round((tripMidnight - todayMidnight) / (1000 * 60 * 60 * 24));
@@ -178,6 +178,13 @@ const getCountdownBadge = (trip) => {
   }
   return { label: `Faltam ${daysLeft} dias`, statusClass: "open" };
 };
+
+// Um trip "abre vaga" enquanto sua data não passou.
+const isTripOpen = (trip) => getCountdownBadge(trip).statusClass !== "soon";
+
+/* ==========================================================================
+   ÍCONES SVG (inline, reaproveitados nos cards de trip)
+   ========================================================================== */
 
 const TRIP_ICON_CALENDAR = `
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -199,8 +206,13 @@ const TRIP_ICON_CHECK_CIRCLE = `
     <circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.3 2.3 4.7-4.8"/>
   </svg>
 `;
+// stroke="currentColor" de propósito — herda a cor verde do container
+// (.trip-includes-highlight-icon). Não trocar por um ícone com fill fixo.
 const TRIP_ICON_SHIELD = `
- <svg fill="#000000" width="800px" height="800px" viewBox="-4 -2 24 24" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin" class="jam jam-shield-check"><path d='M2 4.386V8a9.02 9.02 0 0 0 3.08 6.787L8 17.342l2.92-2.555A9.019 9.019 0 0 0 14 8V4.386l-6-2.25-6 2.25zM.649 2.756L8 0l7.351 2.757a1 1 0 0 1 .649.936V8c0 3.177-1.372 6.2-3.763 8.293L8 20l-4.237-3.707A11.019 11.019 0 0 1 0 8V3.693a1 1 0 0 1 .649-.936zm6.29 7.512l3.536-3.536a1 1 0 0 1 1.414 1.414L7.646 12.39a1 1 0 0 1-1.414 0l-2.121-2.121a1 1 0 0 1 1.414-1.414l1.414 1.414z'/></svg>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M12 3l7 3v5c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6l7-3Z"/>
+    <path d="m9 12 2 2 4-4"/>
+  </svg>
 `;
 const PIX_BUTTON_ICON = `
   <svg class="button-pix-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -209,16 +221,19 @@ const PIX_BUTTON_ICON = `
   </svg>
 `;
 
+/* ==========================================================================
+   RENDER: PRÓXIMA TRIP (cards + schema.org)
+   ========================================================================== */
+
 const buildTripCardHTML = (trip, tripIndex) => {
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(trip.meetingMapsQuery)}`;
   const includesHTML = trip.includes
     .map((item) => `<li><span class="trip-includes-icon" aria-hidden="true">${TRIP_ICON_CHECK_CIRCLE}</span><span>${item}</span></li>`)
     .join("");
-  const countdown = getCountdownBadge(trip);
   const dateDisplay = formatTripDate(trip.startDateISO);
   const departure = formatTripTime(trip.startDateISO);
   // "Intensidade leve" -> "leve", só pro selo compacto sobre a imagem
-  // ("NÍVEL: LEVE"); o texto completo continua disponível em trip.intensityLabel.
+  // ("NÍVEL: LEVE"); o texto completo segue disponível em trip.intensityLabel.
   const levelWord = trip.intensityLabel.replace(/^Intensidade\s*/i, "");
 
   const cover = trip.images[0];
@@ -238,7 +253,6 @@ const buildTripCardHTML = (trip, tripIndex) => {
       >
         <img src="${cover.src}" alt="${cover.alt}" loading="lazy" decoding="async">
         <span class="trip-media-category">${trip.category}</span>
-        <span class="trip-media-status ${countdown.statusClass}">${countdown.label}</span>
         <span class="trip-media-intensity">Nível: ${levelWord}</span>
         ${photoBadge}
       </div>
@@ -340,9 +354,6 @@ const buildTripSchema = (trip) => {
   return schema;
 };
 
-// Um trip "abre vaga" quando ainda não passou da data — mesma regra que já decide o selo "Vagas encerradas" de cada card (getCountdownBadge).
-const isTripOpen = (trip) => getCountdownBadge(trip).statusClass !== "soon";
-
 const updateProximaStatus = () => {
   const statusEl = document.querySelector("#proxima-status");
 
@@ -362,8 +373,8 @@ const updateProximaStatus = () => {
 };
 
 // Troca o texto do "Ver roteiro & o que inclui" -> "Ocultar detalhes" (e
-// vice-versa) conforme cada <details> do card é aberto/fechado. Cada card
-// é independente — abrir um não fecha os outros (diferente do FAQ).
+// vice-versa) conforme cada <details> do card é aberto/fechado. Cada card é
+// independente — abrir um não fecha os outros (diferente do FAQ).
 const bindTripIncludesToggles = () => {
   document.querySelectorAll(".trip-includes-toggle").forEach((details) => {
     details.addEventListener("toggle", () => {
@@ -386,7 +397,7 @@ const renderTrips = () => {
   updateProximaStatus();
   bindTripIncludesToggles();
 
-  // Schema.org por trip: gerado a partir do mesmo array acima
+  // Schema.org por trip, gerado a partir do mesmo array acima.
   const schemaScript = document.createElement("script");
   schemaScript.type = "application/ld+json";
   schemaScript.textContent = JSON.stringify({
@@ -396,7 +407,9 @@ const renderTrips = () => {
   document.head.appendChild(schemaScript);
 };
 
-// RENDER: Galeria + lightbox (modal com todas as fotos de cada memória)
+/* ==========================================================================
+   RENDER: GALERIA + LIGHTBOX
+   ========================================================================== */
 
 const buildGalleryCardHTML = (entry, index) => {
   const cover = entry.images[0];
@@ -436,7 +449,8 @@ const renderGallery = () => {
   grid.innerHTML = GALLERY.map(buildGalleryCardHTML).join("");
 };
 
-// Traduz uma trip pro mesmo formato { title, description, images }
+// Traduz uma trip pro mesmo formato { title, description, images } da
+// galeria, pra reaproveitar o mesmo lightbox nas fotos do card de trip.
 const getTripLightboxEntry = (trip) => ({
   title: trip.title,
   description: `${formatTripDate(trip.startDateISO)} · ${trip.priceDisplay}`,
@@ -586,9 +600,10 @@ const setupLightbox = () => {
   });
 };
 
-// ---------------------------------------------------------------------------
-// RENDER: Depoimentos + carrossel (arraste, clique nas setas ou use o mouse)
-// ---------------------------------------------------------------------------
+/* ==========================================================================
+   RENDER: DEPOIMENTOS + CARROSSEL
+   ========================================================================== */
+
 const buildTestimonialHTML = (testimonial) => {
   const stars = "★".repeat(testimonial.rating) + "☆".repeat(5 - testimonial.rating);
 
@@ -639,7 +654,7 @@ const setupTestimonialCarousel = () => {
   prevBtn.addEventListener("click", () => scrollByCard(-1));
   nextBtn.addEventListener("click", () => scrollByCard(1));
 
-  // Arrastar com o mouse (além do gesto nativo de swipe em touch/trackpad).
+  // Arrastar com o mouse, além do gesto nativo de swipe em touch/trackpad.
   let isDragging = false;
   let dragStartX = 0;
   let scrollStartLeft = 0;
@@ -669,8 +684,10 @@ const setupTestimonialCarousel = () => {
   track.addEventListener("pointercancel", stopDragging);
 };
 
-// Renderiza tudo isso ANTES do restante do script, para que os elementos
-// (.wa-link, .reveal, .trip-card[data-month]) já existam quando o resto do código for consultá-los abaixo.
+/* ==========================================================================
+   ESTATÍSTICA DINÂMICA: ANOS DE COMUNIDADE
+   ========================================================================== */
+
 // "X anos de comunidade" na stats-bar, calculado a partir do data-year do
 // primeiro ponto da timeline (#sobre) — muda um valor, o outro segue junto.
 const updateYearsCount = () => {
@@ -691,19 +708,20 @@ const updateYearsCount = () => {
   statEl.textContent = years > 0 ? `${years} anos` : "1º ano";
 };
 
-
-// PIX: gera o "Pix Copia e Cola" (BR Code, padrão do Banco Central) a partir da chave abaixo, sem embutir um valor fixo — a pessoa confirma o valor.
-// Referência do formato: manual "BR Code" do Bacen (EMV/QRCPS-MPM).
+/* ==========================================================================
+   PIX: PAYLOAD (BR CODE) + MODAL DE PAGAMENTO
+   ========================================================================== */
 
 const PIX_KEY = "contato@overtrip.com.br";
 const PIX_MERCHANT_NAME = "OVERTRIP";
 const PIX_MERCHANT_CITY = "CAMPINA GRANDE";
 
-// Monta um campo TLV (Tag-Length-Value): id de 2 dígitos + tamanho de 2
-// dígitos + o valor. É o formato básico de todo campo do BR Code.
+// Campo TLV (Tag-Length-Value): id de 2 dígitos + tamanho de 2 dígitos +
+// valor. É o formato básico de todo campo do BR Code (padrão Bacen).
 const pixField = (id, value) => `${id}${String(value.length).padStart(2, "0")}${value}`;
 
-// CRC16-CCITT (polinômio 0x1021, valor inicial 0xFFFF) — checksum exigidos pelo Bacen no último campo do payload, senão nenhum app de banco lê o QR.
+// CRC16-CCITT (polinômio 0x1021, valor inicial 0xFFFF) — checksum exigido
+// pelo Bacen no último campo do payload, senão nenhum app de banco lê o QR.
 const crc16ccitt = (payload) => {
   let crc = 0xffff;
 
@@ -718,11 +736,15 @@ const crc16ccitt = (payload) => {
   return crc.toString(16).toUpperCase().padStart(4, "0");
 };
 
+// Monta o "Pix Copia e Cola" sem embutir um valor fixo — a pessoa confirma
+// o valor no app do banco. Como chave/nome/cidade nunca mudam, esse payload
+// é sempre o mesmo (é por isso que o QR pode ser uma imagem estática — ver
+// setupPixModal abaixo).
 const buildPixPayload = () => {
   const merchantAccountInfo =
     pixField("00", "br.gov.bcb.pix") + pixField("01", PIX_KEY);
 
-  const additionalData = pixField("05", "***"); // txid genérico ("sem referência")
+  const additionalData = pixField("05", "***"); // txid genérico, sem referência
 
   const payloadWithoutCrc =
     pixField("00", "01") + // Payload Format Indicator
@@ -733,7 +755,7 @@ const buildPixPayload = () => {
     pixField("59", PIX_MERCHANT_NAME.slice(0, 25)) +
     pixField("60", PIX_MERCHANT_CITY.slice(0, 15)) +
     pixField("62", additionalData) +
-    "6304"; // ID + tamanho do próprio campo de CRC
+    "6304"; // id + tamanho do próprio campo de CRC
 
   return payloadWithoutCrc + crc16ccitt(payloadWithoutCrc);
 };
@@ -753,11 +775,14 @@ const setupPixModal = () => {
   const keyValueEl = modal.querySelector("#pix-key-value");
   const copyBtn = modal.querySelector("#pix-copy-btn");
   const payload = buildPixPayload();
-  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(payload)}`;
 
-  // Se o QR não carregar (rede bloqueada, provedor fora do ar etc.), esconde
-  // a imagem quebrada e mostra o aviso — a chave/código continuam
-  // funcionando normalmente, então o pagamento não fica travado por isso.
+  // QR pré-gerado (assets/images/pix-qr-overtrip.png) com o mesmo payload
+  // de buildPixPayload(). Se um dia a chave Pix mudar, gerar um novo PNG
+  // com o novo payload e substituir o arquivo.
+  const qrCodeUrl = "assets/images/pix-qr-overtrip.png";
+
+  // Se o QR não carregar, esconde a imagem quebrada e mostra o aviso — a
+  // chave/código continuam funcionando, então o pagamento não trava por isso.
   if (qrImage) {
     qrImage.addEventListener("error", () => {
       qrImage.classList.add("has-error");
@@ -781,7 +806,6 @@ const setupPixModal = () => {
       priceEl.textContent = `Valor total: ${trip.priceDisplay} (ou o sinal de 50%, conforme política de reserva)`;
     }
     if (qrImage) {
-    
       qrImage.classList.remove("has-error");
       if (qrFallback) {
         qrFallback.hidden = true;
@@ -851,13 +875,84 @@ const setupPixModal = () => {
   });
 };
 
+/* ==========================================================================
+   ANALYTICS (GTM/dataLayer ou GA4/gtag — o que já estiver instalado)
+   ========================================================================== */
+
+// Envia o evento pro que já estiver disponível no site; se nenhum dos dois
+// estiver instalado ainda, só loga no console (não quebra nada).
+const pushAnalyticsEvent = (eventPayload, gtagName, gtagParams) => {
+  if (window.dataLayer && typeof window.dataLayer.push === "function") {
+    window.dataLayer.push(eventPayload);
+  } else if (typeof window.gtag === "function") {
+    window.gtag("event", gtagName, gtagParams);
+  } else {
+    console.log("[analytics]", eventPayload);
+  }
+};
+
+const getWaLinkSection = (link) => {
+  if (link.classList.contains("floating-wa")) {
+    return "floating_button";
+  }
+
+  const section = link.closest("section");
+  if (section?.id) {
+    return section.id;
+  }
+
+  if (link.closest(".site-footer")) {
+    return "footer";
+  }
+
+  if (link.closest(".site-header")) {
+    return "header";
+  }
+
+  return "unknown";
+};
+
+const trackWhatsAppClick = (link) => {
+  const tripCard = link.closest(".trip-card");
+  const tripName = tripCard?.querySelector("h3")?.textContent?.trim();
+
+  const eventPayload = {
+    event: "whatsapp_click",
+    wa_section: getWaLinkSection(link),
+    wa_label: link.textContent.trim(),
+    wa_trip: tripName || null,
+  };
+
+  pushAnalyticsEvent(eventPayload, "whatsapp_click", {
+    section: eventPayload.wa_section,
+    label: eventPayload.wa_label,
+    trip: eventPayload.wa_trip,
+  });
+};
+
+const trackPixClick = (trip) => {
+  const eventPayload = {
+    event: "pix_click",
+    pix_trip: trip.title,
+  };
+
+  pushAnalyticsEvent(eventPayload, "pix_click", { trip: eventPayload.pix_trip });
+};
+
+/* ==========================================================================
+   INICIALIZAÇÃO DOS RENDERS
+   Roda antes do resto do script, pra .wa-link, .reveal e .trip-card já
+   existirem no DOM quando o código abaixo for consultá-los.
+   ========================================================================== */
+
 renderTrips();
 renderGallery();
 renderTestimonials();
 updateYearsCount();
 
-// COMPORTAMENTO GERAL DO SITE
-
+/* ==========================================================================
+   COMPORTAMENTO GERAL DO SITE
+   ========================================================================== */
 
 const whatsappNumber = "5583987745549";
 const waLinks = document.querySelectorAll(".wa-link");
@@ -928,71 +1023,6 @@ const bindHoverClass = (elements) => {
   });
 };
 
-
-// Analytics: dispara um evento a cada clique em link de WhatsApp, informando em qual seção da página e em qual card/link o clique aconteceu. Funciona
-// com Google Tag Manager (dataLayer) ou GA4 (gtag) — o que já estiver
-// instalado no site.
-
-const getWaLinkSection = (link) => {
-  if (link.classList.contains("floating-wa")) {
-    return "floating_button";
-  }
-
-  const section = link.closest("section");
-  if (section?.id) {
-    return section.id;
-  }
-
-  if (link.closest(".site-footer")) {
-    return "footer";
-  }
-
-  if (link.closest(".site-header")) {
-    return "header";
-  }
-
-  return "unknown";
-};
-
-const trackWhatsAppClick = (link) => {
-  const tripCard = link.closest(".trip-card");
-  const tripName = tripCard?.querySelector("h3")?.textContent?.trim();
-
-  const eventPayload = {
-    event: "whatsapp_click",
-    wa_section: getWaLinkSection(link),
-    wa_label: link.textContent.trim(),
-    wa_trip: tripName || null,
-  };
-
-  if (window.dataLayer && typeof window.dataLayer.push === "function") {
-    window.dataLayer.push(eventPayload);
-  } else if (typeof window.gtag === "function") {
-    window.gtag("event", "whatsapp_click", {
-      section: eventPayload.wa_section,
-      label: eventPayload.wa_label,
-      trip: eventPayload.wa_trip,
-    });
-  } else {
-    console.log("[analytics]", eventPayload);
-  }
-};
-
-const trackPixClick = (trip) => {
-  const eventPayload = {
-    event: "pix_click",
-    pix_trip: trip.title,
-  };
-
-  if (window.dataLayer && typeof window.dataLayer.push === "function") {
-    window.dataLayer.push(eventPayload);
-  } else if (typeof window.gtag === "function") {
-    window.gtag("event", "pix_click", { trip: eventPayload.pix_trip });
-  } else {
-    console.log("[analytics]", eventPayload);
-  }
-};
-
 waLinks.forEach((link) => {
   // Cada link define sua própria mensagem no atributo data-wa-message.
   const message = link.dataset.waMessage || "";
@@ -1011,7 +1041,7 @@ if (currentYear) {
 }
 
 if (header) {
-  // Aplica fundo no header depois que a página começa a rolar.
+  // Aplica fundo sólido no header depois que a página começa a rolar.
   const syncHeader = () => {
     header.classList.toggle("is-solid", window.scrollY > 12);
   };
@@ -1032,6 +1062,7 @@ if (menuToggle && nav && header) {
   });
 }
 
+// Scroll suave nos links internos (href="#..."), exceto links de WhatsApp.
 document.addEventListener("click", (event) => {
   const link = event.target.closest('a[href^="#"]');
 
@@ -1066,6 +1097,7 @@ document.addEventListener("click", (event) => {
   }
 }, { capture: true });
 
+// FAQ tipo acordeão: abrir um item fecha os outros.
 detailsItems.forEach((item) => {
   item.addEventListener("toggle", () => {
     if (!item.open) {
@@ -1083,8 +1115,63 @@ detailsItems.forEach((item) => {
 bindHoverClass(galleryCards);
 bindHoverClass(mediaBlocks);
 setupLightbox();
+
+/* ==========================================================================
+   BALÃO DO WHATSAPP FLUTUANTE
+   Aparece uma vez por sessão do navegador, depois de um tempinho na página.
+   Fechando (X) ou clicando pra falar no WhatsApp, não aparece de novo até a
+   pessoa abrir uma nova aba/sessão.
+   ========================================================================== */
+
+const setupWaTooltip = () => {
+  const tooltip = document.querySelector("#wa-tooltip");
+  const closeBtn = document.querySelector("#wa-tooltip-close");
+  const floatingButton = document.querySelector(".floating-wa");
+  const STORAGE_KEY = "overtrip_wa_tooltip_dismissed";
+
+  if (!tooltip || !closeBtn) {
+    return;
+  }
+
+  const wasDismissed = () => {
+    try {
+      return sessionStorage.getItem(STORAGE_KEY) === "1";
+    } catch (error) {
+      return false;
+    }
+  };
+
+  if (wasDismissed()) {
+    return;
+  }
+
+  const dismiss = () => {
+    tooltip.classList.remove("is-visible");
+    try {
+      sessionStorage.setItem(STORAGE_KEY, "1");
+    } catch (error) {
+      // Sem sessionStorage disponível (ex: navegação privada restrita) — a
+      // bolha só reaparece nesta sessão, sem problema.
+    }
+  };
+
+  window.setTimeout(() => {
+    tooltip.hidden = false;
+    // Um frame de respiro pra transição de opacidade/transform rodar.
+    window.requestAnimationFrame(() => tooltip.classList.add("is-visible"));
+  }, 2500);
+
+  closeBtn.addEventListener("click", dismiss);
+  floatingButton?.addEventListener("click", dismiss);
+};
+
+setupWaTooltip();
 setupPixModal();
 setupTestimonialCarousel();
+
+/* ==========================================================================
+   FAIXA "MOVE DIFFERENT" (marquee em loop contínuo)
+   ========================================================================== */
 
 if (marqueeTrack) {
   let groupWidth = 0;
@@ -1093,7 +1180,7 @@ if (marqueeTrack) {
   const speed = 27;
 
   const measureMarquee = () => {
-    // Mede o primeiro bloco duplicado para o loop reiniciar sem salto visual.
+    // Mede o primeiro bloco duplicado pra o loop reiniciar sem salto visual.
     const firstGroup = marqueeTrack.querySelector(".marquee-group");
     groupWidth = firstGroup ? firstGroup.getBoundingClientRect().width : 0;
     startTime = performance.now();
@@ -1121,9 +1208,11 @@ if (marqueeTrack) {
   );
 }
 
-
-// Filtro de mês na grade de próximos embarques (#proxima). Os botões de mês
-// são gerados automaticamente a partir dos data-month presentes nos cards, então adicionar uma trip em um mês novo já cria o botão sozinho.
+/* ==========================================================================
+   FILTRO DE MÊS (seção #proxima)
+   Os botões são gerados a partir dos data-month presentes nos cards, então
+   uma trip num mês novo já cria o botão sozinha.
+   ========================================================================== */
 
 const tripFilter = document.querySelector(".trip-filter");
 const tripCards = document.querySelectorAll(".trip-card[data-month]");
@@ -1166,8 +1255,11 @@ if (tripFilter && tripCards.length) {
   });
 }
 
+/* ==========================================================================
+   ANIMAÇÃO DE ENTRADA (.reveal via IntersectionObserver)
+   ========================================================================== */
+
 if ("IntersectionObserver" in window) {
-  // Revela elementos .reveal conforme entram no viewport.
   const revealObserver = new IntersectionObserver(
     (entries) => {
       entries.forEach((entry) => {
@@ -1187,6 +1279,7 @@ if ("IntersectionObserver" in window) {
     revealObserver.observe(element);
   });
 } else {
+  
   revealElements.forEach((element) => {
     element.classList.add("is-visible");
   });

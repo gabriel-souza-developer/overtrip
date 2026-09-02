@@ -1104,9 +1104,6 @@ h2 {
 /* ==========================================================================
    9. UNIVERSO DA MARCA
    ========================================================================== */
-.brand-universe {
-  border-top: 1px solid var(--line);
-}
 
 .universe-grid {
   gap: 1px;
@@ -1555,15 +1552,16 @@ h2 {
 
 .button-pix {
   gap: 0.4rem;
-  background: rgba(15, 168, 143, 0.12);
-  border-color: rgba(15, 168, 143, 0.35);
-  color: #0f8a76;
+  background: var(--rust);
+  border-color: rgba(255, 255, 255, 0.35);
+  color: var(--paper)
 }
 
 .button-pix:hover,
 .button-pix:focus-visible {
   background: rgba(15, 168, 143, 0.2);
   border-color: rgba(15, 168, 143, 0.5);
+  color: #0f8a76;
 }
 
 .button-pix-icon {
@@ -2168,9 +2166,9 @@ h2 {
    16. FOOTER
    ========================================================================== */
 .site-footer {
-  background: var(--bone);
-  border-top: 1px solid var(--line);
-  padding: 3.9rem 0 1.8rem;
+  background: var(--ink);
+  color: var(--text-invert);
+  padding: 4.2rem 0 1.8rem;
 }
 
 .footer-grid {
@@ -2178,13 +2176,51 @@ h2 {
 }
 
 .footer-brand h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   margin: 0;
   font-size: 1.95rem;
   font-weight: 800;
+  color: var(--bone);
+}
+
+.footer-brand-dot {
+  color: var(--rust);
+}
+
+.footer-brand .section-kicker {
+  color: rgba(245, 243, 239, 0.55);
 }
 
 .footer-brand p {
   font-size: 0.84rem;
+  color: var(--text-invert);
+}
+
+.footer-social-icons {
+  display: flex;
+  gap: 0.65rem;
+  margin-top: 1.5rem;
+}
+
+.footer-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  border: 1px solid rgba(245, 243, 239, 0.22);
+  color: var(--bone);
+  transition: background-color 220ms ease, border-color 220ms ease, transform 220ms ease;
+}
+
+.footer-icon-btn:hover,
+.footer-icon-btn:focus-visible {
+  background: var(--rust);
+  border-color: var(--rust);
+  transform: translateY(-2px);
 }
 
 .site-footer a {
@@ -2192,13 +2228,19 @@ h2 {
   align-items: center;
   gap: 0.55rem;
   margin-top: 0.85rem;
-  color: var(--text-soft);
+  color: var(--text-invert);
   font-size: 0.84rem;
   transition: color 220ms ease, transform 220ms ease;
 }
 
+.site-footer a:hover,
+.site-footer a:focus-visible {
+  color: var(--rust);
+}
+
 .icon-whatsapp,
-.icon-instagram {
+.icon-instagram,
+.icon-pin {
   width: 1.05rem;
   height: 1.05rem;
   flex: 0 0 auto;
@@ -2216,7 +2258,38 @@ h2 {
 
 .footer-title {
   margin: 0 0 0.9rem;
-  color: var(--text-soft);
+  color: var(--rust);
+}
+
+.footer-soon {
+  margin-left: 0.35rem;
+  color: var(--rust);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.footer-contact-group {
+  margin-top: 1.5rem;
+}
+
+.footer-contact-group:first-child {
+  margin-top: 0;
+}
+
+.footer-contact-label {
+  margin: 0;
+  color: rgba(245, 243, 239, 0.5);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.footer-contact-value {
+  margin-top: 0.4rem;
+  font-weight: 600;
 }
 
 .footer-bottom {
@@ -2227,8 +2300,8 @@ h2 {
   gap: 0.75rem 1rem;
   margin-top: 3rem;
   padding-top: 1.4rem;
-  border-top: 1px solid var(--line);
-  color: var(--text-soft);
+  border-top: 1px solid var(--line-light);
+  color: rgba(245, 243, 239, 0.5);
   text-transform: none;
   letter-spacing: normal;
   font-weight: 500;
@@ -2239,6 +2312,7 @@ h2 {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
+  color: rgba(245, 243, 239, 0.5);
   transition: color 220ms ease;
 }
 
@@ -2285,6 +2359,68 @@ h2 {
   width: 1.55rem;
   height: 1.55rem;
   fill: currentColor;
+  position: relative;
+  z-index: 1;
+}
+
+/* Anel pulsante atrás do ícone — chama atenção pro botão sem precisar
+   piscar a opacidade do ícone em si (o que pareceria um erro visual). */
+.floating-wa-ping {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: #25d366;
+  animation: floating-wa-pulse 2.4s ease-out infinite;
+}
+
+@keyframes floating-wa-pulse {
+  0% { transform: scale(1); opacity: 0.55; }
+  100% { transform: scale(1.9); opacity: 0; }
+}
+
+.wa-tooltip {
+  position: fixed;
+  right: 1.15rem;
+  bottom: calc(1.15rem + 3.4rem + 0.75rem);
+  z-index: 60;
+  width: min(15.5rem, calc(100vw - 2.3rem));
+  padding: 0.9rem 1.9rem 0.9rem 1rem;
+  border-radius: var(--radius-lg);
+  background: var(--bone);
+  box-shadow: var(--shadow-soft);
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+  transition: opacity 260ms ease, transform 260ms ease;
+}
+
+.wa-tooltip[hidden] {
+  display: block;
+}
+
+.wa-tooltip.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.wa-tooltip p {
+  margin: 0;
+  color: var(--ink);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.wa-tooltip-close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.6rem;
+  border: 0;
+  background: none;
+  color: var(--text-soft);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
 }
 
 /* ==========================================================================
@@ -2467,6 +2603,10 @@ body.js .reveal.is-visible {
   body.js .reveal.is-visible {
     animation: none !important;
     transition: none !important;
+  }
+
+  .floating-wa-ping {
+    display: none;
   }
 
   body.js .reveal {
