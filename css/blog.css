@@ -1,0 +1,264 @@
+/* ==========================================================================
+   BLOG — listagem e página de post
+   ========================================================================== */
+
+.blog-grid {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  margin-top: 2.5rem;
+}
+
+.blog-home-button {
+  margin-top: 2rem;
+}
+
+.post-nav-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.post-nav-actions .post-back,
+.post-nav-actions .blog-home-button {
+  margin: 0;
+}
+
+.blog-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--line);
+  background: var(--bone);
+  transition: border-color 220ms ease, transform 220ms ease;
+}
+
+.blog-card:hover,
+.blog-card:focus-visible {
+  border-color: rgba(17, 17, 17, 0.28);
+  transform: translateY(-2px);
+}
+
+.blog-card-image {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+}
+
+.blog-card-badge {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  padding: 0.28rem 0.65rem;
+  border-radius: 999px;
+  background: var(--rust);
+  color: var(--bone);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.blog-card-copy {
+  padding: 1.5rem;
+}
+
+.blog-card-date {
+  margin: 0 0 0.5rem;
+  color: var(--rust);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.blog-card-copy h2 {
+  margin: 0 0 0.6rem;
+  font-family: "Inter Tight", sans-serif;
+  font-size: 1.2rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.blog-card-copy p:last-child {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 0.84rem;
+  line-height: var(--copy-leading);
+}
+
+/* Página de post individual */
+
+.post {
+  padding: var(--section-y) 0;
+}
+
+.post-container {
+  max-width: 44rem;
+}
+
+.post-back {
+  display: inline-block;
+  margin-bottom: 1.5rem;
+  color: var(--text-soft);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.post-back:hover,
+.post-back:focus-visible {
+  color: var(--rust);
+}
+
+.post-share {
+  display: inline-flex;
+  margin-top: 1rem;
+  background: #25d366;
+  color: #fff;
+}
+
+.post-share:hover,
+.post-share:focus-visible {
+  background: #1fbe5d;
+  color: #fff;
+}
+
+.post-back-bottom {
+  margin-top: 2.5rem;
+  margin-bottom: 0;
+}
+
+.post-footer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 1.5rem;
+  margin-top: 2.5rem;
+}
+
+.post-footer-actions .post-share,
+.post-footer-actions .post-back-bottom,
+.post-footer-actions .blog-home-button {
+  margin: 0;
+}
+
+.post h1 {
+  margin: 0.5rem 0 1.5rem;
+  font-size: 2.2rem;
+  line-height: 1.1;
+}
+
+.post-cover {
+  margin-bottom: 2rem;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+}
+
+.post-body {
+  color: var(--ink);
+  font-size: 1rem;
+  line-height: var(--copy-leading);
+}
+
+.post-body p {
+  margin: 0 0 1.3rem;
+}
+
+.post-body h2 {
+  margin: 2rem 0 1rem;
+  font-size: 1.4rem;
+  line-height: 1.25;
+}
+
+.post-body ul,
+.post-body ol {
+  margin: 0 0 1.3rem;
+  padding-left: 1.3rem;
+}
+
+.post-body li {
+  margin-bottom: 0.5rem;
+}
+
+.post-body a {
+  color: var(--rust);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Imagem solta no meio do texto (![alt](caminho) no Markdown) */
+.post-body img {
+  display: block;
+  width: 100%;
+  margin: 2rem 0;
+  border-radius: var(--radius-lg);
+}
+
+/* Imagem com legenda: <figure><img><figcaption>...</figcaption></figure> */
+.post-body figure {
+  margin: 2rem 0;
+}
+
+.post-body figure img {
+  margin: 0 0 0.6rem;
+}
+
+.post-body figcaption {
+  color: var(--text-soft);
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+/* Vídeo incorporado (YouTube/Vimeo): envolver o <iframe> com
+   <div class="post-video">...</div> no Markdown — mantém a proporção
+   16:9 em qualquer tamanho de tela. */
+.post-video {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  margin: 2rem 0;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.post-video iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* Galeria de fotos: <div class="post-gallery"><img>...<img></div> */
+.post-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.5rem;
+  margin: 2rem 0;
+}
+
+.post-gallery img {
+  margin: 0;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: var(--radius-lg);
+}
+
+@media (min-width: 720px) {
+  .post h1 {
+    font-size: 2.8rem;
+  }
+}
+
+/* Imagem de destaque dentro de matérias: mantém proporção editorial e evita
+   que fotos verticais ou pequenas dominem a leitura. */
+.post-feature-figure img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  max-height: 520px;
+  object-fit: cover;
+}

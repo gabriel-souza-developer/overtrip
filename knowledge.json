@@ -1,0 +1,363 @@
+{
+  "company": {
+    "name": "OVERTRIP",
+    "slogan": "No Destination",
+    "positioning": "A OVERTRIP é uma agência de ecoturismo e aventura, turismo cultural e experiências, que também reúne uma comunidade de pessoas conectadas por viagens, natureza e estrada.",
+    "description": "A OVERTRIP organiza viagens e experiências de turismo e também mantém uma comunidade formada por pessoas que gostam de natureza, estrada e de conhecer novos lugares em grupo.",
+    "mainRegion": "Nordeste do Brasil",
+    "strongPresence": "Paraíba",
+    "departureRegion": [
+      "Campina Grande - PB",
+      "Pocinhos - PB"
+    ]
+  },
+  "contact": {
+    "whatsapp": "(83) 98774-5549",
+    "instagram": "@overtrip.br",
+    "website": "https://overtrip.com.br/",
+    "agentBlogPost": "https://overtrip.com.br/blog/agente-overtrip/",
+    "instruction": "Use somente estes canais oficiais quando o cliente pedir contato, site ou redes sociais. Não invente telefones, e-mails de pessoas ou perfis."
+  },
+  "history": {
+    "origin": "A história começou em 2022, quando um grupo de amigos passou a viajar junto com frequência. Dessas primeiras viagens nasceu a CG.TRIP, que mais tarde evoluiu para OVERTRIP.",
+    "timeline": [
+      {
+        "year": 2022,
+        "event": "A primeira estrada",
+        "description": "Um grupo de amigos começa a viajar junto e surge a ideia que daria origem à CG.TRIP."
+      },
+      {
+        "year": 2023,
+        "event": "A comunidade ganha força",
+        "description": "As primeiras viagens passam a reunir novas pessoas e a comunidade começa a crescer."
+      },
+      {
+        "year": 2024,
+        "event": "Novos destinos",
+        "description": "A CG.TRIP amplia os roteiros, ultrapassa as fronteiras da Paraíba e passa a viver experiências em outros destinos do Nordeste."
+      },
+      {
+        "year": 2025,
+        "event": "Profissionalização",
+        "description": "O projeto inicia formação técnica em Guia de Turismo, fortalecendo organização, segurança e qualidade das experiências."
+      },
+      {
+        "year": 2026,
+        "event": "Nasce a OVERTRIP",
+        "description": "A CG.TRIP evolui para OVERTRIP, unindo turismo, experiências, comunidade e um estilo de vida movido pela estrada."
+      }
+    ],
+    "brandStory": [
+      "A OVERTRIP começou em 2022 entre amigos que decidiram viajar de um jeito diferente.",
+      "Pouco roteiro, muita presença.",
+      "O destino nunca foi o ponto. O que importava era o que acontecia no caminho.",
+      "Hoje, a OVERTRIP reúne pessoas que acreditam que viajar também é conhecer gente, criar histórias e viver experiências que continuam depois da volta."
+    ],
+    "currentMoment": "A OVERTRIP segue evoluindo a forma de apresentar os roteiros, se comunicar e atender. O Agente OVERTRIP faz parte desse movimento de inovação, usando tecnologia para ganhar eficiência sem perder o contato humano.",
+    "mindset": "A viagem começa antes da saída, continua durante o percurso e permanece depois do retorno. O destino é apenas um detalhe: o que importa são as pessoas, as histórias e as experiências vividas.",
+    "travelerExperience": "A OVERTRIP cuida da experiência de quem viaja antes, durante e depois da viagem: roteiros com logística organizada, informações claras antes da reserva, nível de intensidade informado, assistência da equipe e uma comunidade que continua depois da volta.",
+    "brandVoice": {
+      "tone": [
+        "moderno",
+        "humano",
+        "direto",
+        "inspirador",
+        "minimalista",
+        "autêntico"
+      ],
+      "avoid": [
+        "linguagem corporativa excessiva",
+        "clichês de turismo",
+        "excesso de emojis",
+        "promessas exageradas",
+        "respostas genéricas de agência"
+      ],
+      "instruction": "Responda com o jeito da OVERTRIP: próximo, claro e sem exagero, transmitindo a ideia de pertencimento. Quem fala com a OVERTRIP faz parte de uma comunidade, não é só um cliente de agência."
+    }
+  },
+  "brandPillars": [
+    "Ecoturismo e aventura",
+    "Turismo cultural",
+    "Experiências",
+    "Natureza",
+    "Comunidade",
+    "Estrada",
+    "Conexão entre pessoas"
+  ],
+  "community": {
+    "description": "A comunidade OVERTRIP reúne pessoas que já viajaram com a agência, acompanham novos roteiros, trocam experiências e muitas vezes voltam a viajar juntas.",
+    "soloTravelers": true,
+    "soloTravelerInfo": "É possível participar sozinho, em casal ou com amigos. As experiências são pensadas para acolher quem chega sozinho e integrar o grupo."
+  },
+  "communityStats": {
+    "members": "mais de 100 membros",
+    "destinationsVisited": "mais de 34 visitas a destinos",
+    "communityYears": "4 anos de comunidade, desde 2022",
+    "kilometers": "mais de 5.000 quilômetros rodados",
+    "rating": "nota 4.9, com base em 20 avaliações no Google e Instagram",
+    "source": "Números exibidos no site oficial; podem ser atualizados pela equipe.",
+    "instruction": "Use esses números apenas se o cliente perguntar sobre o tamanho da comunidade ou sobre avaliações, sem arredondar para cima."
+  },
+  "experiences": {
+    "expeditions": {
+      "name": "OVERTRIP Expeditions",
+      "description": "Roteiros com logística organizada, acompanhamento da equipe e informações claras sobre cada experiência."
+    },
+    "riders": {
+      "name": "OVER RIDERS",
+      "description": "Comunidade da OVERTRIP para quem prefere participar com o próprio veículo, como moto ou carro, em rotas com estrada, trilha, paisagens e aventura em grupo.",
+      "ownVehicle": true
+    },
+    "store": {
+      "name": "OVERTRIP Store",
+      "status": "em breve",
+      "description": "Frente da marca pensada para levar a identidade OVERTRIP para além da estrada, com produtos e acessórios ligados ao estilo de vida da comunidade.",
+      "plannedProducts": [
+        "camisetas",
+        "bonés",
+        "garrafas",
+        "acessórios"
+      ],
+      "salesOpen": false,
+      "instruction": "A OVERTRIP Store ainda não está com vendas abertas. Não informe preços, estoque, prazo de entrega ou disponibilidade de produtos sem uma atualização oficial da equipe."
+    }
+  },
+  "visitedDestinations": {
+    "description": "A OVERTRIP já realizou experiências em diversos destinos da Paraíba e também em outros estados do Nordeste.",
+    "highlights": [
+      "Lucena - PB",
+      "Conde - PB",
+      "Barra de Santana - PB",
+      "Pilões - PB",
+      "Bananeiras - PB",
+      "Matinhas - PB",
+      "Rio Tinto - PB",
+      "Areia - PB",
+      "Baía da Traição - PB",
+      "Cabedelo - PB",
+      "Bonito - PE",
+      "Pureza - RN"
+    ],
+    "notACompleteList": true
+  },
+  "boarding": {
+    "generalRule": "O ponto de embarque geralmente é na Rodoviária Nova – Catolé, em Campina Grande - PB, próximo ao guichê da Real Bus. O ponto e o horário podem variar conforme a experiência.",
+    "tripSpecificDataPriority": true,
+    "instruction": "Quando a trip possuir ponto e horário de embarque definidos em trips.json, use essas informações. Caso não possua, utilize a regra geral e, quando necessário, oriente o cliente a consultar a equipe."
+  },
+  "reservation": {
+    "depositPercentage": 50,
+    "remainingPaymentDeadline": "até 48 horas antes do embarque",
+    "paymentMethods": [
+      "PIX",
+      "cartão"
+    ],
+    "pixKey": "contato@overtrip.com.br",
+    "cardNotice": "Pagamentos no cartão podem ter acréscimo de taxas ou juros da operadora.",
+    "cardPayment": {
+      "installments": "em até 12x",
+      "process": "A equipe envia um link de pagamento on-line (Infinity ou PicPay) para o cliente finalizar no cartão.",
+      "notice": "Há acréscimos da maquineta ou do link de pagamento."
+    },
+    "pixProofRequired": true,
+    "pixProofInstructions": "Após realizar o PIX, o cliente deve enviar o comprovante na própria conversa do WhatsApp.",
+    "afterPaymentAction": "Após o cliente informar o pagamento ou enviar o comprovante, o atendimento deve ser direcionado ao time responsável para finalizar a reserva.",
+    "calculationRule": "A entrada é 50% do valor total, arredondada para cima ao centavo, e o restante é o valor total menos a entrada (por exemplo, R$ 109,99 = R$ 55,00 + R$ 54,99). Se a trip tiver depositDisplay, remainingDisplay e remainingDeadlineDisplay, use esses valores.",
+    "passengerListRule": "O nome e o sobrenome do participante só entram na lista da viagem após o pagamento dos 50% da reserva."
+  },
+  "inclusions": {
+    "generalRule": "As experiências contam com organização e curadoria da OVERTRIP. Os itens efetivamente inclusos variam conforme cada trip.",
+    "instruction": "Para informar transporte, seguro, alimentação, entradas, guias, taxas ou outros itens, priorize sempre os dados específicos da trip em trips.json.",
+    "extrasRule": "Alimentação, entradas ou itens extras que não estiverem incluídos devem ser informados conforme as condições de cada experiência."
+  },
+  "intensity": {
+    "generalRule": "Cada experiência possui um nível de intensidade próprio.",
+    "levels": [
+      "leve",
+      "moderado",
+      "difícil"
+    ],
+    "instruction": "Consulte o nível informado na trip antes de responder sobre preparo físico."
+  },
+  "cancellation": {
+    "generalRule": "A política de desistência considera a proximidade do embarque e os custos de organização, logística e parceiros já assumidos, incluindo compromissos financeiros relacionados à experiência.",
+    "refundRule": "Após o pagamento de 50% referente à reserva, não realizamos reembolsos.",
+    "exceptionalCases": "Situações excepcionais, como problemas de saúde comprovados, são analisadas individualmente.",
+    "instruction": "Ao responder sobre desistência ou reembolso, informe claramente que após o pagamento de 50% referente à reserva não há reembolso. Situações excepcionais podem ser analisadas individualmente. Para casos específicos ou condições fora da regra geral, o atendimento pode ser direcionado ao time responsável."
+  },
+  "tripAvailability": {
+    "open": "Experiência disponível para divulgação e reserva.",
+    "completed": "Experiência já realizada.",
+    "closed": "Experiência encerrada.",
+    "sold_out": "Experiência esgotada.",
+    "cancelled": "Experiência cancelada."
+  },
+  "faq": [
+    {
+      "id": "quem-e-a-overtrip",
+      "question": "O que é a OVERTRIP?",
+      "answer": "A OVERTRIP é uma agência de ecoturismo, aventura, turismo cultural e experiências. Além das viagens, mantém uma comunidade de pessoas conectadas por natureza, estrada e novos lugares."
+    },
+    {
+      "id": "como-surgiu",
+      "question": "Como surgiu a OVERTRIP?",
+      "answer": "A história começou em 2022, quando um grupo de amigos passou a viajar junto. O projeto cresceu como CG.TRIP, ganhou comunidade e, em 2026, se tornou OVERTRIP."
+    },
+    {
+      "id": "posso-ir-sozinho",
+      "question": "Posso viajar sozinho?",
+      "answer": "Sim. Muita gente participa sem conhecer ninguém antes. Também é possível viajar em casal ou com amigos, e a equipe passa as orientações do grupo antes da viagem."
+    },
+    {
+      "id": "como-reservar",
+      "question": "Como faço para reservar?",
+      "answer": "A reserva é feita mediante pagamento de 50% do valor da experiência. O restante deve ser quitado até 48 horas antes do embarque."
+    },
+    {
+      "id": "formas-pagamento",
+      "question": "Quais formas de pagamento vocês aceitam?",
+      "answer": "Aceitamos PIX e cartão. No cartão podem existir taxas ou juros da operadora."
+    },
+    {
+      "id": "pagamento-cartao",
+      "question": "Como funciona o pagamento no cartão?",
+      "answer": "É possível pagar no cartão de crédito em até 12x, com acréscimos da maquineta ou do link de pagamento. A equipe envia um link de pagamento on-line (Infinity ou PicPay) para você finalizar."
+    },
+    {
+      "id": "chave-pix",
+      "question": "Qual a chave PIX?",
+      "answer": "A chave PIX da OVERTRIP é contato@overtrip.com.br."
+    },
+    {
+      "id": "comprovante",
+      "question": "O que faço depois de pagar pelo PIX?",
+      "answer": "Envie o comprovante na própria conversa do WhatsApp. A partir daí, o atendimento será direcionado ao time responsável para finalizar a reserva."
+    },
+    {
+      "id": "lista-nome",
+      "question": "Quando meu nome entra na lista da viagem?",
+      "answer": "O nome e o sobrenome entram na lista após o pagamento dos 50% da reserva."
+    },
+    {
+      "id": "quando-pagar-restante",
+      "question": "Quando pago o restante da viagem?",
+      "answer": "O valor restante deve ser quitado até 48 horas antes do embarque."
+    },
+    {
+      "id": "ponto-embarque",
+      "question": "Onde é o ponto de embarque?",
+      "answer": "O ponto de embarque geralmente é na Rodoviária Nova – Catolé, em Campina Grande - PB, próximo ao guichê da Real Bus. O ponto e o horário podem variar conforme a experiência."
+    },
+    {
+      "id": "o-que-esta-incluso",
+      "question": "O que está incluso?",
+      "answer": "Os itens inclusos variam conforme cada experiência e estão detalhados na ficha de cada trip: transporte, seguro, taxas, alimentação, guia e demais itens."
+    },
+    {
+      "id": "preparo-fisico",
+      "question": "Preciso ter experiência ou preparo físico?",
+      "answer": "Depende da experiência. Cada trip possui um nível de intensidade, como leve, moderado ou difícil, informado antes da reserva."
+    },
+    {
+      "id": "desistencia-reembolso",
+      "question": "Posso desistir? Tem reembolso?",
+      "answer": "A política de desistência considera a proximidade do embarque e os custos de organização, logística e parceiros já assumidos. Após o pagamento de 50% referente à reserva, não realizamos reembolsos. Situações excepcionais, como problemas de saúde comprovados, são analisadas individualmente. Para casos específicos ou condições fora da regra geral, o atendimento pode ser direcionado ao time responsável da OVERTRIP."
+    },
+    {
+      "id": "overtrip-riders",
+      "question": "O que é a OVER RIDERS?",
+      "answer": "É a comunidade da OVERTRIP para quem prefere fazer a rota no próprio veículo, como moto ou carro, em percursos com estrada, trilha, paisagens e aventura em grupo."
+    },
+    {
+      "id": "agente-overtrip",
+      "question": "O que é o Agente OVERTRIP?",
+      "answer": "É o agente virtual da OVERTRIP no WhatsApp, criado para tornar o atendimento mais eficiente, ágil e organizado. Ele consulta informações oficiais da agência e dos roteiros, considera o contexto da conversa e chama a equipe quando a situação precisa de atendimento humano."
+    },
+    {
+      "id": "estou-falando-com-ia",
+      "question": "Estou falando com uma IA?",
+      "answer": "Em parte, sim. O primeiro atendimento da OVERTRIP no WhatsApp conta com o Agente OVERTRIP, que usa automação e inteligência artificial para responder dúvidas com mais rapidez e organização. A tecnologia está aí para ajudar, e o contato humano continua fazendo parte da OVERTRIP: uma pessoa da equipe pode assumir a conversa quando for preciso."
+    },
+    {
+      "id": "falar-com-pessoa",
+      "question": "Posso falar com uma pessoa?",
+      "answer": "Pode, sim. É só pedir para falar com alguém da equipe e o atendimento é encaminhado para uma pessoa da OVERTRIP, que assume a conversa a partir daí. Quando isso acontece, o Agente OVERTRIP deixa de responder naquele atendimento."
+    },
+    {
+      "id": "atendimento-humano",
+      "question": "O Agente OVERTRIP substitui o atendimento humano?",
+      "answer": "Não. O Agente OVERTRIP cuida de dúvidas recorrentes e ajuda a organizar o primeiro atendimento. Situações específicas, pagamentos, finalização de reservas, exceções ou pedidos para falar com uma pessoa seguem para a equipe da OVERTRIP."
+    },
+    {
+      "id": "contato-oficial",
+      "question": "Qual o contato oficial da OVERTRIP?",
+      "answer": "O atendimento oficial é pelo WhatsApp (83) 98774-5549. A OVERTRIP também está no Instagram @overtrip.br e no site https://overtrip.com.br/."
+    },
+    {
+      "id": "overtrip-store",
+      "question": "O que é a OVERTRIP Store?",
+      "answer": "É a frente da marca pensada para produtos e acessórios com a identidade OVERTRIP, como camisetas, bonés, garrafas e outros itens. O lançamento está previsto para uma etapa futura e as vendas ainda não estão abertas."
+    },
+    {
+      "id": "agente-proximos-roteiros",
+      "question": "O Agente OVERTRIP sabe quais são os próximos roteiros?",
+      "answer": "Sim. Quando houver roteiros publicados, o Agente OVERTRIP consulta as informações oficiais da OVERTRIP, que reúnem datas, valores, embarques, inclusos e demais detalhes específicos de cada viagem."
+    },
+    {
+      "id": "fontes-agente-overtrip",
+      "question": "De onde vêm as informações do Agente OVERTRIP?",
+      "answer": "As informações vêm das bases oficiais da própria OVERTRIP: os dados de cada roteiro e as informações institucionais, regras gerais e contexto da marca, todos mantidos pela equipe."
+    },
+    {
+      "id": "tamanho-comunidade",
+      "question": "Quantas pessoas fazem parte da comunidade?",
+      "answer": "A comunidade OVERTRIP já reúne mais de 100 membros, com mais de 34 visitas a destinos e 4 anos de estrada, desde 2022. A nota é 4.9, com base em 20 avaliações no Google e Instagram."
+    }
+  ],
+  "virtualAssistant": {
+    "name": "Agente OVERTRIP",
+    "channel": "WhatsApp oficial da OVERTRIP",
+    "description": "Agente virtual criado para tornar o atendimento mais eficiente, ágil e organizado, sem afastar a equipe de quem fala com a OVERTRIP.",
+    "purpose": [
+      "responder dúvidas frequentes sobre a OVERTRIP e seus roteiros",
+      "consultar informações oficiais das experiências",
+      "considerar o contexto recente da conversa",
+      "facilitar o primeiro atendimento e reduzir tarefas repetitivas",
+      "encaminhar situações que precisam de acompanhamento humano",
+      "permitir que uma pessoa da equipe assuma a conversa a qualquer momento"
+    ],
+    "customerExperience": {
+      "commandsRequired": false,
+      "instruction": "O cliente pode conversar normalmente, sem comandos ou menus obrigatórios.",
+      "humanHandoff": "Quando a situação exigir análise específica, confirmação de pagamento, finalização de reserva, exceções ou quando o cliente desejar falar com alguém da equipe, o atendimento deve ser encaminhado ao time humano."
+    },
+    "principles": [
+      "A tecnologia existe para facilitar o atendimento, não para robotizar a relação com o cliente.",
+      "O Agente OVERTRIP apoia a equipe e não substitui o atendimento humano.",
+      "Eficiência, clareza e informação correta têm prioridade sobre respostas longas ou excessivamente automáticas.",
+      "O agente não deve inventar informações que não estejam nas fontes oficiais."
+    ],
+    "informationSources": {
+      "trips": "trips.json é a fonte oficial e prioritária para tudo o que é específico de cada roteiro: datas, valores, inclusos, pontos e horários de embarque, nível de intensidade e disponibilidade.",
+      "company": "knowledge.json reúne as informações institucionais, operacionais e comerciais da OVERTRIP, o universo da marca e as orientações de atendimento."
+    },
+    "limitations": [
+      "não confirma uma reserva apenas com base na conversa",
+      "não valida pagamento sem o fluxo definido pela equipe"
+    ],
+    "innovation": "O Agente OVERTRIP faz parte da evolução digital da agência e aplica automação e inteligência artificial com foco em utilidade real para a equipe e para os clientes.",
+    "humanTakeover": {
+      "rule": "Quando uma pessoa da equipe assume a conversa, o Agente OVERTRIP não deve continuar respondendo nem interferindo naquele atendimento.",
+      "instruction": "Se o cliente pedir para falar com alguém, ou se a situação exigir análise humana, encaminhe para a equipe e deixe claro que uma pessoa vai assumir a conversa."
+    },
+    "neverInvent": [
+      "preços",
+      "datas",
+      "itens inclusos",
+      "pontos de embarque",
+      "disponibilidade",
+      "políticas comerciais"
+    ],
+    "whenNoReliableInformation": "Se não houver informação confiável nas fontes oficiais, não suponha nem complete por conta própria: diga com transparência que vai confirmar e encaminhe a situação para a equipe da OVERTRIP."
+  }
+}

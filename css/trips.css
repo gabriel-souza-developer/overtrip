@@ -1,0 +1,556 @@
+/* ==========================================================================
+   7. PRÓXIMA TRIP (grid de embarques)
+   ========================================================================== */
+
+.trip-section-head .status-pill {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  width: 13.5rem;
+  max-width: 100%;
+  margin: 0;
+  gap: 0.75rem;
+  padding: 0.8rem 0.95rem;
+  border-color: rgba(17, 17, 17, 0.12);
+  border-radius: var(--radius-lg);
+  background: var(--paper);
+  text-align: left;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.trip-section-head .status-pill > .status-pill-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--rust);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+.status-pill-content,
+.status-pill-label,
+.status-pill-date {
+  display: block;
+}
+
+.status-pill-label {
+  color: var(--text-soft);
+  font-size: 0.67rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+.status-pill-date {
+  margin-top: 0.18rem;
+  color: var(--ink);
+  font-family: "Inter Tight", sans-serif;
+  font-size: 1.12rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.trip-search {
+  position: relative;
+  margin-top: 1.75rem;
+  max-width: 26rem;
+}
+
+.trip-search-icon {
+  position: absolute;
+  top: 50%;
+  left: 1rem;
+  transform: translateY(-50%);
+  display: inline-flex;
+  width: 1.05rem;
+  height: 1.05rem;
+  color: var(--text-soft);
+  pointer-events: none;
+}
+
+.trip-search-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.trip-search-input {
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 2.6rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--bone);
+  color: var(--ink);
+  font-family: "Inter", sans-serif;
+  font-size: 0.84rem;
+}
+
+.trip-search-input::placeholder {
+  color: var(--text-soft);
+}
+
+.trip-search-input:focus-visible {
+  outline: 2px solid var(--rust);
+  outline-offset: 2px;
+}
+
+.trip-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 1.75rem;
+}
+
+.trip-search[hidden],
+.trip-filter[hidden] {
+  display: none;
+}
+
+.trip-filter-btn {
+  padding: 0.55rem 1.15rem;
+  border-radius: 999px;
+  border: 1px solid rgba(17, 17, 17, 0.18);
+  background: transparent;
+  color: var(--text-soft);
+  font-family: "Inter Tight", sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease;
+}
+
+.trip-filter-btn:hover {
+  border-color: rgba(17, 17, 17, 0.32);
+}
+
+.trip-filter-btn.is-active {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--bone);
+}
+
+.trip-card.is-hidden {
+  display: none;
+}
+
+.trip-empty-state {
+  grid-column: 1 / -1;
+  margin: 1.5rem 0 0;
+  color: var(--text-soft);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.trip-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  /* Sem isso, o Grid estica todo card da mesma linha pra acompanhar o
+     mais alto — visível quando um card abre "Ver roteiro & o que inclui"
+     e cresce, deixando um vazio nos cards vizinhos que ficaram fechados. */
+  align-items: start;
+  gap: 1.5rem;
+  margin-top: 2.5rem;
+}
+
+.trip-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  background: var(--bone);
+  box-shadow: var(--shadow-soft);
+  transform: translateZ(0);
+}
+
+.trip-media {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+  cursor: pointer;
+  transform: translateZ(0);
+}
+
+.trip-media:focus-visible {
+  outline: 2px solid var(--rust);
+  outline-offset: -2px;
+}
+
+.trip-media img {
+  transform: scale(1) translate3d(0, 0, 0);
+  transform-origin: center center;
+  backface-visibility: hidden;
+  will-change: transform;
+  transition: transform var(--image-zoom-duration) var(--ease-soft);
+}
+
+.trip-card:hover .trip-media img,
+.trip-card:focus-within .trip-media img {
+  transform: scale(1.035) translate3d(0, 0, 0);
+}
+
+.trip-media-category,
+.trip-media-intensity {
+  position: absolute;
+  z-index: 1;
+  padding: 0.28rem 0.55rem;
+  border-radius: 999px;
+  font-family: "Inter Tight", sans-serif;
+  font-size: 0.52rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--bone);
+}
+
+.trip-media-category {
+  top: 0.75rem;
+  left: 0.75rem;
+  max-width: 62%;
+  white-space: normal;
+  line-height: 1.3;
+  background: rgba(17, 17, 17, 0.7);
+  backdrop-filter: blur(6px);
+}
+
+.trip-media-intensity {
+  bottom: 0.75rem;
+  right: 0.75rem;
+  background: rgba(17, 17, 17, 0.7);
+  backdrop-filter: blur(6px);
+}
+
+.trip-media .gallery-photo-dots {
+  position: absolute;
+  left: 50%;
+  bottom: 0.8rem;
+  z-index: 2;
+  display: flex;
+  gap: 0.38rem;
+  transform: translateX(-50%);
+  padding: 0.38rem 0.52rem;
+  border-radius: 999px;
+  background: rgba(17, 17, 17, 0.42);
+  backdrop-filter: blur(5px);
+  pointer-events: none;
+}
+
+.trip-media .gallery-photo-dots i {
+  width: 0.38rem;
+  height: 0.38rem;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  background: transparent;
+}
+
+.trip-media .gallery-photo-dots i.is-active {
+  background: var(--bone);
+}
+
+.trip-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1.5rem 1.5rem 1.75rem;
+  flex: 1;
+}
+
+.trip-body h3 {
+  margin: 0;
+  color: var(--ink);
+  font-family: "Inter Tight", sans-serif;
+  font-size: 1.3rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.trip-description {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.trip-meta-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin: 0.2rem 0 0;
+  padding: 0.9rem 0;
+  border-top: 1px solid var(--line);
+}
+
+.trip-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: "Inter Tight", sans-serif;
+  font-size: 0.84rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.trip-meta-icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  width: 1.05rem;
+  height: 1.05rem;
+  color: var(--rust);
+}
+
+.trip-meta-icon--muted {
+  color: var(--text-soft);
+}
+
+.trip-meta-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.trip-map-link {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: var(--line);
+  transition: color 180ms ease, text-decoration-color 180ms ease;
+}
+
+.trip-map-link:hover,
+.trip-map-link:focus-visible {
+  color: var(--rust);
+  text-decoration-color: var(--rust);
+}
+
+/* Embarque em mais de um ponto (campo `departures` do trips.json): cada ponto
+   ganha o seu horário, na ordem em que o ônibus passa. */
+.trip-meta-row--boarding {
+  align-items: flex-start;
+}
+
+.trip-meta-row--boarding .trip-meta-icon {
+  margin-top: 0.1rem;
+}
+
+.trip-boarding {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.trip-boarding-title {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.trip-boarding-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.trip-boarding-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+}
+
+.trip-boarding-time {
+  flex: 0 0 auto;
+  min-width: 3.4rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--rust) 16%, transparent);
+  color: var(--ink);
+  font-size: 0.76rem;
+  font-weight: 800;
+  line-height: 1.3;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.trip-boarding-place {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+.trip-boarding-place small {
+  color: var(--text-soft);
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.trip-includes-toggle summary {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  list-style: none;
+  cursor: pointer;
+  color: var(--rust);
+  font-family: "Inter Tight", sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.trip-includes-toggle summary::-webkit-details-marker {
+  display: none;
+}
+
+.trip-includes-toggle summary::after {
+  content: "↓";
+}
+
+.trip-includes-toggle[open] summary::after {
+  content: "↑";
+}
+
+.trip-includes-body {
+  margin-top: 0.85rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid rgba(212, 91, 45, 0.16);
+  border-radius: var(--radius-lg);
+  background: rgba(212, 91, 45, 0.05);
+}
+
+.trip-includes-heading {
+  margin: 0 0 0.75rem;
+  color: var(--ink);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.trip-includes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.trip-includes li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  color: var(--ink);
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.trip-includes-icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  width: 1.1rem;
+  height: 1.1rem;
+  margin-top: 0.05rem;
+  color: #2f9e5b;
+}
+
+.trip-includes-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.trip-includes-highlight {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.9rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(212, 91, 45, 0.16);
+  color: var(--text-soft);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.trip-includes-highlight-icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  width: 1rem;
+  height: 1rem;
+  color: #2f9e5b;
+}
+
+.trip-includes-highlight-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.trip-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding-top: 1rem;
+}
+
+.trip-price-block {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.trip-price-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.trip-price-label {
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+
+.trip-price-unit {
+  font-family: "Inter", sans-serif;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+}
+
+.trip-price-value {
+  font-family: "Inter Tight", sans-serif;
+  font-size: 1.4rem;
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--rust);
+}
+
+/* A mídia do card é um botão nativo: remove apenas a aparência padrão. */
+button.trip-media {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  text-align: inherit;
+}
+
+.trip-includes-toggle summary {
+  min-height: 44px;
+  padding-block: 0.55rem;
+}

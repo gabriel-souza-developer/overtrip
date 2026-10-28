@@ -1,0 +1,298 @@
+[
+  {
+    "title": "TRILHA EM LUCENA - PB",
+    "headlineDisplay": "TRILHA EM LUCENA - PB - RUÍNAS DA IGREJA BOM SUCESSO, RIO E MAR | DOMINGO, 29 DE NOVEMBRO – BATE & VOLTA",
+    "category": "TRILHA, NATUREZA E PATRIMÔNIO",
+    "description": "Banho de rio, mirante, ruínas históricas e a paisagem da foz do Rio Miriri em um roteiro de bate e volta.",
+    "city": "Lucena",
+    "region": "PB",
+    "meetingCity": "Campina Grande - PB",
+    "meetingPoint": "Rodoviária Nova",
+    "meetingInfo": "Pocinhos - PB (Paróquia de Nossa Senhora da Conceição) às 04h30 e Campina Grande - PB (Rodoviária Nova) às 05h15",
+    "meetingDetails": "Embarque 1: Paróquia de Nossa Senhora da Conceição, Pocinhos - PB, às 04h30. Embarque 2: Rodoviária Nova – Catolé (próximo ao guichê da Real Bus), Campina Grande - PB, às 05h15.",
+    "departures": [
+      {
+        "time": "04h30",
+        "place": "Paróquia de Nossa Senhora da Conceição",
+        "city": "Pocinhos - PB",
+        "mapsUrl": "https://maps.app.goo.gl/4MRGn6GxQ3CP9dtx9"
+      },
+      {
+        "time": "05h15",
+        "place": "Rodoviária Nova",
+        "city": "Campina Grande - PB",
+        "mapsQuery": "Rodoviária Nova, Campina Grande - PB"
+      }
+    ],
+    "meetingMapsQuery": "Rodoviária Nova, Campina Grande - PB",
+    "scheduleInfo": "05h às 17h",
+    "dateDisplay": "Domingo, 29/11/2026 · Bate e volta",
+    "departureTime": "04h30",
+    "departureTolerance": "30 minutos",
+    "returnTime": "17h",
+    "priceDisplay": "R$ 109,99",
+    "priceUnit": "por pessoa",
+    "priceValue": "109.99",
+    "depositDisplay": "R$ 55,00",
+    "remainingDisplay": "R$ 54,99",
+    "remainingDeadlineDisplay": "27/11/2026",
+    "intensityClass": "moderado",
+    "intensityLabel": "Intensidade moderada",
+    "includes": [
+      "Banho de rio",
+      "Mirante de Lucena",
+      "Ruínas da Igreja de Bom Sucesso",
+      "Foz do Rio Miriri"
+    ],
+    "includesHighlight": "Inclui guia credenciado, transporte categoria turismo, seguro de viagem, assistência da agência, serviço de bordo e brindes.",
+    "includedServices": [
+      "Transporte de categoria turismo, climatizado (ida e volta)",
+      "Guia credenciado",
+      "Seguro viagem",
+      "Assistência da equipe OVERTRIP",
+      "Serviço de bordo e brindes"
+    ],
+    "itinerary": [
+      "Caminhada por mata fechada",
+      "Visita às Ruínas da Igreja de Bom Sucesso",
+      "Mirante de Lucena",
+      "Caminhada até a Foz do Rio Miriri",
+      "Banho de rio e banho de mar em meio à natureza",
+      "Momento de descanso e integração no Aconchego do Thor – Lucena"
+    ],
+    "routeNotes": [
+      "☕ Parada no Cajá durante o percurso (aproximadamente 30 minutos)",
+      "🥾 Início da trilha em Lucena"
+    ],
+    "trailDistance": "aproximadamente 6 km",
+    "supportPoint": "Aconchego do Thor – Lucena",
+    "supportPointInfo": "O local conta com estacionamento para os trilheiros e será nosso ponto de apoio após a trilha. Ao final do percurso, teremos um momento para descansar e aproveitar o local. Também haverá opções de caldinhos, frutos do mar e almoço, disponíveis para consumo à parte.",
+    "importantInfo": [
+      "Recomenda-se o uso de roupas leves e calçado adequado para trilhas",
+      "Leve água, protetor solar e itens pessoais para o percurso.",
+      "Obrigatório apresentar documento original com foto para a reserva/viagem (normas da ANTT)",
+      "Restante do pagamento até 48 horas antes da excursão.",
+      "Excursão será realizada com mínimo de 13 pessoas.",
+      "Transportes utilizados: Van, Micro-ônibus ou Ônibus."
+    ],
+    "media": [
+      {
+        "src": "assets/images/trilha-em-lucena-pb/trilha-em-lucena-pb-ruinas-bom-sucesso.jpg",
+        "alt": "Ruínas da Igreja de Bom Sucesso em Lucena - PB",
+        "focus": "50% 92%"
+      },
+      {
+        "src": "assets/images/trilha-em-lucena-pb/trilha-em-lucena-pb-rio-caboclo.jpg",
+        "alt": "Trecho do Rio Caboclo cercado pela vegetação em Lucena - PB",
+        "focus": "50% 70%"
+      },
+      {
+        "src": "assets/images/trilha-em-lucena-pb/trilha-em-lucena-pb-foz-rio-miriri.jpg",
+        "alt": "Foz do Rio Miriri em Lucena - PB",
+        "focus": "50% 62%"
+      },
+      {
+        "src": "assets/images/trilha-em-lucena-pb/mirante-de-lucena-no-final-da-trilha-pb.jpg",
+        "alt": "Vista do Mirante de Lucena ao final da trilha"
+      }
+    ],
+    "buttonLabel": "Quero viajar",
+    "buttonClass": "button-dark",
+    "startDateISO": "2026-11-29",
+    "scheduleTBD": true,
+    "availabilitySchema": "https://schema.org/InStock",
+    "status": "open"
+  },
+  {
+    "title": "TRILHA EM LUCENA - PB",
+    "headlineDisplay": "TRILHA EM LUCENA - PB - RUÍNAS DA IGREJA BOM SUCESSO, RIO E MAR | DOMINGO, 18 DE OUTUBRO – BATE & VOLTA",
+    "category": "TRILHA, NATUREZA E PATRIMÔNIO",
+    "description": "Banho de rio, mirante, ruínas históricas e a paisagem da foz do Rio Miriri em um roteiro de bate e volta.",
+    "city": "Lucena",
+    "region": "PB",
+    "meetingCity": "Campina Grande - PB",
+    "meetingPoint": "Rodoviária Nova",
+    "meetingInfo": "Campina Grande - PB (Rodoviária Nova)",
+    "meetingDetails": "Rodoviária Nova – Catolé (próximo ao guichê da Real Bus)",
+    "meetingMapsQuery": "Rodoviária Nova, Campina Grande - PB",
+    "scheduleInfo": "05h às 17h",
+    "dateDisplay": "Domingo, 18/10/2026 · Bate e volta",
+    "departureTime": "05h00",
+    "departureTolerance": "30 minutos",
+    "returnTime": "17h",
+    "priceDisplay": "R$ 109,99",
+    "priceUnit": "por pessoa",
+    "priceValue": "109.99",
+    "depositDisplay": "R$ 55,00",
+    "remainingDisplay": "R$ 54,99",
+    "remainingDeadlineDisplay": "16/10/2026",
+    "intensityClass": "moderado",
+    "intensityLabel": "Intensidade moderada",
+    "includes": [
+      "Banho de rio",
+      "Mirante de Lucena",
+      "Ruínas da Igreja de Bom Sucesso",
+      "Foz do Rio Miriri"
+    ],
+    "includesHighlight": "Inclui guia credenciado, transporte categoria turismo, seguro de viagem, assistência da agência, serviço de bordo e brindes.",
+    "includedServices": [
+      "Transporte de categoria turismo, climatizado (ida e volta)",
+      "Guia credenciado",
+      "Seguro viagem",
+      "Assistência da equipe OVERTRIP",
+      "Serviço de bordo e brindes"
+    ],
+    "itinerary": [
+      "Caminhada por mata fechada",
+      "Visita às Ruínas da Igreja de Bom Sucesso",
+      "Mirante de Lucena",
+      "Caminhada até a Foz do Rio Miriri",
+      "Banho de rio e banho de mar em meio à natureza",
+      "Momento de descanso e integração no Aconchego do Thor – Lucena"
+    ],
+    "routeNotes": [
+      "☕ Parada no Cajá durante o percurso (aproximadamente 30 minutos)",
+      "🥾 Início da trilha em Lucena"
+    ],
+    "trailDistance": "aproximadamente 6 km",
+    "supportPoint": "Aconchego do Thor – Lucena",
+    "supportPointInfo": "O local conta com estacionamento para os trilheiros e será nosso ponto de apoio após a trilha. Ao final do percurso, teremos um momento para descansar e aproveitar o local. Também haverá opções de caldinhos, frutos do mar e almoço, disponíveis para consumo à parte.",
+    "importantInfo": [
+      "Recomenda-se o uso de roupas leves e calçado adequado para trilhas",
+      "Leve água, protetor solar e itens pessoais para o percurso.",
+      "Obrigatório apresentar documento original com foto para a reserva/viagem (normas da ANTT)",
+      "Restante do pagamento até 48 horas antes da excursão.",
+      "Excursão será realizada com mínimo de 13 pessoas.",
+      "Transportes utilizados: Van, Micro-ônibus ou Ônibus."
+    ],
+    "media": [
+      {
+        "src": "assets/images/trilha-em-lucena-pb/trilha-em-lucena-pb-ruinas-bom-sucesso.jpg",
+        "alt": "Ruínas da Igreja de Bom Sucesso em Lucena - PB",
+        "focus": "50% 92%"
+      },
+      {
+        "src": "assets/images/trilha-em-lucena-pb/trilha-em-lucena-pb-rio-caboclo.jpg",
+        "alt": "Trecho do Rio Caboclo cercado pela vegetação em Lucena - PB",
+        "focus": "50% 70%"
+      },
+      {
+        "src": "assets/images/trilha-em-lucena-pb/trilha-em-lucena-pb-foz-rio-miriri.jpg",
+        "alt": "Foz do Rio Miriri em Lucena - PB",
+        "focus": "50% 62%"
+      },
+      {
+        "src": "assets/images/trilha-em-lucena-pb/mirante-de-lucena-no-final-da-trilha-pb.jpg",
+        "alt": "Vista do Mirante de Lucena ao final da trilha"
+      }
+    ],
+    "buttonLabel": "Quero viajar",
+    "buttonClass": "button-dark",
+    "startDateISO": "2026-10-18",
+    "scheduleTBD": true,
+    "availabilitySchema": "https://schema.org/InStock",
+    "status": "completed"
+  },
+  {
+    "title": "EXPEDIÇÃO BONITO - PE",
+    "category": "Cachoeiras, Piscinas e atividades radicais",
+    "description": "Day use no Camping do Mágico: cachoeiras, piscinas naturais, teleférico e um dia inteiro de lazer saindo de Campina Grande.",
+    "city": "Bonito",
+    "region": "PE",
+    "returnTime": "17h",
+    "meetingCity": "Campina Grande - PB",
+    "meetingPoint": "Rodoviária Nova",
+    "meetingMapsQuery": "Rodoviária Nova, Campina Grande - PB",
+    "priceDisplay": "R$ 165,00",
+    "priceUnit": "por pessoa",
+    "priceValue": "165.00",
+    "intensityClass": "leve",
+    "intensityLabel": "Intensidade leve",
+    "includes": [
+      "Cachoeiras e piscinas naturais",
+      "Piscinas cloradas (adulto e infantil)",
+      "Bar e restaurante no local",
+      "Esportes radicais disponíveis à parte (tirolesa, rapel, arvorismo)"
+    ],
+    "includesHighlight": "Inclui taxa day use, transporte categoria turismo, seguro de viagem e assistência da equipe OVERTRIP.",
+    "media": [
+      {
+        "src": "assets/images/bonito-pe/bonito-pe-riacho-restaurante.jpg",
+        "alt": "Riacho com pequena queda d'água diante do restaurante em Bonito - PE"
+      },
+      {
+        "src": "assets/images/bonito-pe/bonito-pe-cachoeira-paraiso-piscina-natural.jpg",
+        "alt": "Quedas d'água em piscinas naturais cercadas pela mata em Bonito - PE"
+      },
+      {
+        "src": "assets/images/bonito-pe/bonito-pe-teleferico-por-do-sol.jpg",
+        "alt": "Teleférico ao pôr do sol em Bonito - PE"
+      },
+      {
+        "src": "assets/images/bonito-pe/bonito-pe-camping-do-magico-tirolesa.jpg",
+        "alt": "Visitante atravessa a tirolesa sobre a mata em Bonito - PE"
+      },
+      {
+        "src": "assets/images/bonito-pe/bonito-pe-boas-vindas.jpg",
+        "alt": "Placa de boas-vindas em Bonito - PE"
+      },
+      {
+        "src": "assets/images/bonito-pe/bonito-pe-camping-do-magico-piscina.jpg",
+        "alt": "Piscina do Camping do Mágico cercada por árvores em Bonito - PE"
+      }
+    ],
+    "buttonLabel": "Quero viajar",
+    "buttonClass": "button-dark",
+    "startDateISO": "2026-09-13T03:30:00-03:00",
+    "availabilitySchema": "https://schema.org/InStock",
+    "status": "completed"
+  },
+  {
+    "title": "OVER RIDERS: CACHOEIRA DO PINGA - PB",
+    "category": "OVER RIDERS, trilhas, lagoa seca e cachoeiras.",
+    "description": "Rolê da OVER RIDERS até a Cachoeira do Pinga, com parada na Lagoa Seca. Cada participante leva o próprio veículo.",
+    "city": "Matinhas",
+    "region": "PB",
+    "returnTime": "18h",
+    "meetingCity": "Campina Grande - PB",
+    "meetingPoint": "Parque da Liberdade",
+    "meetingMapsQuery": "Parque da Liberdade, Campina Grande - PB",
+    "free": true,
+    "intensityClass": "Difícil",
+    "intensityLabel": "Intensidade difícil",
+    "includes": [
+      "Comunidade OVER RIDERS",
+      "Trilhas",
+      "Lagoa Seca",
+      "Cachoeiras"
+    ],
+    "includesHighlight": "Antes da rota: leve água, vá abastecido, use calçado adequado, preserve o local, tenha cuidado na estrada e venha com espírito de comunidade.",
+    "media": [
+      {
+        "src": "assets/images/cachoeira-do-pinga-pb/cachoeira-do-pinga-pb.jpg",
+        "alt": "Cachoeira do Pinga em Matinhas - PB"
+      },
+      {
+        "src": "assets/images/riders/over-riders-capa-tema.jpg",
+        "alt": "Grupo OVER RIDERS reunido na Cachoeira do Pinga"
+      },
+      {
+        "src": "assets/images/cachoeira-do-pinga-pb/cachoeira-do-pinga-pb-riders-02.jpg",
+        "alt": "Participantes da OVER RIDERS e motos em parada numa paisagem de serra"
+      },
+      {
+        "src": "assets/images/cachoeira-do-pinga-pb/cachoeira-do-pinga-pb-pedra-agua.jpg",
+        "alt": "Pedra com formação de piscina natural"
+      },
+      {
+        "src": "assets/images/cachoeira-do-pinga-pb/cachoeira-do-pinga-pb-casal-beijo.jpg",
+        "alt": "Casal abraçado diante da queda d'água na Cachoeira do Pinga"
+      }
+    ],
+    "buttonLabel": "Quero participar",
+    "buttonClass": "button-rust",
+    "startDateISO": "2026-09-20T08:30:00-03:00",
+    "availabilitySchema": "https://schema.org/InStock",
+    "status": "completed"
+  }
+]

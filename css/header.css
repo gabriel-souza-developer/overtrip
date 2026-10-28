@@ -1,0 +1,263 @@
+/* ==========================================================================
+   3. HEADER / NAVEGAÇÃO
+   ========================================================================== */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--bone);
+  box-shadow: 0 8px 24px rgba(17, 17, 17, 0.08);
+}
+
+.agency-strip {
+  background: var(--ink);
+  color: var(--bone);
+}
+
+.agency-strip-inner {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  min-height: 2rem;
+  gap: 0.55rem;
+  font-size: 0.61rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-align: center;
+}
+
+.agency-strip-note {
+  display: inline;
+  color: rgba(245, 243, 239, 0.65);
+}
+
+.agency-strip-note i {
+  padding-inline: 0.3rem;
+  color: var(--rust);
+  font-style: normal;
+}
+
+.nav-shell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 4.35rem;
+  gap: 1.25rem;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.brand-mark {
+  display: grid;
+  width: 2.7rem;
+  height: 2.7rem;
+  flex: 0 0 auto;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--rust);
+}
+
+.brand-mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.site-nav {
+  display: none;
+  position: fixed;
+  top: 6.65rem;
+  right: 1rem;
+  left: 1rem;
+  z-index: 60;
+  width: auto;
+  gap: 0.15rem;
+  padding: 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--bone);
+  box-shadow: 0 24px 60px rgba(17, 17, 17, 0.2);
+}
+
+.nav-list,
+.nav-dropdown-menu {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nav-list {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.nav-list > li {
+  position: relative;
+}
+
+.menu-backdrop {
+  display: none;
+}
+
+.site-nav a,
+.footer-title,
+.section-kicker,
+.status-pill,
+.footer-bottom {
+  font-size: 0.83rem;
+  font-weight: 700;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+}
+
+.site-nav .nav-list > li > a,
+.nav-dropdown-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.8rem 0.9rem;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+  text-align: left;
+  transition: background-color 180ms ease, color 180ms ease;
+  cursor: pointer;
+}
+
+.site-nav .nav-list > li > a:hover,
+.site-nav .nav-list > li > a:focus-visible,
+.nav-dropdown-toggle:hover,
+.nav-dropdown-toggle:focus-visible,
+.nav-dropdown.is-open > .nav-dropdown-toggle {
+  background: rgba(17, 17, 17, 0.06);
+  color: var(--moss);
+}
+
+.nav-chevron {
+  width: 0.42rem;
+  height: 0.42rem;
+  margin: -0.2rem 0 0 0.5rem;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform 180ms ease;
+}
+
+.nav-dropdown.is-open .nav-chevron {
+  margin-top: 0.2rem;
+  transform: rotate(225deg);
+}
+
+.nav-dropdown-menu {
+  display: none;
+  gap: 0.1rem;
+  margin: 0.1rem 0 0.4rem 0.9rem;
+  padding: 0 0 0 0.65rem;
+  border-left: 1px solid var(--line);
+}
+
+.nav-dropdown.is-open > .nav-dropdown-menu {
+  display: grid;
+}
+
+.site-nav .nav-dropdown-menu a {
+  display: block;
+  padding: 0.65rem 0.7rem;
+  border-radius: var(--radius-md);
+  color: var(--text-soft);
+  font-size: 0.69rem;
+  font-weight: 500;
+  letter-spacing: 0.015em;
+  text-transform: none;
+}
+
+.site-nav .nav-dropdown-menu a:hover,
+.site-nav .nav-dropdown-menu a:focus-visible {
+  background: rgba(17, 17, 17, 0.05);
+  color: var(--ink);
+}
+
+.site-nav .nav-list > li > .nav-blog {
+  justify-content: center;
+  background: var(--rust);
+  color: var(--bone);
+  text-align: center;
+}
+
+.site-nav .nav-list > li > .nav-blog:hover,
+.site-nav .nav-list > li > .nav-blog:focus-visible {
+  background: var(--moss);
+  color: var(--bone);
+}
+
+.menu-toggle {
+  border: 1px solid rgba(17, 17, 17, 0.2);
+  background: transparent;
+  color: var(--ink);
+  padding: 0.62rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.site-header.menu-open .site-nav {
+  display: grid;
+}
+
+.site-header.menu-open .brand,
+.site-header.menu-open .menu-toggle {
+  position: relative;
+  z-index: 70;
+}
+
+.site-header.menu-open + .menu-backdrop {
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(17, 17, 17, 0.32);
+}
+
+/* Spotify no dropdown Explorar */
+.site-nav .nav-dropdown-menu a.nav-spotify {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.nav-spotify-icon {
+  width: 1.05rem;
+  height: 1.05rem;
+  flex: 0 0 auto;
+}
+.nav-spotify .nav-external {
+  margin-left: auto;
+  font-size: 0.8rem;
+  opacity: 0.62;
+}
+
+/* OVERTRIP RIDERS no dropdown Explorar */
+.site-nav .nav-dropdown-menu a.nav-riders {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.nav-riders-icon {
+  width: 1.12rem;
+  height: 1.12rem;
+  flex: 0 0 auto;
+}

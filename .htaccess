@@ -1,0 +1,75 @@
+# ============================================================
+# OVERTRIP — .htaccess
+# HTTPS + headers básicos de segurança
+# ============================================================
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Força HTTPS
+    RewriteCond %{HTTPS} !=on
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+</IfModule>
+
+
+# ============================================================
+# HEADERS DE SEGURANÇA
+# ============================================================
+
+<IfModule mod_headers.c>
+
+    # Impede que o navegador interprete um arquivo como outro tipo.
+    Header always set X-Content-Type-Options "nosniff"
+
+    # Controla quanto da URL de origem é enviada em requisições externas.
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+    # Evita que o site seja incorporado em frames de outros domínios.
+    Header always set X-Frame-Options "SAMEORIGIN"
+
+    # Desativa recursos que o site não precisa utilizar.
+    Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+
+    # Mantém o navegador usando HTTPS.
+    # 1 ano. Sem preload para evitar compromisso permanente antes de validar
+    # todos os subdomínios do domínio.
+    Header always set Strict-Transport-Security "max-age=31536000"
+
+</IfModule>
+
+
+# ============================================================
+# CACHE — CONTROLE DE ATUALIZAÇÃO
+# ============================================================
+
+<IfModule mod_headers.c>
+
+    # HTML: sempre verificar se existe uma versão mais recente.
+    <FilesMatch "\.(html|htm)$">
+        Header set Cache-Control "no-cache, no-store, must-revalidate"
+        Header set Pragma "no-cache"
+        Header set Expires "0"
+    </FilesMatch>
+
+</IfModule>
+
+
+# ============================================================
+# PROTEÇÕES ADICIONAIS
+# ============================================================
+
+# Não permite listagem automática de arquivos em diretórios.
+Options -Indexes
+
+
+# ============================================================
+# PHP — CONFIGURAÇÃO GERENCIADA PELO CPANEL
+# NÃO ALTERAR MANUALMENTE
+# ============================================================
+
+# php -- BEGIN cPanel-generated handler, do not edit
+# Defina o pacote “ea-php84” como a linguagem padrão de programação “PHP”.
+<IfModule mime_module>
+  AddHandler application/x-httpd-ea-php84___lsphp .php .php8 .phtml
+</IfModule>
+# php -- END cPanel-generated handler, do not edit
