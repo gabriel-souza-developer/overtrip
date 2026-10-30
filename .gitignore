@@ -3,3 +3,6 @@
 !.env.example
 node_modules/
 .next/
+# SQLite databases
+prisma/*.db
+prisma/*.db-journal
