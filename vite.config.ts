@@ -1,10 +1,11 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import { serveRootAssets } from './vite-root-assets';
 
 export default defineConfig({
   root: path.resolve(__dirname, 'frontend'),
-  plugins: [react()],
+  plugins: [react(), serveRootAssets()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './frontend/src'),

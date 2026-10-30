@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { tripApi, TripFormData, TripStatus } from '../api';
 import { useToast } from '../hooks/useToast';
+import { resolveAssetSrc } from '../lib/assetUrl';
 
 const intensityOptions = ['leve', 'moderado', 'intenso', 'extremo'] as const;
 const statusOptions: { value: TripStatus; label: string }[] = [
@@ -582,7 +583,7 @@ function MediaInput({ value, onChange }: { value: Array<{ src: string; alt: stri
       </div>
       {value.map((item, index) => (
         <div key={index} className="flex items-center gap-2 p-2 bg-surface-50 rounded-lg">
-          <img src={item.src} alt={item.alt} className="w-12 h-12 object-cover rounded" loading="lazy" />
+          <img src={resolveAssetSrc(item.src)} alt={item.alt} className="w-12 h-12 object-cover rounded" loading="lazy" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-surface-900 truncate">{item.src}</p>
             <p className="text-xs text-surface-500">Alt: {item.alt}</p>

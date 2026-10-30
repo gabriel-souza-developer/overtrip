@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { galleryApi, GalleryEntry, Trip, Visit, Pagination } from '../api';
 import { useToast } from '../hooks/useToast';
+import { resolveAssetSrc } from '../lib/assetUrl';
 
 function PlusIcon({ className }: { className?: string }) {
   return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>;
@@ -362,8 +363,8 @@ export default function Gallery() {
 
                 <div className="aspect-video relative overflow-hidden bg-surface-100">
                   {entry.images[0] && (
-                    <img 
-                      src={entry.images[0].src} 
+                    <img
+                      src={resolveAssetSrc(entry.images[0].src)}
                       alt={entry.images[0].alt}
                       className="w-full h-full object-cover"
                       loading="lazy"
