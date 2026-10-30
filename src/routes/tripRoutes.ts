@@ -16,7 +16,7 @@ router.get('/:id', asyncHandler(tripController.findById));
 router.post('/', asyncHandler(tripController.create));
 router.put('/:id', asyncHandler(tripController.update));
 router.delete('/:id', asyncHandler(tripController.delete));
-router.post('/:id/publish', asyncHandler(tripController.publish));
-router.post('/:id/unpublish', asyncHandler(tripController.unpublish));
+router.post('/:id/publish', authorize('admin'), asyncHandler(tripController.publish));
+router.post('/:id/unpublish', authorize('admin'), asyncHandler(tripController.unpublish));
 
 export default router;

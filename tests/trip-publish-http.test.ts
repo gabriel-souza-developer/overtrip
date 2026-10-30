@@ -12,6 +12,8 @@ let baseUrl: string;
 let token: string;
 let userId: string;
 let tripId: string;
+let nonAdminToken: string;
+let nonAdminUserId: string;
 
 beforeAll(async () => {
   await new Promise<void>((resolve) => {
@@ -28,6 +30,16 @@ beforeAll(async () => {
   });
   userId = user.id;
   token = generateToken({ id: user.id, email: user.email, role: user.role });
+
+  const nonAdminUser = await prisma.user.create({
+    data: {
+      email: `test:trip-publish-http:non-admin:${Date.now()}@example.com`,
+      passwordHash: 'unused-in-this-test',
+      role: 'editor',
+    },
+  });
+  nonAdminUserId = nonAdminUser.id;
+  nonAdminToken = generateToken({ id: nonAdminUser.id, email: nonAdminUser.email, role: nonAdminUser.role });
 
   const trip = await prisma.trip.create({
     data: {
@@ -49,6 +61,7 @@ beforeAll(async () => {
 afterAll(async () => {
   await prisma.trip.deleteMany({ where: { storedIdentity: { startsWith: 'publish-http-test:' } } });
   await prisma.user.delete({ where: { id: userId } }).catch(() => {});
+  await prisma.user.delete({ where: { id: nonAdminUserId } }).catch(() => {});
   await prisma.$disconnect();
   await new Promise<void>((resolve) => server.close(() => resolve()));
 });
@@ -137,5 +150,21 @@ describe('POST /api/trips/:id/publish e /:id/unpublish (HTTP real)', () => {
       method: 'POST',
     });
     expect(res.status).toBe(401);
+  });
+
+  it('retorna 403 ao publicar com usuário autenticado sem role admin', async () => {
+    const res = await fetch(`${baseUrl}/api/trips/${tripId}/publish`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${nonAdminToken}` },
+    });
+    expect(res.status).toBe(403);
+  });
+
+  it('retorna 403 ao despublicar com usuário autenticado sem role admin', async () => {
+    const res = await fetch(`${baseUrl}/api/trips/${tripId}/unpublish`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${nonAdminToken}` },
+    });
+    expect(res.status).toBe(403);
   });
 });
