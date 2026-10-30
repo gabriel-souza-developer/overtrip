@@ -1,7 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useSearchParams } from 'react-router-dom';
 import { tripApi, Trip, TripStatus, Pagination } from '../api';
 import { useToast } from '../hooks/useToast';
+import { computeDropdownPosition } from '../lib/dropdownPosition';
 
 const statusOptions: { value: TripStatus; label: string }[] = [
   { value: 'DRAFT', label: 'Rascunho' },
@@ -53,6 +55,17 @@ function EyeIcon({ className }: { className?: string }) {
   return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>;
 }
 
+// Must match the .dropdown-menu-portal width (w-48) in index.css.
+const DROPDOWN_MENU_WIDTH = 192;
+// Estimated rendered height of the menu (2 items + divider + container padding), used to decide whether it should open upward.
+const DROPDOWN_MENU_HEIGHT_ESTIMATE = 100;
+
+interface DropdownPosition {
+  tripId: string;
+  top: number;
+  left: number;
+}
+
 export default function Trips() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [trips, setTrips] = useState<Trip[]>([]);
@@ -60,13 +73,48 @@ export default function Trips() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [openMenu, setOpenMenu] = useState<DropdownPosition | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const menuTriggerRef = useRef<HTMLButtonElement | null>(null);
   const { toast } = useToast();
+
+  const closeMenu = () => setOpenMenu(null);
+
+  const closeMenuAndRefocusTrigger = () => {
+    setOpenMenu(null);
+    menuTriggerRef.current?.focus();
+  };
+
+  useEffect(() => {
+    if (!openMenu) return;
+    window.addEventListener('scroll', closeMenu, { capture: true });
+    window.addEventListener('resize', closeMenu);
+    return () => {
+      window.removeEventListener('scroll', closeMenu, { capture: true });
+      window.removeEventListener('resize', closeMenu);
+    };
+  }, [openMenu]);
+
+  useEffect(() => {
+    if (!openMenu) return;
+    menuRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        closeMenuAndRefocusTrigger();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown, true);
+    return () => document.removeEventListener('keydown', handleKeyDown, true);
+  }, [openMenu?.tripId]);
 
   const page = parseInt(searchParams.get('page') || '1', 10);
   const status = searchParams.get('status') as TripStatus | null;
   const search = searchParams.get('search') || '';
 
   useEffect(() => {
+    setOpenMenu(null);
     loadTrips();
   }, [page, status, search]);
 
@@ -109,7 +157,23 @@ export default function Trips() {
     setSearchParams(newParams);
   };
 
+  const toggleMenu = (trip: Trip, button: HTMLButtonElement) => {
+    if (openMenu?.tripId === trip.id) {
+      setOpenMenu(null);
+      return;
+    }
+    menuTriggerRef.current = button;
+    const { top, left } = computeDropdownPosition(
+      button.getBoundingClientRect(),
+      { width: window.innerWidth, height: window.innerHeight },
+      DROPDOWN_MENU_WIDTH,
+      DROPDOWN_MENU_HEIGHT_ESTIMATE
+    );
+    setOpenMenu({ tripId: trip.id, top, left });
+  };
+
   const handleDelete = async (id: string, title: string) => {
+    setOpenMenu(null);
     if (!confirm(`Excluir a viagem "${title}"? Esta ação não pode ser desfeita.`)) return;
     setDeletingId(id);
     try {
@@ -277,25 +341,51 @@ export default function Trips() {
                           )}
                         </button>
                         <div className="dropdown">
-                          <button className="btn-ghost p-2" aria-label={`Mais opções para ${trip.title}`}>
+                          <button
+                            className="btn-ghost p-2"
+                            aria-label={`Mais opções para ${trip.title}`}
+                            aria-haspopup="true"
+                            aria-expanded={openMenu?.tripId === trip.id}
+                            onClick={(e) => toggleMenu(trip, e.currentTarget)}
+                          >
                             <MoreIcon className="w-4 h-4" aria-hidden="true" />
                           </button>
-                          <div className="dropdown-menu" role="menu">
-                            <Link to={`/trips/${trip.id}/edit`} className="dropdown-item flex items-center gap-2" role="menuitem">
-                              <EditIcon className="w-4 h-4" aria-hidden="true" />
-                              Editar
-                            </Link>
-                            <div className="dropdown-divider" role="separator" />
-                            <button
-                              className="dropdown-item text-red-600 flex items-center gap-2 w-full"
-                              role="menuitem"
-                              onClick={() => handleDelete(trip.id, trip.title)}
-                              disabled={deletingId === trip.id}
-                            >
-                              <TrashIcon className="w-4 h-4" aria-hidden="true" />
-                              {deletingId === trip.id ? 'Excluindo...' : 'Excluir'}
-                            </button>
-                          </div>
+                          {openMenu?.tripId === trip.id && createPortal(
+                            <>
+                              <div
+                                className="fixed inset-0 z-40"
+                                onClick={closeMenu}
+                                aria-hidden="true"
+                              />
+                              <div
+                                ref={menuRef}
+                                className="dropdown-menu-portal"
+                                role="menu"
+                                style={{ top: openMenu.top, left: openMenu.left }}
+                              >
+                                <Link
+                                  to={`/trips/${trip.id}/edit`}
+                                  className="dropdown-item flex items-center gap-2"
+                                  role="menuitem"
+                                  onClick={closeMenu}
+                                >
+                                  <EditIcon className="w-4 h-4" aria-hidden="true" />
+                                  Editar
+                                </Link>
+                                <div className="dropdown-divider" role="separator" />
+                                <button
+                                  className="dropdown-item text-red-600 flex items-center gap-2 w-full"
+                                  role="menuitem"
+                                  onClick={() => handleDelete(trip.id, trip.title)}
+                                  disabled={deletingId === trip.id}
+                                >
+                                  <TrashIcon className="w-4 h-4" aria-hidden="true" />
+                                  {deletingId === trip.id ? 'Excluindo...' : 'Excluir'}
+                                </button>
+                              </div>
+                            </>,
+                            document.body
+                          )}
                         </div>
                       </div>
                     </td>

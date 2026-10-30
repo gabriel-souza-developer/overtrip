@@ -275,6 +275,10 @@ textarea.input {
   @apply absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-surface-200 py-1 z-50;
 }
 
+.dropdown-menu-portal {
+  @apply fixed w-48 bg-white rounded-lg shadow-lg border border-surface-200 py-1 z-50;
+}
+
 .dropdown-item {
   @apply w-full px-4 py-2 text-sm text-surface-700 hover:bg-surface-50 text-left;
 }
