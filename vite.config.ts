@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 
 export default defineConfig({
+  root: path.resolve(__dirname, 'frontend'),
   plugins: [react()],
   resolve: {
     alias: {
@@ -11,6 +12,7 @@ export default defineConfig({
   },
   server: {
     port: 3000,
+    strictPort: true,
     proxy: {
       '/api': {
         target: 'http://localhost:3001',
@@ -19,7 +21,7 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: 'dist/frontend',
+    outDir: '../dist/frontend',
     emptyOutDir: true,
   },
 });
