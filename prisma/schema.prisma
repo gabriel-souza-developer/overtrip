@@ -1,0 +1,264 @@
+// OVERTRIP Database Schema
+// SQLite + Prisma ORM (MVP)
+// Source of truth for administrative data
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// TRIP: Viagens e experiências comerciais da OVERTRIP
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+model Trip {
+  id        String   @id @default(cuid())
+  
+  // Identificação
+  title             String
+  headlineDisplay   String?
+  category          String
+  description       String
+  city              String
+  region            String
+  
+  // Datas (ISO 8601 com timezone)
+  startDateISO      DateTime
+  endDateISO        DateTime?
+  
+  // Horários
+  departureTime     String?
+  departureTolerance String?
+  returnTime        String?
+  scheduleInfo      String?
+  scheduleTBD       Boolean   @default(false)
+  
+  // Preços
+  priceValue        Float?  // Decimal stored as Float for SQLite
+  priceDisplay      String?
+  priceUnit         String    @default("por pessoa")
+  free              Boolean   @default(false)
+  
+  // Características
+  intensityClass    String
+  spotsLeft         Int?
+  trailDistance     String?
+  supportPoint      String?
+  supportPointInfo  String?
+  
+  // Embarque (ponto único - legacy)
+  meetingCity       String?
+  meetingPoint      String?
+  meetingDetails    String?
+  meetingMapsQuery  String?
+  
+  // Conteúdo (JSON stored as String)
+  includes          String      // JSON string: ["Banho de rio", ...]
+  includesHighlight String?
+  includedServices  String?     // JSON string
+  itinerary         String?     // JSON string
+  routeNotes        String?     // JSON string
+  importantInfo     String?     // JSON string
+  media             String      // JSON string: [{src, alt, focus, type}, ...]
+  
+  // CTA
+  buttonLabel       String    @default("Quero viajar")
+  buttonClass       String    @default("button-dark")
+  
+  // Status e SEO
+  status            String    @default("DRAFT") // DRAFT, OPEN, COMPLETED, CANCELLED, SOLD_OUT, CLOSED
+  availabilitySchema String    @default("https://schema.org/InStock")
+  
+  // Rastreabilidade de importação
+  storedIdentity    String    @unique  // "trips_json:0", "trips_json:1", etc.
+  
+  // Busca normalizada (case/accent-insensitive)
+  titleSearch       String    @default("")
+  citySearch        String    @default("")
+  categorySearch    String    @default("")
+  
+  // Metadados
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  publishedAt       DateTime?
+  
+  // Relações
+  departures        TripDeparture[]
+  visits            Visit[]
+  galleryEntries    GalleryEntry[]
+  
+  @@index([status])
+  @@index([startDateISO])
+  @@index([storedIdentity])
+  @@index([titleSearch])
+  @@index([citySearch])
+  @@index([categorySearch])
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// TRIP_DEPARTURE: Múltiplos pontos de embarque
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+model TripDeparture {
+  id         String   @id @default(cuid())
+  tripId     String
+  trip       Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  
+  time       String
+  place      String
+  city       String
+  mapsUrl    String?
+  mapsQuery  String?
+  orderIndex Int
+  
+  createdAt  DateTime @default(now())
+  
+  @@index([tripId])
+  @@index([orderIndex])
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// VISIT: Registro histórico de uma visita a um lugar específico
+// - tripId OPCIONAL: visita pode não ter viagem associada
+// - date OPCIONAL: visitas antigas podem não ter data precisa
+// - lat/lng OPCIONAIS: coordenadas não inventadas
+// - Múltiplas visitas ao mesmo lugar são ESPERADAS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+model Visit {
+  id          String    @id @default(cuid())
+  
+  // Relação OPCIONAL com Trip
+  tripId      String?   // NULLABLE - visita pode não ter trip
+  trip        Trip?     @relation(fields: [tripId], references: [id], onDelete: SetNull)
+  
+  // Dados da visita
+  title       String
+  description String?
+  date        DateTime? // NULLABLE - visitas antigas podem não ter data
+  
+  // Localização
+  city        String
+  region      String
+  lat         Float?    // NULLABLE - sem coordenadas fictícias
+  lng         Float?    // NULLABLE - sem coordenadas fictícias
+  
+  // Mídia (JSON string)
+  images      String?   // JSON string: [{src, alt}, ...]
+  
+  // Rastreabilidade de importação
+  storedIdentity String  @unique  // "visited_places_hardcoded:5", "gallery_hardcoded:2"
+  source      String?   // "visited_places_hardcoded" | "gallery_hardcoded" | "manual"
+  needsReview Boolean   @default(true)
+  notes       String?
+  
+  // Busca normalizada (case/accent-insensitive)
+  titleSearch   String    @default("")
+  citySearch    String    @default("")
+  regionSearch  String    @default("")
+  sourceSearch  String    @default("")
+  
+  // Relações
+  galleryEntries GalleryEntry[]
+  
+  // Metadados
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  @@index([tripId])
+  @@index([lat, lng])
+  @@index([date])
+  @@index([needsReview])
+  @@index([storedIdentity])
+  @@index([titleSearch])
+  @@index([citySearch])
+  @@index([regionSearch])
+  @@index([sourceSearch])
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// GALLERY_ENTRY: Memória editorial curada para a galeria do site
+// - NÃO é automática de Trip ou Visit
+// - Curadoria manual: título, descrição, seleção de fotos, ordenação
+// - Associações OPCIONAIS a Trip e/ou Visit
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+model GalleryEntry {
+  id        String   @id @default(cuid())
+  
+  // Conteúdo editorial (OBRIGATÓRIO)
+  title     String
+  date      DateTime  // Para ordenação
+  dateDisplay String  // "28 de maio de 2023" (legível)
+  description String
+  images    String    // JSON string: [{src, alt}, ...] - mínimo 1
+  
+  // Associações OPCIONAIS (para rastreabilidade)
+  tripId    String?   // Trip que gerou esta memória
+  trip      Trip?     @relation(fields: [tripId], references: [id], onDelete: SetNull)
+  visitId   String?   // Visit específica (se aplicável)
+  visit     Visit?    @relation(fields: [visitId], references: [id], onDelete: SetNull)
+  
+  // Curadoria
+  isFeatured Boolean  @default(false)  // Primeiro card (destaque)
+  orderIndex Int      // Ordem manual se necessário
+  
+  // Rastreabilidade
+  storedIdentity String  @unique  // "gallery_hardcoded:0"
+  source    String?   // "gallery_hardcoded" | "manual"
+  
+  // Busca normalizada (case/accent-insensitive)
+  titleSearch       String    @default("")
+  descriptionSearch String    @default("")
+  
+  // Metadados
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  
+  @@index([date])
+  @@index([isFeatured])
+  @@index([tripId])
+  @@index([visitId])
+  @@index([storedIdentity])
+  @@index([titleSearch])
+  @@index([descriptionSearch])
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// USER: Autenticação administrativa (single user MVP)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  passwordHash String
+  role      String   @default("admin")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([email])
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// SETTINGS: Configurações globais
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+model Setting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String   // JSON string
+  updatedAt DateTime @updatedAt
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// IMPORT_SNAPSHOT: Backup imutável dos dados originais
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+model ImportSnapshot {
+  id            String   @id @default(cuid())
+  label         String   // "import-2026-10-29T10:00:00.000Z"
+  tripsJson     String   // JSON string
+  visitedPlaces String   // JSON string
+  gallery       String   // JSON string
+  createdAt     DateTime @default(now())
+  
+  @@index([createdAt])
+}

@@ -1,0 +1,1 @@
+{"version":3,"file":"tripController.d.ts","sourceRoot":"","sources":["../../src/controllers/tripController.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,OAAO,EAAE,QAAQ,EAAE,MAAM,SAAS,CAAC;AAS5C,eAAO,MAAM,cAAc;iBACN,OAAO,OAAO,QAAQ;kBAMrB,OAAO,OAAO,QAAQ;gBAMxB,OAAO,OAAO,QAAQ;gBAMtB,OAAO,OAAO,QAAQ;gBAOtB,OAAO,OAAO,QAAQ;iBAMrB,OAAO,OAAO,QAAQ;mBAMpB,OAAO,OAAO,QAAQ;CAK5C,CAAC"}
