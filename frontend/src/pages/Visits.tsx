@@ -297,134 +297,134 @@ export default function Visits() {
                 visits.map(visit => {
                   const isEditing = editingId === visit.id;
                   return (
-                    <tr key={visit.id}>
-                      <td className="font-medium text-surface-900">{visit.title}</td>
-                      <td className="text-surface-600">{visit.city}/{visit.region}</td>
-                      <td className="text-surface-600 whitespace-nowrap">
-                        {visit.date ? new Date(visit.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—'}
-                      </td>
-                      <td>
-                        {visit.lat !== null && visit.lng !== null ? (
-                          <span className="badge badge-success flex items-center gap-1">
-                            <MapPinIcon className="w-3 h-3" aria-hidden="true" />
-                            Sim
-                          </span>
-                        ) : (
-                          <span className="badge badge-neutral">Não</span>
-                        )}
-                      </td>
-                      <td>
-                        {visit.needsReview ? (
-                          <span className="badge badge-warning flex items-center gap-1">
-                            <AlertTriangleIcon className="w-3 h-3" aria-hidden="true" />
-                            Pendente
-                          </span>
-                        ) : (
-                          <span className="badge badge-success">Revisada</span>
-                        )}
-                      </td>
-                      <td>
-                        {visit.trip ? (
-                          <span className="text-surface-700">{visit.trip.title} <span className="text-surface-400">({visit.trip.status})</span></span>
-                        ) : (
-                          <span className="text-surface-400">—</span>
-                        )}
-                      </td>
-                      <td>
-                        <div className="flex items-center gap-2">
-                          {isEditing ? (
-                            <>
-                              <button className="btn-ghost p-2 text-green-600 hover:bg-green-50" onClick={() => saveEdit(visit.id)} aria-label="Salvar alterações">
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                              </button>
-                              <button className="btn-ghost p-2" onClick={cancelEdit} aria-label="Cancelar edição">
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                              </button>
-                            </>
+                    <React.Fragment key={visit.id}>
+                      <tr>
+                        <td className="font-medium text-surface-900">{visit.title}</td>
+                        <td className="text-surface-600">{visit.city}/{visit.region}</td>
+                        <td className="text-surface-600 whitespace-nowrap">
+                          {visit.date ? new Date(visit.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—'}
+                        </td>
+                        <td>
+                          {visit.lat !== null && visit.lng !== null ? (
+                            <span className="badge badge-success flex items-center gap-1">
+                              <MapPinIcon className="w-3 h-3" aria-hidden="true" />
+                              Sim
+                            </span>
                           ) : (
-                            <>
-                              <button className="btn-ghost p-2" onClick={() => startEdit(visit)} aria-label={`Editar ${visit.title}`}>
-                                <EditIcon className="w-4 h-4" aria-hidden="true" />
-                              </button>
-                              <button className="btn-ghost p-2" onClick={() => showAssociateModal(visit)} aria-label={`Associar viagem ${visit.title}`}>
-                                {visit.tripId ? <UnlinkIcon className="w-4 h-4" /> : <LinkIcon className="w-4 h-4" />}
-                              </button>
-                              <button className="btn-ghost p-2 text-red-600 hover:bg-red-50" onClick={() => handleDelete(visit.id, visit.title)} aria-label={`Excluir ${visit.title}`}>
-                                <TrashIcon className="w-4 h-4" aria-hidden="true" />
-                              </button>
-                            </>
+                            <span className="badge badge-neutral">Não</span>
                           )}
-                        </div>
-                      </td>
-                    </tr>
+                        </td>
+                        <td>
+                          {visit.needsReview ? (
+                            <span className="badge badge-warning flex items-center gap-1">
+                              <AlertTriangleIcon className="w-3 h-3" aria-hidden="true" />
+                              Pendente
+                            </span>
+                          ) : (
+                            <span className="badge badge-success">Revisada</span>
+                          )}
+                        </td>
+                        <td>
+                          {visit.trip ? (
+                            <span className="text-surface-700">{visit.trip.title} <span className="text-surface-400">({visit.trip.status})</span></span>
+                          ) : (
+                            <span className="text-surface-400">—</span>
+                          )}
+                        </td>
+                        <td>
+                          <div className="flex items-center gap-2">
+                            {isEditing ? (
+                              <>
+                                <button className="btn-ghost p-2 text-green-600 hover:bg-green-50" onClick={() => saveEdit(visit.id)} aria-label="Salvar alterações">
+                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                                </button>
+                                <button className="btn-ghost p-2" onClick={cancelEdit} aria-label="Cancelar edição">
+                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button className="btn-ghost p-2" onClick={() => startEdit(visit)} aria-label={`Editar ${visit.title}`}>
+                                  <EditIcon className="w-4 h-4" aria-hidden="true" />
+                                </button>
+                                <button className="btn-ghost p-2" onClick={() => showAssociateModal(visit)} aria-label={`Associar viagem ${visit.title}`}>
+                                  {visit.tripId ? <UnlinkIcon className="w-4 h-4" /> : <LinkIcon className="w-4 h-4" />}
+                                </button>
+                                <button className="btn-ghost p-2 text-red-600 hover:bg-red-50" onClick={() => handleDelete(visit.id, visit.title)} aria-label={`Excluir ${visit.title}`}>
+                                  <TrashIcon className="w-4 h-4" aria-hidden="true" />
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                      {isEditing && (
+                        <tr className="bg-surface-50">
+                          <td colSpan={7} className="p-0">
+                            <div className="p-4 border-t border-surface-200">
+                              <form onSubmit={(e) => { e.preventDefault(); saveEdit(editingId!); }} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                <input type="hidden" name="id" value={editingId} />
+                                <div className="form-group sm:col-span-2">
+                                  <label htmlFor="edit-title" className="label">Título</label>
+                                  <input id="edit-title" name="title" className="input" value={editForm.title} onChange={(e) => setEditForm(prev => ({ ...prev, title: e.target.value }))} required />
+                                </div>
+                                <div className="form-group">
+                                  <label htmlFor="edit-city" className="label">Cidade</label>
+                                  <input id="edit-city" name="city" className="input" value={editForm.city} onChange={(e) => setEditForm(prev => ({ ...prev, city: e.target.value }))} required />
+                                </div>
+                                <div className="form-group">
+                                  <label htmlFor="edit-region" className="label">Região</label>
+                                  <input id="edit-region" name="region" className="input" value={editForm.region} onChange={(e) => setEditForm(prev => ({ ...prev, region: e.target.value }))} required />
+                                </div>
+                                <div className="form-group">
+                                  <label htmlFor="edit-date" className="label">Data</label>
+                                  <input id="edit-date" name="date" type="datetime-local" className="input" value={editForm.date} onChange={(e) => setEditForm(prev => ({ ...prev, date: e.target.value || null }))} />
+                                </div>
+                                <div className="form-group">
+                                  <label htmlFor="edit-lat" className="label">Latitude</label>
+                                  <input id="edit-lat" name="lat" type="number" step="any" min="-90" max="90" className="input" value={editForm.lat ?? ''} onChange={(e) => setEditForm(prev => ({ ...prev, lat: e.target.value ? parseFloat(e.target.value) : null }))} />
+                                </div>
+                                <div className="form-group">
+                                  <label htmlFor="edit-lng" className="label">Longitude</label>
+                                  <input id="edit-lng" name="lng" type="number" step="any" min="-180" max="180" className="input" value={editForm.lng ?? ''} onChange={(e) => setEditForm(prev => ({ ...prev, lng: e.target.value ? parseFloat(e.target.value) : null }))} />
+                                </div>
+                                <div className="form-group sm:col-span-2">
+                                  <label htmlFor="edit-notes" className="label">Notas</label>
+                                  <textarea id="edit-notes" name="notes" className="input" value={editForm.notes} onChange={(e) => setEditForm(prev => ({ ...prev, notes: e.target.value }))} rows={2} />
+                                </div>
+                                <div className="form-group">
+                                  <label className="checkbox-label">
+                                    <input name="needsReview" type="checkbox" className="checkbox-input" checked={editForm.needsReview} onChange={(e) => setEditForm(prev => ({ ...prev, needsReview: e.target.checked }))} />
+                                    <span className="text-sm text-surface-700">Precisa de revisão</span>
+                                  </label>
+                                </div>
+                                {editForm.tripId !== undefined && (
+                                  <div className="form-group sm:col-span-2">
+                                    <label htmlFor="edit-tripId" className="label">Viagem</label>
+                                    <select id="edit-tripId" name="tripId" className="select" value={editForm.tripId} onChange={(e) => setEditForm(prev => ({ ...prev, tripId: e.target.value || null }))}>
+                                      <option value="">— Sem viagem —</option>
+                                      {trips.map(t => (
+                                        <option key={t.id} value={t.id}>{t.title} ({t.status})</option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                )}
+                                <div className="form-group sm:col-span-4 flex justify-end gap-2 pt-4 border-t border-surface-200">
+                                  <button type="button" className="btn-secondary" onClick={cancelEdit}>Cancelar</button>
+                                  <button type="submit" className="btn-primary">Salvar</button>
+                                </div>
+                              </form>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   );
                 })
               )}
             </tbody>
           </table>
         </div>
-
-        {/* Edit form row */}
-        {editingId && (
-          <tr className="bg-surface-50">
-            <td colSpan={7} className="p-0">
-              <div className="p-4 border-t border-surface-200">
-                <form onSubmit={(e) => { e.preventDefault(); saveEdit(editingId!); }} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <input type="hidden" name="id" value={editingId} />
-                  <div className="form-group sm:col-span-2">
-                    <label htmlFor="edit-title" className="label">Título</label>
-                    <input id="edit-title" name="title" className="input" value={editForm.title} onChange={(e) => setEditForm(prev => ({ ...prev, title: e.target.value }))} required />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="edit-city" className="label">Cidade</label>
-                    <input id="edit-city" name="city" className="input" value={editForm.city} onChange={(e) => setEditForm(prev => ({ ...prev, city: e.target.value }))} required />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="edit-region" className="label">Região</label>
-                    <input id="edit-region" name="region" className="input" value={editForm.region} onChange={(e) => setEditForm(prev => ({ ...prev, region: e.target.value }))} required />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="edit-date" className="label">Data</label>
-                    <input id="edit-date" name="date" type="datetime-local" className="input" value={editForm.date} onChange={(e) => setEditForm(prev => ({ ...prev, date: e.target.value || null }))} />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="edit-lat" className="label">Latitude</label>
-                    <input id="edit-lat" name="lat" type="number" step="any" min="-90" max="90" className="input" value={editForm.lat ?? ''} onChange={(e) => setEditForm(prev => ({ ...prev, lat: e.target.value ? parseFloat(e.target.value) : null }))} />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="edit-lng" className="label">Longitude</label>
-                    <input id="edit-lng" name="lng" type="number" step="any" min="-180" max="180" className="input" value={editForm.lng ?? ''} onChange={(e) => setEditForm(prev => ({ ...prev, lng: e.target.value ? parseFloat(e.target.value) : null }))} />
-                  </div>
-                  <div className="form-group sm:col-span-2">
-                    <label htmlFor="edit-notes" className="label">Notas</label>
-                    <textarea id="edit-notes" name="notes" className="input" value={editForm.notes} onChange={(e) => setEditForm(prev => ({ ...prev, notes: e.target.value }))} rows={2} />
-                  </div>
-                  <div className="form-group">
-                    <label className="checkbox-label">
-                      <input name="needsReview" type="checkbox" className="checkbox-input" checked={editForm.needsReview} onChange={(e) => setEditForm(prev => ({ ...prev, needsReview: e.target.checked }))} />
-                      <span className="text-sm text-surface-700">Precisa de revisão</span>
-                    </label>
-                  </div>
-                  {editForm.tripId !== undefined && (
-                    <div className="form-group sm:col-span-2">
-                      <label htmlFor="edit-tripId" className="label">Viagem</label>
-                      <select id="edit-tripId" name="tripId" className="select" value={editForm.tripId} onChange={(e) => setEditForm(prev => ({ ...prev, tripId: e.target.value || null }))}>
-                        <option value="">— Sem viagem —</option>
-                        {trips.map(t => (
-                          <option key={t.id} value={t.id}>{t.title} ({t.status})</option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-                  <div className="form-group sm:col-span-4 flex justify-end gap-2 pt-4 border-t border-surface-200">
-                    <button type="button" className="btn-secondary" onClick={cancelEdit}>Cancelar</button>
-                    <button type="submit" className="btn-primary">Salvar</button>
-                  </div>
-                </form>
-              </div>
-            </td>
-          </tr>
-        )}
 
         {/* Pagination */}
         {pagination.totalPages > 1 && (
