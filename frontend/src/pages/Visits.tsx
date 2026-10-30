@@ -244,7 +244,7 @@ export default function Visits() {
               name="search"
               className="input pl-10"
               placeholder="Buscar por título, cidade, origem..."
-              value={search}
+              defaultValue={search}
               aria-label="Buscar visitas"
             />
           </div>

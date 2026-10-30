@@ -202,7 +202,7 @@ export default function Trips() {
               name="search"
               className="input pl-10"
               placeholder="Buscar por título, cidade, categoria..."
-              value={search}
+              defaultValue={search}
               aria-label="Buscar viagens"
             />
           </div>

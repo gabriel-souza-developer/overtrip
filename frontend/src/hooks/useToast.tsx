@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, type ReactNode } from 'react';
+import React, { createContext, useContext, useRef, useState, type ReactNode } from 'react';
 
 interface Toast {
   id: number;
@@ -6,8 +6,15 @@ interface Toast {
   message: string;
 }
 
+export interface ToastFn {
+  (type: Toast['type'], message: string): void;
+  success: (message: string) => void;
+  error: (message: string) => void;
+  info: (message: string) => void;
+}
+
 interface ToastContextType {
-  toast: (type: Toast['type'], message: string) => void;
+  toast: ToastFn;
   success: (message: string) => void;
   error: (message: string) => void;
   info: (message: string) => void;
@@ -21,24 +28,37 @@ export const useToast = () => {
   return context;
 };
 
+// Pure helper (no React) so toast.success/.error/.info keep working for
+// every call site that does `const { toast } = useToast(); toast.success(...)`.
+export const createToastApi = (
+  showToast: (type: Toast['type'], message: string) => void
+): ToastFn =>
+  Object.assign(showToast, {
+    success: (msg: string) => showToast('success', msg),
+    error: (msg: string) => showToast('error', msg),
+    info: (msg: string) => showToast('info', msg),
+  });
+
 export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [toasts, setToasts] = useState<Toast[]>([]);
-  let idCounter = 0;
+  const idRef = useRef(0);
 
   const showToast = (type: Toast['type'], message: string) => {
-    const id = ++idCounter;
+    const id = ++idRef.current;
     setToasts(prev => [...prev, { id, type, message }]);
     setTimeout(() => {
       setToasts(prev => prev.filter(t => t.id !== id));
     }, 4000);
   };
 
+  const toast = createToastApi(showToast);
+
   return (
     <ToastContext.Provider value={{
-      toast: showToast,
-      success: (msg) => showToast('success', msg),
-      error: (msg) => showToast('error', msg),
-      info: (msg) => showToast('info', msg),
+      toast,
+      success: toast.success,
+      error: toast.error,
+      info: toast.info,
     }}>
       {children}
       <div className="fixed bottom-4 right-4 z-50 space-y-2 pointer-events-none">

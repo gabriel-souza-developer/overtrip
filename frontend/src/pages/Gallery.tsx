@@ -315,7 +315,7 @@ export default function Gallery() {
         <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1 min-w-0 relative">
             <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" />
-            <input type="search" name="search" className="input pl-10" placeholder="Buscar por título, descrição..." value={search} aria-label="Buscar memórias" />
+            <input type="search" name="search" className="input pl-10" placeholder="Buscar por título, descrição..." defaultValue={search} aria-label="Buscar memórias" />
           </div>
           <select name="isFeatured" className="select w-full sm:w-48" value={isFeatured !== undefined ? String(isFeatured) : ''} onChange={(e) => handleFilterChange('isFeatured', e.target.value)} aria-label="Filtrar por destaque">
             <option value="">Todas</option>
