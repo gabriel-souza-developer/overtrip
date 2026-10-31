@@ -8,15 +8,33 @@
   <meta name="description" content="Expedições, viagens e experiências saindo de Campina Grande e Pocinhos, Paraíba. Descubra cachoeiras, praias, trilhas e destinos incríveis com a OVERTRIP. Mais do que turismo, somos uma comunidade para quem acredita que a melhor parte da viagem começa antes do destino.">
   <meta name="author" content="OVERTRIP">
 
-  <!-- Começa a baixar o trips.json já aqui, sem esperar o JS da página;
-       js/data.js reaproveita esta mesma requisição. Assim que ele chega,
-       já pede a foto de capa da próxima trip (mesma regra e mesmo srcset do
-       hero em js/render.js, pra o navegador reaproveitar o download). -->
+  <!-- Começa a baixar as trips já aqui, sem esperar o JS da página. Lê de
+       /api/public/trips (3 s de limite) e, se falhar, cai para /trips.json;
+       js/data.js reaproveita o array entregue por esta promessa. Assim que
+       ele chega, já pede a foto de capa da próxima trip (mesma regra e mesmo
+       srcset do hero em js/render.js, pra o navegador reaproveitar o download). -->
   <script>
-    window.__tripsRequest = fetch("/trips.json", { cache: "no-cache" }).catch(function () { return null; });
-    window.__tripsRequest.then(function (res) {
-      if (!res || !res.ok) { return; }
-      return res.clone().json().then(function (trips) {
+    (function () {
+      function read(url, signal) {
+        return fetch(url, { cache: "no-cache", signal: signal }).then(function (res) {
+          if (!res.ok) { throw new Error("HTTP " + res.status); }
+          return res.json();
+        }).then(function (data) {
+          if (!Array.isArray(data)) { throw new Error("resposta não é um array"); }
+          return data;
+        });
+      }
+      var controller = new AbortController();
+      var timer = setTimeout(function () { controller.abort(); }, 3000);
+      window.__tripsRequest = read("/api/public/trips", controller.signal)
+        .catch(function (error) {
+          console.warn("[OVERTRIP] API de trips indisponível (" + (error && error.message || error) + "); usando /trips.json.");
+          return read("/trips.json");
+        })
+        .catch(function () { return null; })
+        .then(function (data) { clearTimeout(timer); return data; });
+      window.__tripsRequest.then(function (trips) {
+        if (!trips) { return; }
         var today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date());
         var next = trips
           .filter(function (t) { return t.startDateISO.slice(0, 10) >= today; })
@@ -32,8 +50,8 @@
         link.setAttribute("imagesizes", "(min-width: 980px) 560px, (min-width: 720px) calc(100vw - 6rem), calc(100vw - 2rem)");
         link.href = base + "-w960.webp";
         document.head.appendChild(link);
-      });
-    }).catch(function () {});
+      }).catch(function () {});
+    })();
   </script>
   <meta name="application-name" content="OVERTRIP">
   <meta name="robots" content="index, follow, max-image-preview:large">
