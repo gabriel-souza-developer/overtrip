@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { galleryApi, GalleryEntry, Trip, Visit, Pagination } from '../api';
 import { useToast } from '../hooks/useToast';
 import { resolveAssetSrc } from '../lib/assetUrl';
+import { isValidImageSrc, IMAGE_SRC_MESSAGE } from '../lib/imageSrc';
 import { isoToLocalInput, localInputToIso } from '../lib/dateInput';
 
 function PlusIcon({ className }: { className?: string }) {
@@ -193,6 +194,7 @@ export default function Gallery() {
     if (!formData.description?.trim()) { alert('Descrição é obrigatória'); return false; }
     const validImages = (formData.images || []).filter(img => img.src.trim() && img.alt.trim());
     if (validImages.length === 0) { alert('Pelo menos uma imagem com URL e alt é obrigatória'); return false; }
+    if (validImages.some(img => !isValidImageSrc(img.src.trim()))) { alert(IMAGE_SRC_MESSAGE); return false; }
     return true;
   };
 
@@ -207,7 +209,7 @@ export default function Gallery() {
         date: localInputToIso(formData.date)!,
         dateDisplay: formData.dateDisplay!,
         description: formData.description!,
-        images: (formData.images || []).filter(img => img.src.trim() && img.alt.trim()),
+        images: (formData.images || []).filter(img => img.src.trim() && img.alt.trim()).map(img => ({ ...img, src: img.src.trim() })),
         tripId: formData.tripId || null,
         visitId: formData.visitId || null,
         isFeatured: formData.isFeatured || false,
@@ -481,7 +483,7 @@ export default function Gallery() {
                   <div key={idx} className="grid grid-cols-12 gap-2 items-start">
                     <div className="col-span-12 sm:col-span-5">
                       <label className="label">URL da Imagem</label>
-                      <input type="url" className="input" value={img.src} onChange={(e) => handleImageChange(idx, 'src', e.target.value)} placeholder="https://exemplo.com/imagem.jpg" />
+                      <input type="text" className="input" value={img.src} onChange={(e) => handleImageChange(idx, 'src', e.target.value)} placeholder="https://exemplo.com/imagem.jpg ou assets/images/pasta/foto.jpg" />
                     </div>
                     <div className="col-span-12 sm:col-span-5">
                       <label className="label">Texto Alternativo (alt)</label>

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { tripApi, TripFormData, TripStatus } from '../api';
 import { useToast } from '../hooks/useToast';
 import { resolveAssetSrc } from '../lib/assetUrl';
+import { isValidImageSrc, IMAGE_SRC_MESSAGE } from '../lib/imageSrc';
 import { isoToLocalInput, localInputToIso } from '../lib/dateInput';
 
 const intensityOptions = ['leve', 'moderado', 'intenso', 'extremo'] as const;
@@ -559,6 +560,7 @@ function ArrayInput({ name, value, onChange, placeholder }: { name: string; valu
 }
 
 function MediaInput({ value, onChange }: { value: Array<{ src: string; alt: string; focus?: string; type?: 'image' | 'video' }>; onChange: (val: Array<{ src: string; alt: string; focus?: string; type?: 'image' | 'video' }>) => void }) {
+  const { toast } = useToast();
   const [newSrc, setNewSrc] = useState('');
   const [newAlt, setNewAlt] = useState('');
   const [newFocus, setNewFocus] = useState('');
@@ -566,6 +568,7 @@ function MediaInput({ value, onChange }: { value: Array<{ src: string; alt: stri
 
   const handleAdd = () => {
     if (newSrc.trim() && newAlt.trim()) {
+      if (!isValidImageSrc(newSrc.trim())) { toast.error(IMAGE_SRC_MESSAGE); return; }
       onChange([...value, { src: newSrc.trim(), alt: newAlt.trim(), focus: newFocus.trim() || undefined, type: newType }]);
       setNewSrc('');
       setNewAlt('');
@@ -576,7 +579,7 @@ function MediaInput({ value, onChange }: { value: Array<{ src: string; alt: stri
   return (
     <div>
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 mb-2">
-        <input type="url" className="input" placeholder="URL da imagem/vídeo" value={newSrc} onChange={(e) => setNewSrc(e.target.value)} />
+        <input type="text" className="input" placeholder="Link ou caminho da imagem/vídeo (assets/...)" value={newSrc} onChange={(e) => setNewSrc(e.target.value)} />
         <input type="text" className="input" placeholder="Texto alternativo (alt)" value={newAlt} onChange={(e) => setNewAlt(e.target.value)} />
         <input type="text" className="input" placeholder="Foco (opcional)" value={newFocus} onChange={(e) => setNewFocus(e.target.value)} />
         <div className="flex gap-2">
