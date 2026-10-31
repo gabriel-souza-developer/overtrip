@@ -331,7 +331,7 @@ export default function Trips() {
                         </Link>
                         <button
                           onClick={() => handlePublish(trip)}
-                          className={`btn-ghost p-2 ${trip.status === 'OPEN' ? 'text-green-600 hover:bg-green-50' : 'text-primary-600 hover:bg-primary-50'}`}
+                          className={`btn-ghost p-2 ${trip.status === 'OPEN' ? 'text-green-600 hover:bg-green-50' : 'text-green-700 hover:bg-green-50'}`}
                           aria-label={trip.status === 'OPEN' ? `Despublicar ${trip.title}` : `Publicar ${trip.title}`}
                         >
                           {trip.status === 'OPEN' ? (
