@@ -6,6 +6,7 @@ import {
   tripQuerySchema 
 } from '../validators/index.js';
 import { AppError } from '../middleware/errorHandler.js';
+import type { AuthRequest } from '../middleware/auth.js';
 
 export const tripController = {
   async findAll(req: Request, res: Response) {
@@ -20,15 +21,26 @@ export const tripController = {
     res.json(trip);
   },
 
-  async create(req: Request, res: Response) {
+  async create(req: AuthRequest, res: Response) {
     const data = tripCreateSchema.parse(req.body);
+    // Só admin publica: não-admin cria apenas rascunho
+    if (req.user?.role !== 'admin' && data.status !== 'DRAFT') {
+      throw AppError.forbidden('Apenas administradores podem definir o status da viagem');
+    }
     const trip = await tripService.create(data);
     res.status(201).json(trip);
   },
 
-  async update(req: Request, res: Response) {
+  async update(req: AuthRequest, res: Response) {
     const { id } = req.params;
     const data = tripUpdateSchema.parse(req.body);
+    // Só admin muda status; reenviar o status atual é permitido (o formulário sempre envia o campo)
+    if (req.user?.role !== 'admin' && data.status !== undefined) {
+      const current = await tripService.findById(id);
+      if (data.status !== current.status) {
+        throw AppError.forbidden('Apenas administradores podem alterar o status da viagem');
+      }
+    }
     const trip = await tripService.update(id, data);
     res.json(trip);
   },

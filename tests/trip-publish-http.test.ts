@@ -168,3 +168,101 @@ describe('POST /api/trips/:id/publish e /:id/unpublish (HTTP real)', () => {
     expect(res.status).toBe(403);
   });
 });
+
+describe('bypass de status via POST/PUT /api/trips (HTTP real)', () => {
+  const basePayload = (extra: Record<string, unknown> = {}) => ({
+    title: 'Trip Status Bypass',
+    category: 'Test',
+    description: 'Test',
+    city: 'City',
+    region: 'PB',
+    startDateISO: '2026-12-01T06:00:00-03:00',
+    intensityClass: 'moderado',
+    storedIdentity: `publish-http-test:bypass:${Date.now()}:${Math.random().toString(36).slice(2)}`,
+    ...extra,
+  });
+
+  const send = (method: string, path: string, tk: string, body: unknown) =>
+    fetch(`${baseUrl}${path}`, {
+      method,
+      headers: { Authorization: `Bearer ${tk}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+  const makeTrip = (status: 'DRAFT' | 'OPEN') =>
+    prisma.trip.create({
+      data: {
+        title: 'Trip Status Bypass (seed)',
+        category: 'Test',
+        description: 'Test',
+        city: 'City',
+        region: 'PB',
+        startDateISO: new Date('2026-12-01T06:00:00-03:00'),
+        intensityClass: 'moderado',
+        includes: JSON.stringify([]),
+        media: JSON.stringify([]),
+        status,
+        storedIdentity: `publish-http-test:bypass-seed:${Date.now()}:${Math.random().toString(36).slice(2)}`,
+      },
+    });
+
+  it('POST de não-admin com status OPEN responde 403 e não cria a viagem', async () => {
+    const payload = basePayload({ status: 'OPEN' });
+    const res = await send('POST', '/api/trips', nonAdminToken, payload);
+    expect(res.status).toBe(403);
+    const found = await prisma.trip.findUnique({ where: { storedIdentity: payload.storedIdentity } });
+    expect(found).toBeNull();
+  });
+
+  it('POST de não-admin sem status ou com DRAFT cria como DRAFT', async () => {
+    const res1 = await send('POST', '/api/trips', nonAdminToken, basePayload());
+    expect(res1.status).toBe(201);
+    expect((await res1.json()).status).toBe('DRAFT');
+    const res2 = await send('POST', '/api/trips', nonAdminToken, basePayload({ status: 'DRAFT' }));
+    expect(res2.status).toBe(201);
+  });
+
+  it('POST de admin com status OPEN segue funcionando', async () => {
+    const res = await send('POST', '/api/trips', token, basePayload({ status: 'OPEN' }));
+    expect(res.status).toBe(201);
+    expect((await res.json()).status).toBe('OPEN');
+  });
+
+  it('PUT de não-admin mudando o status responde 403 e não altera a viagem', async () => {
+    const trip = await makeTrip('DRAFT');
+    const res = await send('PUT', `/api/trips/${trip.id}`, nonAdminToken, { status: 'OPEN' });
+    expect(res.status).toBe(403);
+    const after = await prisma.trip.findUnique({ where: { id: trip.id } });
+    expect(after?.status).toBe('DRAFT');
+  });
+
+  it('PUT de não-admin não consegue despublicar nem fechar viagem OPEN', async () => {
+    const trip = await makeTrip('OPEN');
+    const res = await send('PUT', `/api/trips/${trip.id}`, nonAdminToken, { status: 'DRAFT' });
+    expect(res.status).toBe(403);
+    const after = await prisma.trip.findUnique({ where: { id: trip.id } });
+    expect(after?.status).toBe('OPEN');
+  });
+
+  it('PUT de não-admin reenviando o mesmo status passa', async () => {
+    const trip = await makeTrip('OPEN');
+    const res = await send('PUT', `/api/trips/${trip.id}`, nonAdminToken, { title: 'Novo título', status: 'OPEN' });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.title).toBe('Novo título');
+    expect(body.status).toBe('OPEN');
+  });
+
+  it('PUT de não-admin sem o campo status passa', async () => {
+    const trip = await makeTrip('DRAFT');
+    const res = await send('PUT', `/api/trips/${trip.id}`, nonAdminToken, { title: 'Outro título' });
+    expect(res.status).toBe(200);
+  });
+
+  it('PUT de admin mudando o status segue funcionando', async () => {
+    const trip = await makeTrip('DRAFT');
+    const res = await send('PUT', `/api/trips/${trip.id}`, token, { status: 'OPEN' });
+    expect(res.status).toBe(200);
+    expect((await res.json()).status).toBe('OPEN');
+  });
+});
