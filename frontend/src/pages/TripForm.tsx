@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { tripApi, TripFormData, TripStatus } from '../api';
 import { useToast } from '../hooks/useToast';
 import { resolveAssetSrc } from '../lib/assetUrl';
+import { CityAutocomplete, UfSelect } from '../components/LocationFields';
+import { nextCityOnRegionChange } from '../lib/locationCombobox';
 
 const intensityOptions = ['leve', 'moderado', 'intenso', 'extremo'] as const;
 const statusOptions: { value: TripStatus; label: string }[] = [
@@ -150,6 +152,11 @@ export default function TripForm() {
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
+  const handleFieldChange = (name: keyof TripFormData, value: string) => {
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
+  };
+
   const handleArrayChange = (field: keyof TripFormData, value: string[]) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
@@ -258,12 +265,30 @@ export default function TripForm() {
           <div className="form-row">
             <div className="form-group">
               <label htmlFor="city" className="label">Cidade *</label>
-              <input id="city" name="city" className={`input ${errors.city ? 'input-error' : ''}`} value={formData.city} onChange={handleChange} required />
+              <CityAutocomplete
+                id="city"
+                name="city"
+                className={`input ${errors.city ? 'input-error' : ''}`}
+                value={formData.city}
+                uf={formData.region}
+                onChange={(val) => handleFieldChange('city', val)}
+                required
+              />
               {errors.city && <p className="text-red-600 text-sm mt-1">{errors.city}</p>}
             </div>
             <div className="form-group">
               <label htmlFor="region" className="label">Estado/Região *</label>
-              <input id="region" name="region" className={`input ${errors.region ? 'input-error' : ''}`} value={formData.region} onChange={handleChange} required />
+              <UfSelect
+                id="region"
+                name="region"
+                className={`select ${errors.region ? 'input-error' : ''}`}
+                value={formData.region}
+                onChange={(val) => {
+                  setFormData(prev => ({ ...prev, region: val, city: nextCityOnRegionChange(prev.city, prev.region, val) }));
+                  if (errors.region) setErrors(prev => ({ ...prev, region: '' }));
+                }}
+                required
+              />
               {errors.region && <p className="text-red-600 text-sm mt-1">{errors.region}</p>}
             </div>
           </div>

@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { visitApi, Visit, Trip, Pagination } from '../api';
 import { useToast } from '../hooks/useToast';
+import { CityAutocomplete, UfSelect } from '../components/LocationFields';
+import { nextCityOnRegionChange } from '../lib/locationCombobox';
 
 function SearchIcon({ className }: { className?: string }) {
   return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>;
@@ -370,11 +372,24 @@ export default function Visits() {
                                 </div>
                                 <div className="form-group">
                                   <label htmlFor="edit-city" className="label">Cidade</label>
-                                  <input id="edit-city" name="city" className="input" value={editForm.city} onChange={(e) => setEditForm(prev => ({ ...prev, city: e.target.value }))} required />
+                                  <CityAutocomplete
+                                    id="edit-city"
+                                    name="city"
+                                    value={editForm.city || ''}
+                                    uf={editForm.region || ''}
+                                    onChange={(val) => setEditForm(prev => ({ ...prev, city: val }))}
+                                    required
+                                  />
                                 </div>
                                 <div className="form-group">
                                   <label htmlFor="edit-region" className="label">Região</label>
-                                  <input id="edit-region" name="region" className="input" value={editForm.region} onChange={(e) => setEditForm(prev => ({ ...prev, region: e.target.value }))} required />
+                                  <UfSelect
+                                    id="edit-region"
+                                    name="region"
+                                    value={editForm.region || ''}
+                                    onChange={(val) => setEditForm(prev => ({ ...prev, region: val, city: nextCityOnRegionChange(prev.city || '', prev.region || '', val) }))}
+                                    required
+                                  />
                                 </div>
                                 <div className="form-group">
                                   <label htmlFor="edit-date" className="label">Data</label>
