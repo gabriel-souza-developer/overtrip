@@ -1,3 +1,5 @@
+import { translateApiError } from '../lib/formHelpers';
+
 const API_BASE = '/api';
 
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
@@ -15,8 +17,8 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Erro desconhecido' }));
-    throw new Error(error.error || `HTTP ${response.status}`);
+    const error = await response.json().catch(() => ({}));
+    throw new Error(translateApiError(error));
   }
 
   if (response.status === 204) return undefined as T;

@@ -1,9 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { visitApi, Visit, Trip, Pagination } from '../api';
+import { visitApi, Visit, Pagination } from '../api';
+import { localInputToIso } from '../lib/dateInput';
+import { visitToEditForm } from '../lib/visitForm';
 import { useToast } from '../hooks/useToast';
 import { CityAutocomplete, UfSelect } from '../components/LocationFields';
 import { nextCityOnRegionChange } from '../lib/locationCombobox';
+
+type TripOption = NonNullable<Visit['trip']>;
 
 function SearchIcon({ className }: { className?: string }) {
   return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>;
@@ -44,7 +48,7 @@ function AlertTriangleIcon({ className }: { className?: string }) {
 export default function Visits() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [visits, setVisits] = useState<Visit[]>([]);
-  const [trips, setTrips] = useState<Trip[]>([]);
+  const [trips, setTrips] = useState<TripOption[]>([]);
   const [pagination, setPagination] = useState<Pagination>({ page: 1, limit: 20, total: 0, totalPages: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -93,7 +97,7 @@ export default function Visits() {
     try {
       const data = await visitApi.list({ limit: 100 });
       // Get trips from visits that have trips associated
-      const tripMap = new Map<string, Trip>();
+      const tripMap = new Map<string, TripOption>();
       data.data.forEach(v => {
         if (v.trip) tripMap.set(v.trip.id, v.trip);
       });
@@ -130,17 +134,7 @@ export default function Visits() {
 
   const startEdit = (visit: Visit) => {
     setEditingId(visit.id);
-    setEditForm({
-      title: visit.title,
-      description: visit.description || '',
-      date: visit.date ? visit.date.slice(0, 16) : '',
-      city: visit.city,
-      region: visit.region,
-      lat: visit.lat,
-      lng: visit.lng,
-      notes: visit.notes || '',
-      needsReview: visit.needsReview,
-    });
+    setEditForm(visitToEditForm(visit));
   };
 
   const cancelEdit = () => {
@@ -150,7 +144,7 @@ export default function Visits() {
 
   const saveEdit = async (id: string) => {
     try {
-      await visitApi.update(id, editForm);
+      await visitApi.update(id, { ...editForm, date: localInputToIso(editForm.date) });
       toast.success('Visita atualizada');
       cancelEdit();
       loadVisits();
@@ -185,9 +179,7 @@ export default function Visits() {
 
   const showAssociateModal = (visit: Visit) => {
     setEditingId(visit.id);
-    setEditForm({
-      tripId: visit.tripId || '',
-    });
+    setEditForm(visitToEditForm(visit));
   };
 
   if (loading && visits.length === 0) {
@@ -204,7 +196,7 @@ export default function Visits() {
                 <th scope="col">Título</th>
                 <th scope="col">Cidade/Região</th>
                 <th scope="col">Data</th>
-                <th scope="col">Coords</th>
+                <th scope="col">Coordenadas</th>
                 <th scope="col">Revisão</th>
                 <th scope="col">Viagem</th>
                 <th scope="col">Ações</th>
@@ -280,10 +272,10 @@ export default function Visits() {
                 <th scope="col">Título</th>
                 <th scope="col">Cidade/Região</th>
                 <th scope="col">Data</th>
-                <th scope="col">Coords</th>
+                <th scope="col">Coordenadas</th>
                 <th scope="col">Revisão</th>
                 <th scope="col">Viagem Associada</th>
-                <th scope:col>
+                <th scope="col">
                   <span className="visually-hidden">Ações</span>
                 </th>
               </tr>
@@ -371,6 +363,16 @@ export default function Visits() {
                                   <input id="edit-title" name="title" className="input" value={editForm.title} onChange={(e) => setEditForm(prev => ({ ...prev, title: e.target.value }))} required />
                                 </div>
                                 <div className="form-group">
+                                  <label htmlFor="edit-region" className="label">Região</label>
+                                  <UfSelect
+                                    id="edit-region"
+                                    name="region"
+                                    value={editForm.region || ''}
+                                    onChange={(val, previousIsKnownUf) => setEditForm(prev => ({ ...prev, region: val, city: nextCityOnRegionChange(prev.city || '', prev.region || '', val, previousIsKnownUf) }))}
+                                    required
+                                  />
+                                </div>
+                                <div className="form-group">
                                   <label htmlFor="edit-city" className="label">Cidade</label>
                                   <CityAutocomplete
                                     id="edit-city"
@@ -382,26 +384,18 @@ export default function Visits() {
                                   />
                                 </div>
                                 <div className="form-group">
-                                  <label htmlFor="edit-region" className="label">Região</label>
-                                  <UfSelect
-                                    id="edit-region"
-                                    name="region"
-                                    value={editForm.region || ''}
-                                    onChange={(val) => setEditForm(prev => ({ ...prev, region: val, city: nextCityOnRegionChange(prev.city || '', prev.region || '', val) }))}
-                                    required
-                                  />
-                                </div>
-                                <div className="form-group">
                                   <label htmlFor="edit-date" className="label">Data</label>
                                   <input id="edit-date" name="date" type="datetime-local" className="input" value={editForm.date} onChange={(e) => setEditForm(prev => ({ ...prev, date: e.target.value || null }))} />
                                 </div>
                                 <div className="form-group">
                                   <label htmlFor="edit-lat" className="label">Latitude</label>
                                   <input id="edit-lat" name="lat" type="number" step="any" min="-90" max="90" className="input" value={editForm.lat ?? ''} onChange={(e) => setEditForm(prev => ({ ...prev, lat: e.target.value ? parseFloat(e.target.value) : null }))} />
+                                  <p className="text-xs text-surface-500 mt-1">Graus decimais, com ponto. Ex.: -7.115</p>
                                 </div>
                                 <div className="form-group">
                                   <label htmlFor="edit-lng" className="label">Longitude</label>
                                   <input id="edit-lng" name="lng" type="number" step="any" min="-180" max="180" className="input" value={editForm.lng ?? ''} onChange={(e) => setEditForm(prev => ({ ...prev, lng: e.target.value ? parseFloat(e.target.value) : null }))} />
+                                  <p className="text-xs text-surface-500 mt-1">Graus decimais, com ponto. Ex.: -36.830</p>
                                 </div>
                                 <div className="form-group sm:col-span-2">
                                   <label htmlFor="edit-notes" className="label">Notas</label>

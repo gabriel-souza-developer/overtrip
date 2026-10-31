@@ -40,7 +40,8 @@ interface UfSelectProps {
   id: string;
   name: string;
   value: string;
-  onChange: (value: string) => void;
+  /** previousIsKnownUf: the value being replaced was one of the official UFs. */
+  onChange: (value: string, previousIsKnownUf: boolean) => void;
   required?: boolean;
   disabled?: boolean;
   className?: string;
@@ -61,7 +62,7 @@ export function UfSelect({ id, name, value, onChange, required, disabled, classN
         name={name}
         className={className.includes('select') ? 'input' : className}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => onChange(e.target.value, false)}
         placeholder="Estado"
         required={required}
         disabled={disabled}
@@ -83,7 +84,7 @@ export function UfSelect({ id, name, value, onChange, required, disabled, classN
       name={name}
       className={className}
       value={value}
-      onChange={(e) => onChange(e.target.value)}
+      onChange={(e) => onChange(e.target.value, estados.some(est => est.sigla === value))}
       required={required}
       disabled={disabled}
     >
@@ -121,6 +122,10 @@ export function CityAutocomplete({ id, name, value, uf, onChange, required, clas
   const debouncedSetQuery = useMemo(() => debounce((q: string) => setQuery(q), 300), []);
   const inputRef = useRef<HTMLInputElement>(null);
   const listId = `${id}-listbox`;
+  const { estados } = useEstados();
+  // Only block the field when the IBGE list is available; free-text mode and
+  // loading stay editable, and a saved city without a state remains visible.
+  const needsUf = estados !== null && !uf;
 
   useEffect(() => () => debouncedSetQuery.cancel(), [debouncedSetQuery]);
 
@@ -158,6 +163,11 @@ export function CityAutocomplete({ id, name, value, uf, onChange, required, clas
     };
   }, [showSuggestions]);
 
+  useEffect(() => {
+    if (!showSuggestions || activeIndex < 0) return;
+    document.getElementById(`${id}-option-${activeIndex}`)?.scrollIntoView({ block: 'nearest' });
+  }, [activeIndex, showSuggestions, id]);
+
   const choose = (city: string) => {
     debouncedSetQuery.cancel();
     onChange(city);
@@ -177,6 +187,9 @@ export function CityAutocomplete({ id, name, value, uf, onChange, required, clas
         e.preventDefault();
         choose(suggestions[activeIndex]);
       }
+    } else if (e.key === 'Tab') {
+      setOpen(false);
+      setActiveIndex(-1);
     } else if (e.key === 'Escape') {
       if (showSuggestions) {
         e.preventDefault();
@@ -208,14 +221,16 @@ export function CityAutocomplete({ id, name, value, uf, onChange, required, clas
         aria-expanded={showSuggestions}
         aria-controls={listId}
         aria-activedescendant={showSuggestions && activeIndex >= 0 ? `${id}-option-${activeIndex}` : undefined}
-        placeholder={!uf ? 'Cidade (selecione o estado para sugestões)' : 'Digite para buscar'}
+        placeholder={needsUf ? 'Escolha o estado primeiro' : 'Digite para buscar'}
         required={required}
+        disabled={needsUf}
         autoComplete="off"
       />
       {showSuggestions && rect && (
         <ul
           id={listId}
           role="listbox"
+          tabIndex={-1}
           style={{ position: 'fixed', top: rect.top, left: rect.left, width: rect.width }}
           className="z-50 bg-white border border-surface-200 rounded-lg shadow-lg max-h-56 overflow-auto"
         >

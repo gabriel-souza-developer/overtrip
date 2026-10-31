@@ -1,4 +1,7 @@
 import { z } from 'zod';
+import { isValidImageSrc, IMAGE_SRC_MESSAGE } from './imageSrc.js';
+
+export const imageSrcSchema = z.string().refine(isValidImageSrc, { message: IMAGE_SRC_MESSAGE });
 
 // Trip schemas
 export const tripCreateSchema = z.object({
@@ -35,7 +38,7 @@ export const tripCreateSchema = z.object({
   routeNotes: z.array(z.string()).optional().nullable(),
   importantInfo: z.array(z.string()).optional().nullable(),
   media: z.array(z.object({
-    src: z.string().url('URL de imagem inválida'),
+    src: imageSrcSchema,
     alt: z.string(),
     focus: z.string().optional(),
     type: z.enum(['image', 'video']).optional(),
@@ -74,7 +77,7 @@ export const visitCreateSchema = z.object({
   lat: z.number().min(-90).max(90).optional().nullable(),
   lng: z.number().min(-180).max(180).optional().nullable(),
   images: z.array(z.object({
-    src: z.string().url('URL de imagem inválida'),
+    src: imageSrcSchema,
     alt: z.string(),
   })).optional().nullable(),
   tripId: z.string().cuid().optional().nullable(),
@@ -104,7 +107,7 @@ export const galleryCreateSchema = z.object({
   dateDisplay: z.string().min(1, 'Data de exibição é obrigatória'),
   description: z.string().min(1, 'Descrição é obrigatória'),
   images: z.array(z.object({
-    src: z.string().url('URL de imagem inválida'),
+    src: imageSrcSchema,
     alt: z.string(),
   })).min(1, 'Pelo menos uma imagem é obrigatória'),
   tripId: z.string().cuid().optional().nullable(),

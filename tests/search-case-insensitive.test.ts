@@ -6,7 +6,7 @@ import { normalizeForSearch, normalizeForSearchRegion } from '../src/utils/searc
 const prisma = new PrismaClient();
 
 // Unique storedIdentity prefix for test data isolation and cleanup
-const TEST_PREFIX = 'test:search:';
+const TEST_PREFIX = 'search-ci-test:';
 
 function createTripData(overrides: Partial<{
   title: string;
@@ -278,7 +278,7 @@ describe('Search & Filter Common Edge Cases (Empty String, Special Chars, Unicod
 // Integration Tests: Update -> Search, Combined Filters, Pagination, Regional Search
 // ============================================================================
 describe('Integration Tests - Update -> Search, Combined Filters, Pagination, Regional Search', () => {
-  const INTEG_PREFIX = 'test:search:integ:';
+  const INTEG_PREFIX = 'search-ci-test:integ:';
 
   function createIntegTripData(overrides: Partial<{
     title: string;

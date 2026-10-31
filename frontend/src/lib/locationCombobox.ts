@@ -14,13 +14,19 @@ export function buildUfOptions(estados: Estado[], currentValue: string): Estado[
 }
 
 /**
- * The city belongs to the previously selected UF, so it must be cleared
- * whenever the user actually changes the region — otherwise a stale pair
- * like Campina Grande/PE can be saved and reach the public site. Callers
- * must only invoke this from a user-driven onChange, never while loading
- * a record (which sets region and city together from the server).
+ * The city belongs to the previously selected UF, so it is cleared only when
+ * the user replaces a valid (known) UF with a different one. Picking a UF for
+ * the first time (previous empty) or typing in the free-text fallback (the
+ * previous value is not a known UF) must never wipe the city. Callers must
+ * only invoke this from a user-driven onChange, never while loading a record.
  */
-export function nextCityOnRegionChange(currentCity: string, previousRegion: string, nextRegion: string): string {
+export function nextCityOnRegionChange(
+  currentCity: string,
+  previousRegion: string,
+  nextRegion: string,
+  previousIsKnownUf: boolean
+): string {
+  if (!previousIsKnownUf || !previousRegion) return currentCity;
   return previousRegion === nextRegion ? currentCity : '';
 }
 

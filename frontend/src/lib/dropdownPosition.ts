@@ -24,7 +24,7 @@ export function computeDropdownPosition(
   menuWidth: number,
   menuHeight: number
 ): { top: number; left: number } {
-  const fitsBelow = buttonRect.bottom + GAP + menuHeight <= viewport.height;
+  const fitsBelow = buttonRect.bottom + GAP + menuHeight + EDGE_PADDING <= viewport.height;
   const top = fitsBelow ? buttonRect.bottom + GAP : buttonRect.top - GAP - menuHeight;
 
   const maxTop = viewport.height - menuHeight - EDGE_PADDING;

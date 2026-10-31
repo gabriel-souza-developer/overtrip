@@ -33,20 +33,22 @@ describe('buildUfOptions', () => {
 });
 
 describe('nextCityOnRegionChange', () => {
-  it('keeps the current city when the region is unchanged', () => {
-    expect(nextCityOnRegionChange('Campina Grande', 'PB', 'PB')).toBe('Campina Grande');
+  it('keeps the city when the region is unchanged', () => {
+    expect(nextCityOnRegionChange('Campina Grande', 'PB', 'PB', true)).toBe('Campina Grande');
   });
 
-  it('clears the city when the region actually changes', () => {
-    expect(nextCityOnRegionChange('Campina Grande', 'PB', 'PE')).toBe('');
+  it('clears the city when a known UF is replaced by a different one', () => {
+    expect(nextCityOnRegionChange('Campina Grande', 'PB', 'PE', true)).toBe('');
   });
 
-  it('keeps the city when the previous region was empty and a region is picked for the first time', () => {
-    expect(nextCityOnRegionChange('', '', 'PB')).toBe('');
+  it('keeps an existing city when a UF is picked for the first time', () => {
+    expect(nextCityOnRegionChange('Recife', '', 'PE', true)).toBe('Recife');
+    expect(nextCityOnRegionChange('Recife', '', 'PE', false)).toBe('Recife');
   });
 
-  it('clears a prefilled city when a region is picked for the first time and city was already set', () => {
-    expect(nextCityOnRegionChange('Recife', '', 'PE')).toBe('');
+  it('keeps the city while typing in free-text mode (previous value not a known UF)', () => {
+    expect(nextCityOnRegionChange('Recife', 'P', 'PE', false)).toBe('Recife');
+    expect(nextCityOnRegionChange('Recife', 'ZZ', 'PE', false)).toBe('Recife');
   });
 });
 

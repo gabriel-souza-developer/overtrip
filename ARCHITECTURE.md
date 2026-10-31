@@ -1,10 +1,12 @@
-# OVERTRIP v6 — Arquitetura do Projeto
+# OVERTRIP v6 — Arquitetura do Site Público
+
+Este documento cobre só o site público. O painel administrativo (`frontend/`), a API (`src/`) e o banco (`prisma/`) estão descritos em `CLAUDE.md`.
 
 ## Visão Geral
 
-**OVERTRIP** é um site estático de agência de ecoturismo e aventura construído com HTML5, CSS3 puro e JavaScript modular (ES modules). O projeto prioriza performance, acessibilidade e experiência do usuário com uma abordagem de **content-driven design**.
+O site público da **OVERTRIP** é uma página estática de agência de ecoturismo e aventura construída com HTML5, CSS3 puro e JavaScript modular (ES modules). Ele prioriza performance, acessibilidade e experiência do usuário com uma abordagem de **content-driven design**.
 
-- **Modelo:** Site estático (sem backend, hosting em servidor Apache)
+- **Modelo:** Site estático (hosting em servidor Apache, independente da API do painel)
 - **Stack:** HTML + CSS + Vanilla JS
 - **Renderização:** Client-side com dados de `trips.json`
 - **Deploy:** Apache com HTTPS, headers de segurança e cache inteligente
