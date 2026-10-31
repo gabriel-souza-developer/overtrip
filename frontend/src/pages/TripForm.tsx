@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { tripApi, TripFormData, TripStatus } from '../api';
 import { useToast } from '../hooks/useToast';
 import { resolveAssetSrc } from '../lib/assetUrl';
+import { isoToLocalInput, localInputToIso } from '../lib/dateInput';
 
 const intensityOptions = ['leve', 'moderado', 'intenso', 'extremo'] as const;
 const statusOptions: { value: TripStatus; label: string }[] = [
@@ -38,7 +39,7 @@ export default function TripForm() {
     description: '',
     city: '',
     region: '',
-    startDateISO: new Date().toISOString().slice(0, 16),
+    startDateISO: isoToLocalInput(new Date().toISOString()),
     endDateISO: '',
     departureTime: '',
     departureTolerance: '',
@@ -90,8 +91,8 @@ export default function TripForm() {
         description: trip.description,
         city: trip.city,
         region: trip.region,
-        startDateISO: trip.startDateISO.slice(0, 16),
-        endDateISO: trip.endDateISO ? trip.endDateISO.slice(0, 16) : '',
+        startDateISO: isoToLocalInput(trip.startDateISO),
+        endDateISO: isoToLocalInput(trip.endDateISO),
         departureTime: trip.departureTime || '',
         departureTolerance: trip.departureTolerance || '',
         returnTime: trip.returnTime || '',
@@ -183,11 +184,16 @@ export default function TripForm() {
 
     setSaving(true);
     try {
+      const payload = {
+        ...formData,
+        startDateISO: localInputToIso(formData.startDateISO)!,
+        endDateISO: localInputToIso(formData.endDateISO),
+      };
       if (isEditing) {
-        await tripApi.update(id!, formData);
+        await tripApi.update(id!, payload);
         toast.success('Viagem atualizada com sucesso');
       } else {
-        await tripApi.create(formData);
+        await tripApi.create(payload);
         toast.success('Viagem criada com sucesso');
       }
       navigate('/trips');
@@ -570,8 +576,8 @@ function MediaInput({ value, onChange }: { value: Array<{ src: string; alt: stri
   return (
     <div>
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 mb-2">
-        <input type="url" className="input" placeholder="URL da imagem/vídeo" value={newSrc} onChange={(e) => setNewSrc(e.target.value)} required />
-        <input type="text" className="input" placeholder="Texto alternativo (alt)" value={newAlt} onChange={(e) => setNewAlt(e.target.value)} required />
+        <input type="url" className="input" placeholder="URL da imagem/vídeo" value={newSrc} onChange={(e) => setNewSrc(e.target.value)} />
+        <input type="text" className="input" placeholder="Texto alternativo (alt)" value={newAlt} onChange={(e) => setNewAlt(e.target.value)} />
         <input type="text" className="input" placeholder="Foco (opcional)" value={newFocus} onChange={(e) => setNewFocus(e.target.value)} />
         <div className="flex gap-2">
           <select className="select" value={newType} onChange={(e) => setNewType(e.target.value as 'image' | 'video')}>
@@ -628,9 +634,9 @@ function DeparturesInput({ value, onChange }: { value: Array<{ time: string; pla
   return (
     <div>
       <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 mb-2">
-        <input type="text" className="input" placeholder="Horário (ex: 06h00)" value={newTime} onChange={(e) => setNewTime(e.target.value)} required />
-        <input type="text" className="input" placeholder="Local (ex: Shopping)" value={newPlace} onChange={(e) => setNewPlace(e.target.value)} required />
-        <input type="text" className="input" placeholder="Cidade" value={newCity} onChange={(e) => setNewCity(e.target.value)} required />
+        <input type="text" className="input" placeholder="Horário (ex: 06h00)" value={newTime} onChange={(e) => setNewTime(e.target.value)} />
+        <input type="text" className="input" placeholder="Local (ex: Shopping)" value={newPlace} onChange={(e) => setNewPlace(e.target.value)} />
+        <input type="text" className="input" placeholder="Cidade" value={newCity} onChange={(e) => setNewCity(e.target.value)} />
         <input type="url" className="input" placeholder="Maps URL (opcional)" value={newMapsUrl} onChange={(e) => setNewMapsUrl(e.target.value)} />
         <div className="flex gap-2">
           <input type="text" className="input flex-1" placeholder="Maps Query (opcional)" value={newMapsQuery} onChange={(e) => setNewMapsQuery(e.target.value)} />

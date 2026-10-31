@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { visitApi, Visit, Trip, Pagination } from '../api';
+import { isoToLocalInput, localInputToIso } from '../lib/dateInput';
 import { useToast } from '../hooks/useToast';
 
 function SearchIcon({ className }: { className?: string }) {
@@ -131,7 +132,7 @@ export default function Visits() {
     setEditForm({
       title: visit.title,
       description: visit.description || '',
-      date: visit.date ? visit.date.slice(0, 16) : '',
+      date: isoToLocalInput(visit.date),
       city: visit.city,
       region: visit.region,
       lat: visit.lat,
@@ -148,7 +149,7 @@ export default function Visits() {
 
   const saveEdit = async (id: string) => {
     try {
-      await visitApi.update(id, editForm);
+      await visitApi.update(id, { ...editForm, date: localInputToIso(editForm.date) });
       toast.success('Visita atualizada');
       cancelEdit();
       loadVisits();
