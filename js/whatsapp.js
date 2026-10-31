@@ -6,6 +6,11 @@ const buildTripMessage = (link) => {
   const { waTrip, waDate, waDestination, waMeeting, waPrice, waKind } = link.dataset;
   if (!waTrip) return link.dataset.waMessage || "";
 
+  if (waKind === "avisar") {
+    const situation = link.dataset.waNotice === "Esgotado" ? "está esgotada" : "está com as inscrições encerradas";
+    return `Olá! Vi no site que ${waTrip} ${situation}. Quero ser avisado(a) quando abrir a próxima viagem.`;
+  }
+
   if (waKind === "participar") {
     return `Olá! Quero participar de ${waTrip}, no dia ${waDate}. Pode me passar as orientações e confirmar como faço para participar?`;
   }

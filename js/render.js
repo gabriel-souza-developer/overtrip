@@ -141,6 +141,12 @@ const normalizeTrip = (trip) => ({
   buttonClass: text(trip.buttonClass, "button-dark"),
 });
 
+// Esgotada ou encerrada: continua na lista, mas não vende (sem Pix, botão vira aviso).
+const CLOSED_NOTICES = { sold_out: "Esgotado", closed: "Inscrições encerradas" };
+const getClosedNotice = (trip) => CLOSED_NOTICES[String(trip.status || "").toLowerCase()] || "";
+const buildClosedNoticeHTML = (notice) =>
+  notice ? `<p class="trip-closed-notice" role="status">${notice}</p>` : "";
+
 const hasDepartures = (trip) => Array.isArray(trip.departures) && trip.departures.length > 0;
 
 const buildDeparturesHTML = (trip) => {
@@ -201,6 +207,8 @@ const buildTripCardHTML = (rawTrip, tripIndex) => {
     ? `<span class="trip-media-intensity">Nível: ${levelWord}</span>`
     : "";
 
+  const closedNotice = getClosedNotice(trip);
+
   return `
     <article class="trip-card reveal" data-month="${formatTripMonth(trip.startDateISO)}">
       <button
@@ -215,7 +223,7 @@ const buildTripCardHTML = (rawTrip, tripIndex) => {
         ${photoBadge}
       </button>
       <div class="trip-body">
-        <h3 id="trip-title-${tripIndex}">${trip.title}</h3>
+        ${buildClosedNoticeHTML(closedNotice)}<h3 id="trip-title-${tripIndex}">${trip.title}</h3>
         <p class="trip-description">${trip.description}</p>
 
         <div class="trip-meta-list">
@@ -263,15 +271,15 @@ const buildTripCardHTML = (rawTrip, tripIndex) => {
               data-wa-destination="${trip.city} - ${trip.region}"
               data-wa-meeting="${meetingLabel}"
               data-wa-price="${trip.free ? "Gratuito" : trip.priceDisplay}"
-              data-wa-kind="${trip.free ? "participar" : "viajar"}"
+              data-wa-kind="${closedNotice ? "avisar" : trip.free ? "participar" : "viajar"}"${closedNotice ? ` data-wa-notice="${closedNotice}"` : ""}
               aria-labelledby="trip-title-${tripIndex}"
               href="#"
               target="_blank"
               rel="noreferrer"
             >
-              ${trip.buttonLabel}
+              ${closedNotice ? "Avise-me da próxima" : trip.buttonLabel}
             </a>
-            ${trip.free ? "" : `<button
+            ${trip.free || closedNotice ? "" : `<button
               type="button"
               class="button button-pix pix-trigger"
               data-pix-trip-index="${tripIndex}"
@@ -309,7 +317,7 @@ const buildTripSchema = (rawTrip) => {
       "@type": "Offer",
       price: trip.free ? "0" : trip.priceValue,
       priceCurrency: "BRL",
-      availability: trip.availabilitySchema,
+      availability: getClosedNotice(trip) ? "https://schema.org/SoldOut" : trip.availabilitySchema,
       url: "https://overtrip.com.br/#proxima",
     },
   };
@@ -398,7 +406,8 @@ const buildHeroTripHTML = (rawTrip) => {
   const departure = trip.departureTime || (trip.scheduleTBD ? "" : formatTripTime(trip.startDateISO));
   const scheduleLabel = trip.scheduleInfo || [departure, trip.returnTime].filter(Boolean).join(" às ");
   const meetingLabel = getMeetingLabel(trip);
-  const spotsNote = Number(trip.spotsLeft) > 0 ? ` Restam ${Number(trip.spotsLeft)} vagas.` : "";
+  const closedNotice = getClosedNotice(trip);
+  const spotsNote = !closedNotice && Number(trip.spotsLeft) > 0 ? ` Restam ${Number(trip.spotsLeft)} vagas.` : "";
   const priceNote = [trip.free ? "" : trip.priceUnit, levelWord ? `nível ${levelWord.toLowerCase()}` : ""]
     .filter(Boolean)
     .join(", ");
@@ -422,7 +431,7 @@ const buildHeroTripHTML = (rawTrip) => {
           <span>${meetingLabel}</span>
         </div>`}
       </div>
-      <div class="hero-trip-footer">
+      ${buildClosedNoticeHTML(closedNotice)}<div class="hero-trip-footer">
         <span class="hero-trip-price">
           <strong>${trip.free ? "Gratuito" : trip.priceDisplay}</strong>
           <small>${priceNote ? `${priceNote}.` : ""}${spotsNote}</small>
@@ -434,11 +443,11 @@ const buildHeroTripHTML = (rawTrip) => {
           data-wa-destination="${trip.city} - ${trip.region}"
           data-wa-meeting="${meetingLabel}"
           data-wa-price="${trip.free ? "Gratuito" : trip.priceDisplay}"
-          data-wa-kind="${trip.free ? "participar" : "viajar"}"
+          data-wa-kind="${closedNotice ? "avisar" : trip.free ? "participar" : "viajar"}"${closedNotice ? ` data-wa-notice="${closedNotice}"` : ""}
           href="#"
           target="_blank"
           rel="noreferrer"
-        >${trip.buttonLabel}</a>
+        >${closedNotice ? "Avise-me da próxima" : trip.buttonLabel}</a>
       </div>
     </aside>
   `;
@@ -1113,4 +1122,4 @@ const updateYearsCount = () => {
   statEl.textContent = years > 0 ? `${years} anos` : "1º ano";
 };
 
-export { formatTripTime, normalizeTrip, buildTripCardHTML, buildHeroTripHTML, buildTripCardsHTML, renderHeroNextTrip, renderTrips, renderGallery, renderTestimonials, updateYearsCount, setupLightbox, setupTestimonialCarousel };
+export { formatTripTime, buildTripSchema, normalizeTrip, buildTripCardHTML, buildHeroTripHTML, buildTripCardsHTML, renderHeroNextTrip, renderTrips, renderGallery, renderTestimonials, updateYearsCount, setupLightbox, setupTestimonialCarousel };

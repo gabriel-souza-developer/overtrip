@@ -2,7 +2,9 @@ import { describe, it, expect, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 // @ts-expect-error módulo JS do site
-import { formatTripTime, normalizeTrip, buildTripCardHTML, buildHeroTripHTML, buildTripCardsHTML } from '../js/render.js';
+import { formatTripTime, buildTripSchema, normalizeTrip, buildTripCardHTML, buildHeroTripHTML, buildTripCardsHTML } from '../js/render.js';
+// @ts-expect-error módulo JS do site
+import { setupWaLinks } from '../js/whatsapp.js';
 
 const full = JSON.parse(readFileSync(resolve(__dirname, '../trips.json'), 'utf-8'))[0];
 
@@ -99,5 +101,68 @@ describe('horário de viagem', () => {
   });
   it('data com hora continua igual', () => {
     expect(formatTripTime('2026-09-13T03:30:00-03:00')).toBe('03h30');
+  });
+});
+
+describe('viagem esgotada ou encerrada (T17)', () => {
+  const withStatus = (status: string) => ({ ...full, status });
+  const cases: Array<[string, string]> = [['sold_out', 'Esgotado'], ['closed', 'Inscrições encerradas']];
+
+  it.each(cases)('card %s: aviso, sem Pix e botão trocado', (status, notice) => {
+    const html = buildTripCardHTML({ ...withStatus(status), buttonLabel: 'Quero viajar' }, 0);
+    expect(html).toContain(`>${notice}</p>`);
+    expect(html).not.toContain('pix-trigger');
+    expect(html).not.toContain('Pagar Pix');
+    expect(html).toContain('Avise-me da próxima');
+    expect(html).not.toContain('Quero viajar');
+    expect(html).toContain('data-wa-kind="avisar"');
+  });
+
+  it('o aviso aparece também em viagem sem foto', () => {
+    expect(buildTripCardHTML({ ...bare, status: 'sold_out' }, 0)).toContain('Esgotado');
+  });
+
+  it.each(cases)('JSON-LD %s vira SoldOut', (status) => {
+    const schema = buildTripSchema({ ...withStatus(status), availabilitySchema: 'https://schema.org/InStock' });
+    expect(schema.offers.availability).toBe('https://schema.org/SoldOut');
+  });
+
+  it.each(cases)('hero %s: mesmo aviso e botão, sem vagas restantes', (status, notice) => {
+    const html = buildHeroTripHTML({ ...withStatus(status), spotsLeft: 5 });
+    expect(html).toContain(`>${notice}</p>`);
+    expect(html).toContain('Avise-me da próxima');
+    expect(html).not.toContain('Restam');
+  });
+
+  it.each(cases)('mensagem do WhatsApp (%s) cita a viagem e o aviso', (status, notice) => {
+    const link: any = {
+      dataset: { waTrip: 'Trip X', waKind: 'avisar', waNotice: notice },
+      textContent: 'Avise-me da próxima',
+      href: '',
+      setAttribute() {},
+      addEventListener() {},
+    };
+    vi.stubGlobal('document', { querySelectorAll: () => [link] });
+    setupWaLinks();
+    vi.unstubAllGlobals();
+    const msg = decodeURIComponent(link.href.split('text=')[1]);
+    expect(msg).toContain('Trip X');
+    expect(msg).toContain(status === 'sold_out' ? 'esgotada' : 'encerradas');
+    expect(msg).toContain('próxima viagem');
+    expect(msg).not.toContain('valor de');
+  });
+
+  it('viagem aberta mantém card, hero e JSON-LD sem aviso', () => {
+    const open = { ...full, status: 'open', spotsLeft: 5 };
+    const card = buildTripCardHTML(open, 0);
+    expect(card).not.toContain('trip-closed-notice');
+    expect(card).toContain('pix-trigger');
+    expect(card).toContain('Pagar Pix');
+    expect(card).toContain(full.buttonLabel);
+    expect(card).not.toContain('Avise-me');
+    expect(card).not.toContain('Esgotado');
+    expect(card).not.toContain('Inscrições encerradas');
+    expect(buildHeroTripHTML(open)).not.toContain('trip-closed-notice');
+    expect(buildTripSchema(open).offers.availability).toBe(full.availabilitySchema);
   });
 });
