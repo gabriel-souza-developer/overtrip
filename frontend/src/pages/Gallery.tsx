@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { galleryApi, GalleryEntry, Trip, Visit, Pagination } from '../api';
 import { useToast } from '../hooks/useToast';
 import { resolveAssetSrc } from '../lib/assetUrl';
+import { isoToLocalInput, localInputToIso } from '../lib/dateInput';
 
 function PlusIcon({ className }: { className?: string }) {
   return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>;
@@ -120,7 +121,7 @@ export default function Gallery() {
   const resetForm = () => {
     setFormData({
       title: '',
-      date: new Date().toISOString().slice(0, 16),
+      date: isoToLocalInput(new Date().toISOString()),
       dateDisplay: '',
       description: '',
       images: [{ src: '', alt: '' }],
@@ -141,7 +142,7 @@ export default function Gallery() {
     setEditingEntry(entry);
     setFormData({
       title: entry.title,
-      date: entry.date.slice(0, 16),
+      date: isoToLocalInput(entry.date),
       dateDisplay: entry.dateDisplay,
       description: entry.description,
       images: entry.images,
@@ -203,7 +204,7 @@ export default function Gallery() {
     try {
       const payload = {
         title: formData.title!,
-        date: formData.date!,
+        date: localInputToIso(formData.date)!,
         dateDisplay: formData.dateDisplay!,
         description: formData.description!,
         images: (formData.images || []).filter(img => img.src.trim() && img.alt.trim()),
@@ -480,11 +481,11 @@ export default function Gallery() {
                   <div key={idx} className="grid grid-cols-12 gap-2 items-start">
                     <div className="col-span-12 sm:col-span-5">
                       <label className="label">URL da Imagem</label>
-                      <input type="url" className="input" value={img.src} onChange={(e) => handleImageChange(idx, 'src', e.target.value)} placeholder="https://exemplo.com/imagem.jpg" required />
+                      <input type="url" className="input" value={img.src} onChange={(e) => handleImageChange(idx, 'src', e.target.value)} placeholder="https://exemplo.com/imagem.jpg" />
                     </div>
                     <div className="col-span-12 sm:col-span-5">
                       <label className="label">Texto Alternativo (alt)</label>
-                      <input type="text" className="input" value={img.alt} onChange={(e) => handleImageChange(idx, 'alt', e.target.value)} placeholder="Descrição da imagem" required />
+                      <input type="text" className="input" value={img.alt} onChange={(e) => handleImageChange(idx, 'alt', e.target.value)} placeholder="Descrição da imagem" />
                     </div>
                     <div className="col-span-12 sm:col-span-2 flex items-end">
                       <button type="button" className="btn-ghost p-2 text-red-600 hover:bg-red-50 w-full" onClick={() => removeImage(idx)} disabled={(formData.images || []).length <= 1} aria-label="Remover imagem">
