@@ -7,8 +7,8 @@ const statCards = [
   { key: 'tripsPublished', label: 'Publicadas', icon: PublishIcon, color: 'success' },
   { key: 'tripsDraft', label: 'Rascunhos', icon: DraftIcon, color: 'warning' },
   { key: 'visitsTotal', label: 'Total de Visitas', icon: VisitsIcon, color: 'info' },
-  { key: 'visitsNeedsReview', label: 'Pendentes de Revisão', icon: ReviewIcon, color: 'danger' },
-  { key: 'visitsWithCoords', label: 'Com Coordenadas', icon: CoordsIcon, color: 'success' },
+  { key: 'visitsNeedsReview', label: 'Visitas a revisar', icon: ReviewIcon, color: 'danger' },
+  { key: 'visitsWithCoords', label: 'Com local no mapa', icon: CoordsIcon, color: 'success' },
   { key: 'galleryTotal', label: 'Memórias da Galeria', icon: GalleryIcon, color: 'info' },
   { key: 'galleryFeatured', label: 'Em Destaque', icon: StarIcon, color: 'warning' },
 ] as const;
@@ -128,7 +128,7 @@ export default function Dashboard() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6">
         {/* Quick actions */}
         <div className="card">
           <div className="p-6 border-b border-surface-200">
@@ -147,36 +147,6 @@ export default function Dashboard() {
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
               <span>Gerenciar galeria</span>
             </Link>
-            <button className="btn-secondary w-full justify-start gap-3 p-4 hover:bg-surface-100 transition-colors" onClick={generateJSONs}>
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-              <span>Gerar JSONs públicos</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Recent activity / info */}
-        <div className="card">
-          <div className="p-6 border-b border-surface-200">
-            <h2 className="text-lg font-semibold text-surface-900">Informações do sistema</h2>
-          </div>
-          <div className="p-6 space-y-4 text-sm">
-            <div className="flex justify-between text-surface-600">
-              <span>Viagens publicadas</span>
-              <span className="font-medium text-surface-900">{stats?.tripsPublished || 0} de {stats?.tripsTotal || 0}</span>
-            </div>
-            <div className="flex justify-between text-surface-600">
-              <span>Visitas com coordenadas</span>
-              <span className="font-medium text-surface-900">{stats?.visitsWithCoords || 0} de {stats?.visitsTotal || 0}</span>
-            </div>
-            <div className="flex justify-between text-surface-600">
-              <span>Memórias em destaque</span>
-              <span className="font-medium text-surface-900">{stats?.galleryFeatured || 0} de {stats?.galleryTotal || 0}</span>
-            </div>
-            <div className="pt-4 border-t border-surface-200">
-              <p className="text-surface-500">
-                Use as ações rápidas ou o menu lateral para gerenciar o conteúdo do site.
-              </p>
-            </div>
           </div>
         </div>
       </div>
@@ -196,17 +166,4 @@ function getLinkForStat(key: string): string {
     galleryFeatured: '/gallery?isFeatured=true',
   };
   return links[key] || '/dashboard';
-}
-
-async function generateJSONs() {
-  try {
-    const response = await fetch('/api/generate-json', { method: 'POST' });
-    if (response.ok) {
-      alert('JSONs gerados com sucesso!');
-    } else {
-      alert('Erro ao gerar JSONs');
-    }
-  } catch {
-    alert('Erro de conexão');
-  }
 }
