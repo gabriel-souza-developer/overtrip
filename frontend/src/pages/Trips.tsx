@@ -82,16 +82,16 @@ export default function Trips() {
 
   const closeMenuAndRefocusTrigger = () => {
     setOpenMenu(null);
-    menuTriggerRef.current?.focus();
+    menuTriggerRef.current?.focus({ preventScroll: true });
   };
 
   useEffect(() => {
     if (!openMenu) return;
-    window.addEventListener('scroll', closeMenu, { capture: true });
-    window.addEventListener('resize', closeMenu);
+    window.addEventListener('scroll', closeMenuAndRefocusTrigger, { capture: true });
+    window.addEventListener('resize', closeMenuAndRefocusTrigger);
     return () => {
-      window.removeEventListener('scroll', closeMenu, { capture: true });
-      window.removeEventListener('resize', closeMenu);
+      window.removeEventListener('scroll', closeMenuAndRefocusTrigger, { capture: true });
+      window.removeEventListener('resize', closeMenuAndRefocusTrigger);
     };
   }, [openMenu]);
 
@@ -174,7 +174,10 @@ export default function Trips() {
 
   const handleDelete = async (id: string, title: string) => {
     setOpenMenu(null);
-    if (!confirm(`Excluir a viagem "${title}"? Esta ação não pode ser desfeita.`)) return;
+    if (!confirm(`Excluir a viagem "${title}"? Esta ação não pode ser desfeita.`)) {
+      closeMenuAndRefocusTrigger();
+      return;
+    }
     setDeletingId(id);
     try {
       await tripApi.delete(id);

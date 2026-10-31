@@ -22,6 +22,12 @@ describe('campos de adicionar item não bloqueiam o envio do formulário', () =>
     for (const i of inputs) expect(i).not.toMatch(/\brequired\b/);
   });
 
+  it('campos de ponto de partida tratam Enter sem enviar o formulário da viagem', () => {
+    const inputs = inputsOf(tripForm, 'function DeparturesInput');
+    expect(inputs.length).toBeGreaterThanOrEqual(5);
+    for (const i of inputs) expect(i).toMatch(/onKeyDown=\{handleEnter\}/);
+  });
+
   it('linhas de imagem da galeria não usam required (validate() cuida disso)', () => {
     const rows = gallery.match(/<input[^\n]*handleImageChange[^\n]*/g) ?? [];
     expect(rows.length).toBe(2);

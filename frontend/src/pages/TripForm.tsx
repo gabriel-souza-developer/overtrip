@@ -6,6 +6,8 @@ import { resolveAssetSrc } from '../lib/assetUrl';
 import { isValidImageSrc, IMAGE_SRC_MESSAGE } from '../lib/imageSrc';
 import { isoToLocalInput, localInputToIso } from '../lib/dateInput';
 import { fillMissingAlt, formatBRL, syncPriceDisplay } from '../lib/formHelpers';
+import { canChangeTripStatus } from '../lib/permissions';
+import { useAuth } from '../App';
 
 const intensityOptions = ['leve', 'moderado', 'intenso', 'extremo'] as const;
 const statusOptions: { value: TripStatus; label: string }[] = [
@@ -40,6 +42,8 @@ export default function TripForm() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
+  const canEditStatus = canChangeTripStatus(user?.role);
   const isEditing = !!id;
   const [loading, setLoading] = useState(isEditing);
   const [saving, setSaving] = useState(false);
@@ -311,10 +315,11 @@ export default function TripForm() {
             </div>
             <div className="form-group">
               <label htmlFor="status" className="label">Situação</label>
-              <select id="status" name="status" className="select" value={formData.status} onChange={handleChange}>
+              <select id="status" name="status" className="select" value={formData.status} onChange={handleChange} disabled={!canEditStatus}>
                 {statusOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
               </select>
               <Hint>“Publicada” aparece no site; “Rascunho” fica só aqui.</Hint>
+              {!canEditStatus && <Hint>Só administradores alteram a situação</Hint>}
             </div>
           </div>
 
@@ -628,15 +633,22 @@ function DeparturesInput({ value, onChange }: { value: Array<{ time: string; pla
     }
   };
 
+  const handleEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAdd();
+    }
+  };
+
   return (
     <div>
       <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 mb-2">
-        <input type="text" className="input" placeholder="Horário (ex: 06h00)" value={newTime} onChange={(e) => setNewTime(e.target.value)} />
-        <input type="text" className="input" placeholder="Local (ex: Shopping)" value={newPlace} onChange={(e) => setNewPlace(e.target.value)} />
-        <input type="text" className="input" placeholder="Cidade" value={newCity} onChange={(e) => setNewCity(e.target.value)} />
-        <input type="url" className="input" placeholder="Link do Google Maps (opcional)" aria-label="Link do Google Maps (opcional)" value={newMapsUrl} onChange={(e) => setNewMapsUrl(e.target.value)} />
+        <input type="text" className="input" placeholder="Horário (ex: 06h00)" value={newTime} onChange={(e) => setNewTime(e.target.value)} onKeyDown={handleEnter} />
+        <input type="text" className="input" placeholder="Local (ex: Shopping)" value={newPlace} onChange={(e) => setNewPlace(e.target.value)} onKeyDown={handleEnter} />
+        <input type="text" className="input" placeholder="Cidade" value={newCity} onChange={(e) => setNewCity(e.target.value)} onKeyDown={handleEnter} />
+        <input type="url" className="input" placeholder="Link do Google Maps (opcional)" aria-label="Link do Google Maps (opcional)" value={newMapsUrl} onChange={(e) => setNewMapsUrl(e.target.value)} onKeyDown={handleEnter} />
         <div className="flex gap-2">
-          <input type="text" className="input flex-1" placeholder="Endereço no Google Maps (opcional)" aria-label="Endereço no Google Maps (opcional)" value={newMapsQuery} onChange={(e) => setNewMapsQuery(e.target.value)} />
+          <input type="text" className="input flex-1" placeholder="Endereço no Google Maps (opcional)" aria-label="Endereço no Google Maps (opcional)" value={newMapsQuery} onChange={(e) => setNewMapsQuery(e.target.value)} onKeyDown={handleEnter} />
           <button type="button" className="btn-primary" onClick={handleAdd}>Adicionar</button>
         </div>
       </div>

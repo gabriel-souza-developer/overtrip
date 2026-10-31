@@ -32,3 +32,19 @@ describe('computeDropdownPosition', () => {
     expect(position.top).toBeLessThan(buttonRect.top);
   });
 });
+
+describe('computeDropdownPosition com margem da borda', () => {
+  it('abre para cima quando abaixo sobraria menos que a margem de borda', () => {
+    // bottom(690) + gap(4) + menu(100) = 794 cabe em 800, mas sem a margem de 8 px encosta na borda.
+    const buttonRect = { top: 658, bottom: 690, left: 600, right: 632 };
+    const position = computeDropdownPosition(buttonRect, viewport, menuWidth, menuHeight);
+    expect(position.top).toBe(buttonRect.top - 4 - menuHeight);
+  });
+
+  it('continua abrindo para baixo quando sobra espaço com a margem de borda', () => {
+    // bottom(680) + gap(4) + menu(100) + padding(8) = 792 <= 800
+    const buttonRect = { top: 648, bottom: 680, left: 600, right: 632 };
+    const position = computeDropdownPosition(buttonRect, viewport, menuWidth, menuHeight);
+    expect(position.top).toBe(684);
+  });
+});
