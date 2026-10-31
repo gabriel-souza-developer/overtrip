@@ -5,6 +5,7 @@ import { useToast } from '../hooks/useToast';
 import { resolveAssetSrc } from '../lib/assetUrl';
 import { isValidImageSrc, IMAGE_SRC_MESSAGE } from '../lib/imageSrc';
 import { isoToLocalInput, localInputToIso } from '../lib/dateInput';
+import { fillMissingAlt } from '../lib/formHelpers';
 
 function PlusIcon({ className }: { className?: string }) {
   return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>;
@@ -192,8 +193,8 @@ export default function Gallery() {
     if (!formData.title?.trim()) { alert('Título é obrigatório'); return false; }
     if (!formData.dateDisplay?.trim()) { alert('Data de exibição é obrigatória'); return false; }
     if (!formData.description?.trim()) { alert('Descrição é obrigatória'); return false; }
-    const validImages = (formData.images || []).filter(img => img.src.trim() && img.alt.trim());
-    if (validImages.length === 0) { alert('Pelo menos uma imagem com URL e alt é obrigatória'); return false; }
+    const validImages = (formData.images || []).filter(img => img.src.trim());
+    if (validImages.length === 0) { alert('Adicione pelo menos uma foto (cole o link dela).'); return false; }
     if (validImages.some(img => !isValidImageSrc(img.src.trim()))) { alert(IMAGE_SRC_MESSAGE); return false; }
     return true;
   };
@@ -209,7 +210,10 @@ export default function Gallery() {
         date: localInputToIso(formData.date)!,
         dateDisplay: formData.dateDisplay!,
         description: formData.description!,
-        images: (formData.images || []).filter(img => img.src.trim() && img.alt.trim()).map(img => ({ ...img, src: img.src.trim() })),
+        images: fillMissingAlt(
+          (formData.images || []).filter(img => img.src.trim()).map(img => ({ ...img, src: img.src.trim() })),
+          formData.title || ''
+        ),
         tripId: formData.tripId || null,
         visitId: formData.visitId || null,
         isFeatured: formData.isFeatured || false,
@@ -467,7 +471,7 @@ export default function Gallery() {
                   <input id="g-date" name="date" type="datetime-local" className="input" value={formData.date} onChange={handleChange} required />
                 </div>
                 <div className="form-group">
-                  <label htmlFor="g-dateDisplay" className="label">Data Exibição *</label>
+                  <label htmlFor="g-dateDisplay" className="label">Data como aparece no site *</label>
                   <input id="g-dateDisplay" name="dateDisplay" className="input" value={formData.dateDisplay} onChange={handleChange} placeholder="Ex: 15 de janeiro de 2026" required />
                 </div>
               </div>
@@ -477,27 +481,34 @@ export default function Gallery() {
                 <textarea id="g-description" name="description" className="input" value={formData.description} onChange={handleChange} rows={4} required />
               </div>
 
-              <fieldset className="space-y-3">
-                <legend className="label">Imagens *</legend>
+              <fieldset className="space-y-2">
+                <legend className="label">Fotos *</legend>
+                <p className="text-xs text-surface-500">Cole o link de cada foto. A descrição é opcional: se ficar vazia, usamos o título da memória.</p>
                 {(formData.images || []).map((img, idx) => (
-                  <div key={idx} className="grid grid-cols-12 gap-2 items-start">
-                    <div className="col-span-12 sm:col-span-5">
-                      <label className="label">URL da Imagem</label>
-                      <input type="text" className="input" value={img.src} onChange={(e) => handleImageChange(idx, 'src', e.target.value)} placeholder="https://exemplo.com/imagem.jpg ou assets/images/pasta/foto.jpg" />
-                    </div>
-                    <div className="col-span-12 sm:col-span-5">
-                      <label className="label">Texto Alternativo (alt)</label>
-                      <input type="text" className="input" value={img.alt} onChange={(e) => handleImageChange(idx, 'alt', e.target.value)} placeholder="Descrição da imagem" />
-                    </div>
-                    <div className="col-span-12 sm:col-span-2 flex items-end">
-                      <button type="button" className="btn-ghost p-2 text-red-600 hover:bg-red-50 w-full" onClick={() => removeImage(idx)} disabled={(formData.images || []).length <= 1} aria-label="Remover imagem">
-                        <TrashIcon className="w-4 h-4" />
-                      </button>
-                    </div>
+                  <div key={idx} className="flex items-center gap-2">
+                    {img.src.trim() ? (
+                      <img src={resolveAssetSrc(img.src.trim())} alt="" className="w-10 h-10 object-cover rounded bg-surface-100 flex-shrink-0" />
+                    ) : (
+                      <div className="w-10 h-10 rounded bg-surface-100 flex-shrink-0" aria-hidden="true" />
+                    )}
+                    <input type="text" className="input flex-1 min-w-0" value={img.src} onChange={(e) => handleImageChange(idx, 'src', e.target.value)} placeholder="Link da foto" aria-label={`Link da foto ${idx + 1}`} />
+                    <button type="button" className="btn-ghost p-2 text-red-600 hover:bg-red-50" onClick={() => removeImage(idx)} disabled={(formData.images || []).length <= 1} aria-label={`Remover foto ${idx + 1}`}>
+                      <TrashIcon className="w-4 h-4" />
+                    </button>
                   </div>
                 ))}
+                {(formData.images || []).some(img => img.src.trim()) && (
+                  <details className="text-sm">
+                    <summary className="cursor-pointer text-surface-600">Descrição das fotos (opcional)</summary>
+                    <div className="mt-2 space-y-2">
+                      {(formData.images || []).map((img, idx) => img.src.trim() ? (
+                        <input key={idx} type="text" className="input" value={img.alt} onChange={(e) => handleImageChange(idx, 'alt', e.target.value)} placeholder={`Descrição da foto ${idx + 1} (opcional)`} aria-label={`Descrição da foto ${idx + 1} (opcional)`} />
+                      ) : null)}
+                    </div>
+                  </details>
+                )}
                 <button type="button" className="btn-secondary" onClick={addImage}>
-                  <PlusIcon className="w-4 h-4" /> Adicionar imagem
+                  <PlusIcon className="w-4 h-4" /> Adicionar foto
                 </button>
               </fieldset>
 
@@ -520,13 +531,13 @@ export default function Gallery() {
 
               <div className="form-row">
                 <div className="form-group">
-                  <label htmlFor="g-orderIndex" className="label">Ordem</label>
+                  <label htmlFor="g-orderIndex" className="label">Posição na galeria</label>
                   <input id="g-orderIndex" name="orderIndex" type="number" min="0" className="input" value={formData.orderIndex ?? 0} onChange={handleChange} />
                 </div>
                 <div className="form-group flex items-end">
                   <label className="checkbox-label">
                     <input name="isFeatured" type="checkbox" className="checkbox-input" checked={formData.isFeatured} onChange={handleChange} />
-                    <span className="text-sm text-surface-700">Destacar na home</span>
+                    <span className="text-sm text-surface-700">Destacar na página inicial</span>
                   </label>
                 </div>
               </div>
