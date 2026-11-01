@@ -34,7 +34,7 @@ export function buildConfig(env: NodeJS.ProcessEnv) {
     nodeEnv,
     jwtSecret,
     jwtExpiresIn: (env.JWT_EXPIRES_IN || '7d') as SignOptions['expiresIn'],
-    corsOrigin: env.CORS_ORIGIN || 'http://localhost:3000',
+    corsOrigin: env.CORS_ORIGIN || 'http://localhost:3100',
   };
 }
 

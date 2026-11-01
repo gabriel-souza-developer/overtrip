@@ -3,6 +3,7 @@ import { Sparkles } from 'lucide-react';
 import { aiApi } from '../api';
 import { buildSuggestionRows, DRAFT_KEYS, type DraftKey, type SuggestionRow, type TripDraft } from '../lib/aiDraft';
 import Button from './Button';
+import { mergeUnique } from '../lib/includesServices';
 
 interface Props {
   form: Record<string, unknown>;
@@ -38,7 +39,11 @@ export default function AiDraftBlock({ form, defaults, onApply }: Props) {
     try {
       const result = await aiApi.tripDraft(text);
       const clean: TripDraft = {};
-      for (const key of DRAFT_KEYS) if (key in result.draft) (clean as Record<string, unknown>)[key] = result.draft[key];
+      for (const key of DRAFT_KEYS) if (key !== 'includedServices' && key in result.draft) (clean as Record<string, unknown>)[key] = result.draft[key];
+      clean.includes = mergeUnique(
+        Array.isArray(result.draft.includes) ? result.draft.includes : [],
+        Array.isArray(result.draft.includedServices) ? result.draft.includedServices : [],
+      );
       const next = buildSuggestionRows(form, clean, defaults);
       setDraft(clean);
       setWarnings(result.warnings || []);

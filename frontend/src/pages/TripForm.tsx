@@ -7,7 +7,9 @@ import { useAuth } from '../App';
 import { CityAutocomplete, UfSelect } from '../components/LocationFields';
 import { nextCityOnRegionChange } from '../lib/locationCombobox';
 import { isValidImageSrc, IMAGE_SRC_MESSAGE } from '../lib/imageSrc';
-import { isoToLocalInput, localInputToIso } from '../lib/dateInput';
+import { isoToLocalInput } from '../lib/dateInput';
+import { fieldsToSchedule, scheduleToFields, type StoredSchedule } from '../lib/tripSchedule';
+import { customItems, hasItem, INCLUDE_PRESETS, mergeUnique, togglePreset } from '../lib/includesServices';
 import { fillMissingAlt, formatBRL, syncPriceDisplay } from '../lib/formHelpers';
 import { canChangeTripStatus } from '../lib/permissions';
 import { applyTripDefaults, countAdvancedFilled, countFilled, formatPriceInput, parsePriceInput, parseWholeNumber, TRIP_STATUS_LABELS, validateTripMinimum } from '../lib/panelHelpers';
@@ -17,7 +19,7 @@ import FormSection from '../components/FormSection';
 import ConfirmDialog from '../components/ConfirmDialog';
 import AiDraftBlock from '../components/AiDraftBlock';
 import { applySuggestions, type DraftKey, type TripDraft } from '../lib/aiDraft';
-import { ArrayInput, DeparturesInput, MediaInput } from '../components/TripFormInputs';
+import { ArrayInput, DeparturesInput, MediaInput, VisitPlacePicker } from '../components/TripFormInputs';
 
 const intensityOptions = ['leve', 'moderado', 'intenso', 'extremo'] as const;
 
@@ -42,7 +44,7 @@ type FormState = Omit<AllRequired, 'priceValue' | 'spotsLeft'> & { priceValue: n
 
 const emptyForm = (): FormState => ({
   title: '', headlineDisplay: '', category: '', description: '', city: '', region: '',
-  startDateISO: isoToLocalInput(new Date().toISOString()), endDateISO: '',
+  startDateISO: isoToLocalInput(new Date().toISOString()).slice(0, 10), endDateISO: '',
   departureTime: '', departureTolerance: '', returnTime: '', scheduleInfo: '', scheduleTBD: false,
   priceValue: null, priceDisplay: '', priceUnit: 'por pessoa', free: false,
   intensityClass: 'moderado', spotsLeft: null, trailDistance: '', supportPoint: '', supportPointInfo: '',
@@ -66,7 +68,7 @@ export default function TripForm() {
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [priceText, setPriceText] = useState('');
   // Datas como vieram da API: se a pessoa não mexe na data, o valor guardado não muda.
-  const originalDates = useRef<{ start: string | null; end: string | null }>({ start: null, end: null });
+  const originalSchedule = useRef<StoredSchedule>({ startDateISO: null, departureTime: null, endDateISO: null, returnTime: null });
   const initialRef = useRef(JSON.stringify(formData));
   const summaryRef = useRef<HTMLDivElement>(null);
 
@@ -79,10 +81,18 @@ export default function TripForm() {
       next.priceDisplay = syncPriceDisplay(formData.priceValue, next.priceValue, formData.priceDisplay || '');
       setPriceText(formatPriceInput(next.priceValue));
     }
-    // Datas vêm como AAAA-MM-DDT00:00:00.000Z; o campo do painel usa horário local.
-    for (const k of ['startDateISO', 'endDateISO'] as const) {
-      if (next[k] !== formData[k]) next[k] = isoToLocalInput(next[k]);
-    }
+    const schedule = scheduleToFields({
+      startDateISO: String(next.startDateISO ?? ''),
+      departureTime: String(next.departureTime ?? ''),
+      endDateISO: String(next.endDateISO ?? ''),
+      returnTime: String(next.returnTime ?? ''),
+    });
+    next.startDateISO = schedule.startDate;
+    next.departureTime = schedule.startTime;
+    next.endDateISO = schedule.endDate;
+    next.returnTime = schedule.endTime;
+    next.includes = mergeUnique(next.includes, next.includedServices);
+    next.includedServices = [];
     setFormData(next);
     toast.success('Campos preenchidos. Revise e clique em Salvar.');
   };
@@ -100,6 +110,7 @@ export default function TripForm() {
   const loadTrip = async () => {
     try {
       const trip = await tripApi.get(id!);
+      const schedule = scheduleToFields({ startDateISO: trip.startDateISO, departureTime: trip.departureTime, endDateISO: trip.endDateISO, returnTime: trip.returnTime });
       const loaded: FormState = {
         title: trip.title,
         headlineDisplay: trip.headlineDisplay || '',
@@ -107,11 +118,11 @@ export default function TripForm() {
         description: trip.description,
         city: trip.city,
         region: trip.region,
-        startDateISO: isoToLocalInput(trip.startDateISO),
-        endDateISO: isoToLocalInput(trip.endDateISO),
-        departureTime: trip.departureTime || '',
+        startDateISO: schedule.startDate,
+        departureTime: schedule.startTime,
+        endDateISO: schedule.endDate,
+        returnTime: schedule.endTime,
         departureTolerance: trip.departureTolerance || '',
-        returnTime: trip.returnTime || '',
         scheduleInfo: trip.scheduleInfo || '',
         scheduleTBD: trip.scheduleTBD,
         priceValue: trip.priceValue,
@@ -127,9 +138,9 @@ export default function TripForm() {
         meetingPoint: trip.meetingPoint || '',
         meetingDetails: trip.meetingDetails || '',
         meetingMapsQuery: trip.meetingMapsQuery || '',
-        includes: trip.includes,
+        includes: mergeUnique(trip.includes, trip.includedServices || []),
         includesHighlight: trip.includesHighlight || '',
-        includedServices: trip.includedServices || [],
+        includedServices: [],
         itinerary: trip.itinerary || [],
         routeNotes: trip.routeNotes || [],
         importantInfo: trip.importantInfo || [],
@@ -148,7 +159,7 @@ export default function TripForm() {
         })) || [],
       };
       initialRef.current = JSON.stringify(loaded);
-      originalDates.current = { start: trip.startDateISO, end: trip.endDateISO };
+      originalSchedule.current = { startDateISO: trip.startDateISO, departureTime: trip.departureTime, endDateISO: trip.endDateISO, returnTime: trip.returnTime };
       setPriceText(formatPriceInput(loaded.priceValue));
       setFormData(loaded);
     } catch (err) {
@@ -213,12 +224,19 @@ export default function TripForm() {
     setSaving(true);
     try {
       const withDefaults = applyTripDefaults(formData);
+      const schedule = fieldsToSchedule({
+        startDate: formData.startDateISO,
+        startTime: formData.departureTime,
+        endDate: formData.endDateISO,
+        endTime: formData.returnTime,
+      }, originalSchedule.current);
       const payload = {
         ...withDefaults,
         media: fillMissingAlt(formData.media, formData.title).map(m => ({ ...m, focus: m.focus?.trim() || undefined })),
         priceDisplay: formData.priceDisplay || (formData.priceValue && formData.priceValue > 0 && !formData.free ? formatBRL(formData.priceValue) : ''),
-        startDateISO: localInputToIso(formData.startDateISO, originalDates.current.start)!,
-        endDateISO: localInputToIso(formData.endDateISO, originalDates.current.end),
+        ...schedule,
+        startDateISO: schedule.startDateISO!,
+        includedServices: [],
       };
       if (isEditing) {
         await tripApi.update(id!, payload);
@@ -314,11 +332,21 @@ export default function TripForm() {
               />
             </Field>
           </div>
+          <VisitPlacePicker onSelect={(place) => {
+            setFormData(prev => ({ ...prev, city: place.city, region: place.region }));
+            clearError('city');
+            clearError('region');
+          }} />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field id="startDateISO" label="Data e hora de saída" required error={err('startDateISO')}>
-              <input id="startDateISO" name="startDateISO" type="datetime-local" className={`input ${invalid('startDateISO')}`} value={f.startDateISO} onChange={handleChange} aria-invalid={!!errors.startDateISO} />
+            <Field id="startDateISO" label="Data de saída" required error={err('startDateISO')}>
+              <input id="startDateISO" name="startDateISO" type="date" className={`input ${invalid('startDateISO')}`} value={f.startDateISO} onChange={handleChange} aria-invalid={!!errors.startDateISO} />
             </Field>
+            <Field id="departureTime" label="Horário de saída">
+              <input id="departureTime" name="departureTime" type="time" className="input" value={f.departureTime} onChange={handleChange} />
+            </Field>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Field id="priceValue" label="Valor (R$)" error={err('priceValue')} hint={f.free ? 'Viagem gratuita: sem valor.' : 'Ex.: 109,99 ou 1.250,00'}>
                 <input id="priceValue" name="priceValue" type="text" inputMode="decimal" className={`input ${invalid('priceValue')}`} value={priceText} onChange={handlePriceChange} placeholder="109,99" disabled={f.free} aria-invalid={!!errors.priceValue} autoComplete="off" />
@@ -370,8 +398,26 @@ export default function TripForm() {
               <input id="spotsLeft" name="spotsLeft" type="text" inputMode="numeric" pattern="[0-9]*" className="input" value={f.spotsLeft ?? ''} onChange={(e) => setFormData(prev => ({ ...prev, spotsLeft: parseWholeNumber(e.target.value) }))} autoComplete="off" />
             </Field>
           </div>
-          <Field id="includes-input" label="O que inclui">
-            <ArrayInput id="includes-input" value={f.includes} onChange={(val) => setList('includes', val)} placeholder="Ex.: Transporte, Guia, Almoço" />
+          <Field id="includes-custom-input" label="O que inclui">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3" role="group" aria-label="Serviços padrão incluídos">
+              {INCLUDE_PRESETS.map((item) => (
+                <label key={item} className="checkbox-label min-h-[40px] rounded-lg border border-surface-200 px-3">
+                  <input
+                    type="checkbox"
+                    className="checkbox-input"
+                    checked={hasItem(f.includes, item)}
+                    onChange={() => setList('includes', togglePreset(f.includes, item))}
+                  />
+                  <span className="text-sm text-surface-800">{item}</span>
+                </label>
+              ))}
+            </div>
+            <ArrayInput
+              id="includes-custom-input"
+              value={customItems(f.includes)}
+              onChange={(items) => setList('includes', mergeUnique(INCLUDE_PRESETS.filter(item => hasItem(f.includes, item)), items))}
+              placeholder="Ex.: Banho de rio, almoço"
+            />
           </Field>
         </FormSection>
 
@@ -383,14 +429,11 @@ export default function TripForm() {
             <Field id="meetingPoint" label="Local de embarque">
               <input id="meetingPoint" name="meetingPoint" className="input" value={f.meetingPoint} onChange={handleChange} />
             </Field>
-            <Field id="departureTime" label="Horário de saída" hint="Se ficar vazio, o site usa a hora da data de saída.">
-              <input id="departureTime" name="departureTime" className="input" value={f.departureTime} onChange={handleChange} placeholder="06h00" />
-            </Field>
-            <Field id="endDateISO" label="Data e hora de volta">
-              <input id="endDateISO" name="endDateISO" type="datetime-local" className="input" value={f.endDateISO} onChange={handleChange} />
+            <Field id="endDateISO" label="Data de volta">
+              <input id="endDateISO" name="endDateISO" type="date" className="input" value={f.endDateISO} onChange={handleChange} />
             </Field>
             <Field id="returnTime" label="Horário de volta">
-              <input id="returnTime" name="returnTime" className="input" value={f.returnTime} onChange={handleChange} placeholder="18h00" />
+              <input id="returnTime" name="returnTime" type="time" className="input" value={f.returnTime} onChange={handleChange} />
             </Field>
           </div>
         </FormSection>
@@ -424,12 +467,41 @@ export default function TripForm() {
             <Field id="buttonLabel" label="Texto do botão" hint="Padrão: Quero viajar.">
               <input id="buttonLabel" name="buttonLabel" className="input" value={f.buttonLabel} onChange={handleChange} />
             </Field>
-            <Field id="buttonClass" label="Cor do botão">
-              <select id="buttonClass" name="buttonClass" className="select" value={f.buttonClass} onChange={handleChange}>
-                {buttonStyleOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                {!buttonStyleOptions.some(o => o.value === f.buttonClass) && <option value={f.buttonClass}>Personalizada ({f.buttonClass})</option>}
-              </select>
-            </Field>
+            <fieldset className="space-y-2">
+              <legend className="label">Cor do botão</legend>
+              <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Cor do botão">
+                {buttonStyleOptions.map(opt => {
+                  const selected = f.buttonClass === opt.value;
+                  const sample = opt.value === 'button-dark'
+                    ? 'bg-surface-900 text-white'
+                    : opt.value === 'button-rust'
+                      ? 'bg-primary-500 text-surface-900'
+                      : opt.value === 'button-light'
+                        ? 'bg-white text-surface-900 border border-surface-300'
+                        : 'bg-transparent text-white border border-white';
+                  return (
+                    <label
+                      key={opt.value}
+                      className={`cursor-pointer rounded-lg border p-2 text-left focus-within:outline-none focus-within:ring-2 focus-within:ring-primary-600 ${selected ? 'border-primary-600 ring-2 ring-primary-600' : 'border-surface-200'}`}
+                    >
+                      <input
+                        type="radio"
+                        name="buttonClass"
+                        value={opt.value}
+                        checked={selected}
+                        onChange={() => setFormData(prev => ({ ...prev, buttonClass: opt.value }))}
+                        className="sr-only"
+                      />
+                      <span className={`flex min-h-12 items-center justify-center rounded-md ${opt.value === 'button-light' || opt.value === 'button-outline' ? 'bg-surface-800' : 'bg-white'}`}>
+                        <span className={`rounded-md px-3 py-1 text-xs font-semibold ${sample}`}>Quero viajar</span>
+                      </span>
+                      <span className="mt-1 block text-sm text-surface-800">{opt.label}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              {!buttonStyleOptions.some(o => o.value === f.buttonClass) && <p className="hint">Estilo personalizado atual: {f.buttonClass}</p>}
+            </fieldset>
           </div>
           <Field id="scheduleInfo" label="Horário em texto livre" hint="Se preenchido, aparece no card no lugar de saída e volta.">
             <input id="scheduleInfo" name="scheduleInfo" className="input" value={f.scheduleInfo} onChange={handleChange} placeholder="06h às 18h" />
@@ -449,9 +521,6 @@ export default function TripForm() {
           </Field>
           <Field id="includesHighlight" label="Frase de destaque do que inclui">
             <input id="includesHighlight" name="includesHighlight" className="input" value={f.includesHighlight} onChange={handleChange} placeholder="Transporte incluso saindo de João Pessoa" />
-          </Field>
-          <Field id="included-services-input" label="Serviços incluídos">
-            <ArrayInput id="included-services-input" value={f.includedServices} onChange={(val) => setList('includedServices', val)} placeholder="Ex.: Seguro viagem, Kit lanche" />
           </Field>
           <Field id="meetingDetails" label="Detalhes do embarque">
             <textarea id="meetingDetails" name="meetingDetails" className="input" value={f.meetingDetails} onChange={handleChange} rows={2} />
