@@ -15,6 +15,8 @@ import Button from '../components/Button';
 import Field from '../components/Field';
 import FormSection from '../components/FormSection';
 import ConfirmDialog from '../components/ConfirmDialog';
+import AiDraftBlock from '../components/AiDraftBlock';
+import { applySuggestions, type DraftKey, type TripDraft } from '../lib/aiDraft';
 import { ArrayInput, DeparturesInput, MediaInput } from '../components/TripFormInputs';
 
 const intensityOptions = ['leve', 'moderado', 'intenso', 'extremo'] as const;
@@ -67,6 +69,23 @@ export default function TripForm() {
   const originalDates = useRef<{ start: string | null; end: string | null }>({ start: null, end: null });
   const initialRef = useRef(JSON.stringify(formData));
   const summaryRef = useRef<HTMLDivElement>(null);
+
+  // Valores do formulário novo: contam como "vazio" para a IA não pedir confirmação à toa.
+  const defaultsRef = useRef<Record<string, unknown>>(isEditing ? {} : { ...emptyForm() });
+
+  const applyAiDraft = (draft: TripDraft, chosen: DraftKey[], overwrite: DraftKey[]) => {
+    const next = applySuggestions(formData as Record<string, unknown>, draft, chosen, overwrite, defaultsRef.current) as FormState;
+    if (next.priceValue !== formData.priceValue) {
+      next.priceDisplay = syncPriceDisplay(formData.priceValue, next.priceValue, formData.priceDisplay || '');
+      setPriceText(formatPriceInput(next.priceValue));
+    }
+    // Datas vêm como AAAA-MM-DDT00:00:00.000Z; o campo do painel usa horário local.
+    for (const k of ['startDateISO', 'endDateISO'] as const) {
+      if (next[k] !== formData[k]) next[k] = isoToLocalInput(next[k]);
+    }
+    setFormData(next);
+    toast.success('Campos preenchidos. Revise e clique em Salvar.');
+  };
 
   const dirty = JSON.stringify(formData) !== initialRef.current;
 
@@ -244,6 +263,8 @@ export default function TripForm() {
           <p className="page-description">{isEditing ? 'Mude o que precisar e salve.' : 'Preencha o básico. O resto é opcional e pode ficar para depois.'}</p>
         </div>
       </div>
+
+      <AiDraftBlock form={formData as Record<string, unknown>} defaults={defaultsRef.current} onApply={applyAiDraft} />
 
       <form id="trip-form" onSubmit={handleSubmit} noValidate className="space-y-4">
         {errorKeys.length > 0 && (

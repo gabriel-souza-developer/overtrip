@@ -7,6 +7,7 @@ import tripRoutes from './routes/tripRoutes.js';
 import visitRoutes from './routes/visitRoutes.js';
 import galleryRoutes from './routes/galleryRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
+import aiRoutes from './routes/aiRoutes.js';
 import publicRoutes from './routes/publicRoutes.js';
 
 const app = express();
@@ -33,6 +34,7 @@ app.use('/api/trips', tripRoutes);
 app.use('/api/visits', visitRoutes);
 app.use('/api/gallery', galleryRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/ai', aiRoutes);
 
 // 404 handler
 app.use((_req, res) => {

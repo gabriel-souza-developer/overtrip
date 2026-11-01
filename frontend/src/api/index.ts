@@ -70,6 +70,16 @@ export const tripApi = {
   unpublish: (id: string) => request<Trip>(`/trips/${id}/unpublish`, { method: 'POST' }),
 };
 
+export const aiApi = {
+  status: () => request<{ enabled: boolean }>('/ai/status'),
+
+  tripDraft: (text: string) =>
+    request<{ draft: Record<string, string | number | boolean | string[]>; warnings: string[] }>(
+      '/ai/trip-draft',
+      { method: 'POST', body: JSON.stringify({ text }) }
+    ),
+};
+
 export const visitApi = {
   list: (params?: Record<string, string | number | boolean>) => {
     const searchParams = new URLSearchParams();

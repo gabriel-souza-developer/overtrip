@@ -4,11 +4,14 @@ interface RateLimiterOptions {
   windowMs: number;
   max: number;
   now?: () => number;
+  message?: string;
+  /** Chave de contagem; padrão: IP. */
+  keyOf?: (req: Request) => string;
 }
 
 const SWEEP_THRESHOLD = 1000;
 
-export const createRateLimiter = ({ windowMs, max, now = Date.now }: RateLimiterOptions) => {
+export const createRateLimiter = ({ windowMs, max, now = Date.now, message = 'Muitas tentativas. Tente novamente mais tarde.', keyOf }: RateLimiterOptions) => {
   const hits = new Map<string, { count: number; resetAt: number }>();
 
   return (req: Request, res: Response, next: NextFunction): void => {
@@ -20,7 +23,7 @@ export const createRateLimiter = ({ windowMs, max, now = Date.now }: RateLimiter
       }
     }
 
-    const key = req.ip ?? 'unknown';
+    const key = keyOf ? keyOf(req) : (req.ip ?? 'unknown');
     let entry = hits.get(key);
     if (!entry || entry.resetAt <= current) {
       entry = { count: 0, resetAt: current + windowMs };
@@ -30,7 +33,7 @@ export const createRateLimiter = ({ windowMs, max, now = Date.now }: RateLimiter
 
     if (entry.count > max) {
       res.setHeader('Retry-After', String(Math.ceil((entry.resetAt - current) / 1000)));
-      res.status(429).json({ error: 'Muitas tentativas. Tente novamente mais tarde.' });
+      res.status(429).json({ error: message });
       return;
     }
 
