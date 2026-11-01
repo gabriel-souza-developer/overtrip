@@ -6,9 +6,9 @@ Este documento cobre só o site público. O painel administrativo (`frontend/`),
 
 O site público da **OVERTRIP** é uma página estática de agência de ecoturismo e aventura construída com HTML5, CSS3 puro e JavaScript modular (ES modules). Ele prioriza performance, acessibilidade e experiência do usuário com uma abordagem de **content-driven design**.
 
-- **Modelo:** Site estático (hosting em servidor Apache, independente da API do painel)
+- **Modelo:** Site estático em Apache; lê as viagens publicadas da API do painel
 - **Stack:** HTML + CSS + Vanilla JS
-- **Renderização:** Client-side com dados de `trips.json`
+- **Renderização:** Client-side com dados de `GET /api/public/trips`; se a API falhar em 3 s, usa `trips.json`
 - **Deploy:** Apache com HTTPS, headers de segurança e cache inteligente
 
 ---

@@ -14,7 +14,6 @@
     "prisma:studio": "prisma studio",
     "prisma:seed": "tsx prisma/seed.ts",
     "import:data": "tsx scripts/import-data.ts",
-    "generate:json": "tsx scripts/generate-json-cli.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },
