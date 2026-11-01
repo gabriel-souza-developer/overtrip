@@ -17,4 +17,12 @@ describe('campo Situação em TripForm.tsx', () => {
     expect(tripForm).toContain('disabled={!canEditStatus}');
     expect(tripForm).toContain('Só administradores alteram a situação');
   });
+
+  it('fica em "O básico", logo depois do valor, e não em "Ajustes do site"', () => {
+    const status = tripForm.indexOf('id="status"');
+    expect(status).toBeGreaterThan(tripForm.indexOf('id="priceValue"'));
+    expect(status).toBeLessThan(tripForm.indexOf('<FormSection title="Sobre a viagem"'));
+    const adv = tripForm.indexOf('<FormSection title="Ajustes do site');
+    expect(tripForm.slice(adv)).not.toContain('id="status"');
+  });
 });

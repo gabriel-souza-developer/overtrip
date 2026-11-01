@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { visitToEditForm } from '../frontend/src/lib/visitForm';
+import { visitToEditForm, reviewAfterSave } from '../frontend/src/lib/visitForm';
 import { isoToLocalInput } from '../frontend/src/lib/dateInput';
 
 const visit = {
@@ -35,11 +35,24 @@ describe('visitToEditForm', () => {
     expect(form.description).toBe('');
     expect(form.notes).toBe('');
     expect(form.lat).toBe(-7.1);
-    expect(form.needsReview).toBe(true);
   });
 
   it('inclui a viagem associada, ou vazio quando não há', () => {
     expect(visitToEditForm({ ...visit }).tripId).toBe('t1');
     expect(visitToEditForm({ ...visit, tripId: null }).tripId).toBe('');
+  });
+});
+
+describe('reviewAfterSave', () => {
+  it('"Salvar e marcar como revisado" grava false, venha de onde vier', () => {
+    expect(reviewAfterSave(true, true)).toBe(false);
+    expect(reviewAfterSave(false, true)).toBe(false);
+  });
+  it('"Salvar" mantém a situação atual (pendente continua pendente, revisado continua revisado)', () => {
+    expect(reviewAfterSave(true, false)).toBe(true);
+    expect(reviewAfterSave(false, false)).toBe(false);
+  });
+  it('o formulário de edição não carrega mais a situação de revisão', () => {
+    expect('needsReview' in visitToEditForm({ ...visit })).toBe(false);
   });
 });

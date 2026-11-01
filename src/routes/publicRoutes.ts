@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import cors from 'cors';
 import { publicTripsService } from '../services/publicTrips.js';
+import { publicSiteService } from '../services/publicSite.js';
 
 const router = Router();
 
@@ -12,6 +13,27 @@ router.get('/trips', async (_req, res, next) => {
     const trips = await publicTripsService.list();
     res.set('Cache-Control', 'no-cache');
     res.json(trips);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/gallery', async (_req, res, next) => {
+  try {
+    const entries = await publicSiteService.gallery();
+    res.set('Cache-Control', 'no-cache');
+    res.json(entries);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Só destinos revisados e com coordenadas.
+router.get('/destinations', async (_req, res, next) => {
+  try {
+    const destinations = await publicSiteService.destinations();
+    res.set('Cache-Control', 'no-cache');
+    res.json(destinations);
   } catch (error) {
     next(error);
   }

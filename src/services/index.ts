@@ -461,7 +461,8 @@ export const visitService = {
       where: { id: visitId },
       data: { 
         tripId,
-        needsReview: !tripId, // If associating, no longer needs review for association
+        // Ligar a uma viagem conta como revisão; desligar NÃO devolve o destino para a fila de revisão.
+        ...(tripId ? { needsReview: false } : {}),
         titleSearch: currentVisit ? normalizeForSearch(currentVisit.title) : undefined,
         citySearch: currentVisit ? normalizeForSearch(currentVisit.city) : undefined,
         regionSearch: currentVisit ? normalizeForSearchRegion(currentVisit.region) : undefined,

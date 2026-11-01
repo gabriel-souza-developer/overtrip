@@ -6,9 +6,9 @@ import { useAuth } from '../App';
 
 const navItems = [
   { path: '/dashboard', label: 'Início', icon: Home },
-  { path: '/trips', label: 'Viagens', icon: Plane },
-  { path: '/visits', label: 'Visitas', icon: MapPin },
-  { path: '/gallery', label: 'Galeria', icon: ImageIcon },
+  { path: '/trips', label: 'Próxima trip', icon: Plane },
+  { path: '/visits', label: 'Destinos visitados', icon: MapPin },
+  { path: '/gallery', label: 'Galeria de memórias', icon: ImageIcon },
 ];
 
 export default function Layout() {

@@ -69,6 +69,23 @@ export function countFilled(values: unknown[]): number {
   }).length;
 }
 
+/** Quantos campos da seção "Ajustes do site" estão diferentes do valor automático (padrões não contam). */
+export function countAdvancedFilled(f: {
+  headlineDisplay: string; priceDisplay: string; priceUnit: string; departureTolerance: string;
+  buttonLabel: string; buttonClass: string; scheduleInfo: string; scheduleTBD: boolean;
+  trailDistance: string; supportPoint: string; supportPointInfo: string; includesHighlight: string;
+  includedServices: unknown[]; meetingDetails: string; meetingMapsQuery: string; departures: unknown[];
+}): number {
+  return countFilled([
+    f.headlineDisplay, f.priceDisplay, f.departureTolerance, f.scheduleInfo, f.scheduleTBD,
+    f.trailDistance, f.supportPoint, f.supportPointInfo, f.includesHighlight, f.includedServices,
+    f.meetingDetails, f.meetingMapsQuery, f.departures,
+    f.priceUnit !== 'por pessoa' ? f.priceUnit : '',
+    f.buttonLabel !== 'Quero viajar' ? f.buttonLabel : '',
+    f.buttonClass !== 'button-dark' ? f.buttonClass : '',
+  ]);
+}
+
 export const DEFAULT_TRIP_CATEGORY = 'Viagem';
 
 interface TripLike {

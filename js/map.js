@@ -361,21 +361,25 @@ const buildSidebarItemHTML = (entry, index) => `
 
 // "+N expedições já rolaram" na stats-bar — conta cada visita individual
 // (repetir um lugar em datas diferentes também conta).
-const updateTripsCountStat = () => {
+const updateTripsCountStat = (count = VISITED_PLACES.length) => {
   const statEl = document.querySelector("#stat-trips-count");
 
   if (!statEl) {
     return;
   }
 
-  statEl.textContent = `+${VISITED_PLACES.length}`;
+  statEl.textContent = `+${count}`;
 };
 
 /* ==========================================================================
    INICIALIZAÇÃO DO MAPA
    ========================================================================== */
 
-const initVisitedMap = () => {
+// Mapa atual (a segunda montagem, com os destinos do painel, substitui a primeira).
+let activeMap = null;
+let mapClickBound = false;
+
+const initVisitedMap = (destinations = getUniqueDestinations()) => {
   const container = document.querySelector("#visited-map");
   const sidebarList = document.querySelector("#map-destinations-list");
 
@@ -397,7 +401,6 @@ const initVisitedMap = () => {
     return;
   }
 
-  const destinations = getUniqueDestinations();
   updateDestinationsCountBadge(destinations.length);
 
   // Bases primeiro (topo da lista/mapa), depois os destinos únicos.
@@ -406,9 +409,14 @@ const initVisitedMap = () => {
     ...destinations,
   ];
 
+  if (activeMap) {
+    activeMap.remove();
+  }
+
   const map = L.map(container, {
     scrollWheelZoom: false,
   });
+  activeMap = map;
 
   // Tiles públicas da OpenStreetMap — sem chave de API. (A CARTO, usada
   // antes, passou a exigir cadastro/chave para o estilo "Voyager".)
@@ -480,14 +488,39 @@ const initVisitedMap = () => {
 
   // O scroll da página não fica "preso" pelo zoom do mapa — só ativa o zoom
   // por scroll depois que a pessoa clica dentro do mapa de propósito.
-  container.addEventListener("click", () => {
-    map.scrollWheelZoom.enable();
-  });
+  if (!mapClickBound) {
+    mapClickBound = true;
+    container.addEventListener("click", () => {
+      activeMap?.scrollWheelZoom.enable();
+    });
+  }
+};
+
+// Destinos revisados no painel (API pública, 3 s de limite). O mapa já foi
+// montado com a lista fixa acima, então a API nunca atrasa o primeiro desenho.
+// Na mesma coordenada o dado da API prevalece; nada some até ser revisado.
+// Sem API (ou sem nada novo), segue a lista fixa e só avisa no console.
+const mergeApiDestinations = async () => {
+  try {
+    const data = await import("./publicData.js");
+    const fromApi = await data.loadApiDestinations(fetch.bind(globalThis));
+
+    if (!fromApi || fromApi.length === 0) {
+      return;
+    }
+
+    const merged = data.mergeDestinations(VISITED_PLACES, fromApi);
+    updateTripsCountStat(merged.reduce((total, destination) => total + destination.visits.length, 0));
+    initVisitedMap(merged);
+  } catch (error) {
+    console.warn("[OVERTRIP] Não foi possível juntar os destinos do painel; usando a lista fixa do site.", error);
+  }
 };
 
 const initPage = () => {
   updateTripsCountStat();
   initVisitedMap();
+  mergeApiDestinations();
 };
 
 if (document.readyState === "loading") {

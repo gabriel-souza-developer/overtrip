@@ -83,7 +83,7 @@ export default function Gallery() {
       setEntries(data.data);
       setPagination(data.pagination);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Não foi possível carregar a galeria.');
+      setError(err instanceof Error ? err.message : 'Não foi possível carregar a galeria de memórias.');
     } finally {
       setLoading(false);
     }
@@ -229,7 +229,7 @@ export default function Gallery() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Galeria"
+        title="Galeria de memórias"
         description="Memórias com fotos que aparecem no site"
         actions={
           <>
@@ -270,13 +270,13 @@ export default function Gallery() {
         )}
 
         {loading && entries.length === 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" aria-label="Carregando galeria">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" aria-label="Carregando galeria de memórias">
             {[1, 2, 3].map((i) => <div key={i} className="loading-skeleton aspect-video w-full" />)}
           </div>
         ) : entries.length === 0 && !error ? (
           <EmptyState
             icon={<Images className="w-6 h-6" />}
-            title={hasFilters ? 'Nenhuma memória encontrada' : 'A galeria está vazia'}
+            title={hasFilters ? 'Nenhuma memória encontrada' : 'A galeria de memórias está vazia'}
             text={hasFilters ? 'Tente outra busca ou limpe os filtros.' : 'Uma memória precisa só de título, data e uma foto.'}
             action={hasFilters ? <Button onClick={list.clear}>Limpar filtros</Button> : <Button variant="primary" icon={<Plus className="w-4 h-4" aria-hidden="true" />} onClick={openCreate}>Criar a primeira memória</Button>}
           />
@@ -387,7 +387,7 @@ export default function Gallery() {
             </div>
           </FormSection>
 
-          <FormSection title="Ligações e destaque" summary="Viagem, visita e posição" filled={countFilled([form.tripId, form.visitId, form.isFeatured])}>
+          <FormSection title="Ligações e destaque" summary="Viagem, destino e posição" filled={countFilled([form.tripId, form.visitId, form.isFeatured])}>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field id="g-tripId" label="Viagem">
                 <select id="g-tripId" className="select" value={form.tripId} onChange={(e) => patch({ tripId: e.target.value })}>
@@ -396,11 +396,11 @@ export default function Gallery() {
                   {form.tripId && !trips.some((t) => t.id === form.tripId) && <option value={form.tripId}>{editingEntry?.trip?.title ?? 'Viagem ligada'}</option>}
                 </select>
               </Field>
-              <Field id="g-visitId" label="Visita">
+              <Field id="g-visitId" label="Destino visitado">
                 <select id="g-visitId" className="select" value={form.visitId} onChange={(e) => patch({ visitId: e.target.value })}>
-                  <option value="">Sem visita</option>
+                  <option value="">Sem destino</option>
                   {visits.map((v) => <option key={v.id} value={v.id}>{v.title}</option>)}
-                  {form.visitId && !visits.some((v) => v.id === form.visitId) && <option value={form.visitId}>{editingEntry?.visit?.title ?? 'Visita ligada'}</option>}
+                  {form.visitId && !visits.some((v) => v.id === form.visitId) && <option value={form.visitId}>{editingEntry?.visit?.title ?? 'Destino ligado'}</option>}
                 </select>
               </Field>
               <Field id="g-orderIndex" label="Posição na galeria" hint="Número menor aparece primeiro.">

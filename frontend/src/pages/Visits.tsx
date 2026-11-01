@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { AlertTriangle, CheckCircle2, Link2, Link2Off, MapPin, Pencil, Trash2 } from 'lucide-react';
 import { visitApi, tripApi, Visit, Trip, Pagination as PaginationInfo } from '../api';
 import { formatDateBR, localInputToIso } from '../lib/dateInput';
-import { visitToEditForm, VisitEditForm } from '../lib/visitForm';
+import { visitToEditForm, reviewAfterSave, VisitEditForm } from '../lib/visitForm';
 import { tripStatusLabel, countFilled } from '../lib/panelHelpers';
 import { useToast } from '../hooks/useToast';
 import { useListParams } from '../hooks/useListParams';
@@ -65,7 +65,7 @@ export default function Visits() {
       setVisits(data.data);
       setPagination(data.pagination);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Não foi possível carregar as visitas.');
+      setError(err instanceof Error ? err.message : 'Não foi possível carregar os destinos visitados.');
     } finally {
       setLoading(false);
     }
@@ -94,8 +94,7 @@ export default function Visits() {
 
   const patch = (changes: Partial<VisitEditForm>) => setEditForm((prev) => (prev ? { ...prev, ...changes } : prev));
 
-  const saveEdit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const saveEdit = async (markReviewed: boolean) => {
     if (!editing || !editForm) return;
     if (!editForm.title.trim() || !editForm.region.trim() || !editForm.city.trim()) {
       setFormError('Preencha o nome, o estado e a cidade.');
@@ -112,17 +111,17 @@ export default function Visits() {
         lat: editForm.lat,
         lng: editForm.lng,
         notes: editForm.notes.trim() ? editForm.notes : null,
-        needsReview: editForm.needsReview,
+        needsReview: reviewAfterSave(editing.needsReview, markReviewed),
         date: localInputToIso(editForm.date, editing.date),
         // A API só aceita um código de viagem ou nada; texto vazio vira "nada".
         tripId: editForm.tripId || null,
       });
-      toast.success('Visita salva.');
+      toast.success('Destino salvo.');
       setEditing(null);
       setEditForm(null);
       await loadVisits();
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : 'Não foi possível salvar a visita.');
+      setFormError(err instanceof Error ? err.message : 'Não foi possível salvar o destino.');
     } finally {
       setSaving(false);
     }
@@ -132,10 +131,23 @@ export default function Visits() {
     setBusyId(visit.id);
     try {
       await visitApi.update(visit.id, { needsReview: false });
-      toast.success(`“${visit.title}” marcada como revisada.`);
+      toast.success(`“${visit.title}” marcado como revisado.`);
       await loadVisits();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Não foi possível marcar como revisada.');
+      toast.error(err instanceof Error ? err.message : 'Não foi possível marcar como revisado.');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const sendBackToReview = async (visit: Visit) => {
+    setBusyId(visit.id);
+    try {
+      await visitApi.update(visit.id, { needsReview: true });
+      toast.success(`“${visit.title}” voltou para revisão.`);
+      await loadVisits();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Não foi possível voltar o destino para revisão.');
     } finally {
       setBusyId(null);
     }
@@ -151,11 +163,11 @@ export default function Visits() {
     setSaving(true);
     try {
       await visitApi.associate(associating.id, associateTripId || null);
-      toast.success(associateTripId ? 'Visita ligada à viagem.' : 'Visita desligada da viagem.');
+      toast.success(associateTripId ? 'Destino ligado à viagem.' : 'Destino desligado da viagem.');
       setAssociating(null);
       await loadVisits();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Não foi possível ligar a visita à viagem.');
+      toast.error(err instanceof Error ? err.message : 'Não foi possível ligar o destino à viagem.');
     } finally {
       setSaving(false);
     }
@@ -166,12 +178,12 @@ export default function Visits() {
     setBusyId(toDelete.id);
     try {
       await visitApi.delete(toDelete.id);
-      toast.success('Visita excluída.');
+      toast.success('Destino excluído.');
       setToDelete(null);
       if (visits.length === 1 && page > 1) list.setPage(page - 1);
       else await loadVisits();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Não foi possível excluir a visita.');
+      toast.error(err instanceof Error ? err.message : 'Não foi possível excluir o destino.');
     } finally {
       setBusyId(null);
     }
@@ -181,10 +193,10 @@ export default function Visits() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Visitas" description="Lugares visitados. Confira os dados e ligue cada visita à viagem certa." />
+      <PageHeader title="Destinos visitados" description="Lugares visitados. Confira os dados e ligue cada destino à viagem certa." />
 
       <FilterBar
-        searchLabel="Buscar visitas"
+        searchLabel="Buscar destinos"
         searchPlaceholder="Buscar por nome, cidade ou origem"
         searchValue={search}
         onSearch={(value) => list.setFilter('search', value)}
@@ -192,14 +204,14 @@ export default function Visits() {
         hasFilters={hasFilters}
       >
         <select className="select w-full lg:w-52" value={needsReview} onChange={(e) => list.setFilter('needsReview', e.target.value)} aria-label="Filtrar por revisão">
-          <option value="">Todas as visitas</option>
-          <option value="true">Só as que faltam revisar</option>
-          <option value="false">Só as já revisadas</option>
+          <option value="">Todos os destinos</option>
+          <option value="true">Só os que faltam revisar</option>
+          <option value="false">Só os já revisados</option>
         </select>
         <select className="select w-full lg:w-52" value={hasCoords} onChange={(e) => list.setFilter('hasCoords', e.target.value)} aria-label="Filtrar por posição no mapa">
           <option value="">Com ou sem mapa</option>
-          <option value="true">Só as que têm local no mapa</option>
-          <option value="false">Só as sem local no mapa</option>
+          <option value="true">Só os que têm local no mapa</option>
+          <option value="false">Só os sem local no mapa</option>
         </select>
       </FilterBar>
 
@@ -207,14 +219,14 @@ export default function Visits() {
 
       <div className="card" aria-busy={loading}>
         {loading && visits.length === 0 ? (
-          <div className="p-4 space-y-3" aria-label="Carregando visitas">
+          <div className="p-4 space-y-3" aria-label="Carregando destinos">
             {[1, 2, 3, 4].map((i) => <div key={i} className="loading-skeleton h-12 w-full" />)}
           </div>
         ) : visits.length === 0 && !error ? (
           <EmptyState
             icon={<MapPin className="w-6 h-6" />}
-            title={hasFilters ? 'Nenhuma visita encontrada' : 'Ainda não há visitas'}
-            text={hasFilters ? 'Tente outra busca ou limpe os filtros.' : 'As visitas aparecem aqui quando forem importadas ou cadastradas.'}
+            title={hasFilters ? 'Nenhum destino encontrado' : 'Ainda não há destinos visitados'}
+            text={hasFilters ? 'Tente outra busca ou limpe os filtros.' : 'Os destinos aparecem aqui quando forem importados ou cadastrados.'}
             action={hasFilters ? <Button onClick={list.clear}>Limpar filtros</Button> : undefined}
           />
         ) : (
@@ -222,7 +234,7 @@ export default function Visits() {
             <table className="table">
               <thead>
                 <tr>
-                  <th scope="col">Visita</th>
+                  <th scope="col">Destino</th>
                   <th scope="col" className="hidden md:table-cell">Data</th>
                   <th scope="col" className="hidden xl:table-cell">Mapa</th>
                   <th scope="col">Revisão</th>
@@ -246,7 +258,7 @@ export default function Visits() {
                     <td>
                       {visit.needsReview
                         ? <span className="badge badge-warning gap-1"><AlertTriangle className="w-3 h-3" aria-hidden="true" />Revisar</span>
-                        : <span className="badge badge-success gap-1"><CheckCircle2 className="w-3 h-3" aria-hidden="true" />Revisada</span>}
+                        : <span className="badge badge-success gap-1"><CheckCircle2 className="w-3 h-3" aria-hidden="true" />Revisado</span>}
                     </td>
                     <td className="hidden lg:table-cell text-surface-700">
                       {visit.trip ? <>{visit.trip.title} <span className="text-surface-600">({tripStatusLabel(visit.trip.status)})</span></> : <span className="text-surface-600">Sem viagem</span>}
@@ -254,14 +266,15 @@ export default function Visits() {
                     <td>
                       <div className="flex items-center justify-end gap-1">
                         {visit.needsReview ? (
-                          <Button small variant="secondary" loading={busyId === visit.id} loadingText="Salvando..." onClick={() => markReviewed(visit)} aria-label={`Marcar como revisada: ${visit.title}`}>
-                            <span className="hidden sm:inline">Marcar revisada</span><span className="sm:hidden">OK</span>
+                          <Button small variant="secondary" loading={busyId === visit.id} loadingText="Salvando..." onClick={() => markReviewed(visit)} aria-label={`Marcar como revisado: ${visit.title}`}>
+                            <span className="hidden sm:inline">Marcar revisado</span><span className="sm:hidden">OK</span>
                           </Button>
                         ) : null}
                         <RowMenu
                           label={`Mais opções de ${visit.title}`}
                           items={[
                             { key: 'edit', label: 'Editar', icon: <Pencil className="w-4 h-4" aria-hidden="true" />, onSelect: () => openEdit(visit) },
+                            ...(visit.needsReview ? [] : [{ key: 'unreview', label: 'Voltar para revisão', icon: <AlertTriangle className="w-4 h-4" aria-hidden="true" />, onSelect: () => sendBackToReview(visit) }]),
                             { key: 'link', label: visit.tripId ? 'Trocar a viagem' : 'Ligar a uma viagem', icon: visit.tripId ? <Link2Off className="w-4 h-4" aria-hidden="true" /> : <Link2 className="w-4 h-4" aria-hidden="true" />, onSelect: () => openAssociate(visit) },
                             { key: 'delete', label: 'Excluir', danger: true, icon: <Trash2 className="w-4 h-4" aria-hidden="true" />, onSelect: () => setToDelete(visit) },
                           ]}
@@ -280,20 +293,23 @@ export default function Visits() {
       <Modal
         open={!!editing}
         onOpenChange={(open) => { if (!open) closeEdit(); }}
-        title="Editar visita"
+        title="Editar destino"
         description="O básico fica aqui; o resto está nas seções abaixo."
         widthClass="max-w-2xl"
         footer={
           <>
             <Button onClick={closeEdit} disabled={saving}>Cancelar</Button>
-            <Button type="submit" form="visit-form" variant="primary" loading={saving} loadingText="Salvando...">Salvar</Button>
+            <Button variant={editing?.needsReview ? 'secondary' : 'primary'} loading={saving} loadingText="Salvando..." onClick={() => saveEdit(false)}>Salvar</Button>
+            {editing?.needsReview ? (
+              <Button variant="primary" loading={saving} loadingText="Salvando..." onClick={() => saveEdit(true)}>Salvar e marcar como revisado</Button>
+            ) : null}
           </>
         }
       >
         {editForm && (
-          <form id="visit-form" onSubmit={saveEdit} noValidate className="space-y-4">
+          <form id="visit-form" onSubmit={(e) => { e.preventDefault(); saveEdit(!!editing?.needsReview); }} noValidate className="space-y-4">
             {formError && <div className="alert-error" role="alert">{formError}</div>}
-            <Field id="edit-title" label="Nome da visita" required>
+            <Field id="edit-title" label="Nome do destino" required>
               <input id="edit-title" className="input" value={editForm.title} onChange={(e) => patch({ title: e.target.value })} />
             </Field>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -333,17 +349,13 @@ export default function Visits() {
                 </Field>
               </div>
             </FormSection>
-            <FormSection title="Anotações e revisão" summary="Descrição, notas e situação da revisão" filled={countFilled([editForm.description, editForm.notes])}>
+            <FormSection title="Anotações" summary="Descrição e notas internas" filled={countFilled([editForm.description, editForm.notes])}>
               <Field id="edit-description" label="Descrição">
                 <textarea id="edit-description" className="input" value={editForm.description} onChange={(e) => patch({ description: e.target.value })} rows={3} />
               </Field>
               <Field id="edit-notes" label="Anotações internas" hint="Só a equipe vê.">
                 <textarea id="edit-notes" className="input" value={editForm.notes} onChange={(e) => patch({ notes: e.target.value })} rows={2} />
               </Field>
-              <label className="checkbox-label min-h-[32px]">
-                <input type="checkbox" className="checkbox-input" checked={editForm.needsReview} onChange={(e) => patch({ needsReview: e.target.checked })} />
-                <span className="text-sm text-surface-700">Ainda falta revisar esta visita</span>
-              </label>
             </FormSection>
           </form>
         )}
@@ -353,7 +365,7 @@ export default function Visits() {
         open={!!associating}
         onOpenChange={(open) => { if (!open && !saving) setAssociating(null); }}
         title="Ligar a uma viagem"
-        description={associating ? `Visita: ${associating.title}` : undefined}
+        description={associating ? `Destino: ${associating.title}` : undefined}
         footer={
           <>
             <Button onClick={() => setAssociating(null)} disabled={saving}>Cancelar</Button>
@@ -372,8 +384,8 @@ export default function Visits() {
       <ConfirmDialog
         open={!!toDelete}
         onOpenChange={(open) => { if (!open) setToDelete(null); }}
-        title="Excluir esta visita?"
-        description={`“${toDelete?.title ?? ''}” será apagada de vez. Isso não pode ser desfeito.`}
+        title="Excluir este destino?"
+        description={`“${toDelete?.title ?? ''}” será apagado de vez. Isso não pode ser desfeito.`}
         confirmLabel="Sim, excluir"
         busyLabel="Excluindo..."
         busy={!!toDelete && busyId === toDelete.id}

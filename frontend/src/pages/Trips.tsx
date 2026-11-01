@@ -122,7 +122,7 @@ export default function Trips() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Viagens"
+        title="Próxima trip"
         description="Crie, publique e organize as viagens do site"
         actions={<Link to="/trips/new" className="btn-primary"><Plus className="w-5 h-5" aria-hidden="true" /> Nova viagem</Link>}
       />

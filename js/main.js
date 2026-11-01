@@ -13,7 +13,8 @@ const init = async () => {
   setupHeroExperiment();
 
   // Conteúdos síncronos podem ser renderizados imediatamente.
-  renderGallery();
+  // A galeria vem da API (até 3 s); a promessa é aguardada antes do reveal.
+  const galleryReady = renderGallery();
   renderTestimonials();
   updateYearsCount();
 
@@ -31,6 +32,8 @@ const init = async () => {
   await loadTrips();
   renderHeroNextTrip();
   await renderTrips();
+
+  await galleryReady;
 
   setupWaLinks();
   setupPixModal();

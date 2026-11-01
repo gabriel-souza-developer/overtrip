@@ -10,7 +10,6 @@ export interface VisitEditForm {
   lat: number | null;
   lng: number | null;
   notes: string;
-  needsReview: boolean;
   tripId: string;
 }
 
@@ -25,7 +24,15 @@ export function visitToEditForm(visit: Visit): VisitEditForm {
     lat: visit.lat,
     lng: visit.lng,
     notes: visit.notes || '',
-    needsReview: visit.needsReview,
     tripId: visit.tripId || '',
   };
+}
+
+/**
+ * Valor de "falta revisar" que vai para a API ao salvar o destino.
+ * "Salvar e marcar como revisado" grava false; "Salvar" mantém a situação atual
+ * (pendente continua pendente, revisado continua revisado).
+ */
+export function reviewAfterSave(currentNeedsReview: boolean, markReviewed: boolean): boolean {
+  return markReviewed ? false : currentNeedsReview;
 }

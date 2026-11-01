@@ -10,7 +10,7 @@ import { isValidImageSrc, IMAGE_SRC_MESSAGE } from '../lib/imageSrc';
 import { isoToLocalInput, localInputToIso } from '../lib/dateInput';
 import { fillMissingAlt, formatBRL, syncPriceDisplay } from '../lib/formHelpers';
 import { canChangeTripStatus } from '../lib/permissions';
-import { applyTripDefaults, countFilled, formatPriceInput, parsePriceInput, parseWholeNumber, TRIP_STATUS_LABELS, validateTripMinimum } from '../lib/panelHelpers';
+import { applyTripDefaults, countAdvancedFilled, countFilled, formatPriceInput, parsePriceInput, parseWholeNumber, TRIP_STATUS_LABELS, validateTripMinimum } from '../lib/panelHelpers';
 import Button from '../components/Button';
 import Field from '../components/Field';
 import FormSection from '../components/FormSection';
@@ -330,6 +330,15 @@ export default function TripForm() {
             </div>
           </div>
 
+          <div>
+            <Field id="status" label="Situação" hint="“Publicada” aparece no site; “Rascunho” fica só aqui. Também dá para publicar pela lista de viagens.">
+              <select id="status" name="status" className="select" value={f.status} onChange={handleChange} disabled={!canEditStatus}>
+                {Object.entries(TRIP_STATUS_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              </select>
+            </Field>
+            {!canEditStatus && <p className="hint">Só administradores alteram a situação.</p>}
+          </div>
+
           <div className="form-group !mb-0">
             <span className="label" id="media-label">Fotos</span>
             <p className="hint mb-2">A primeira foto é a capa. Dá para salvar como rascunho sem foto; para publicar, precisa de pelo menos uma.</p>
@@ -344,7 +353,7 @@ export default function TripForm() {
 
         <p className="text-sm text-surface-600 px-1">Mais detalhes (todos opcionais). O que você preencher aqui fica guardado mesmo com a seção fechada.</p>
 
-        <FormSection title="Sobre a viagem" summary="Descrição, categoria, intensidade e vagas" filled={countFilled([f.category, f.description, f.headlineDisplay, f.spotsLeft, f.trailDistance, f.supportPoint, f.supportPointInfo])}>
+        <FormSection title="Sobre a viagem" summary="Descrição, categoria, intensidade, vagas e o que inclui" filled={countFilled([f.category, f.description, f.spotsLeft, f.includes])}>
           <Field id="description" label="Descrição" hint="Se ficar vazia, usamos o nome da viagem.">
             <textarea id="description" name="description" className="input" value={f.description} onChange={handleChange} rows={4} />
           </Field>
@@ -360,66 +369,30 @@ export default function TripForm() {
             <Field id="spotsLeft" label="Vagas restantes" hint="Só número inteiro. Aparece no site quando for maior que zero.">
               <input id="spotsLeft" name="spotsLeft" type="text" inputMode="numeric" pattern="[0-9]*" className="input" value={f.spotsLeft ?? ''} onChange={(e) => setFormData(prev => ({ ...prev, spotsLeft: parseWholeNumber(e.target.value) }))} autoComplete="off" />
             </Field>
-            <Field id="headlineDisplay" label="Nome curto para o card" hint="Opcional: uma versão menor do nome.">
-              <input id="headlineDisplay" name="headlineDisplay" className="input" value={f.headlineDisplay} onChange={handleChange} />
-            </Field>
           </div>
-          <Field id="trailDistance" label="Distância da trilha">
-            <input id="trailDistance" name="trailDistance" className="input" value={f.trailDistance} onChange={handleChange} placeholder="aproximadamente 6 km" />
-          </Field>
-          <Field id="supportPoint" label="Ponto de apoio">
-            <input id="supportPoint" name="supportPoint" className="input" value={f.supportPoint} onChange={handleChange} />
-          </Field>
-          <Field id="supportPointInfo" label="Informações do ponto de apoio">
-            <textarea id="supportPointInfo" name="supportPointInfo" className="input" value={f.supportPointInfo} onChange={handleChange} rows={2} />
+          <Field id="includes-input" label="O que inclui">
+            <ArrayInput id="includes-input" value={f.includes} onChange={(val) => setList('includes', val)} placeholder="Ex.: Transporte, Guia, Almoço" />
           </Field>
         </FormSection>
 
-        <FormSection title="Horários" summary="Saída, volta e fim da viagem" filled={countFilled([f.endDateISO, f.departureTime, f.returnTime, f.scheduleInfo, f.departureTolerance, f.scheduleTBD])}>
+        <FormSection title="Embarque e horários" summary="Onde o grupo se encontra, saída e volta" filled={countFilled([f.meetingCity, f.meetingPoint, f.endDateISO, f.departureTime, f.returnTime])}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field id="endDateISO" label="Data e hora de volta">
-              <input id="endDateISO" name="endDateISO" type="datetime-local" className="input" value={f.endDateISO} onChange={handleChange} />
+            <Field id="meetingCity" label="Cidade de embarque">
+              <input id="meetingCity" name="meetingCity" className="input" value={f.meetingCity} onChange={handleChange} />
+            </Field>
+            <Field id="meetingPoint" label="Local de embarque">
+              <input id="meetingPoint" name="meetingPoint" className="input" value={f.meetingPoint} onChange={handleChange} />
             </Field>
             <Field id="departureTime" label="Horário de saída" hint="Se ficar vazio, o site usa a hora da data de saída.">
               <input id="departureTime" name="departureTime" className="input" value={f.departureTime} onChange={handleChange} placeholder="06h00" />
             </Field>
+            <Field id="endDateISO" label="Data e hora de volta">
+              <input id="endDateISO" name="endDateISO" type="datetime-local" className="input" value={f.endDateISO} onChange={handleChange} />
+            </Field>
             <Field id="returnTime" label="Horário de volta">
               <input id="returnTime" name="returnTime" className="input" value={f.returnTime} onChange={handleChange} placeholder="18h00" />
             </Field>
-            <Field id="departureTolerance" label="Tempo de espera por atrasados">
-              <input id="departureTolerance" name="departureTolerance" className="input" value={f.departureTolerance} onChange={handleChange} placeholder="30 minutos" />
-            </Field>
           </div>
-          <Field id="scheduleInfo" label="Horário em texto livre" hint="Se preenchido, aparece no card no lugar de saída e volta.">
-            <input id="scheduleInfo" name="scheduleInfo" className="input" value={f.scheduleInfo} onChange={handleChange} placeholder="06h às 18h" />
-          </Field>
-          <label htmlFor="scheduleTBD" className="checkbox-label min-h-[32px]">
-            <input id="scheduleTBD" name="scheduleTBD" type="checkbox" className="checkbox-input" checked={f.scheduleTBD} onChange={handleChange} />
-            <span className="text-sm text-surface-700">Horário ainda não definido</span>
-          </label>
-        </FormSection>
-
-        <FormSection title="Preço no site" summary="Como o valor aparece para o cliente" filled={countFilled([f.priceDisplay])}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field id="priceDisplay" label="Preço como aparece no site" hint="Acompanha o Valor sozinho. Se você escrever um texto próprio, ele não muda mais.">
-              <input id="priceDisplay" name="priceDisplay" className="input" value={f.priceDisplay} onChange={handleChange} placeholder="R$ 109,99" disabled={f.free} />
-            </Field>
-            <Field id="priceUnit" label="Cobrança" hint="Padrão: por pessoa.">
-              <input id="priceUnit" name="priceUnit" className="input" value={f.priceUnit} onChange={handleChange} disabled={f.free} placeholder="por pessoa" />
-            </Field>
-          </div>
-        </FormSection>
-
-        <FormSection title="O que está incluso" summary="Itens e serviços que o cliente recebe" filled={countFilled([f.includes, f.includesHighlight, f.includedServices])}>
-          <Field id="includes-input" label="Itens incluídos">
-            <ArrayInput id="includes-input" value={f.includes} onChange={(val) => setList('includes', val)} placeholder="Ex.: Transporte, Guia, Almoço" />
-          </Field>
-          <Field id="includesHighlight" label="Frase de destaque">
-            <input id="includesHighlight" name="includesHighlight" className="input" value={f.includesHighlight} onChange={handleChange} placeholder="Transporte incluso saindo de João Pessoa" />
-          </Field>
-          <Field id="included-services-input" label="Serviços incluídos">
-            <ArrayInput id="included-services-input" value={f.includedServices} onChange={(val) => setList('includedServices', val)} placeholder="Ex.: Seguro viagem, Kit lanche" />
-          </Field>
         </FormSection>
 
         <FormSection title="Roteiro e avisos" summary="Passo a passo e o que o cliente precisa saber" filled={countFilled([f.itinerary, f.routeNotes, f.importantInfo])}>
@@ -434,30 +407,20 @@ export default function TripForm() {
           </Field>
         </FormSection>
 
-        <FormSection title="Encontro e saídas" summary="Onde o grupo se encontra e de onde sai" filled={countFilled([f.meetingCity, f.meetingPoint, f.meetingDetails, f.meetingMapsQuery, f.departures])}>
+        <FormSection title="Ajustes do site (raramente necessário)" summary="Tudo aqui tem um valor automático. Só mexa se precisar." filled={countAdvancedFilled(f)}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field id="meetingCity" label="Cidade do encontro">
-              <input id="meetingCity" name="meetingCity" className="input" value={f.meetingCity} onChange={handleChange} />
+            <Field id="headlineDisplay" label="Título do card" hint="Opcional: uma versão menor do nome.">
+              <input id="headlineDisplay" name="headlineDisplay" className="input" value={f.headlineDisplay} onChange={handleChange} />
             </Field>
-            <Field id="meetingPoint" label="Local do encontro">
-              <input id="meetingPoint" name="meetingPoint" className="input" value={f.meetingPoint} onChange={handleChange} />
+            <Field id="priceDisplay" label="Texto do preço" hint="Acompanha o Valor sozinho. Se você escrever um texto próprio, ele não muda mais.">
+              <input id="priceDisplay" name="priceDisplay" className="input" value={f.priceDisplay} onChange={handleChange} placeholder="R$ 109,99" disabled={f.free} />
             </Field>
-          </div>
-          <Field id="meetingDetails" label="Detalhes do encontro">
-            <textarea id="meetingDetails" name="meetingDetails" className="input" value={f.meetingDetails} onChange={handleChange} rows={2} />
-          </Field>
-          <Field id="meetingMapsQuery" label="Endereço para o Google Maps" hint="Se preenchido, o local no card vira um link que abre o Google Maps.">
-            <input id="meetingMapsQuery" name="meetingMapsQuery" className="input" value={f.meetingMapsQuery} onChange={handleChange} placeholder="Rua Exemplo, 123 - Bairro, Cidade/UF" />
-          </Field>
-          <div>
-            <p className="label">Pontos de saída</p>
-            <p className="hint mb-2">Use quando o grupo sai de mais de um lugar. Cada ponto aparece no card com seu horário.</p>
-            <DeparturesInput value={f.departures} onChange={(val) => setFormData(prev => ({ ...prev, departures: val }))} />
-          </div>
-        </FormSection>
-
-        <FormSection title="Botão do card" summary="Texto e cor do botão de reserva" filled={0}>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field id="priceUnit" label="Unidade do preço" hint="Padrão: por pessoa.">
+              <input id="priceUnit" name="priceUnit" className="input" value={f.priceUnit} onChange={handleChange} disabled={f.free} placeholder="por pessoa" />
+            </Field>
+            <Field id="departureTolerance" label="Tolerância de espera por atrasados">
+              <input id="departureTolerance" name="departureTolerance" className="input" value={f.departureTolerance} onChange={handleChange} placeholder="30 minutos" />
+            </Field>
             <Field id="buttonLabel" label="Texto do botão" hint="Padrão: Quero viajar.">
               <input id="buttonLabel" name="buttonLabel" className="input" value={f.buttonLabel} onChange={handleChange} />
             </Field>
@@ -468,15 +431,39 @@ export default function TripForm() {
               </select>
             </Field>
           </div>
-        </FormSection>
-
-        <FormSection title="Publicação" summary={`Situação atual: ${TRIP_STATUS_LABELS[f.status] ?? f.status}`} filled={0}>
-          <Field id="status" label="Situação" hint="“Publicada” aparece no site; “Rascunho” fica só aqui. Também dá para publicar pela lista de viagens.">
-            <select id="status" name="status" className="select" value={f.status} onChange={handleChange} disabled={!canEditStatus}>
-              {Object.entries(TRIP_STATUS_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-            </select>
+          <Field id="scheduleInfo" label="Horário em texto livre" hint="Se preenchido, aparece no card no lugar de saída e volta.">
+            <input id="scheduleInfo" name="scheduleInfo" className="input" value={f.scheduleInfo} onChange={handleChange} placeholder="06h às 18h" />
           </Field>
-          {!canEditStatus && <p className="hint">Só administradores alteram a situação.</p>}
+          <label htmlFor="scheduleTBD" className="checkbox-label min-h-[32px]">
+            <input id="scheduleTBD" name="scheduleTBD" type="checkbox" className="checkbox-input" checked={f.scheduleTBD} onChange={handleChange} />
+            <span className="text-sm text-surface-700">Horário ainda não definido</span>
+          </label>
+          <Field id="trailDistance" label="Distância da trilha">
+            <input id="trailDistance" name="trailDistance" className="input" value={f.trailDistance} onChange={handleChange} placeholder="aproximadamente 6 km" />
+          </Field>
+          <Field id="supportPoint" label="Ponto de apoio">
+            <input id="supportPoint" name="supportPoint" className="input" value={f.supportPoint} onChange={handleChange} />
+          </Field>
+          <Field id="supportPointInfo" label="Informações do ponto de apoio">
+            <textarea id="supportPointInfo" name="supportPointInfo" className="input" value={f.supportPointInfo} onChange={handleChange} rows={2} />
+          </Field>
+          <Field id="includesHighlight" label="Frase de destaque do que inclui">
+            <input id="includesHighlight" name="includesHighlight" className="input" value={f.includesHighlight} onChange={handleChange} placeholder="Transporte incluso saindo de João Pessoa" />
+          </Field>
+          <Field id="included-services-input" label="Serviços incluídos">
+            <ArrayInput id="included-services-input" value={f.includedServices} onChange={(val) => setList('includedServices', val)} placeholder="Ex.: Seguro viagem, Kit lanche" />
+          </Field>
+          <Field id="meetingDetails" label="Detalhes do embarque">
+            <textarea id="meetingDetails" name="meetingDetails" className="input" value={f.meetingDetails} onChange={handleChange} rows={2} />
+          </Field>
+          <Field id="meetingMapsQuery" label="Endereço para o mapa (Google Maps)" hint="Se preenchido, o local no card vira um link que abre o Google Maps.">
+            <input id="meetingMapsQuery" name="meetingMapsQuery" className="input" value={f.meetingMapsQuery} onChange={handleChange} placeholder="Rua Exemplo, 123 - Bairro, Cidade/UF" />
+          </Field>
+          <div>
+            <p className="label">Saídas de mais de um lugar</p>
+            <p className="hint mb-2">Use quando o grupo sai de mais de um lugar. Cada ponto aparece no card com seu horário.</p>
+            <DeparturesInput value={f.departures} onChange={(val) => setFormData(prev => ({ ...prev, departures: val }))} />
+          </div>
         </FormSection>
 
         <div className="fixed bottom-0 inset-x-0 lg:left-64 z-20 bg-white/95 backdrop-blur border-t border-surface-200">

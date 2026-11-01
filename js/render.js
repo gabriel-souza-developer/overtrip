@@ -1,4 +1,5 @@
 import { TRIPS, GALLERY, TESTIMONIALS, loadTrips, getTripsLoadError } from "./data.js";
+import { resolveGallery } from "./publicData.js";
 
 const formatTripDate = (isoString) => {
   const date = new Date(/^\d{4}-\d{2}-\d{2}$/.test(isoString) ? `${isoString}T12:00:00-03:00` : isoString);
@@ -774,16 +775,19 @@ const buildGalleryCardHTML = (entry, index, { reveal = false, delay = 0 } = {}) 
   `;
 };
 
-const renderGallery = () => {
+const renderGallery = async () => {
   const grid = document.querySelector("#gallery-grid");
 
   if (!grid) {
     return;
   }
 
-  // Ordena no lugar: o lightbox lê GALLERY[index], então a ordem da tela e a
-  // do array precisam ser a mesma.
-  GALLERY.sort((a, b) => b.dateISO.localeCompare(a.dateISO));
+  // Galeria do painel (API, 3 s de limite); se falhar, a lista fixa de data.js.
+  // Troca o conteúdo de GALLERY no lugar: o lightbox lê GALLERY[index], então a
+  // ordem da tela e a do array precisam ser a mesma (destaque primeiro, depois
+  // data decrescente).
+  const resolved = await resolveGallery(fetch.bind(globalThis), GALLERY);
+  GALLERY.splice(0, GALLERY.length, ...resolved);
 
   const total = GALLERY.length;
   const controls = document.querySelector("#gallery-more");

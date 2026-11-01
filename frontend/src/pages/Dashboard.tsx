@@ -8,12 +8,12 @@ import ErrorState from '../components/ErrorState';
 type Tone = 'primary' | 'success' | 'warning' | 'danger' | 'info';
 
 const statCards: { key: keyof DashboardStats; label: string; icon: LucideIcon; tone: Tone; to: string }[] = [
-  { key: 'tripsTotal', label: 'Viagens', icon: Plane, tone: 'primary', to: '/trips' },
+  { key: 'tripsTotal', label: 'Próxima trip', icon: Plane, tone: 'primary', to: '/trips' },
   { key: 'tripsPublished', label: 'No site', icon: CheckCircle2, tone: 'success', to: '/trips?status=OPEN' },
   { key: 'tripsDraft', label: 'Rascunhos', icon: Pencil, tone: 'warning', to: '/trips?status=DRAFT' },
-  { key: 'visitsTotal', label: 'Visitas', icon: MapPin, tone: 'info', to: '/visits' },
-  { key: 'visitsNeedsReview', label: 'Visitas para revisar', icon: AlertTriangle, tone: 'danger', to: '/visits?needsReview=true' },
-  { key: 'visitsWithCoords', label: 'Visitas no mapa', icon: MapPinned, tone: 'success', to: '/visits?hasCoords=true' },
+  { key: 'visitsTotal', label: 'Destinos visitados', icon: MapPin, tone: 'info', to: '/visits' },
+  { key: 'visitsNeedsReview', label: 'Destinos para revisar', icon: AlertTriangle, tone: 'danger', to: '/visits?needsReview=true' },
+  { key: 'visitsWithCoords', label: 'Destinos no mapa', icon: MapPinned, tone: 'success', to: '/visits?hasCoords=true' },
   { key: 'galleryTotal', label: 'Memórias na galeria', icon: ImageIcon, tone: 'info', to: '/gallery' },
   { key: 'galleryFeatured', label: 'Em destaque', icon: Star, tone: 'warning', to: '/gallery?isFeatured=true' },
 ];
@@ -75,9 +75,9 @@ export default function Dashboard() {
         <h2 id="acoes" className="text-lg font-semibold text-surface-900 px-5 py-4 border-b border-surface-200">O que você quer fazer?</h2>
         <ul className="divide-y divide-surface-100">
           {[
-            { to: '/trips/new', icon: Plus, text: 'Criar uma viagem', sub: 'Só precisa de nome, local, data, valor e foto' },
-            { to: '/visits?needsReview=true', icon: AlertTriangle, text: `Revisar visitas${pending ? ` (${pending})` : ''}`, sub: 'Confira as visitas que ainda esperam revisão' },
-            { to: '/gallery', icon: ImageIcon, text: 'Cuidar da galeria', sub: 'Adicione fotos e escolha o destaque' },
+            { to: '/trips/new', icon: Plus, text: 'Criar uma próxima trip', sub: 'Só precisa de nome, local, data, valor e foto' },
+            { to: '/visits?needsReview=true', icon: AlertTriangle, text: `Revisar destinos visitados${pending ? ` (${pending})` : ''}`, sub: 'Confira os destinos que ainda esperam revisão' },
+            { to: '/gallery', icon: ImageIcon, text: 'Cuidar da galeria de memórias', sub: 'Adicione fotos e escolha o destaque' },
           ].map(({ to, icon: Icon, text, sub }) => (
             <li key={to}>
               <Link to={to} className="flex items-center gap-4 px-5 py-4 min-h-[64px] hover:bg-surface-50">
