@@ -7,6 +7,7 @@ import Trips from './pages/Trips';
 import TripForm from './pages/TripForm';
 import Visits from './pages/Visits';
 import Gallery from './pages/Gallery';
+import Settings from './pages/Settings';
 import { authApi } from './api';
 import { ToastProvider } from './hooks/useToast';
 
@@ -94,6 +95,7 @@ const AppRoutes = () => (
         <Route path="/trips/:id/edit" element={<TripForm />} />
         <Route path="/visits" element={<Visits />} />
         <Route path="/gallery" element={<Gallery />} />
+        <Route path="/settings" element={<Settings />} />
       </Route>
     </Route>
     <Route path="*" element={<Navigate to="/dashboard" replace />} />

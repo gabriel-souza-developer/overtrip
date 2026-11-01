@@ -2,6 +2,7 @@ import { Router } from 'express';
 import cors from 'cors';
 import { publicTripsService } from '../services/publicTrips.js';
 import { publicSiteService } from '../services/publicSite.js';
+import { settingsService } from '../services/settingsService.js';
 
 const router = Router();
 
@@ -34,6 +35,15 @@ router.get('/destinations', async (_req, res, next) => {
     const destinations = await publicSiteService.destinations();
     res.set('Cache-Control', 'no-cache');
     res.json(destinations);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/settings/whatsapp', async (_req, res, next) => {
+  try {
+    res.set('Cache-Control', 'no-cache');
+    res.json({ defaultWhatsapp: await settingsService.getDefaultWhatsapp() });
   } catch (error) {
     next(error);
   }

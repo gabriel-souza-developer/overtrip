@@ -164,6 +164,10 @@ export const changePasswordSchema = z.object({
   newPassword: z.string().min(6, 'Nova senha deve ter pelo menos 6 caracteres'),
 });
 
+export const defaultWhatsappSchema = z.object({
+  defaultWhatsapp: z.string().regex(/^\d{12,13}$/, 'Informe o WhatsApp com 12 ou 13 dígitos, incluindo DDI e DDD'),
+});
+
 // Type exports
 export type TripCreateInput = z.infer<typeof tripCreateSchema>;
 export type TripUpdateInput = z.infer<typeof tripUpdateSchema>;
@@ -176,3 +180,4 @@ export type GalleryUpdateInput = z.infer<typeof galleryUpdateSchema>;
 export type GalleryQueryInput = z.infer<typeof galleryQuerySchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
+export type DefaultWhatsappInput = z.infer<typeof defaultWhatsappSchema>;

@@ -4,9 +4,25 @@ import { resolve } from 'node:path';
 // @ts-expect-error módulo JS do site
 import { formatTripTime, buildTripSchema, normalizeTrip, buildTripCardHTML, buildHeroTripHTML, buildTripCardsHTML } from '../js/render.js';
 // @ts-expect-error módulo JS do site
-import { setupWaLinks } from '../js/whatsapp.js';
+import { FALLBACK_WHATSAPP_NUMBER, loadWhatsappNumber, setupWaLinks } from '../js/whatsapp.js';
 
 const full = JSON.parse(readFileSync(resolve(__dirname, '../trips.json'), 'utf-8'))[0];
+
+describe('configuração pública do WhatsApp', () => {
+  it('mantém o número de reserva se a API falhar antes de haver configuração', async () => {
+    const warn = vi.fn();
+    const number = await loadWhatsappNumber(async () => { throw new Error('offline'); }, { warn });
+    expect(warn).toHaveBeenCalledOnce();
+    expect(number).toBe(FALLBACK_WHATSAPP_NUMBER);
+  });
+
+  it('usa o número configurado pelo painel', async () => {
+    const warn = vi.fn();
+    const number = await loadWhatsappNumber(async () => ({ ok: true, json: async () => ({ defaultWhatsapp: '5545999999999' }) }) as any, { warn });
+    expect(number).toBe('5545999999999');
+    expect(warn).not.toHaveBeenCalled();
+  });
+});
 
 // Viagem como a API devolve quando o painel deixa tudo opcional em branco.
 const bare = {

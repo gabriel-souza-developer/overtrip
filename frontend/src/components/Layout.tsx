@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { brandUrl } from '../lib/basePath';
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import * as Menu from '@radix-ui/react-dropdown-menu';
-import { ChevronDown, Home, Image as ImageIcon, LogOut, MapPin, Menu as MenuIcon, Plane, User, X } from 'lucide-react';
+import { ChevronDown, Home, Image as ImageIcon, LogOut, MapPin, Menu as MenuIcon, Plane, Settings as SettingsIcon, User, X } from 'lucide-react';
 import { useAuth } from '../App';
 
 const navItems = [
@@ -10,6 +10,7 @@ const navItems = [
   { path: '/trips', label: 'Próxima trip', icon: Plane },
   { path: '/visits', label: 'Destinos visitados', icon: MapPin },
   { path: '/gallery', label: 'Galeria de memórias', icon: ImageIcon },
+  { path: '/settings', label: 'Configurações', icon: SettingsIcon },
 ];
 
 export default function Layout() {

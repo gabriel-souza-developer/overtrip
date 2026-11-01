@@ -131,6 +131,13 @@ export const dashboardApi = {
   stats: () => request<DashboardStats>('/dashboard/stats'),
 };
 
+export const settingsApi = {
+  getWhatsapp: () => request<{ defaultWhatsapp: string | null }>('/settings/whatsapp'),
+  updateWhatsapp: (defaultWhatsapp: string) => request<{ defaultWhatsapp: string }>('/settings/whatsapp', {
+    method: 'PUT', body: JSON.stringify({ defaultWhatsapp }),
+  }),
+};
+
 // Types
 export interface Trip {
   id: string;

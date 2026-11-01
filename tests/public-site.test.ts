@@ -5,11 +5,15 @@ import { PrismaClient } from '@prisma/client';
 import app from '../src/app.js';
 import { visitService } from '../src/services/index.js';
 import { orderGallery, resolveGallery, mergeDestinations, fetchPublicArray } from '../js/publicData.js';
+import { DEFAULT_WHATSAPP_KEY } from '../src/services/settingsService.js';
+import { generateToken } from '../src/middleware/auth.js';
 
 const prisma = new PrismaClient();
 const TAG = `public-site-test:${Date.now()}`;
 let server: Server;
 let baseUrl: string;
+let adminToken: string;
+let adminId: string;
 const ids: Record<string, string> = {};
 
 const img = JSON.stringify([{ src: 'assets/images/a.jpg', alt: 'A', extra: 'x' }]);
@@ -26,6 +30,9 @@ const visit = async (key: string, data: Record<string, unknown>) => {
 beforeAll(async () => {
   await new Promise<void>((r) => { server = app.listen(0, r); });
   baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  const admin = await prisma.user.create({ data: { email: `${TAG}@example.com`, passwordHash: 'test', role: 'admin' } });
+  adminId = admin.id;
+  adminToken = generateToken({ id: admin.id, email: admin.email, role: admin.role });
   await gal('old', '2000-01-10');
   await gal('new', '2000-06-10');
   await gal('feat', '1999-03-05', { isFeatured: true });
@@ -37,8 +44,50 @@ beforeAll(async () => {
 afterAll(async () => {
   await prisma.galleryEntry.deleteMany({ where: { storedIdentity: { startsWith: TAG } } });
   await prisma.visit.deleteMany({ where: { storedIdentity: { startsWith: TAG } } });
+  await prisma.setting.delete({ where: { key: DEFAULT_WHATSAPP_KEY } }).catch(() => undefined);
+  await prisma.user.delete({ where: { id: adminId } });
   await prisma.$disconnect();
   await new Promise<void>((r) => server.close(() => r()));
+});
+
+describe('GET /api/public/settings/whatsapp', () => {
+  it('não expõe valor quando não foi configurado', async () => {
+    await prisma.setting.delete({ where: { key: DEFAULT_WHATSAPP_KEY } }).catch(() => undefined);
+    const res = await fetch(`${baseUrl}/api/public/settings/whatsapp`);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ defaultWhatsapp: null });
+  });
+
+  it('expõe somente o número configurado, com CORS público', async () => {
+    await prisma.setting.upsert({
+      where: { key: DEFAULT_WHATSAPP_KEY },
+      create: { key: DEFAULT_WHATSAPP_KEY, value: JSON.stringify('5545999999999') },
+      update: { value: JSON.stringify('5545999999999') },
+    });
+    const res = await fetch(`${baseUrl}/api/public/settings/whatsapp`, { headers: { Origin: 'https://qualquer.exemplo' } });
+    expect(res.headers.get('access-control-allow-origin')).toBe('*');
+    expect(await res.json()).toEqual({ defaultWhatsapp: '5545999999999' });
+  });
+});
+
+describe('PUT /api/settings/whatsapp', () => {
+  it('exige administrador e persiste apenas número válido', async () => {
+    const denied = await fetch(`${baseUrl}/api/settings/whatsapp`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ defaultWhatsapp: '5545999999999' }),
+    });
+    expect(denied.status).toBe(401);
+
+    const invalid = await fetch(`${baseUrl}/api/settings/whatsapp`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminToken}` }, body: JSON.stringify({ defaultWhatsapp: 'telefone' }),
+    });
+    expect(invalid.status).toBe(400);
+
+    const saved = await fetch(`${baseUrl}/api/settings/whatsapp`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminToken}` }, body: JSON.stringify({ defaultWhatsapp: '5583987745549' }),
+    });
+    expect(saved.status).toBe(200);
+    expect(await saved.json()).toEqual({ defaultWhatsapp: '5583987745549' });
+  });
 });
 
 const get = async (path: string, headers: Record<string, string> = {}) => {
