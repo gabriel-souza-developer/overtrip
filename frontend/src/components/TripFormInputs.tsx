@@ -1,9 +1,98 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ImagePlus, Plus, Star, X } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import { isValidImageSrc, IMAGE_SRC_MESSAGE } from '../lib/imageSrc';
 import ImageThumb from './ImageThumb';
 import Button from './Button';
+import { visitApi } from '../api';
+import { fetchAllPages, filterPlaces, groupVisitPlaces, type VisitPlace } from '../lib/visitPlaces';
+
+/** Busca um destino já visitado e preenche a cidade e o estado da viagem. */
+export function VisitPlacePicker({ onSelect }: { onSelect: (place: VisitPlace) => void }) {
+  const [places, setPlaces] = useState<VisitPlace[]>([]);
+  const [query, setQuery] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const suggestions = useMemo(() => filterPlaces(places, query), [places, query]);
+
+  const choose = (place: VisitPlace) => {
+    onSelect(place);
+    setQuery(place.label);
+    setOpen(false);
+    setActiveIndex(-1);
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      if (suggestions.length === 0) return;
+      event.preventDefault();
+      setOpen(true);
+      setActiveIndex((current) => event.key === 'ArrowDown'
+        ? (current + 1) % suggestions.length
+        : (current <= 0 ? suggestions.length - 1 : current - 1));
+    } else if (event.key === 'Enter' && open && activeIndex >= 0) {
+      event.preventDefault();
+      choose(suggestions[activeIndex]);
+    } else if (event.key === 'Escape') {
+      setOpen(false);
+      setActiveIndex(-1);
+    }
+  };
+
+  useEffect(() => {
+    let active = true;
+    fetchAllPages((page) => visitApi.list({ page, limit: 100 }))
+      .then((visits) => { if (active) setPlaces(groupVisitPlaces(visits)); })
+      .catch(() => { if (active) setFailed(true); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, []);
+
+  return (
+    <div className="space-y-2">
+      <label htmlFor="visited-place-search" className="label">Destino já visitado (opcional)</label>
+      <input
+        id="visited-place-search"
+        className="input"
+        value={query}
+        onChange={(e) => { setQuery(e.target.value); setActiveIndex(-1); setOpen(true); }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => window.setTimeout(() => setOpen(false), 120)}
+        onKeyDown={handleKeyDown}
+        placeholder={loading ? 'Carregando destinos…' : 'Busque por nome do lugar ou cidade'}
+        autoComplete="off"
+        role="combobox"
+        aria-expanded={open && suggestions.length > 0}
+        aria-controls="visited-place-options"
+        aria-autocomplete="list"
+        aria-activedescendant={activeIndex >= 0 ? `visited-place-option-${activeIndex}` : undefined}
+      />
+      {open && suggestions.length > 0 && (
+        <ul id="visited-place-options" role="listbox" className="max-h-52 overflow-auto rounded-lg border border-surface-200 bg-white shadow-lg">
+          {suggestions.map((place, index) => (
+            <li
+              key={place.key}
+              id={`visited-place-option-${index}`}
+              role="option"
+              aria-selected={activeIndex === index}
+              className={`cursor-pointer px-3 py-2 text-sm text-surface-800 hover:bg-surface-100 ${activeIndex === index ? 'bg-surface-100' : ''}`}
+              onMouseDown={(e) => e.preventDefault()}
+              onMouseEnter={() => setActiveIndex(index)}
+              onClick={() => choose(place)}
+            >
+              {place.label}
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="hint">
+        {failed ? 'Não foi possível carregar os destinos anteriores.' : 'Ao escolher, preenche cidade e estado. O nome do roteiro continua sendo informado acima.'}
+      </p>
+    </div>
+  );
+}
 
 /** Lista de textos curtos: digite e aperte Enter (ou "Adicionar"). */
 export function ArrayInput({ id, value, onChange, placeholder }: { id: string; value: string[]; onChange: (val: string[]) => void; placeholder: string }) {

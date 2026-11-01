@@ -22,8 +22,8 @@ describe('TripForm: seções', () => {
   });
 
   it.each([
-    ['Sobre a viagem', ['id="description"', 'id="category"', 'id="intensityClass"', 'id="spotsLeft"', 'id="includes-input"']],
-    ['Embarque e horários', ['id="meetingCity"', 'id="meetingPoint"', 'id="departureTime"', 'id="endDateISO"', 'id="returnTime"']],
+    ['Sobre a viagem', ['id="description"', 'id="category"', 'id="intensityClass"', 'id="spotsLeft"', 'id="includes-custom-input"']],
+    ['Embarque e horários', ['id="meetingCity"', 'id="meetingPoint"', 'id="endDateISO"', 'id="returnTime"']],
     ['Ajustes do site', ['id="headlineDisplay"', 'id="priceDisplay"', 'id="priceUnit"', 'id="buttonLabel"', 'id="departureTolerance"', 'id="meetingMapsQuery"', 'id="supportPoint"', 'DeparturesInput']],
   ])('seção %s contém os campos esperados', (title, fields) => {
     const start = form.indexOf(`<FormSection title="${title}`);
@@ -33,9 +33,21 @@ describe('TripForm: seções', () => {
   });
 
   it('todos os campos que existiam continuam no formulário (nenhum valor some)', () => {
-    for (const name of ['headlineDisplay', 'trailDistance', 'supportPoint', 'supportPointInfo', 'includesHighlight', 'includedServices', 'meetingDetails', 'scheduleInfo', 'scheduleTBD', 'status']) {
+    for (const name of ['headlineDisplay', 'trailDistance', 'supportPoint', 'supportPointInfo', 'includesHighlight', 'meetingDetails', 'scheduleInfo', 'scheduleTBD', 'status']) {
       expect(form).toMatch(new RegExp(`(name|id)="${name}|'${name}'|${name}-input`));
     }
+  });
+
+  it('usa um campo de data e um de horário por saída e retorno', () => {
+    expect(form).toContain('type="date"');
+    expect(form).toContain('type="time"');
+    expect(form).not.toContain('type="datetime-local"');
+    expect(form.match(/<input id="departureTime"/g)).toHaveLength(1);
+  });
+
+  it('migra serviços antigos para a lista única do formulário', () => {
+    expect(form).toContain('mergeUnique(trip.includes, trip.includedServices || [])');
+    expect(form).toContain('includedServices: []');
   });
 });
 

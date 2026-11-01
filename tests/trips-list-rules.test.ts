@@ -23,7 +23,8 @@ describe('lista de viagens', () => {
   it('datas da lista e do formulário usam as funções que respeitam o dia certo', () => {
     expect(trips).not.toContain('toLocaleDateString');
     expect(trips).toContain('formatDateBR');
-    expect(form).toContain('localInputToIso(formData.startDateISO, originalDates.current.start)');
+    expect(form).toContain('scheduleToFields(');
+    expect(form).toContain('fieldsToSchedule({');
   });
 });
 
