@@ -12,7 +12,7 @@ import { fieldsToSchedule, scheduleToFields, type StoredSchedule } from '../lib/
 import { customItems, hasItem, INCLUDE_PRESETS, mergeUnique, togglePreset } from '../lib/includesServices';
 import { fillMissingAlt, formatBRL, syncPriceDisplay } from '../lib/formHelpers';
 import { canChangeTripStatus } from '../lib/permissions';
-import { applyTripDefaults, countAdvancedFilled, countFilled, formatPriceInput, parsePriceInput, parseWholeNumber, TRIP_STATUS_LABELS, validateTripMinimum } from '../lib/panelHelpers';
+import { applyTripDefaults, countAdvancedFilled, countFilled, formatPriceInput, parsePriceInput, parseWholeNumber, publishProblems, TRIP_STATUS_LABELS, validateTripMinimum } from '../lib/panelHelpers';
 import Button from '../components/Button';
 import Field from '../components/Field';
 import FormSection from '../components/FormSection';
@@ -32,10 +32,10 @@ const buttonStyleOptions = [
 
 // Campo com problema -> id do campo na tela (para levar o foco até ele).
 const ERROR_TARGETS: Record<string, string> = {
-  title: 'title', region: 'region', city: 'city', startDateISO: 'startDateISO', priceValue: 'priceValue', media: 'media-link',
+  title: 'title', region: 'region', city: 'city', startDateISO: 'startDateISO', priceValue: 'priceValue', media: 'media-link', description: 'description', departure: 'meetingTBD',
 };
 const ERROR_LABELS: Record<string, string> = {
-  title: 'Nome da viagem', region: 'Estado', city: 'Cidade', startDateISO: 'Data de saída', priceValue: 'Valor', media: 'Fotos',
+  title: 'Nome da viagem', region: 'Estado', city: 'Cidade', startDateISO: 'Data de saída', priceValue: 'Valor', media: 'Fotos', description: 'Resumo', departure: 'Embarque',
 };
 
 // Todos os campos existem sempre no formulário (texto vazio, lista vazia); só valor e vagas podem ser "nenhum".
@@ -48,7 +48,7 @@ const emptyForm = (): FormState => ({
   departureTime: '', departureTolerance: '', returnTime: '', scheduleInfo: '', scheduleTBD: false,
   priceValue: null, priceDisplay: '', priceUnit: 'por pessoa', free: false,
   intensityClass: 'moderado', spotsLeft: null, trailDistance: '', supportPoint: '', supportPointInfo: '',
-  meetingCity: '', meetingPoint: '', meetingDetails: '', meetingMapsQuery: '',
+  meetingCity: '', meetingPoint: '', meetingTBD: false, meetingDetails: '', meetingMapsQuery: '',
   includes: [], includesHighlight: '', includedServices: [], itinerary: [], routeNotes: [], importantInfo: [],
   media: [], buttonLabel: 'Quero viajar', buttonClass: 'button-dark', status: 'DRAFT',
   availabilitySchema: 'https://schema.org/InStock', departures: [],
@@ -136,6 +136,7 @@ export default function TripForm() {
         supportPointInfo: trip.supportPointInfo || '',
         meetingCity: trip.meetingCity || '',
         meetingPoint: trip.meetingPoint || '',
+        meetingTBD: trip.meetingTBD,
         meetingDetails: trip.meetingDetails || '',
         meetingMapsQuery: trip.meetingMapsQuery || '',
         includes: mergeUnique(trip.includes, trip.includedServices || []),
@@ -267,6 +268,7 @@ export default function TripForm() {
 
   const errorKeys = Object.keys(errors).filter(k => errors[k]);
   const f = formData;
+  const publicationPending = publishProblems(f);
   const err = (name: string) => errors[name] || undefined;
   const invalid = (name: string) => (errors[name] ? 'input-error' : '');
 
@@ -379,7 +381,13 @@ export default function TripForm() {
           </div>
         </fieldset>
 
-        <p className="text-sm text-surface-600 px-1">Os detalhes abaixo são opcionais para salvar como rascunho. Para publicar, a viagem precisa ter valor ou ser gratuita e ter pelo menos uma foto. O que você preencher fica salvo mesmo quando a seção está fechada.</p>
+        <aside className={`rounded-lg border px-4 py-3 text-sm ${publicationPending.length ? 'border-yellow-200 bg-yellow-50 text-yellow-900' : 'border-green-200 bg-green-50 text-green-900'}`} aria-live="polite">
+          {publicationPending.length ? (
+            <><strong>Rascunho salvo; faltam {publicationPending.length} item(ns) para publicar.</strong><span className="block mt-1">{publicationPending.join(' · ')}</span></>
+          ) : <strong>Esta viagem está pronta para publicar.</strong>}
+        </aside>
+
+        <p className="text-sm text-surface-600 px-1">Os detalhes abaixo são opcionais para salvar como rascunho. Para publicar, a viagem precisa de resumo, valor ou gratuidade, uma foto e embarque informado — ou marcado como a confirmar. O que você preencher fica salvo mesmo quando a seção está fechada.</p>
 
         <FormSection title="Informações da viagem" summary="Descrição, categoria, intensidade, vagas e itens incluídos" filled={countFilled([f.category, f.description, f.spotsLeft, f.includes])}>
           <Field id="description" label="Descrição" hint="Se ficar vazia, usamos o nome da viagem.">
@@ -436,6 +444,11 @@ export default function TripForm() {
               <input id="returnTime" name="returnTime" type="time" className="input" value={f.returnTime} onChange={handleChange} />
             </Field>
           </div>
+          <label htmlFor="meetingTBD" className="checkbox-label min-h-[32px]">
+            <input id="meetingTBD" name="meetingTBD" type="checkbox" className="checkbox-input" checked={f.meetingTBD} onChange={(e) => { handleChange(e); clearError('departure'); }} />
+            <span className="text-sm text-surface-700">Embarque ainda está a confirmar</span>
+          </label>
+          {errors.departure && <p className="field-error" role="alert">{errors.departure}</p>}
         </FormSection>
 
         <FormSection title="Roteiro e informações para viajantes" summary="Etapas da viagem, condições do percurso e o que levar" filled={countFilled([f.itinerary, f.routeNotes, f.importantInfo])}>

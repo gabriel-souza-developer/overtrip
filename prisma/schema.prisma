@@ -52,6 +52,7 @@ model Trip {
   // Embarque (ponto único - legacy)
   meetingCity       String?
   meetingPoint      String?
+  meetingTBD        Boolean   @default(false)
   meetingDetails    String?
   meetingMapsQuery  String?
   

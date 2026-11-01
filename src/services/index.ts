@@ -13,6 +13,7 @@ import {
   GalleryQueryInput,
 } from '../validators/index.js';
 import { normalizeForSearch, normalizeForSearchRegion, applySearchFilter, applyDirectFilter } from '../utils/searchUtils.js';
+import { publicationProblems } from './tripReadiness.js';
 
 function parseJsonFields(data: any, jsonFields: string[]): any {
   const result = { ...data };
@@ -49,18 +50,22 @@ const TRIP_JSON_FIELDS = [
 ];
 
 type PublicationData = {
+  title?: string | null;
+  city?: string | null;
+  region?: string | null;
+  startDateISO?: Date | string | null;
+  description?: string | null;
   free?: boolean | null;
   priceValue?: number | null;
   media?: unknown;
+  meetingCity?: string | null;
+  meetingPoint?: string | null;
+  meetingTBD?: boolean | null;
+  departures?: unknown;
 };
 
 function assertReadyForPublication(data: PublicationData) {
-  const media = Array.isArray(data.media) ? data.media : [];
-  const hasPrice = typeof data.priceValue === 'number' && Number.isFinite(data.priceValue) && data.priceValue > 0;
-  const missing: string[] = [];
-
-  if (media.length === 0) missing.push('adicione pelo menos uma foto');
-  if (!data.free && !hasPrice) missing.push('informe o valor ou marque a viagem como gratuita');
+  const missing = publicationProblems(data);
 
   if (missing.length > 0) {
     throw AppError.badRequest(`Não é possível publicar: ${missing.join('; ')}.`);
@@ -179,9 +184,12 @@ export const tripService = {
 
     if (tripData.status === 'OPEN' && current.status !== 'OPEN') {
       assertReadyForPublication({
-        free: tripData.free ?? current.free,
-        priceValue: tripData.priceValue ?? current.priceValue,
-        media: tripData.media ?? current.media,
+        title: tripData.title ?? current.title, city: tripData.city ?? current.city, region: tripData.region ?? current.region,
+        startDateISO: tripData.startDateISO ?? current.startDateISO, description: tripData.description ?? current.description,
+        free: tripData.free ?? current.free, priceValue: tripData.priceValue ?? current.priceValue,
+        media: tripData.media ?? current.media, meetingCity: tripData.meetingCity ?? current.meetingCity,
+        meetingPoint: tripData.meetingPoint ?? current.meetingPoint, meetingTBD: tripData.meetingTBD ?? current.meetingTBD,
+        departures: departures ?? current.departures,
       });
     }
 
@@ -265,7 +273,7 @@ export const tripService = {
     // A regra de publicação vale para todos os clientes da API, não só para o formulário.
     const trip = await prisma.trip.findUnique({
       where: { id },
-      select: { title: true, city: true, category: true, priceValue: true, free: true, media: true },
+      select: { title: true, city: true, region: true, startDateISO: true, description: true, category: true, priceValue: true, free: true, media: true, meetingCity: true, meetingPoint: true, meetingTBD: true, departures: true },
     });
     if (!trip) throw AppError.notFound('Viagem não encontrada');
     assertReadyForPublication({ ...trip, media: parseJsonFields(trip, ['media']).media });

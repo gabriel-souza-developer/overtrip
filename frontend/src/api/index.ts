@@ -165,6 +165,7 @@ export interface Trip {
   supportPointInfo: string | null;
   meetingCity: string | null;
   meetingPoint: string | null;
+  meetingTBD: boolean;
   meetingDetails: string | null;
   meetingMapsQuery: string | null;
   includes: string[];
@@ -224,6 +225,7 @@ export interface TripFormData {
   supportPointInfo?: string | null;
   meetingCity?: string | null;
   meetingPoint?: string | null;
+  meetingTBD?: boolean;
   meetingDetails?: string | null;
   meetingMapsQuery?: string | null;
   includes?: string[];

@@ -88,6 +88,7 @@ export function mapPublicTrip(trip: TripRow) {
     region: trip.region,
     meetingCity: trip.meetingCity,
     meetingPoint: trip.meetingPoint,
+    meetingTBD: trip.meetingTBD,
     meetingInfo: meetingInfo(trip),
     meetingDetails: trip.meetingDetails,
     meetingMapsQuery: trip.meetingMapsQuery,

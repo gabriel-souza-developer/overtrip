@@ -66,7 +66,7 @@ describe('applyTripDefaults', () => {
 });
 
 describe('validateTripMinimum', () => {
-  const ok = { title: 'T', region: 'PB', city: 'Lucena', startDateISO: '2026-01-01T08:00', status: 'DRAFT', free: false, priceValue: null, media: [] };
+  const ok = { title: 'T', region: 'PB', city: 'Lucena', startDateISO: '2026-01-01T08:00', description: 'Resumo', meetingTBD: true, status: 'DRAFT', free: false, priceValue: null, media: [] };
   it('rascunho só precisa de título, estado, cidade e data', () => {
     expect(validateTripMinimum(ok)).toEqual({});
   });
@@ -124,7 +124,7 @@ describe('formatPriceInput', () => {
 });
 
 describe('publishProblems', () => {
-  const base = { title: 'T', region: 'PB', city: 'Lucena', startDateISO: '2026-01-01T00:00:00.000Z', free: false, priceValue: 100, media: [{}] };
+  const base = { title: 'T', region: 'PB', city: 'Lucena', startDateISO: '2026-01-01T00:00:00.000Z', description: 'Resumo', meetingTBD: true, free: false, priceValue: 100, media: [{}] };
   it('viagem completa pode ser publicada', () => expect(publishProblems(base)).toEqual([]));
   it('sem foto, avisa para adicionar a foto', () => {
     const problems = publishProblems({ ...base, media: [] });

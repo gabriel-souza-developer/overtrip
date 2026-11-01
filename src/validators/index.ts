@@ -29,6 +29,7 @@ export const tripCreateSchema = z.object({
   supportPointInfo: z.string().optional().nullable(),
   meetingCity: z.string().optional().nullable(),
   meetingPoint: z.string().optional().nullable(),
+  meetingTBD: z.boolean().default(false),
   meetingDetails: z.string().optional().nullable(),
   meetingMapsQuery: z.string().optional().nullable(),
   includes: z.array(z.string()).default([]),

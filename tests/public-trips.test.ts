@@ -231,6 +231,7 @@ describe('contrato com trips.json', () => {
     ]) {
       expect(got[key], key).toEqual(src[key]);
     }
+    expect(got.meetingTBD).toBe(false);
     expect(got.priceValue).toBeCloseTo(Number(src.priceValue));
     expect(got.dateDisplay.startsWith('Domingo, 29/11/2026')).toBe(true);
   });

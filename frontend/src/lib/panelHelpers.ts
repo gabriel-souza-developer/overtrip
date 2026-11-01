@@ -115,6 +115,11 @@ interface TripMinimum {
   free: boolean;
   priceValue: number | null;
   media: unknown[];
+  description?: string;
+  meetingCity?: string;
+  meetingPoint?: string;
+  meetingTBD?: boolean;
+  departures?: unknown[];
 }
 
 /**
@@ -128,10 +133,13 @@ export function validateTripMinimum(data: TripMinimum): Record<string, string> {
   if (!data.city.trim()) errors.city = 'Escolha a cidade.';
   if (!data.startDateISO) errors.startDateISO = 'Informe a data de saída.';
   if (data.status === 'OPEN') {
+    if (!data.description?.trim()) errors.description = 'Para publicar, escreva um resumo da experiência.';
     if (data.media.length === 0) errors.media = 'Para publicar, adicione pelo menos uma foto.';
     if (!data.free && !(data.priceValue && data.priceValue > 0)) {
       errors.priceValue = 'Para publicar, informe o valor ou marque “Viagem gratuita”.';
     }
+    const hasDeparture = data.meetingTBD || !!data.meetingCity?.trim() || !!data.meetingPoint?.trim() || (data.departures?.length ?? 0) > 0;
+    if (!hasDeparture) errors.departure = 'Para publicar, informe o embarque ou marque que ele está a confirmar.';
   }
   return errors;
 }
