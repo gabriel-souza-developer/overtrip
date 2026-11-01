@@ -1,28 +1,26 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 
-// Teste de código-fonte: o menu "Mais opções" deve devolver o foco ao botão que o abriu.
+// Teste de código-fonte: o menu "Mais opções" usa o menu do Radix, que já devolve o foco ao
+// botão que o abriu, fecha com Esc e abre por cima da tabela (sem corte pela rolagem).
 const trips = readFileSync('frontend/src/pages/Trips.tsx', 'utf8');
+const rowMenu = readFileSync('frontend/src/components/RowMenu.tsx', 'utf8');
 
-const bodyOf = (name: string) => {
-  const start = trips.indexOf(name);
-  const end = trips.indexOf('\n  };', start);
-  return trips.slice(start, end);
-};
-
-describe('foco do menu Mais opções em Trips.tsx', () => {
-  it('scroll e resize fecham o menu devolvendo o foco ao botão', () => {
-    const effect = trips.slice(trips.indexOf("window.addEventListener('scroll'"), trips.indexOf("window.removeEventListener('resize'"));
-    expect(effect).not.toMatch(/closeMenu\b(?!AndRefocusTrigger)/);
-    expect(effect).toContain('closeMenuAndRefocusTrigger');
+describe('menu Mais opções das viagens', () => {
+  it('a lista de viagens usa o RowMenu compartilhado', () => {
+    expect(trips).toContain("import RowMenu from '../components/RowMenu'");
+    expect(trips).toContain('<RowMenu');
   });
 
-  it('exclusão cancelada devolve o foco ao botão', () => {
-    const handler = bodyOf('const handleDelete');
-    expect(handler).toMatch(/if \(!confirm\([^]*?\)\) \{\s*closeMenuAndRefocusTrigger\(\);\s*return;\s*\}/);
+  it('o RowMenu é o menu acessível do Radix, aberto em portal', () => {
+    expect(rowMenu).toContain("@radix-ui/react-dropdown-menu");
+    expect(rowMenu).toContain('Menu.Portal');
+    expect(rowMenu).toContain('aria-label={label}');
   });
 
-  it('o foco é devolvido sem rolar a página', () => {
-    expect(bodyOf('const closeMenuAndRefocusTrigger')).toContain('preventScroll: true');
+  it('excluir pede confirmação em janela, nunca com confirm() do navegador', () => {
+    expect(trips).toContain('<ConfirmDialog');
+    expect(trips).not.toMatch(/\bconfirm\(/);
+    expect(trips).not.toMatch(/\balert\(/);
   });
 });

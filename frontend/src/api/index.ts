@@ -200,7 +200,7 @@ export interface TripFormData {
   priceDisplay?: string | null;
   priceUnit?: string;
   free?: boolean;
-  intensityClass?: TripStatus;
+  intensityClass?: 'leve' | 'moderado' | 'intenso' | 'extremo';
   spotsLeft?: number | null;
   trailDistance?: string | null;
   supportPoint?: string | null;

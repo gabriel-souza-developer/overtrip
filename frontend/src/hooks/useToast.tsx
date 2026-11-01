@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useRef, useState, type ReactNode } from 'react';
+import { CheckCircle2, Info, X, XCircle } from 'lucide-react';
 
 interface Toast {
   id: number;
@@ -46,10 +47,11 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const showToast = (type: Toast['type'], message: string) => {
     const id = ++idRef.current;
     setToasts(prev => [...prev, { id, type, message }]);
-    setTimeout(() => {
-      setToasts(prev => prev.filter(t => t.id !== id));
-    }, 4000);
+    // Erros ficam mais tempo na tela: a pessoa precisa conseguir ler o que corrigir.
+    setTimeout(() => dismiss(id), type === 'error' ? 8000 : 4000);
   };
+
+  const dismiss = (id: number) => setToasts(prev => prev.filter(t => t.id !== id));
 
   const toast = createToastApi(showToast);
 
@@ -61,7 +63,7 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       info: toast.info,
     }}>
       {children}
-      <div className="fixed bottom-4 right-4 z-50 space-y-2 pointer-events-none">
+      <div className="fixed bottom-4 right-4 left-4 sm:left-auto z-[90] flex flex-col items-end gap-2 pointer-events-none">
         {toasts.map(t => (
           <div
             key={t.id}
@@ -69,10 +71,15 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
               t.type === 'success' ? 'toast-success' :
               t.type === 'error' ? 'toast-error' : 'toast-info'
             }`}
-            role="alert"
-            aria-live="polite"
+            role={t.type === 'error' ? 'alert' : 'status'}
           >
-            {t.message}
+            {t.type === 'success' ? <CheckCircle2 className="w-5 h-5 shrink-0" aria-hidden="true" /> :
+              t.type === 'error' ? <XCircle className="w-5 h-5 shrink-0" aria-hidden="true" /> :
+              <Info className="w-5 h-5 shrink-0" aria-hidden="true" />}
+            <span className="flex-1 text-sm">{t.message}</span>
+            <button type="button" className="shrink-0 -m-1 p-1 rounded hover:bg-white/20" onClick={() => dismiss(t.id)} aria-label="Fechar aviso">
+              <X className="w-4 h-4" aria-hidden="true" />
+            </button>
           </div>
         ))}
       </div>

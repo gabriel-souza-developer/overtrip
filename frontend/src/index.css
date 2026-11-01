@@ -45,8 +45,17 @@ input, select, textarea {
   @apply btn bg-transparent text-surface-600 hover:bg-surface-100;
 }
 
+/* Botão só com ícone: área de toque confortável (44 px no celular). */
+.btn-icon {
+  @apply btn p-0 bg-transparent text-surface-600 hover:bg-surface-100 min-w-[44px] min-h-[44px] md:min-w-[40px] md:min-h-[40px];
+}
+
+.btn-sm {
+  @apply px-3 py-1.5 text-sm;
+}
+
 .input {
-  @apply w-full px-3 py-2 border border-surface-300 rounded-lg bg-white text-surface-900 placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent transition-shadow;
+  @apply w-full px-3 py-2 border border-surface-300 rounded-lg bg-white text-surface-900 placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent transition-shadow;
 }
 
 .input-error {
@@ -89,16 +98,23 @@ input, select, textarea {
   @apply overflow-x-auto;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 .table {
   @apply w-full text-sm text-left;
 }
 
 .table th {
-  @apply px-4 py-3 text-xs font-semibold text-surface-500 uppercase tracking-wider bg-surface-50 border-b border-surface-200;
+  @apply px-4 py-3 text-xs font-semibold text-surface-600 uppercase tracking-wider bg-surface-50 border-b border-surface-200;
 }
 
 .table td {
-  @apply px-4 py-3 border-b border-surface-100;
+  @apply px-4 py-3.5 border-b border-surface-100 align-middle;
 }
 
 .table tbody tr:hover {
@@ -114,19 +130,19 @@ input, select, textarea {
 }
 
 .toast {
-  @apply fixed bottom-4 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg animate-slide-up;
+  @apply flex items-start gap-3 px-4 py-3 rounded-lg shadow-lg animate-slide-up max-w-sm;
 }
 
 .toast-success {
-  @apply toast bg-green-600 text-white;
+  @apply toast bg-green-700 text-white;
 }
 
 .toast-error {
-  @apply toast bg-red-600 text-white;
+  @apply toast bg-red-700 text-white;
 }
 
 .toast-info {
-  @apply toast bg-blue-600 text-white;
+  @apply toast bg-blue-700 text-white;
 }
 
 @keyframes slide-up {
@@ -281,6 +297,52 @@ textarea.input {
 
 .dropdown-item {
   @apply w-full px-4 py-2 text-sm text-surface-700 hover:bg-surface-50 text-left;
+}
+
+/* Menu e janela (Radix): sempre acima de tudo, sem corte por rolagem. */
+.menu-content {
+  @apply min-w-[11rem] bg-white rounded-lg shadow-lg border border-surface-200 p-1 z-[60];
+}
+
+.menu-item {
+  @apply flex items-center gap-2 w-full px-3 py-2.5 rounded-md text-sm text-surface-700 cursor-pointer outline-none select-none data-[highlighted]:bg-surface-100 data-[disabled]:opacity-50 data-[disabled]:cursor-not-allowed;
+}
+
+.menu-item-danger {
+  @apply text-red-700 data-[highlighted]:bg-red-50;
+}
+
+.dialog-overlay {
+  @apply fixed inset-0 bg-black/50 z-[70];
+}
+
+.dialog-content {
+  @apply fixed z-[80] left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] bg-white rounded-xl shadow-xl max-h-[90vh] flex flex-col;
+}
+
+/* Seção recolhível dos formulários. */
+.form-section {
+  @apply card;
+}
+
+.form-section > summary {
+  @apply flex items-center gap-3 px-5 py-4 cursor-pointer list-none rounded-xl min-h-[56px];
+}
+
+.form-section > summary::-webkit-details-marker {
+  display: none;
+}
+
+.form-section[open] > summary {
+  @apply border-b border-surface-200 rounded-b-none;
+}
+
+.hint {
+  @apply text-xs text-surface-600 mt-1;
+}
+
+.field-error {
+  @apply text-sm text-red-700 mt-1;
 }
 
 .dropdown-divider {

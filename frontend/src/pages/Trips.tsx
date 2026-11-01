@@ -1,18 +1,21 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { Link, useSearchParams } from 'react-router-dom';
-import { tripApi, Trip, TripStatus, Pagination } from '../api';
+import React, { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Eye, EyeOff, MapPin, Pencil, Plane, Plus, Trash2 } from 'lucide-react';
+import { tripApi, Trip, TripStatus, Pagination as PaginationInfo } from '../api';
 import { useToast } from '../hooks/useToast';
-import { computeDropdownPosition } from '../lib/dropdownPosition';
-
-const statusOptions: { value: TripStatus; label: string }[] = [
-  { value: 'DRAFT', label: 'Rascunho' },
-  { value: 'OPEN', label: 'Publicada' },
-  { value: 'COMPLETED', label: 'Concluída' },
-  { value: 'CANCELLED', label: 'Cancelada' },
-  { value: 'SOLD_OUT', label: 'Esgotada' },
-  { value: 'CLOSED', label: 'Fechada' },
-];
+import { useListParams } from '../hooks/useListParams';
+import { publishProblems, TRIP_STATUS_LABELS, tripListAction, tripStatusLabel } from '../lib/panelHelpers';
+import { canChangeTripStatus } from '../lib/permissions';
+import { useAuth } from '../App';
+import { formatDateBR } from '../lib/dateInput';
+import PageHeader from '../components/PageHeader';
+import FilterBar from '../components/FilterBar';
+import EmptyState from '../components/EmptyState';
+import ErrorState from '../components/ErrorState';
+import Pagination from '../components/Pagination';
+import RowMenu from '../components/RowMenu';
+import ConfirmDialog from '../components/ConfirmDialog';
+import Button from '../components/Button';
 
 const statusColors: Record<TripStatus, string> = {
   DRAFT: 'badge-neutral',
@@ -23,429 +26,229 @@ const statusColors: Record<TripStatus, string> = {
   CLOSED: 'badge-neutral',
 };
 
-function PlusIcon({ className }: { className?: string }) {
-  return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>;
-}
-
-function SearchIcon({ className }: { className?: string }) {
-  return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>;
-}
-
-function ChevronLeftIcon({ className }: { className?: string }) {
-  return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>;
-}
-
-function ChevronRightIcon({ className }: { className?: string }) {
-  return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>;
-}
-
-function MoreIcon({ className }: { className?: string }) {
-  return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" /></svg>;
-}
-
-function EditIcon({ className }: { className?: string }) {
-  return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>;
-}
-
-function TrashIcon({ className }: { className?: string }) {
-  return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>;
-}
-
-function EyeIcon({ className }: { className?: string }) {
-  return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>;
-}
-
-// Must match the .dropdown-menu-portal width (w-48) in index.css.
-const DROPDOWN_MENU_WIDTH = 192;
-// Estimated rendered height of the menu (2 items + divider + container padding), used to decide whether it should open upward.
-const DROPDOWN_MENU_HEIGHT_ESTIMATE = 100;
-
-interface DropdownPosition {
-  tripId: string;
-  top: number;
-  left: number;
-}
+const formatDate = formatDateBR;
 
 export default function Trips() {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const isAdmin = canChangeTripStatus(user?.role);
+  const list = useListParams();
+  const { toast } = useToast();
   const [trips, setTrips] = useState<Trip[]>([]);
-  const [pagination, setPagination] = useState<Pagination>({ page: 1, limit: 20, total: 0, totalPages: 0 });
+  const [pagination, setPagination] = useState<PaginationInfo>({ page: 1, limit: 20, total: 0, totalPages: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [openMenu, setOpenMenu] = useState<DropdownPosition | null>(null);
-  const menuRef = useRef<HTMLDivElement | null>(null);
-  const menuTriggerRef = useRef<HTMLButtonElement | null>(null);
-  const { toast } = useToast();
+  const [publishingId, setPublishingId] = useState<string | null>(null);
+  const [toDelete, setToDelete] = useState<Trip | null>(null);
+  const [toUnpublish, setToUnpublish] = useState<Trip | null>(null);
+  const [incomplete, setIncomplete] = useState<{ trip: Trip; problems: string[] } | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
-  const closeMenu = () => setOpenMenu(null);
-
-  const closeMenuAndRefocusTrigger = () => {
-    setOpenMenu(null);
-    menuTriggerRef.current?.focus({ preventScroll: true });
-  };
-
-  useEffect(() => {
-    if (!openMenu) return;
-    window.addEventListener('scroll', closeMenuAndRefocusTrigger, { capture: true });
-    window.addEventListener('resize', closeMenuAndRefocusTrigger);
-    return () => {
-      window.removeEventListener('scroll', closeMenuAndRefocusTrigger, { capture: true });
-      window.removeEventListener('resize', closeMenuAndRefocusTrigger);
-    };
-  }, [openMenu]);
-
-  useEffect(() => {
-    if (!openMenu) return;
-    menuRef.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus();
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.stopPropagation();
-        closeMenuAndRefocusTrigger();
-      }
-    };
-    document.addEventListener('keydown', handleKeyDown, true);
-    return () => document.removeEventListener('keydown', handleKeyDown, true);
-  }, [openMenu?.tripId]);
-
-  const page = parseInt(searchParams.get('page') || '1', 10);
-  const status = searchParams.get('status') as TripStatus | null;
-  const search = searchParams.get('search') || '';
-
-  useEffect(() => {
-    setOpenMenu(null);
-    loadTrips();
-  }, [page, status, search]);
+  const status = list.get('status');
+  const search = list.get('search');
+  const { page } = list;
 
   const loadTrips = async () => {
     setLoading(true);
     setError('');
     try {
-      const data = await tripApi.list({ page, limit: 20, status: status || undefined, search: search || undefined });
+      const data = await tripApi.list({ page, limit: 20, status: status || undefined, search: search || undefined } as Record<string, string | number>);
       setTrips(data.data);
       setPagination(data.pagination);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao carregar viagens');
+      setError(err instanceof Error ? err.message : 'Não foi possível carregar as viagens.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const searchValue = formData.get('search') as string;
-    const newParams = new URLSearchParams(searchParams);
-    if (searchValue) newParams.set('search', searchValue);
-    else newParams.delete('search');
-    newParams.set('page', '1');
-    setSearchParams(newParams);
-  };
+  useEffect(() => {
+    loadTrips();
+  }, [page, status, search]);
 
-  const handleStatusChange = (value: string) => {
-    const newParams = new URLSearchParams(searchParams);
-    if (value) newParams.set('status', value);
-    else newParams.delete('status');
-    newParams.set('page', '1');
-    setSearchParams(newParams);
-  };
-
-  const handlePageChange = (newPage: number) => {
-    const newParams = new URLSearchParams(searchParams);
-    newParams.set('page', String(newPage));
-    setSearchParams(newParams);
-  };
-
-  const toggleMenu = (trip: Trip, button: HTMLButtonElement) => {
-    if (openMenu?.tripId === trip.id) {
-      setOpenMenu(null);
+  const publish = async (trip: Trip) => {
+    // Mesma regra do formulário: sem foto (ou sem valor) a viagem não vai para o site.
+    const problems = publishProblems(trip);
+    if (problems.length > 0) {
+      setIncomplete({ trip, problems });
       return;
     }
-    menuTriggerRef.current = button;
-    const { top, left } = computeDropdownPosition(
-      button.getBoundingClientRect(),
-      { width: window.innerWidth, height: window.innerHeight },
-      DROPDOWN_MENU_WIDTH,
-      DROPDOWN_MENU_HEIGHT_ESTIMATE
-    );
-    setOpenMenu({ tripId: trip.id, top, left });
-  };
-
-  const handleDelete = async (id: string, title: string) => {
-    setOpenMenu(null);
-    if (!confirm(`Excluir a viagem "${title}"? Esta ação não pode ser desfeita.`)) {
-      closeMenuAndRefocusTrigger();
-      return;
-    }
-    setDeletingId(id);
+    setPublishingId(trip.id);
     try {
-      await tripApi.delete(id);
-      toast.success('Viagem excluída com sucesso');
-      loadTrips();
+      await tripApi.publish(trip.id);
+      toast.success(`“${trip.title}” já está no site.`);
+      await loadTrips();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao excluir viagem');
+      toast.error(err instanceof Error ? err.message : 'Não foi possível publicar a viagem.');
     } finally {
-      setDeletingId(null);
+      setPublishingId(null);
     }
   };
 
-  const handlePublish = async (trip: Trip) => {
+  const unpublish = async () => {
+    if (!toUnpublish) return;
+    setPublishingId(toUnpublish.id);
     try {
-      if (trip.status === 'OPEN') {
-        await tripApi.unpublish(trip.id);
-        toast.success('Viagem despublicada');
-      } else {
-        await tripApi.publish(trip.id);
-        toast.success('Viagem publicada');
-      }
-      loadTrips();
+      await tripApi.unpublish(toUnpublish.id);
+      toast.success(`“${toUnpublish.title}” saiu do site e voltou a ser rascunho.`);
+      setToUnpublish(null);
+      await loadTrips();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao alterar status');
+      toast.error(err instanceof Error ? err.message : 'Não foi possível tirar a viagem do site.');
+    } finally {
+      setPublishingId(null);
     }
   };
 
-  if (loading && trips.length === 0) {
-    return (
-      <div className="space-y-6">
-        <div className="page-header flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="page-title">Viagens</h1>
-            <p className="page-description">Gerencie as viagens e experiências OVERTRIP</p>
-          </div>
-          <Link to="/trips/new" className="btn-primary">
-            <PlusIcon className="w-5 h-5" aria-hidden="true" />
-            Nova Viagem
-          </Link>
-        </div>
-        <div className="table-container">
-          <table className="table" role="table">
-            <thead>
-              <tr>
-                <th scope="col">Título</th>
-                <th scope="col">Status</th>
-                <th scope="col">Data Início</th>
-                <th scope="col">Cidade/Região</th>
-                <th scope="col">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[1, 2, 3].map(i => (
-                <tr key={i}>
-                  <td><div className="loading-skeleton h-4 w-3/4"></div></td>
-                  <td><div className="loading-skeleton h-5 w-20 rounded-full"></div></td>
-                  <td><div className="loading-skeleton h-4 w-24"></div></td>
-                  <td><div className="loading-skeleton h-4 w-28"></div></td>
-                  <td><div className="loading-skeleton h-8 w-24 rounded"></div></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    );
-  }
+  const remove = async () => {
+    if (!toDelete) return;
+    setDeleting(true);
+    try {
+      await tripApi.delete(toDelete.id);
+      toast.success('Viagem excluída.');
+      setToDelete(null);
+      // Se era a última da página, volta uma página.
+      if (trips.length === 1 && page > 1) list.setPage(page - 1);
+      else await loadTrips();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Não foi possível excluir a viagem.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const hasFilters = !!(search || status);
 
   return (
     <div className="space-y-6">
-      <div className="page-header flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="page-title">Viagens</h1>
-          <p className="page-description">Gerencie as viagens e experiências OVERTRIP</p>
-        </div>
-        <Link to="/trips/new" className="btn-primary">
-          <PlusIcon className="w-5 h-5" aria-hidden="true" />
-          Nova Viagem
-        </Link>
-      </div>
+      <PageHeader
+        title="Viagens"
+        description="Crie, publique e organize as viagens do site"
+        actions={<Link to="/trips/new" className="btn-primary"><Plus className="w-5 h-5" aria-hidden="true" /> Nova viagem</Link>}
+      />
 
-      {/* Filters */}
-      <div className="card p-4">
-        <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1 min-w-0 relative">
-            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" aria-hidden="true" />
-            <input
-              type="search"
-              name="search"
-              className="input pl-10"
-              placeholder="Buscar por título, cidade, categoria..."
-              defaultValue={search}
-              aria-label="Buscar viagens"
-            />
+      <FilterBar
+        searchLabel="Buscar viagens"
+        searchPlaceholder="Buscar por nome, cidade ou categoria"
+        searchValue={search}
+        onSearch={(value) => list.setFilter('search', value)}
+        onClear={list.clear}
+        hasFilters={hasFilters}
+      >
+        <select className="select w-full lg:w-52" value={status} onChange={(e) => list.setFilter('status', e.target.value)} aria-label="Filtrar por situação">
+          <option value="">Todas as situações</option>
+          {Object.entries(TRIP_STATUS_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+        </select>
+      </FilterBar>
+
+      {error ? <ErrorState message={error} onRetry={loadTrips} /> : null}
+
+      <div className="card" aria-busy={loading}>
+        {loading && trips.length === 0 ? (
+          <div className="p-4 space-y-3" aria-label="Carregando viagens">
+            {[1, 2, 3, 4].map((i) => <div key={i} className="loading-skeleton h-12 w-full" />)}
           </div>
-          <select
-            name="status"
-            className="select w-full sm:w-48"
-            value={status || ''}
-            onChange={(e) => handleStatusChange(e.target.value)}
-            aria-label="Filtrar por status"
-          >
-            <option value="">Todos os status</option>
-            {statusOptions.map(opt => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-        </form>
-      </div>
-
-      {error && (
-        <div className="alert-error" role="alert">{error}</div>
-      )}
-
-      {/* Table */}
-      <div className="card">
-        <div className="table-container">
-          <table className="table" role="table">
-            <thead>
-              <tr>
-                <th scope="col">Título</th>
-                <th scope="col">Status</th>
-                <th scope="col">Data Início</th>
-                <th scope="col">Cidade/Região</th>
-                <th scope="col">
-                  <span className="visually-hidden">Ações</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {trips.length === 0 ? (
+        ) : trips.length === 0 && !error ? (
+          <EmptyState
+            icon={<Plane className="w-6 h-6" />}
+            title={hasFilters ? 'Nenhuma viagem encontrada' : 'Você ainda não criou nenhuma viagem'}
+            text={hasFilters ? 'Tente outra busca ou limpe os filtros.' : 'Comece pelo básico: nome, local, data, valor e uma foto.'}
+            action={hasFilters
+              ? <Button onClick={list.clear}>Limpar filtros</Button>
+              : <Link to="/trips/new" className="btn-primary"><Plus className="w-5 h-5" aria-hidden="true" /> Criar a primeira viagem</Link>}
+          />
+        ) : (
+          <div className={`table-container ${loading ? 'opacity-60' : ''}`}>
+            <table className="table">
+              <thead>
                 <tr>
-                  <td colSpan={5} className="empty-state py-8">
-                    {search || status ? 'Nenhuma viagem encontrada com estes filtros' : 'Nenhuma viagem cadastrada'}
-                  </td>
+                  <th scope="col">Viagem</th>
+                  <th scope="col">Situação</th>
+                  <th scope="col" className="hidden md:table-cell">Saída</th>
+                  <th scope="col" className="hidden lg:table-cell">Local</th>
+                  <th scope="col"><span className="visually-hidden">Ações</span></th>
                 </tr>
-              ) : (
-                trips.map(trip => (
-                  <tr key={trip.id}>
-                    <td className="font-medium text-surface-900">{trip.title}</td>
-                    <td>
-                      <span className={`${statusColors[trip.status]} ${trip.status === 'OPEN' ? 'font-medium' : ''}`}>
-                        {statusOptions.find(s => s.value === trip.status)?.label || trip.status}
-                      </span>
-                    </td>
-                    <td className="text-surface-600 whitespace-nowrap">
-                      {new Date(trip.startDateISO).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}
-                    </td>
-                    <td className="text-surface-600">{trip.city}/{trip.region}</td>
-                    <td>
-                      <div className="flex items-center gap-2">
-                        <Link to={`/trips/${trip.id}/edit`} className="btn-ghost p-2" aria-label={`Editar ${trip.title}`}>
-                          <EditIcon className="w-4 h-4" aria-hidden="true" />
-                        </Link>
-                        <button
-                          onClick={() => handlePublish(trip)}
-                          className={`btn-ghost p-2 ${trip.status === 'OPEN' ? 'text-green-600 hover:bg-green-50' : 'text-green-700 hover:bg-green-50'}`}
-                          aria-label={trip.status === 'OPEN' ? `Despublicar ${trip.title}` : `Publicar ${trip.title}`}
-                        >
-                          {trip.status === 'OPEN' ? (
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                          ) : (
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
-                          )}
-                        </button>
-                        <div className="dropdown">
-                          <button
-                            className="btn-ghost p-2"
-                            aria-label={`Mais opções para ${trip.title}`}
-                            aria-haspopup="true"
-                            aria-expanded={openMenu?.tripId === trip.id}
-                            onClick={(e) => toggleMenu(trip, e.currentTarget)}
-                          >
-                            <MoreIcon className="w-4 h-4" aria-hidden="true" />
-                          </button>
-                          {openMenu?.tripId === trip.id && createPortal(
-                            <>
-                              <div
-                                className="fixed inset-0 z-40"
-                                onClick={closeMenu}
-                                aria-hidden="true"
-                              />
-                              <div
-                                ref={menuRef}
-                                className="dropdown-menu-portal"
-                                role="menu"
-                                style={{ top: openMenu.top, left: openMenu.left }}
-                              >
-                                <Link
-                                  to={`/trips/${trip.id}/edit`}
-                                  className="dropdown-item flex items-center gap-2"
-                                  role="menuitem"
-                                  onClick={closeMenu}
-                                >
-                                  <EditIcon className="w-4 h-4" aria-hidden="true" />
-                                  Editar
-                                </Link>
-                                <div className="dropdown-divider" role="separator" />
-                                <button
-                                  className="dropdown-item text-red-600 flex items-center gap-2 w-full"
-                                  role="menuitem"
-                                  onClick={() => handleDelete(trip.id, trip.title)}
-                                  disabled={deletingId === trip.id}
-                                >
-                                  <TrashIcon className="w-4 h-4" aria-hidden="true" />
-                                  {deletingId === trip.id ? 'Excluindo...' : 'Excluir'}
-                                </button>
-                              </div>
-                            </>,
-                            document.body
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination */}
-        {pagination.totalPages > 1 && (
-          <div className="px-4 py-3 border-t border-surface-200">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-surface-500">
-                Mostrando {((pagination.page - 1) * pagination.limit) + 1} a {Math.min(pagination.page * pagination.limit, pagination.total)} de {pagination.total} resultados
-              </p>
-              <div className="pagination">
-                <button
-                  className="pagination-btn"
-                  onClick={() => handlePageChange(pagination.page - 1)}
-                  disabled={pagination.page === 1}
-                  aria-label="Página anterior"
-                >
-                  <ChevronLeftIcon className="w-4 h-4" aria-hidden="true" />
-                </button>
-                {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                  let pageNum: number;
-                  if (pagination.totalPages <= 5) pageNum = i + 1;
-                  else if (pagination.page <= 3) pageNum = i + 1;
-                  else if (pagination.page >= pagination.totalPages - 2) pageNum = pagination.totalPages - 4 + i;
-                  else pageNum = pagination.page - 2 + i;
+              </thead>
+              <tbody>
+                {trips.map((trip) => {
+                  const action = tripListAction(trip.status, isAdmin);
+                  const canPublish = action === 'publish';
+                  const busy = publishingId === trip.id;
                   return (
-                    <button
-                      key={pageNum}
-                      className={`pagination-btn ${pagination.page === pageNum ? 'pagination-btn-active' : ''}`}
-                      onClick={() => handlePageChange(pageNum)}
-                      aria-label={`Página ${pageNum}`}
-                      aria-current={pagination.page === pageNum ? 'page' : undefined}
-                    >
-                      {pageNum}
-                    </button>
+                    <tr key={trip.id}>
+                      <td className="max-w-[16rem]">
+                        <Link to={`/trips/${trip.id}/edit`} className="font-medium text-surface-900 hover:text-primary-700 hover:underline">{trip.title}</Link>
+                        <p className="md:hidden text-xs text-surface-600 mt-0.5">{formatDate(trip.startDateISO)} · {trip.city}/{trip.region}</p>
+                      </td>
+                      <td><span className={statusColors[trip.status]}>{tripStatusLabel(trip.status)}</span></td>
+                      <td className="hidden md:table-cell text-surface-700 whitespace-nowrap">{formatDate(trip.startDateISO)}</td>
+                      <td className="hidden lg:table-cell text-surface-700">
+                        <span className="inline-flex items-center gap-1"><MapPin className="w-4 h-4 text-surface-500" aria-hidden="true" />{trip.city}/{trip.region}</span>
+                      </td>
+                      <td>
+                        <div className="flex items-center justify-end gap-1">
+                          {action && (
+                          <Button
+                              small
+                              variant={canPublish ? 'primary' : 'secondary'}
+                              loading={busy}
+                              loadingText={canPublish ? 'Publicando...' : 'Tirando...'}
+                              icon={canPublish ? <Eye className="w-4 h-4" aria-hidden="true" /> : <EyeOff className="w-4 h-4" aria-hidden="true" />}
+                              onClick={() => (canPublish ? publish(trip) : setToUnpublish(trip))}
+                              aria-label={`${canPublish ? 'Publicar no site' : 'Tirar do site'}: ${trip.title}`}
+                            >
+                              <span className="hidden sm:inline">{canPublish ? 'Publicar' : 'Tirar do site'}</span>
+                            </Button>
+                          )}
+                          <RowMenu
+                            label={`Mais opções de ${trip.title}`}
+                            items={[
+                              { key: 'edit', label: 'Editar', icon: <Pencil className="w-4 h-4" aria-hidden="true" />, onSelect: () => { navigate(`/trips/${trip.id}/edit`); } },
+                              { key: 'delete', label: 'Excluir', danger: true, icon: <Trash2 className="w-4 h-4" aria-hidden="true" />, onSelect: () => setToDelete(trip) },
+                            ]}
+                          />
+                        </div>
+                      </td>
+                    </tr>
                   );
                 })}
-                <button
-                  className="pagination-btn"
-                  onClick={() => handlePageChange(pagination.page + 1)}
-                  disabled={pagination.page === pagination.totalPages}
-                  aria-label="Próxima página"
-                >
-                  <ChevronRightIcon className="w-4 h-4" aria-hidden="true" />
-                </button>
-              </div>
-            </div>
+              </tbody>
+            </table>
           </div>
         )}
+        <Pagination pagination={pagination} onChange={list.setPage} />
       </div>
+
+      <ConfirmDialog
+        open={!!toDelete}
+        onOpenChange={(open) => { if (!open) setToDelete(null); }}
+        title="Excluir esta viagem?"
+        description={`“${toDelete?.title ?? ''}” será apagada de vez e sai do site. Isso não pode ser desfeito.`}
+        confirmLabel="Sim, excluir"
+        busyLabel="Excluindo..."
+        busy={deleting}
+        onConfirm={remove}
+      />
+      <ConfirmDialog
+        open={!!incomplete}
+        onOpenChange={(open) => { if (!open) setIncomplete(null); }}
+        title="Ainda falta algo para publicar"
+        description={`“${incomplete?.trip.title ?? ''}”: ${incomplete?.problems.join(' ') ?? ''}`}
+        confirmLabel="Abrir a viagem"
+        danger={false}
+        onConfirm={() => { const id = incomplete?.trip.id; setIncomplete(null); if (id) navigate(`/trips/${id}/edit`); }}
+      />
+      <ConfirmDialog
+        open={!!toUnpublish}
+        onOpenChange={(open) => { if (!open) setToUnpublish(null); }}
+        title="Tirar do site?"
+        description={`“${toUnpublish?.title ?? ''}” deixa de aparecer para os clientes e volta a ser rascunho. Você pode publicar de novo quando quiser.`}
+        confirmLabel="Tirar do site"
+        busyLabel="Tirando..."
+        busy={!!toUnpublish && publishingId === toUnpublish.id}
+        danger={false}
+        onConfirm={unpublish}
+      />
     </div>
   );
 }

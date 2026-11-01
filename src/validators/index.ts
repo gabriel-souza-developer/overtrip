@@ -67,6 +67,19 @@ export const tripQuerySchema = z.object({
   search: z.string().optional(),
 });
 
+// Filtros de lista vêm como texto na URL ("true"/"false"). z.coerce.boolean() tratava "false" como true.
+export const queryBoolean = z.preprocess(
+  (value) => {
+    if (typeof value === 'string') {
+      const text = value.trim().toLowerCase();
+      if (text === 'true' || text === '1') return true;
+      if (text === 'false' || text === '0') return false;
+    }
+    return value;
+  },
+  z.boolean().optional(),
+);
+
 // Visit schemas
 export const visitCreateSchema = z.object({
   title: z.string().min(1, 'Título é obrigatório'),
@@ -90,11 +103,11 @@ export const visitCreateSchema = z.object({
 export const visitUpdateSchema = visitCreateSchema.partial();
 
 export const visitQuerySchema = z.object({
-  needsReview: z.coerce.boolean().optional(),
+  needsReview: queryBoolean,
   tripId: z.string().cuid().optional(),
   city: z.string().optional(),
   region: z.string().optional(),
-  hasCoords: z.coerce.boolean().optional(),
+  hasCoords: queryBoolean,
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(20),
   search: z.string().optional(),
@@ -120,7 +133,7 @@ export const galleryCreateSchema = z.object({
 export const galleryUpdateSchema = galleryCreateSchema.partial();
 
 export const galleryQuerySchema = z.object({
-  isFeatured: z.coerce.boolean().optional(),
+  isFeatured: queryBoolean,
   tripId: z.string().cuid().optional(),
   visitId: z.string().cuid().optional(),
   page: z.coerce.number().int().positive().default(1),

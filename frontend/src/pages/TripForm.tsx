@@ -1,25 +1,23 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { tripApi, TripFormData, TripStatus } from '../api';
+import React, { useEffect, useRef, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { ArrowLeft, Save } from 'lucide-react';
+import { tripApi, TripFormData } from '../api';
 import { useToast } from '../hooks/useToast';
-import { resolveAssetSrc } from '../lib/assetUrl';
+import { useAuth } from '../App';
 import { CityAutocomplete, UfSelect } from '../components/LocationFields';
 import { nextCityOnRegionChange } from '../lib/locationCombobox';
 import { isValidImageSrc, IMAGE_SRC_MESSAGE } from '../lib/imageSrc';
 import { isoToLocalInput, localInputToIso } from '../lib/dateInput';
 import { fillMissingAlt, formatBRL, syncPriceDisplay } from '../lib/formHelpers';
 import { canChangeTripStatus } from '../lib/permissions';
-import { useAuth } from '../App';
+import { applyTripDefaults, countFilled, formatPriceInput, parsePriceInput, parseWholeNumber, TRIP_STATUS_LABELS, validateTripMinimum } from '../lib/panelHelpers';
+import Button from '../components/Button';
+import Field from '../components/Field';
+import FormSection from '../components/FormSection';
+import ConfirmDialog from '../components/ConfirmDialog';
+import { ArrayInput, DeparturesInput, MediaInput } from '../components/TripFormInputs';
 
 const intensityOptions = ['leve', 'moderado', 'intenso', 'extremo'] as const;
-const statusOptions: { value: TripStatus; label: string }[] = [
-  { value: 'DRAFT', label: 'Rascunho' },
-  { value: 'OPEN', label: 'Publicada' },
-  { value: 'COMPLETED', label: 'Concluída' },
-  { value: 'CANCELLED', label: 'Cancelada' },
-  { value: 'SOLD_OUT', label: 'Esgotada' },
-  { value: 'CLOSED', label: 'Fechada' },
-];
 
 const buttonStyleOptions = [
   { value: 'button-dark', label: 'Escuro' },
@@ -28,17 +26,29 @@ const buttonStyleOptions = [
   { value: 'button-outline', label: 'Só contorno' },
 ];
 
-function Hint({ children }: { children: React.ReactNode }) {
-  return <p className="text-xs text-surface-500 mt-1">{children}</p>;
-}
+// Campo com problema -> id do campo na tela (para levar o foco até ele).
+const ERROR_TARGETS: Record<string, string> = {
+  title: 'title', region: 'region', city: 'city', startDateISO: 'startDateISO', priceValue: 'priceValue', media: 'media-link',
+};
+const ERROR_LABELS: Record<string, string> = {
+  title: 'Nome da viagem', region: 'Estado', city: 'Cidade', startDateISO: 'Data de saída', priceValue: 'Valor', media: 'Fotos',
+};
 
-function ArrowLeftIcon({ className }: { className?: string }) {
-  return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>;
-}
+// Todos os campos existem sempre no formulário (texto vazio, lista vazia); só valor e vagas podem ser "nenhum".
+type AllRequired = { [K in keyof Required<TripFormData>]: NonNullable<Required<TripFormData>[K]> };
+type FormState = Omit<AllRequired, 'priceValue' | 'spotsLeft'> & { priceValue: number | null; spotsLeft: number | null };
 
-function SaveIcon({ className }: { className?: string }) {
-  return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>;
-}
+const emptyForm = (): FormState => ({
+  title: '', headlineDisplay: '', category: '', description: '', city: '', region: '',
+  startDateISO: isoToLocalInput(new Date().toISOString()), endDateISO: '',
+  departureTime: '', departureTolerance: '', returnTime: '', scheduleInfo: '', scheduleTBD: false,
+  priceValue: null, priceDisplay: '', priceUnit: 'por pessoa', free: false,
+  intensityClass: 'moderado', spotsLeft: null, trailDistance: '', supportPoint: '', supportPointInfo: '',
+  meetingCity: '', meetingPoint: '', meetingDetails: '', meetingMapsQuery: '',
+  includes: [], includesHighlight: '', includedServices: [], itinerary: [], routeNotes: [], importantInfo: [],
+  media: [], buttonLabel: 'Quero viajar', buttonClass: 'button-dark', status: 'DRAFT',
+  availabilitySchema: 'https://schema.org/InStock', departures: [],
+});
 
 export default function TripForm() {
   const { id } = useParams<{ id: string }>();
@@ -50,60 +60,28 @@ export default function TripForm() {
   const [loading, setLoading] = useState(isEditing);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [formData, setFormData] = useState<FormState>(emptyForm);
+  const [leaveOpen, setLeaveOpen] = useState(false);
+  const [priceText, setPriceText] = useState('');
+  // Datas como vieram da API: se a pessoa não mexe na data, o valor guardado não muda.
+  const originalDates = useRef<{ start: string | null; end: string | null }>({ start: null, end: null });
+  const initialRef = useRef(JSON.stringify(formData));
+  const summaryRef = useRef<HTMLDivElement>(null);
 
-  const [formData, setFormData] = useState<TripFormData>({
-    title: '',
-    headlineDisplay: '',
-    category: '',
-    description: '',
-    city: '',
-    region: '',
-    startDateISO: isoToLocalInput(new Date().toISOString()),
-    endDateISO: '',
-    departureTime: '',
-    departureTolerance: '',
-    returnTime: '',
-    scheduleInfo: '',
-    scheduleTBD: false,
-    priceValue: null,
-    priceDisplay: '',
-    priceUnit: 'por pessoa',
-    free: false,
-    intensityClass: 'moderado',
-    spotsLeft: null,
-    trailDistance: '',
-    supportPoint: '',
-    supportPointInfo: '',
-    meetingCity: '',
-    meetingPoint: '',
-    meetingDetails: '',
-    meetingMapsQuery: '',
-    includes: [],
-    includesHighlight: '',
-    includedServices: [],
-    itinerary: [],
-    routeNotes: [],
-    importantInfo: [],
-    media: [],
-    buttonLabel: 'Quero viajar',
-    buttonClass: 'button-dark',
-    status: 'DRAFT',
-    availabilitySchema: 'https://schema.org/InStock',
-    departures: [],
-  });
+  const dirty = JSON.stringify(formData) !== initialRef.current;
 
+  // Avisa antes de fechar a aba com alterações não salvas.
   useEffect(() => {
-    if (isEditing) {
-      loadTrip();
-    } else {
-      setLoading(false);
-    }
-  }, [id]);
+    if (!dirty) return;
+    const warn = (e: BeforeUnloadEvent) => { e.preventDefault(); };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [dirty]);
 
   const loadTrip = async () => {
     try {
       const trip = await tripApi.get(id!);
-      setFormData({
+      const loaded: FormState = {
         title: trip.title,
         headlineDisplay: trip.headlineDisplay || '',
         category: trip.category,
@@ -121,7 +99,7 @@ export default function TripForm() {
         priceDisplay: trip.priceDisplay || '',
         priceUnit: trip.priceUnit,
         free: trip.free,
-        intensityClass: trip.intensityClass as TripFormData['intensityClass'],
+        intensityClass: trip.intensityClass as FormState['intensityClass'],
         spotsLeft: trip.spotsLeft,
         trailDistance: trip.trailDistance || '',
         supportPoint: trip.supportPoint || '',
@@ -149,61 +127,64 @@ export default function TripForm() {
           mapsQuery: d.mapsQuery || undefined,
           orderIndex: d.orderIndex,
         })) || [],
-      });
+      };
+      initialRef.current = JSON.stringify(loaded);
+      originalDates.current = { start: trip.startDateISO, end: trip.endDateISO };
+      setPriceText(formatPriceInput(loaded.priceValue));
+      setFormData(loaded);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao carregar viagem');
+      toast.error(err instanceof Error ? err.message : 'Não foi possível abrir a viagem.');
       navigate('/trips');
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    if (isEditing) loadTrip();
+    else setLoading(false);
+  }, [id]);
+
+  const clearError = (name: string) => setErrors(prev => (prev[name] ? { ...prev, [name]: '' } : prev));
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     if (type === 'checkbox') {
       setFormData(prev => ({ ...prev, [name]: (e.target as HTMLInputElement).checked }));
     } else if (type === 'number') {
-      const num = value ? parseFloat(value) : null;
-      setFormData(prev => name === 'priceValue'
-        ? { ...prev, priceValue: num, priceDisplay: syncPriceDisplay(prev.priceValue, num, prev.priceDisplay || '') }
-        : { ...prev, [name]: num });
+      setFormData(prev => ({ ...prev, [name]: value ? parseFloat(value) : null }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
-    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
+    clearError(name);
   };
 
-  const handleFieldChange = (name: keyof TripFormData, value: string) => {
-    setFormData(prev => ({ ...prev, [name]: value }));
-    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
+  // Valor: aceita vírgula (109,99 / 1.250,00). O texto digitado fica à parte para não "comer" a vírgula.
+  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const text = e.target.value;
+    setPriceText(text);
+    const num = parsePriceInput(text);
+    setFormData(prev => ({ ...prev, priceValue: num, priceDisplay: syncPriceDisplay(prev.priceValue, num, prev.priceDisplay || '') }));
+    clearError('priceValue');
   };
 
-  const handleArrayChange = (field: keyof TripFormData, value: string[]) => {
+  const setList = (field: 'includes' | 'includedServices' | 'itinerary' | 'routeNotes' | 'importantInfo', value: string[]) =>
     setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const addArrayItem = (field: keyof TripFormData, item: string) => {
-    if (!item.trim()) return;
-    const current = (formData[field] as string[]) || [];
-    setFormData(prev => ({ ...prev, [field]: [...current, item] }));
-  };
-
-  const removeArrayItem = (field: keyof TripFormData, index: number) => {
-    const current = (formData[field] as string[]) || [];
-    setFormData(prev => ({ ...prev, [field]: current.filter((_, i) => i !== index) }));
-  };
 
   const validate = () => {
-    const newErrors: Record<string, string> = {};
-    if (!formData.title.trim()) newErrors.title = 'Título é obrigatório';
-    if (!formData.category.trim()) newErrors.category = 'Categoria é obrigatória';
-    if (!formData.description.trim()) newErrors.description = 'Descrição é obrigatória';
-    if (!formData.city.trim()) newErrors.city = 'Cidade é obrigatória';
-    if (!formData.region.trim()) newErrors.region = 'Região é obrigatória';
-    if (!formData.startDateISO) newErrors.startDateISO = 'Data de início é obrigatória';
+    const newErrors = validateTripMinimum(formData);
     if (formData.media.some(m => !isValidImageSrc(m.src))) newErrors.media = IMAGE_SRC_MESSAGE;
+    if (priceText.trim() && parsePriceInput(priceText) === null && !formData.free) newErrors.priceValue = 'Não entendi o valor. Use números, como 109,99 ou 1.250,00.';
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    const keys = Object.keys(newErrors);
+    if (keys.length > 0) {
+      // Leva a pessoa até o primeiro problema.
+      requestAnimationFrame(() => {
+        summaryRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        document.getElementById(ERROR_TARGETS[keys[0]])?.focus({ preventScroll: true });
+      });
+    }
+    return keys.length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -212,483 +193,294 @@ export default function TripForm() {
 
     setSaving(true);
     try {
+      const withDefaults = applyTripDefaults(formData);
       const payload = {
-        ...formData,
+        ...withDefaults,
         media: fillMissingAlt(formData.media, formData.title).map(m => ({ ...m, focus: m.focus?.trim() || undefined })),
         priceDisplay: formData.priceDisplay || (formData.priceValue && formData.priceValue > 0 && !formData.free ? formatBRL(formData.priceValue) : ''),
-        startDateISO: localInputToIso(formData.startDateISO)!,
-        endDateISO: localInputToIso(formData.endDateISO),
+        startDateISO: localInputToIso(formData.startDateISO, originalDates.current.start)!,
+        endDateISO: localInputToIso(formData.endDateISO, originalDates.current.end),
       };
       if (isEditing) {
         await tripApi.update(id!, payload);
-        toast.success('Viagem atualizada com sucesso');
+        toast.success('Alterações salvas.');
       } else {
         await tripApi.create(payload);
-        toast.success('Viagem criada com sucesso');
+        toast.success('Viagem criada como rascunho. Publique quando estiver pronta.');
       }
+      initialRef.current = JSON.stringify(formData);
       navigate('/trips');
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao salvar viagem');
+      toast.error(err instanceof Error ? err.message : 'Não foi possível salvar a viagem.');
     } finally {
       setSaving(false);
     }
   };
 
+  const leave = () => (dirty ? setLeaveOpen(true) : navigate('/trips'));
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="spinner w-8 h-8"></div>
+      <div className="max-w-3xl mx-auto space-y-4" aria-busy="true" aria-label="Carregando viagem">
+        <div className="loading-skeleton h-10 w-1/2" />
+        <div className="loading-skeleton h-96 w-full" />
       </div>
     );
   }
 
+  const errorKeys = Object.keys(errors).filter(k => errors[k]);
+  const f = formData;
+  const err = (name: string) => errors[name] || undefined;
+  const invalid = (name: string) => (errors[name] ? 'input-error' : '');
+
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div className="page-header flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <button onClick={() => navigate('/trips')} className="btn-ghost p-2" aria-label="Voltar">
-            <ArrowLeftIcon className="w-5 h-5" aria-hidden="true" />
-          </button>
-          <div>
-            <h1 className="page-title">{isEditing ? 'Editar Viagem' : 'Nova Viagem'}</h1>
-            <p className="page-description">{isEditing ? 'Atualize as informações da viagem' : 'Crie uma nova viagem comercial'}</p>
-          </div>
-        </div>
-        <button type="button" onClick={handleSubmit} form="trip-form" className="btn-primary" disabled={saving}>
-          <SaveIcon className="w-5 h-5" aria-hidden="true" />
-          {saving ? 'Salvando...' : 'Salvar'}
+    <div className="max-w-3xl mx-auto space-y-6 pb-24">
+      <div className="flex items-center gap-3">
+        <button type="button" onClick={leave} className="btn-icon" aria-label="Voltar para a lista de viagens">
+          <ArrowLeft className="w-5 h-5" aria-hidden="true" />
         </button>
+        <div>
+          <h1 className="page-title">{isEditing ? 'Editar viagem' : 'Nova viagem'}</h1>
+          <p className="page-description">{isEditing ? 'Mude o que precisar e salve.' : 'Preencha o básico. O resto é opcional e pode ficar para depois.'}</p>
+        </div>
       </div>
 
-      {errors.general && <div className="alert-error" role="alert">{errors.general}</div>}
-
-      <form id="trip-form" onSubmit={handleSubmit} className="space-y-6">
-        {/* Essencial */}
-        <fieldset className="card p-6 space-y-6">
-          <legend className="text-lg font-semibold text-surface-900">O essencial</legend>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="title" className="label">Título *</label>
-              <input id="title" name="title" className={`input ${errors.title ? 'input-error' : ''}`} value={formData.title} onChange={handleChange} required />
-              {errors.title && <p className="text-red-600 text-sm mt-1">{errors.title}</p>}
-            </div>
-            <div className="form-group">
-              <label htmlFor="category" className="label">Categoria *</label>
-              <input id="category" name="category" className={`input ${errors.category ? 'input-error' : ''}`} value={formData.category} onChange={handleChange} required placeholder="Ex: Trilha, Praia, Aventura" />
-              {errors.category && <p className="text-red-600 text-sm mt-1">{errors.category}</p>}
-            </div>
+      <form id="trip-form" onSubmit={handleSubmit} noValidate className="space-y-4">
+        {errorKeys.length > 0 && (
+          <div ref={summaryRef} className="alert-error" role="alert">
+            <p className="font-semibold">Falta pouco para salvar:</p>
+            <ul className="mt-1 list-disc pl-5 space-y-0.5">
+              {errorKeys.map(k => (
+                <li key={k}>
+                  <a href={`#${ERROR_TARGETS[k]}`} className="underline" onClick={(e) => { e.preventDefault(); document.getElementById(ERROR_TARGETS[k])?.focus(); }}>
+                    {ERROR_LABELS[k]}
+                  </a>: {errors[k]}
+                </li>
+              ))}
+            </ul>
           </div>
+        )}
 
-          <div className="form-group">
-            <label htmlFor="description" className="label">Descrição *</label>
-            <textarea id="description" name="description" className={`input ${errors.description ? 'input-error' : ''}`} value={formData.description} onChange={handleChange} rows={4} required />
-            {errors.description && <p className="text-red-600 text-sm mt-1">{errors.description}</p>}
-          </div>
+        <fieldset className="card p-5 space-y-5">
+          <legend className="sr-only">Dados básicos</legend>
+          <h2 className="text-lg font-semibold text-surface-900">O básico</h2>
 
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="region" className="label">Estado/Região *</label>
+          <Field id="title" label="Nome da viagem" required error={err('title')}>
+            <input id="title" name="title" className={`input ${invalid('title')}`} value={f.title} onChange={handleChange} aria-invalid={!!errors.title} aria-describedby={errors.title ? 'title-error' : undefined} placeholder="Ex.: Trilha do Pico do Jabre" autoComplete="off" />
+          </Field>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field id="region" label="Estado" required error={err('region')}>
               <UfSelect
                 id="region"
                 name="region"
-                className={`select ${errors.region ? 'input-error' : ''}`}
-                value={formData.region}
+                className={`select ${invalid('region')}`}
+                value={f.region}
                 onChange={(val, previousIsKnownUf) => {
                   setFormData(prev => ({ ...prev, region: val, city: nextCityOnRegionChange(prev.city, prev.region, val, previousIsKnownUf) }));
-                  if (errors.region) setErrors(prev => ({ ...prev, region: '' }));
+                  clearError('region');
                 }}
-                required
               />
-              {errors.region && <p className="text-red-600 text-sm mt-1">{errors.region}</p>}
-            </div>
-            <div className="form-group">
-              <label htmlFor="city" className="label">Cidade *</label>
+            </Field>
+            <Field id="city" label="Cidade" required error={err('city')} hint="Escolha o estado primeiro.">
               <CityAutocomplete
                 id="city"
                 name="city"
-                className={`input ${errors.city ? 'input-error' : ''}`}
-                value={formData.city}
-                uf={formData.region}
-                onChange={(val) => handleFieldChange('city', val)}
-                required
+                className={`input ${invalid('city')}`}
+                value={f.city}
+                uf={f.region}
+                onChange={(val) => { setFormData(prev => ({ ...prev, city: val })); clearError('city'); }}
               />
-              {errors.city && <p className="text-red-600 text-sm mt-1">{errors.city}</p>}
-            </div>
+            </Field>
           </div>
 
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="startDateISO" className="label">Data de início *</label>
-              <input id="startDateISO" name="startDateISO" type="datetime-local" className={`input ${errors.startDateISO ? 'input-error' : ''}`} value={formData.startDateISO} onChange={handleChange} required />
-              {errors.startDateISO && <p className="text-red-600 text-sm mt-1">{errors.startDateISO}</p>}
-            </div>
-            <div className="form-group">
-              <label htmlFor="endDateISO" className="label">Data de fim</label>
-              <input id="endDateISO" name="endDateISO" type="datetime-local" className="input" value={formData.endDateISO} onChange={handleChange} />
-            </div>
-          </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="priceValue" className="label">Valor (R$)</label>
-              <input id="priceValue" name="priceValue" type="number" step="0.01" min="0" className="input" value={formData.priceValue ?? ''} onChange={handleChange} placeholder="109.99" disabled={formData.free} />
-              <label htmlFor="free" className="checkbox-label mt-2">
-                <input id="free" name="free" type="checkbox" className="checkbox-input" checked={formData.free} onChange={handleChange} />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field id="startDateISO" label="Data e hora de saída" required error={err('startDateISO')}>
+              <input id="startDateISO" name="startDateISO" type="datetime-local" className={`input ${invalid('startDateISO')}`} value={f.startDateISO} onChange={handleChange} aria-invalid={!!errors.startDateISO} />
+            </Field>
+            <div>
+              <Field id="priceValue" label="Valor (R$)" error={err('priceValue')} hint={f.free ? 'Viagem gratuita: sem valor.' : 'Ex.: 109,99 ou 1.250,00'}>
+                <input id="priceValue" name="priceValue" type="text" inputMode="decimal" className={`input ${invalid('priceValue')}`} value={priceText} onChange={handlePriceChange} placeholder="109,99" disabled={f.free} aria-invalid={!!errors.priceValue} autoComplete="off" />
+              </Field>
+              <label htmlFor="free" className="checkbox-label mt-2 min-h-[32px]">
+                <input id="free" name="free" type="checkbox" className="checkbox-input" checked={f.free} onChange={(e) => { handleChange(e); clearError('priceValue'); }} />
                 <span className="text-sm text-surface-700">Viagem gratuita</span>
               </label>
             </div>
-            <div className="form-group">
-              <label htmlFor="status" className="label">Situação</label>
-              <select id="status" name="status" className="select" value={formData.status} onChange={handleChange} disabled={!canEditStatus}>
-                {statusOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-              </select>
-              <Hint>“Publicada” aparece no site; “Rascunho” fica só aqui.</Hint>
-              {!canEditStatus && <Hint>Só administradores alteram a situação</Hint>}
-            </div>
           </div>
 
-          <div className="form-group">
-            <span className="label">Fotos</span>
+          <div className="form-group !mb-0">
+            <span className="label" id="media-label">Fotos</span>
+            <p className="hint mb-2">A primeira foto é a capa. Dá para salvar como rascunho sem foto; para publicar, precisa de pelo menos uma.</p>
             <MediaInput
-              value={formData.media}
-              onChange={(val) => { setFormData(prev => ({ ...prev, media: val })); if (errors.media) setErrors(prev => ({ ...prev, media: '' })); }}
+              inputId="media-link"
+              value={f.media}
+              onChange={(val) => { setFormData(prev => ({ ...prev, media: val })); clearError('media'); }}
             />
-            {errors.media && <p className="text-red-600 text-sm mt-1">{errors.media}</p>}
+            {errors.media && <p className="field-error" role="alert">{errors.media}</p>}
           </div>
         </fieldset>
 
-        {/* Mais opções */}
-        <details className="card">
-          <summary className="p-6 cursor-pointer text-lg font-semibold text-surface-900">Mais opções <span className="text-sm font-normal text-surface-500">(horários, o que está incluso, ponto de encontro e outros)</span></summary>
-          <div className="px-6 pb-6 space-y-8">
+        <p className="text-sm text-surface-600 px-1">Mais detalhes (todos opcionais). O que você preencher aqui fica guardado mesmo com a seção fechada.</p>
 
-            <fieldset className="space-y-6">
-              <legend className="font-semibold text-surface-900 mb-2">Horários</legend>
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="departureTime" className="label">Horário de saída</label>
-                  <input id="departureTime" name="departureTime" className="input" value={formData.departureTime} onChange={handleChange} placeholder="06h00" />
-                  <Hint>Se ficar vazio, o site usa a hora da data de início.</Hint>
-                </div>
-                <div className="form-group">
-                  <label htmlFor="returnTime" className="label">Horário de volta</label>
-                  <input id="returnTime" name="returnTime" className="input" value={formData.returnTime} onChange={handleChange} placeholder="18h00" />
-                </div>
-              </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="scheduleInfo" className="label">Horário em texto livre</label>
-                  <input id="scheduleInfo" name="scheduleInfo" className="input" value={formData.scheduleInfo} onChange={handleChange} placeholder="06h às 18h" />
-                  <Hint>Se preenchido, aparece no card no lugar de saída e volta.</Hint>
-                </div>
-                <div className="form-group">
-                  <label htmlFor="departureTolerance" className="label">Tempo de espera por atrasados</label>
-                  <input id="departureTolerance" name="departureTolerance" className="input" value={formData.departureTolerance} onChange={handleChange} placeholder="30 minutos" />
-                </div>
-              </div>
-              <label htmlFor="scheduleTBD" className="checkbox-label">
-                <input id="scheduleTBD" name="scheduleTBD" type="checkbox" className="checkbox-input" checked={formData.scheduleTBD} onChange={handleChange} />
-                <span className="text-sm text-surface-700">Horário ainda não definido</span>
-              </label>
-            </fieldset>
-
-            <fieldset className="space-y-6">
-              <legend className="font-semibold text-surface-900 mb-2">Preço no site</legend>
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="priceDisplay" className="label">Preço como aparece no site</label>
-                  <input id="priceDisplay" name="priceDisplay" className="input" value={formData.priceDisplay} onChange={handleChange} placeholder="R$ 109,99" disabled={formData.free} />
-                  <Hint>Acompanha o Valor sozinho. Se você escrever um texto próprio, ele não muda mais.</Hint>
-                </div>
-                <div className="form-group">
-                  <label htmlFor="priceUnit" className="label">Cobrança</label>
-                  <input id="priceUnit" name="priceUnit" className="input" value={formData.priceUnit} onChange={handleChange} disabled={formData.free} placeholder="por pessoa" />
-                </div>
-              </div>
-            </fieldset>
-
-            <fieldset className="space-y-6">
-              <legend className="font-semibold text-surface-900 mb-2">Sobre a viagem</legend>
-              <div className="form-group">
-                <label htmlFor="headlineDisplay" className="label">Título do card</label>
-                <input id="headlineDisplay" name="headlineDisplay" className="input" value={formData.headlineDisplay} onChange={handleChange} placeholder="Versão curta do título" />
-              </div>
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="intensityClass" className="label">Intensidade</label>
-                  <select id="intensityClass" name="intensityClass" className="select" value={formData.intensityClass} onChange={handleChange}>
-                    {intensityOptions.map(opt => <option key={opt} value={opt}>{opt.charAt(0).toUpperCase() + opt.slice(1)}</option>)}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label htmlFor="spotsLeft" className="label">Vagas restantes</label>
-                  <input id="spotsLeft" name="spotsLeft" type="number" min="0" className="input" value={formData.spotsLeft ?? ''} onChange={handleChange} />
-                  <Hint>Aparece no site quando for maior que zero.</Hint>
-                </div>
-              </div>
-              <div className="form-group">
-                <label htmlFor="trailDistance" className="label">Distância da trilha</label>
-                <input id="trailDistance" name="trailDistance" className="input" value={formData.trailDistance} onChange={handleChange} placeholder="aproximadamente 6 km" />
-              </div>
-              <div className="form-group">
-                <label htmlFor="supportPoint" className="label">Ponto de apoio</label>
-                <input id="supportPoint" name="supportPoint" className="input" value={formData.supportPoint} onChange={handleChange} />
-              </div>
-              <div className="form-group">
-                <label htmlFor="supportPointInfo" className="label">Informações do ponto de apoio</label>
-                <textarea id="supportPointInfo" name="supportPointInfo" className="input" value={formData.supportPointInfo} onChange={handleChange} rows={2} />
-              </div>
-            </fieldset>
-
-            <fieldset className="space-y-6">
-              <legend className="font-semibold text-surface-900 mb-2">O que está incluso</legend>
-              <div className="form-group">
-                <label className="label">Itens incluídos</label>
-                <ArrayInput name="includes" value={formData.includes} onChange={(val) => handleArrayChange('includes', val)} placeholder="Ex: Transporte, Guia, Almoço" />
-              </div>
-              <div className="form-group">
-                <label htmlFor="includesHighlight" className="label">Frase de destaque</label>
-                <input id="includesHighlight" name="includesHighlight" className="input" value={formData.includesHighlight} onChange={handleChange} placeholder="Transporte incluso saindo de João Pessoa" />
-              </div>
-              <div className="form-group">
-                <label className="label">Serviços incluídos</label>
-                <ArrayInput name="includedServices" value={formData.includedServices || []} onChange={(val) => handleArrayChange('includedServices', val)} placeholder="Ex: Seguro viagem, Kit lanche" />
-              </div>
-            </fieldset>
-
-            <fieldset className="space-y-6">
-              <legend className="font-semibold text-surface-900 mb-2">Roteiro e avisos</legend>
-              <div className="form-group">
-                <label className="label">Roteiro</label>
-                <ArrayInput name="itinerary" value={formData.itinerary || []} onChange={(val) => handleArrayChange('itinerary', val)} placeholder="Ex: 06h - Encontro, 07h - Saída" />
-              </div>
-              <div className="form-group">
-                <label className="label">Observações do percurso</label>
-                <ArrayInput name="routeNotes" value={formData.routeNotes || []} onChange={(val) => handleArrayChange('routeNotes', val)} placeholder="Ex: Trilha com trechos íngremes" />
-              </div>
-              <div className="form-group">
-                <label className="label">Informações importantes</label>
-                <ArrayInput name="importantInfo" value={formData.importantInfo || []} onChange={(val) => handleArrayChange('importantInfo', val)} placeholder="Ex: Levar 2L de água, Protetor solar" />
-              </div>
-            </fieldset>
-
-            <fieldset className="space-y-6">
-              <legend className="font-semibold text-surface-900 mb-2">Ponto de encontro</legend>
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="meetingCity" className="label">Cidade</label>
-                  <input id="meetingCity" name="meetingCity" className="input" value={formData.meetingCity} onChange={handleChange} />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="meetingPoint" className="label">Local</label>
-                  <input id="meetingPoint" name="meetingPoint" className="input" value={formData.meetingPoint} onChange={handleChange} />
-                </div>
-              </div>
-              <div className="form-group">
-                <label htmlFor="meetingDetails" className="label">Detalhes</label>
-                <textarea id="meetingDetails" name="meetingDetails" className="input" value={formData.meetingDetails} onChange={handleChange} rows={2} />
-              </div>
-              <div className="form-group">
-                <label htmlFor="meetingMapsQuery" className="label">Endereço para o Google Maps</label>
-                <input id="meetingMapsQuery" name="meetingMapsQuery" className="input" value={formData.meetingMapsQuery} onChange={handleChange} placeholder="Rua Exemplo, 123 - Bairro, Cidade/UF" />
-                <Hint>Se preenchido, o local no card vira um link que abre o Google Maps.</Hint>
-              </div>
-            </fieldset>
-
-            <fieldset className="space-y-4">
-              <legend className="font-semibold text-surface-900 mb-2">Pontos de partida</legend>
-              <p className="text-sm text-surface-500">Use quando o grupo sai de mais de um lugar. Cada ponto aparece no card com seu horário.</p>
-              <DeparturesInput
-                value={formData.departures}
-                onChange={(val) => setFormData(prev => ({ ...prev, departures: val }))}
-              />
-            </fieldset>
-
-            <fieldset className="space-y-6">
-              <legend className="font-semibold text-surface-900 mb-2">Botão do card</legend>
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="buttonLabel" className="label">Texto do botão</label>
-                  <input id="buttonLabel" name="buttonLabel" className="input" value={formData.buttonLabel} onChange={handleChange} />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="buttonClass" className="label">Cor do botão</label>
-                  <select id="buttonClass" name="buttonClass" className="select" value={formData.buttonClass} onChange={handleChange}>
-                    {buttonStyleOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                    {!buttonStyleOptions.some(o => o.value === formData.buttonClass) && <option value={formData.buttonClass}>Personalizada ({formData.buttonClass})</option>}
-                  </select>
-                </div>
-              </div>
-            </fieldset>
+        <FormSection title="Sobre a viagem" summary="Descrição, categoria, intensidade e vagas" filled={countFilled([f.category, f.description, f.headlineDisplay, f.spotsLeft, f.trailDistance, f.supportPoint, f.supportPointInfo])}>
+          <Field id="description" label="Descrição" hint="Se ficar vazia, usamos o nome da viagem.">
+            <textarea id="description" name="description" className="input" value={f.description} onChange={handleChange} rows={4} />
+          </Field>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field id="category" label="Categoria" hint="Se ficar vazia, usamos “Viagem”.">
+              <input id="category" name="category" className="input" value={f.category} onChange={handleChange} placeholder="Ex.: Trilha, Praia, Aventura" />
+            </Field>
+            <Field id="intensityClass" label="Intensidade">
+              <select id="intensityClass" name="intensityClass" className="select" value={f.intensityClass} onChange={handleChange}>
+                {intensityOptions.map(opt => <option key={opt} value={opt}>{opt.charAt(0).toUpperCase() + opt.slice(1)}</option>)}
+              </select>
+            </Field>
+            <Field id="spotsLeft" label="Vagas restantes" hint="Só número inteiro. Aparece no site quando for maior que zero.">
+              <input id="spotsLeft" name="spotsLeft" type="text" inputMode="numeric" pattern="[0-9]*" className="input" value={f.spotsLeft ?? ''} onChange={(e) => setFormData(prev => ({ ...prev, spotsLeft: parseWholeNumber(e.target.value) }))} autoComplete="off" />
+            </Field>
+            <Field id="headlineDisplay" label="Nome curto para o card" hint="Opcional: uma versão menor do nome.">
+              <input id="headlineDisplay" name="headlineDisplay" className="input" value={f.headlineDisplay} onChange={handleChange} />
+            </Field>
           </div>
-        </details>
+          <Field id="trailDistance" label="Distância da trilha">
+            <input id="trailDistance" name="trailDistance" className="input" value={f.trailDistance} onChange={handleChange} placeholder="aproximadamente 6 km" />
+          </Field>
+          <Field id="supportPoint" label="Ponto de apoio">
+            <input id="supportPoint" name="supportPoint" className="input" value={f.supportPoint} onChange={handleChange} />
+          </Field>
+          <Field id="supportPointInfo" label="Informações do ponto de apoio">
+            <textarea id="supportPointInfo" name="supportPointInfo" className="input" value={f.supportPointInfo} onChange={handleChange} rows={2} />
+          </Field>
+        </FormSection>
 
-        {/* Submit buttons */}
-        <div className="flex justify-end gap-3 pt-4 border-t border-surface-200">
-          <button type="button" onClick={() => navigate('/trips')} className="btn-secondary">
-            Cancelar
-          </button>
-          <button type="submit" className="btn-primary" disabled={saving}>
-            <SaveIcon className="w-5 h-5" aria-hidden="true" />
-            {saving ? 'Salvando...' : 'Salvar Viagem'}
-          </button>
+        <FormSection title="Horários" summary="Saída, volta e fim da viagem" filled={countFilled([f.endDateISO, f.departureTime, f.returnTime, f.scheduleInfo, f.departureTolerance, f.scheduleTBD])}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field id="endDateISO" label="Data e hora de volta">
+              <input id="endDateISO" name="endDateISO" type="datetime-local" className="input" value={f.endDateISO} onChange={handleChange} />
+            </Field>
+            <Field id="departureTime" label="Horário de saída" hint="Se ficar vazio, o site usa a hora da data de saída.">
+              <input id="departureTime" name="departureTime" className="input" value={f.departureTime} onChange={handleChange} placeholder="06h00" />
+            </Field>
+            <Field id="returnTime" label="Horário de volta">
+              <input id="returnTime" name="returnTime" className="input" value={f.returnTime} onChange={handleChange} placeholder="18h00" />
+            </Field>
+            <Field id="departureTolerance" label="Tempo de espera por atrasados">
+              <input id="departureTolerance" name="departureTolerance" className="input" value={f.departureTolerance} onChange={handleChange} placeholder="30 minutos" />
+            </Field>
+          </div>
+          <Field id="scheduleInfo" label="Horário em texto livre" hint="Se preenchido, aparece no card no lugar de saída e volta.">
+            <input id="scheduleInfo" name="scheduleInfo" className="input" value={f.scheduleInfo} onChange={handleChange} placeholder="06h às 18h" />
+          </Field>
+          <label htmlFor="scheduleTBD" className="checkbox-label min-h-[32px]">
+            <input id="scheduleTBD" name="scheduleTBD" type="checkbox" className="checkbox-input" checked={f.scheduleTBD} onChange={handleChange} />
+            <span className="text-sm text-surface-700">Horário ainda não definido</span>
+          </label>
+        </FormSection>
+
+        <FormSection title="Preço no site" summary="Como o valor aparece para o cliente" filled={countFilled([f.priceDisplay])}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field id="priceDisplay" label="Preço como aparece no site" hint="Acompanha o Valor sozinho. Se você escrever um texto próprio, ele não muda mais.">
+              <input id="priceDisplay" name="priceDisplay" className="input" value={f.priceDisplay} onChange={handleChange} placeholder="R$ 109,99" disabled={f.free} />
+            </Field>
+            <Field id="priceUnit" label="Cobrança" hint="Padrão: por pessoa.">
+              <input id="priceUnit" name="priceUnit" className="input" value={f.priceUnit} onChange={handleChange} disabled={f.free} placeholder="por pessoa" />
+            </Field>
+          </div>
+        </FormSection>
+
+        <FormSection title="O que está incluso" summary="Itens e serviços que o cliente recebe" filled={countFilled([f.includes, f.includesHighlight, f.includedServices])}>
+          <Field id="includes-input" label="Itens incluídos">
+            <ArrayInput id="includes-input" value={f.includes} onChange={(val) => setList('includes', val)} placeholder="Ex.: Transporte, Guia, Almoço" />
+          </Field>
+          <Field id="includesHighlight" label="Frase de destaque">
+            <input id="includesHighlight" name="includesHighlight" className="input" value={f.includesHighlight} onChange={handleChange} placeholder="Transporte incluso saindo de João Pessoa" />
+          </Field>
+          <Field id="included-services-input" label="Serviços incluídos">
+            <ArrayInput id="included-services-input" value={f.includedServices} onChange={(val) => setList('includedServices', val)} placeholder="Ex.: Seguro viagem, Kit lanche" />
+          </Field>
+        </FormSection>
+
+        <FormSection title="Roteiro e avisos" summary="Passo a passo e o que o cliente precisa saber" filled={countFilled([f.itinerary, f.routeNotes, f.importantInfo])}>
+          <Field id="itinerary-input" label="Roteiro">
+            <ArrayInput id="itinerary-input" value={f.itinerary} onChange={(val) => setList('itinerary', val)} placeholder="Ex.: 06h - Encontro, 07h - Saída" />
+          </Field>
+          <Field id="route-notes-input" label="Observações do percurso">
+            <ArrayInput id="route-notes-input" value={f.routeNotes} onChange={(val) => setList('routeNotes', val)} placeholder="Ex.: Trilha com trechos íngremes" />
+          </Field>
+          <Field id="important-info-input" label="Informações importantes">
+            <ArrayInput id="important-info-input" value={f.importantInfo} onChange={(val) => setList('importantInfo', val)} placeholder="Ex.: Levar 2 litros de água" />
+          </Field>
+        </FormSection>
+
+        <FormSection title="Encontro e saídas" summary="Onde o grupo se encontra e de onde sai" filled={countFilled([f.meetingCity, f.meetingPoint, f.meetingDetails, f.meetingMapsQuery, f.departures])}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field id="meetingCity" label="Cidade do encontro">
+              <input id="meetingCity" name="meetingCity" className="input" value={f.meetingCity} onChange={handleChange} />
+            </Field>
+            <Field id="meetingPoint" label="Local do encontro">
+              <input id="meetingPoint" name="meetingPoint" className="input" value={f.meetingPoint} onChange={handleChange} />
+            </Field>
+          </div>
+          <Field id="meetingDetails" label="Detalhes do encontro">
+            <textarea id="meetingDetails" name="meetingDetails" className="input" value={f.meetingDetails} onChange={handleChange} rows={2} />
+          </Field>
+          <Field id="meetingMapsQuery" label="Endereço para o Google Maps" hint="Se preenchido, o local no card vira um link que abre o Google Maps.">
+            <input id="meetingMapsQuery" name="meetingMapsQuery" className="input" value={f.meetingMapsQuery} onChange={handleChange} placeholder="Rua Exemplo, 123 - Bairro, Cidade/UF" />
+          </Field>
+          <div>
+            <p className="label">Pontos de saída</p>
+            <p className="hint mb-2">Use quando o grupo sai de mais de um lugar. Cada ponto aparece no card com seu horário.</p>
+            <DeparturesInput value={f.departures} onChange={(val) => setFormData(prev => ({ ...prev, departures: val }))} />
+          </div>
+        </FormSection>
+
+        <FormSection title="Botão do card" summary="Texto e cor do botão de reserva" filled={0}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field id="buttonLabel" label="Texto do botão" hint="Padrão: Quero viajar.">
+              <input id="buttonLabel" name="buttonLabel" className="input" value={f.buttonLabel} onChange={handleChange} />
+            </Field>
+            <Field id="buttonClass" label="Cor do botão">
+              <select id="buttonClass" name="buttonClass" className="select" value={f.buttonClass} onChange={handleChange}>
+                {buttonStyleOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                {!buttonStyleOptions.some(o => o.value === f.buttonClass) && <option value={f.buttonClass}>Personalizada ({f.buttonClass})</option>}
+              </select>
+            </Field>
+          </div>
+        </FormSection>
+
+        <FormSection title="Publicação" summary={`Situação atual: ${TRIP_STATUS_LABELS[f.status] ?? f.status}`} filled={0}>
+          <Field id="status" label="Situação" hint="“Publicada” aparece no site; “Rascunho” fica só aqui. Também dá para publicar pela lista de viagens.">
+            <select id="status" name="status" className="select" value={f.status} onChange={handleChange} disabled={!canEditStatus}>
+              {Object.entries(TRIP_STATUS_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
+          </Field>
+          {!canEditStatus && <p className="hint">Só administradores alteram a situação.</p>}
+        </FormSection>
+
+        <div className="fixed bottom-0 inset-x-0 lg:left-64 z-20 bg-white/95 backdrop-blur border-t border-surface-200">
+          <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+            <p className="hidden sm:block text-sm text-surface-600" aria-live="polite">
+              {dirty ? 'Você tem alterações não salvas.' : isEditing ? 'Nenhuma alteração.' : 'Será salva como rascunho.'}
+            </p>
+            <div className="flex gap-3 w-full sm:w-auto">
+              <Button onClick={leave} disabled={saving} className="flex-1 sm:flex-none">Cancelar</Button>
+              <Button type="submit" variant="primary" loading={saving} loadingText="Salvando..." icon={<Save className="w-5 h-5" aria-hidden="true" />} className="flex-1 sm:flex-none">
+                {isEditing ? 'Salvar alterações' : 'Salvar viagem'}
+              </Button>
+            </div>
+          </div>
         </div>
       </form>
-    </div>
-  );
-}
 
-// Helper components
-function ArrayInput({ name, value, onChange, placeholder }: { name: string; value: string[]; onChange: (val: string[]) => void; placeholder: string }) {
-  const [newItem, setNewItem] = useState('');
-
-  const handleAdd = () => {
-    if (newItem.trim()) {
-      onChange([...value, newItem.trim()]);
-      setNewItem('');
-    }
-  };
-
-  return (
-    <div>
-      <div className="flex gap-2 mb-2">
-        <input
-          type="text"
-          className="input flex-1"
-          value={newItem}
-          onChange={(e) => setNewItem(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAdd())}
-          placeholder={placeholder}
-        />
-        <button type="button" className="btn-secondary" onClick={handleAdd}>Adicionar</button>
-      </div>
-      {value.map((item, index) => (
-        <div key={index} className="flex items-center gap-2">
-          <span className="flex-1 text-sm text-surface-700 bg-surface-50 px-3 py-2 rounded-lg border border-surface-200">{item}</span>
-          <button type="button" className="btn-ghost p-1 text-red-600 hover:bg-red-50" onClick={() => onChange(value.filter((_, i) => i !== index))} aria-label={`Remover ${item}`}>
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-          </button>
-        </div>
-      ))}
-      {value.length === 0 && <p className="text-sm text-surface-400">Nenhum item adicionado</p>}
-    </div>
-  );
-}
-
-type MediaItem = { src: string; alt: string; focus?: string; type?: 'image' | 'video' };
-
-const VIDEO_EXT = /\.(mp4|webm|mov)(\?.*)?$/i;
-
-function MediaInput({ value, onChange }: { value: MediaItem[]; onChange: (val: MediaItem[]) => void }) {
-  const { toast } = useToast();
-  const [newSrc, setNewSrc] = useState('');
-
-  const handleAdd = () => {
-    const src = newSrc.trim();
-    if (!src) return;
-    if (!isValidImageSrc(src)) { toast.error(IMAGE_SRC_MESSAGE); return; }
-    onChange([...value, { src, alt: '', type: VIDEO_EXT.test(src) ? 'video' : 'image' }]);
-    setNewSrc('');
-  };
-
-  const update = (index: number, patch: Partial<MediaItem>) =>
-    onChange(value.map((item, i) => (i === index ? { ...item, ...patch } : item)));
-
-  return (
-    <div className="space-y-2">
-      <div className="flex gap-2">
-        <input
-          type="text"
-          className="input flex-1 min-w-0"
-          placeholder="Link da foto (ex: assets/images/pasta/foto.jpg)"
-          aria-label="Link da foto"
-          value={newSrc}
-          onChange={(e) => setNewSrc(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAdd())}
-        />
-        <button type="button" className="btn-primary" onClick={handleAdd}>Adicionar foto</button>
-      </div>
-      {value.map((item, index) => (
-        <div key={index} className="p-2 bg-surface-50 rounded-lg">
-          <div className="flex items-center gap-2">
-            <img src={resolveAssetSrc(item.src)} alt="" className="w-12 h-12 object-cover rounded flex-shrink-0 bg-surface-100" loading="lazy" />
-            <input type="text" className="input flex-1 min-w-0" value={item.src} onChange={(e) => update(index, { src: e.target.value })} aria-label={`Link da foto ${index + 1}`} />
-            {item.type === 'video' && <span className="badge badge-info">Vídeo</span>}
-            <button type="button" className="btn-ghost p-1 text-red-600 hover:bg-red-50" onClick={() => onChange(value.filter((_, i) => i !== index))} aria-label={`Remover foto ${index + 1}`}>
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-            </button>
-          </div>
-          <details className="mt-1 ml-14 text-sm">
-            <summary className="cursor-pointer text-surface-500">Descrição da foto (opcional)</summary>
-            <input type="text" className="input mt-1" value={item.alt} onChange={(e) => update(index, { alt: e.target.value })} placeholder="Se ficar vazia, usamos o título da viagem" aria-label={`Descrição da foto ${index + 1} (opcional)`} />
-            {item.focus !== undefined && (
-              <input type="text" className="input mt-1" value={item.focus} onChange={(e) => update(index, { focus: e.target.value })} placeholder="Parte da foto em destaque" aria-label={`Parte da foto ${index + 1} em destaque`} />
-            )}
-          </details>
-        </div>
-      ))}
-      {value.length === 0 && <p className="text-sm text-surface-400">Nenhuma foto adicionada</p>}
-    </div>
-  );
-}
-
-function DeparturesInput({ value, onChange }: { value: Array<{ time: string; place: string; city: string; mapsUrl?: string; mapsQuery?: string; orderIndex: number }>; onChange: (val: Array<{ time: string; place: string; city: string; mapsUrl?: string; mapsQuery?: string; orderIndex: number }>) => void }) {
-  const [newTime, setNewTime] = useState('');
-  const [newPlace, setNewPlace] = useState('');
-  const [newCity, setNewCity] = useState('');
-  const [newMapsUrl, setNewMapsUrl] = useState('');
-  const [newMapsQuery, setNewMapsQuery] = useState('');
-
-  const handleAdd = () => {
-    if (newTime.trim() && newPlace.trim() && newCity.trim()) {
-      onChange([...value, { 
-        time: newTime.trim(), 
-        place: newPlace.trim(), 
-        city: newCity.trim(), 
-        mapsUrl: newMapsUrl.trim() || undefined, 
-        mapsQuery: newMapsQuery.trim() || undefined, 
-        orderIndex: value.length 
-      }]);
-      setNewTime('');
-      setNewPlace('');
-      setNewCity('');
-      setNewMapsUrl('');
-      setNewMapsQuery('');
-    }
-  };
-
-  const handleEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleAdd();
-    }
-  };
-
-  return (
-    <div>
-      <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 mb-2">
-        <input type="text" className="input" placeholder="Horário (ex: 06h00)" value={newTime} onChange={(e) => setNewTime(e.target.value)} onKeyDown={handleEnter} />
-        <input type="text" className="input" placeholder="Local (ex: Shopping)" value={newPlace} onChange={(e) => setNewPlace(e.target.value)} onKeyDown={handleEnter} />
-        <input type="text" className="input" placeholder="Cidade" value={newCity} onChange={(e) => setNewCity(e.target.value)} onKeyDown={handleEnter} />
-        <input type="url" className="input" placeholder="Link do Google Maps (opcional)" aria-label="Link do Google Maps (opcional)" value={newMapsUrl} onChange={(e) => setNewMapsUrl(e.target.value)} onKeyDown={handleEnter} />
-        <div className="flex gap-2">
-          <input type="text" className="input flex-1" placeholder="Endereço no Google Maps (opcional)" aria-label="Endereço no Google Maps (opcional)" value={newMapsQuery} onChange={(e) => setNewMapsQuery(e.target.value)} onKeyDown={handleEnter} />
-          <button type="button" className="btn-primary" onClick={handleAdd}>Adicionar</button>
-        </div>
-      </div>
-      {value.map((item, index) => (
-        <div key={index} className="flex items-center gap-2 p-2 bg-surface-50 rounded-lg flex-wrap">
-          <span className="font-mono text-sm text-surface-700 bg-white px-2 py-1 rounded border border-surface-200">{item.time}</span>
-          <span className="text-sm font-medium text-surface-900">{item.place}</span>
-          <span className="text-sm text-surface-500">{item.city}</span>
-          {(item.mapsUrl || item.mapsQuery) && <span className="badge badge-info">Google Maps</span>}
-          <button type="button" className="btn-ghost p-1 ml-auto text-red-600 hover:bg-red-50" onClick={() => onChange(value.filter((_, i) => i !== index).map((d, i) => ({ ...d, orderIndex: i })))} aria-label={`Remover ponto de partida`}>
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-          </button>
-        </div>
-      ))}
-      {value.length === 0 && <p className="text-sm text-surface-400">Nenhum ponto de partida adicionado</p>}
+      <ConfirmDialog
+        open={leaveOpen}
+        onOpenChange={setLeaveOpen}
+        title="Sair sem salvar?"
+        description="Você mudou algo nesta viagem e ainda não salvou. Se sair agora, essas mudanças se perdem."
+        confirmLabel="Sair sem salvar"
+        onConfirm={() => navigate('/trips')}
+      />
     </div>
   );
 }

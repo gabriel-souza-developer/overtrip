@@ -296,7 +296,7 @@ export const visitService = {
         where.lat = { not: null };
         where.lng = { not: null };
       } else {
-        where.OR = [{ lat: null }, { lng: null }];
+        where.AND = [{ OR: [{ lat: null }, { lng: null }] }];
       }
     }
     

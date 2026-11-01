@@ -1,557 +1,436 @@
 import React, { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { galleryApi, GalleryEntry, Trip, Visit, Pagination } from '../api';
+import { ArrowDown, ArrowUp, ImagePlus, Images, ListOrdered, Pencil, Plus, Star, Trash2, X } from 'lucide-react';
+import { galleryApi, tripApi, visitApi, GalleryEntry, Trip, Visit, Pagination as PaginationInfo } from '../api';
 import { useToast } from '../hooks/useToast';
+import { useListParams } from '../hooks/useListParams';
 import { resolveAssetSrc } from '../lib/assetUrl';
 import { isValidImageSrc, IMAGE_SRC_MESSAGE } from '../lib/imageSrc';
-import { isoToLocalInput, localInputToIso } from '../lib/dateInput';
+import { formatDateBR, isoToLocalInput, localInputToIso } from '../lib/dateInput';
 import { fillMissingAlt } from '../lib/formHelpers';
+import { countFilled, formatDateDisplay, moveItem, reorderPositions } from '../lib/panelHelpers';
+import PageHeader from '../components/PageHeader';
+import FilterBar from '../components/FilterBar';
+import EmptyState from '../components/EmptyState';
+import ErrorState from '../components/ErrorState';
+import Pagination from '../components/Pagination';
+import ConfirmDialog from '../components/ConfirmDialog';
+import Modal from '../components/Modal';
+import Button from '../components/Button';
+import Field from '../components/Field';
+import FormSection from '../components/FormSection';
+import ImageThumb from '../components/ImageThumb';
 
-function PlusIcon({ className }: { className?: string }) {
-  return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>;
+interface EntryForm {
+  title: string;
+  date: string;
+  dateDisplay: string;
+  description: string;
+  images: Array<{ src: string; alt: string }>;
+  tripId: string;
+  visitId: string;
+  isFeatured: boolean;
+  orderIndex: number;
 }
 
-function SearchIcon({ className }: { className?: string }) {
-  return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>;
-}
-
-function ChevronLeftIcon({ className }: { className?: string }) {
-  return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>;
-}
-
-function ChevronRightIcon({ className }: { className?: string }) {
-  return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>;
-}
-
-function EditIcon({ className }: { className?: string }) {
-  return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>;
-}
-
-function TrashIcon({ className }: { className?: string }) {
-  return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>;
-}
-
-function StarIcon({ className, fill }: { className?: string; fill?: string }) {
-  return <svg className={className} fill={fill ?? 'none'} viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>;
-}
-
-function StarOutlineIcon({ className }: { className?: string }) {
-  return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>;
-}
-
-function GripIcon({ className }: { className?: string }) {
-  return <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" /></svg>;
-}
+const blankForm = (position: number): EntryForm => ({
+  title: '',
+  date: isoToLocalInput(new Date().toISOString()),
+  dateDisplay: '',
+  description: '',
+  images: [{ src: '', alt: '' }],
+  tripId: '',
+  visitId: '',
+  isFeatured: false,
+  orderIndex: position,
+});
 
 export default function Gallery() {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const list = useListParams();
+  const { toast } = useToast();
   const [entries, setEntries] = useState<GalleryEntry[]>([]);
   const [trips, setTrips] = useState<Trip[]>([]);
   const [visits, setVisits] = useState<Visit[]>([]);
-  const [pagination, setPagination] = useState<Pagination>({ page: 1, limit: 20, total: 0, totalPages: 0 });
+  const [pagination, setPagination] = useState<PaginationInfo>({ page: 1, limit: 20, total: 0, totalPages: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [showForm, setShowForm] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<GalleryEntry | null>(null);
-  const [formData, setFormData] = useState<Partial<GalleryEntry>>({});
+  const [form, setForm] = useState<EntryForm>(blankForm(0));
+  const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
   const [reordering, setReordering] = useState(false);
-  const { toast } = useToast();
+  const [savingOrder, setSavingOrder] = useState(false);
+  const [toDelete, setToDelete] = useState<GalleryEntry | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
 
-  const page = parseInt(searchParams.get('page') || '1', 10);
-  const isFeatured = searchParams.get('isFeatured') === 'true' ? true : searchParams.get('isFeatured') === 'false' ? false : undefined;
-  const tripId = searchParams.get('tripId') || undefined;
-  const visitId = searchParams.get('visitId') || undefined;
-  const search = searchParams.get('search') || '';
-
-  useEffect(() => {
-    loadGallery();
-    loadTripsAndVisits();
-  }, [page, isFeatured, tripId, visitId, search]);
+  const { page } = list;
+  const isFeatured = list.get('isFeatured');
+  const tripId = list.get('tripId');
+  const visitId = list.get('visitId');
+  const search = list.get('search');
 
   const loadGallery = async () => {
     setLoading(true);
     setError('');
     try {
-      const data = await galleryApi.list({ page, limit: 20, isFeatured, tripId, visitId, search: search || undefined });
+      const data = await galleryApi.list({
+        page, limit: 20,
+        ...(isFeatured ? { isFeatured: isFeatured === 'true' } : {}),
+        ...(tripId ? { tripId } : {}),
+        ...(visitId ? { visitId } : {}),
+        ...(search ? { search } : {}),
+      });
       setEntries(data.data);
       setPagination(data.pagination);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao carregar galeria');
+      setError(err instanceof Error ? err.message : 'Não foi possível carregar a galeria.');
     } finally {
       setLoading(false);
     }
   };
 
-  const loadTripsAndVisits = async () => {
-    try {
-      const [tripData, visitData] = await Promise.all([
-        galleryApi.list({ limit: 100 }),
-        galleryApi.list({ limit: 100 }),
-      ]);
-      // We'd need tripApi and visitApi for this, but let's skip for now
-    } catch {
-      // Ignore
-    }
-  };
+  useEffect(() => {
+    setReordering(false);
+    loadGallery();
+  }, [page, isFeatured, tripId, visitId, search]);
 
-  const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const searchValue = formData.get('search') as string;
-    const newParams = new URLSearchParams(searchParams);
-    if (searchValue) newParams.set('search', searchValue);
-    else newParams.delete('search');
-    newParams.set('page', '1');
-    setSearchParams(newParams);
-  };
+  // Viagens e visitas para o campo "Ligada a" do formulário (antes ficava vazio).
+  useEffect(() => {
+    tripApi.list({ limit: 100 }).then((d) => setTrips(d.data)).catch(() => { /* apoio */ });
+    visitApi.list({ limit: 100 }).then((d) => setVisits(d.data)).catch(() => { /* apoio */ });
+  }, []);
 
-  const handleFilterChange = (key: string, value: string) => {
-    const newParams = new URLSearchParams(searchParams);
-    if (value) newParams.set(key, value);
-    else newParams.delete(key);
-    newParams.set('page', '1');
-    setSearchParams(newParams);
-  };
-
-  const handlePageChange = (newPage: number) => {
-    const newParams = new URLSearchParams(searchParams);
-    newParams.set('page', String(newPage));
-    setSearchParams(newParams);
-  };
-
-  const resetForm = () => {
-    setFormData({
-      title: '',
-      date: isoToLocalInput(new Date().toISOString()),
-      dateDisplay: '',
-      description: '',
-      images: [{ src: '', alt: '' }],
-      tripId: '',
-      visitId: '',
-      isFeatured: false,
-      orderIndex: entries.length,
-    });
+  const openCreate = () => {
     setEditingEntry(null);
+    setForm(blankForm(pagination.total));
+    setFormError('');
+    setFormOpen(true);
   };
 
-  const openCreateForm = () => {
-    resetForm();
-    setShowForm(true);
-  };
-
-  const openEditForm = (entry: GalleryEntry) => {
+  const openEdit = (entry: GalleryEntry) => {
     setEditingEntry(entry);
-    setFormData({
+    setForm({
       title: entry.title,
       date: isoToLocalInput(entry.date),
       dateDisplay: entry.dateDisplay,
       description: entry.description,
-      images: entry.images,
+      images: entry.images.length > 0 ? entry.images : [{ src: '', alt: '' }],
       tripId: entry.tripId || '',
       visitId: entry.visitId || '',
       isFeatured: entry.isFeatured,
       orderIndex: entry.orderIndex,
     });
-    setShowForm(true);
+    setFormError('');
+    setFormOpen(true);
   };
 
   const closeForm = () => {
-    setShowForm(false);
-    setEditingEntry(null);
+    if (saving) return;
+    setFormOpen(false);
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-    if (type === 'checkbox') {
-      setFormData(prev => ({ ...prev, [name]: (e.target as HTMLInputElement).checked }));
-    } else if (type === 'number') {
-      setFormData(prev => ({ ...prev, [name]: value ? parseInt(value, 10) : 0 }));
-    } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
-    }
-  };
+  const patch = (changes: Partial<EntryForm>) => setForm((prev) => ({ ...prev, ...changes }));
 
-  const handleImageChange = (index: number, field: 'src' | 'alt', value: string) => {
-    const newImages = [...(formData.images || [])];
-    newImages[index] = { ...newImages[index], [field]: value };
-    setFormData(prev => ({ ...prev, images: newImages }));
-  };
+  const setImage = (index: number, changes: Partial<{ src: string; alt: string }>) =>
+    patch({ images: form.images.map((img, i) => (i === index ? { ...img, ...changes } : img)) });
 
-  const addImage = () => {
-    setFormData(prev => ({ ...prev, images: [...(prev.images || []), { src: '', alt: '' }] }));
-  };
-
-  const removeImage = (index: number) => {
-    const newImages = (formData.images || []).filter((_, i) => i !== index);
-    if (newImages.length > 0) {
-      setFormData(prev => ({ ...prev, images: newImages }));
-    }
-  };
-
-  const validate = () => {
-    if (!formData.title?.trim()) { alert('Título é obrigatório'); return false; }
-    if (!formData.dateDisplay?.trim()) { alert('Data de exibição é obrigatória'); return false; }
-    if (!formData.description?.trim()) { alert('Descrição é obrigatória'); return false; }
-    const validImages = (formData.images || []).filter(img => img.src.trim());
-    if (validImages.length === 0) { alert('Adicione pelo menos uma foto (cole o link dela).'); return false; }
-    if (validImages.some(img => !isValidImageSrc(img.src.trim()))) { alert(IMAGE_SRC_MESSAGE); return false; }
-    return true;
+  const validate = (): string => {
+    if (!form.title.trim()) return 'Escreva um título para a memória.';
+    if (!form.date) return 'Informe a data.';
+    const filled = form.images.filter((img) => img.src.trim());
+    if (filled.length === 0) return 'Adicione pelo menos uma foto (cole o link dela).';
+    if (filled.some((img) => !isValidImageSrc(img.src.trim()))) return IMAGE_SRC_MESSAGE;
+    return '';
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate()) return;
+    const problem = validate();
+    setFormError(problem);
+    if (problem) return;
 
     setSaving(true);
     try {
+      const title = form.title.trim();
       const payload = {
-        title: formData.title!,
-        date: localInputToIso(formData.date)!,
-        dateDisplay: formData.dateDisplay!,
-        description: formData.description!,
-        images: fillMissingAlt(
-          (formData.images || []).filter(img => img.src.trim()).map(img => ({ ...img, src: img.src.trim() })),
-          formData.title || ''
-        ),
-        tripId: formData.tripId || null,
-        visitId: formData.visitId || null,
-        isFeatured: formData.isFeatured || false,
-        orderIndex: formData.orderIndex || 0,
+        title,
+        date: localInputToIso(form.date, editingEntry?.date)!,
+        // A API exige estes dois textos: sem preenchimento, usamos a data por extenso e o título.
+        dateDisplay: form.dateDisplay.trim() || formatDateDisplay(form.date) || title,
+        description: form.description.trim() ? form.description : title,
+        images: fillMissingAlt(form.images.filter((img) => img.src.trim()).map((img) => ({ ...img, src: img.src.trim() })), title),
+        tripId: form.tripId || null,
+        visitId: form.visitId || null,
+        isFeatured: form.isFeatured,
+        orderIndex: form.orderIndex || 0,
       };
-
       if (editingEntry) {
         await galleryApi.update(editingEntry.id, payload);
-        toast.success('Memória atualizada');
+        toast.success('Memória salva.');
       } else {
         await galleryApi.create(payload);
-        toast.success('Memória criada');
+        toast.success('Memória criada.');
       }
-      closeForm();
-      loadGallery();
+      setFormOpen(false);
+      await loadGallery();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao salvar');
+      setFormError(err instanceof Error ? err.message : 'Não foi possível salvar a memória.');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDelete = async (id: string, title: string) => {
-    if (!confirm(`Excluir a memória "${title}"? Esta ação não pode ser desfeita.`)) return;
+  const remove = async () => {
+    if (!toDelete) return;
+    setBusyId(toDelete.id);
     try {
-      await galleryApi.delete(id);
-      toast.success('Memória excluída');
-      loadGallery();
+      await galleryApi.delete(toDelete.id);
+      toast.success('Memória excluída.');
+      setToDelete(null);
+      if (entries.length === 1 && page > 1) list.setPage(page - 1);
+      else await loadGallery();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao excluir');
+      toast.error(err instanceof Error ? err.message : 'Não foi possível excluir a memória.');
+    } finally {
+      setBusyId(null);
     }
   };
 
   const toggleFeatured = async (entry: GalleryEntry) => {
+    setBusyId(entry.id);
     try {
       await galleryApi.update(entry.id, { isFeatured: !entry.isFeatured });
-      toast.success(entry.isFeatured ? 'Destaque removido' : 'Marcado como destaque');
-      loadGallery();
+      toast.success(entry.isFeatured ? 'Destaque removido.' : 'Marcada como destaque. Só uma memória fica em destaque por vez.');
+      await loadGallery();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao alterar destaque');
+      toast.error(err instanceof Error ? err.message : 'Não foi possível mudar o destaque.');
+    } finally {
+      setBusyId(null);
     }
   };
 
-  const handleReorder = async () => {
-    setReordering(true);
+  const saveOrder = async () => {
+    setSavingOrder(true);
     try {
-      const reorderData = entries.map((e, i) => ({ id: e.id, orderIndex: i }));
-      await galleryApi.reorder(reorderData);
-      toast.success('Ordem atualizada');
+      const positions = reorderPositions(entries.map((e) => e.orderIndex), (page - 1) * pagination.limit);
+      await galleryApi.reorder(entries.map((e, i) => ({ id: e.id, orderIndex: positions[i] })));
+      toast.success('Nova ordem salva.');
       setReordering(false);
-      loadGallery();
+      await loadGallery();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Erro ao reordenar');
-      setReordering(false);
+      toast.error(err instanceof Error ? err.message : 'Não foi possível salvar a ordem.');
+    } finally {
+      setSavingOrder(false);
     }
   };
 
-  const moveEntry = (index: number, direction: 'up' | 'down') => {
-    const newEntries = [...entries];
-    const newIndex = direction === 'up' ? index - 1 : index + 1;
-    if (newIndex < 0 || newIndex >= newEntries.length) return;
-    [newEntries[index], newEntries[newIndex]] = [newEntries[newIndex], newEntries[index]];
-    setEntries(newEntries);
-  };
-
-  if (loading && entries.length === 0) {
-    return (
-      <div className="space-y-6">
-        <div className="page-header flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="page-title">Galeria</h1>
-            <p className="page-description">Gerencie memórias editoriais do site</p>
-          </div>
-          <button className="btn-primary" onClick={openCreateForm}>
-            <PlusIcon className="w-5 h-5" /> Nova Memória
-          </button>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="card p-4">
-              <div className="loading-skeleton aspect-video w-full rounded mb-3"></div>
-              <div className="loading-skeleton h-5 w-3/4 mb-2"></div>
-              <div className="loading-skeleton h-4 w-full mb-1"></div>
-              <div className="loading-skeleton h-4 w-1/2"></div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
+  const hasFilters = !!(search || isFeatured || tripId || visitId);
 
   return (
     <div className="space-y-6">
-      <div className="page-header flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="page-title">Galeria</h1>
-          <p className="page-description">Gerencie memórias editoriais do site OVERTRIP</p>
-        </div>
-        <button className="btn-primary" onClick={openCreateForm}>
-          <PlusIcon className="w-5 h-5" /> Nova Memória
-        </button>
-      </div>
+      <PageHeader
+        title="Galeria"
+        description="Memórias com fotos que aparecem no site"
+        actions={
+          <>
+            {entries.length > 1 && !reordering ? (
+              <Button icon={<ListOrdered className="w-4 h-4" aria-hidden="true" />} onClick={() => setReordering(true)}>Mudar a ordem</Button>
+            ) : null}
+            <Button variant="primary" icon={<Plus className="w-5 h-5" aria-hidden="true" />} onClick={openCreate}>Nova memória</Button>
+          </>
+        }
+      />
 
-      {/* Filters */}
-      <div className="card p-4">
-        <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1 min-w-0 relative">
-            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-surface-400" />
-            <input type="search" name="search" className="input pl-10" placeholder="Buscar por título, descrição..." defaultValue={search} aria-label="Buscar memórias" />
-          </div>
-          <select name="isFeatured" className="select w-full sm:w-48" value={isFeatured !== undefined ? String(isFeatured) : ''} onChange={(e) => handleFilterChange('isFeatured', e.target.value)} aria-label="Filtrar por destaque">
-            <option value="">Todas</option>
-            <option value="true">Em destaque</option>
-            <option value="false">Não destacadas</option>
-          </select>
-        </form>
-      </div>
+      <FilterBar
+        searchLabel="Buscar memórias"
+        searchPlaceholder="Buscar por título ou descrição"
+        searchValue={search}
+        onSearch={(value) => list.setFilter('search', value)}
+        onClear={list.clear}
+        hasFilters={hasFilters}
+      >
+        <select className="select w-full lg:w-52" value={isFeatured} onChange={(e) => list.setFilter('isFeatured', e.target.value)} aria-label="Filtrar por destaque">
+          <option value="">Todas as memórias</option>
+          <option value="true">Só a que está em destaque</option>
+          <option value="false">Só as que não estão em destaque</option>
+        </select>
+      </FilterBar>
 
-      {error && <div className="alert-error" role="alert">{error}</div>}
+      {error ? <ErrorState message={error} onRetry={loadGallery} /> : null}
 
-      {/* Gallery Grid */}
-      <div className="card p-4">
+      <div className="card p-4" aria-busy={loading}>
         {reordering && (
-          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex items-center justify-between">
-            <span className="text-sm text-yellow-800">Modo reordenação: arraste ou use as setas</span>
+          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-3" role="status">
+            <span className="text-sm text-yellow-900">Use as setas de cada foto para mudar a posição e depois salve.</span>
             <div className="flex gap-2">
-              <button className="btn-secondary" onClick={() => { setReordering(false); loadGallery(); }}>Cancelar</button>
-              <button className="btn-primary" onClick={handleReorder} disabled={saving}>Salvar Ordem</button>
+              <Button disabled={savingOrder} onClick={() => { setReordering(false); loadGallery(); }}>Cancelar</Button>
+              <Button variant="primary" loading={savingOrder} loadingText="Salvando..." onClick={saveOrder}>Salvar ordem</Button>
             </div>
           </div>
         )}
 
-        {entries.length === 0 ? (
-          <div className="empty-state py-12">
-            <svg className="w-12 h-12 mx-auto text-surface-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            <p className="text-surface-500">{search || isFeatured !== undefined ? 'Nenhuma memória encontrada com estes filtros' : 'Nenhuma memória cadastrada'}</p>
-            {!search && isFeatured === undefined && <button className="btn-primary mt-4" onClick={openCreateForm}><PlusIcon className="w-4 h-4" /> Criar primeira memória</button>}
+        {loading && entries.length === 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" aria-label="Carregando galeria">
+            {[1, 2, 3].map((i) => <div key={i} className="loading-skeleton aspect-video w-full" />)}
           </div>
+        ) : entries.length === 0 && !error ? (
+          <EmptyState
+            icon={<Images className="w-6 h-6" />}
+            title={hasFilters ? 'Nenhuma memória encontrada' : 'A galeria está vazia'}
+            text={hasFilters ? 'Tente outra busca ou limpe os filtros.' : 'Uma memória precisa só de título, data e uma foto.'}
+            action={hasFilters ? <Button onClick={list.clear}>Limpar filtros</Button> : <Button variant="primary" icon={<Plus className="w-4 h-4" aria-hidden="true" />} onClick={openCreate}>Criar a primeira memória</Button>}
+          />
         ) : (
-          <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 ${reordering ? 'relative' : ''}`}>
+          <ul className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 ${loading ? 'opacity-60' : ''}`}>
             {entries.map((entry, index) => (
-              <article key={entry.id} className={`relative card overflow-hidden transition-shadow hover:shadow-md ${reordering ? 'opacity-80' : ''}`}>
-                {reordering && (
-                  <div className="absolute top-2 left-2 right-2 flex justify-between z-10">
-                    <div className="flex gap-1">
-                      <button className="btn-ghost p-1.5 bg-white/90" onClick={() => moveEntry(index, 'up')} disabled={index === 0} aria-label="Mover para cima"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" /></svg></button>
-                      <button className="btn-ghost p-1.5 bg-white/90" onClick={() => moveEntry(index, 'down')} disabled={index === entries.length - 1} aria-label="Mover para baixo"><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" /></svg></button>
-                    </div>
-                    <span className="badge badge-neutral bg-white/90">{index + 1}</span>
-                  </div>
-                )}
-
-                <div className="aspect-video relative overflow-hidden bg-surface-100">
-                  {entry.images[0] && (
-                    <img
-                      src={resolveAssetSrc(entry.images[0].src)}
-                      alt={entry.images[0].alt}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                    />
-                  )}
+              <li key={entry.id} className="card overflow-hidden flex flex-col">
+                <div className="aspect-video relative bg-surface-100">
+                  {entry.images[0] && <EntryImage src={entry.images[0].src} alt={entry.images[0].alt} />}
                   {entry.isFeatured && (
-                    <div className="absolute top-2 right-2">
-                      <span className="badge badge-warning bg-yellow-500 text-white">
-                        <StarIcon className="w-3 h-3" fill="currentColor" /> Destaque
-                      </span>
+                    <span className="absolute top-2 right-2 badge bg-yellow-100 text-yellow-900 gap-1">
+                      <Star className="w-3 h-3 fill-current" aria-hidden="true" /> Destaque
+                    </span>
+                  )}
+                  {reordering && (
+                    <div className="absolute top-2 left-2 flex items-center gap-1 bg-white/95 rounded-lg p-1 shadow">
+                      <button type="button" className="btn-icon" onClick={() => setEntries((cur) => moveItem(cur, index, 'up'))} disabled={index === 0} aria-label={`Subir ${entry.title}`}><ArrowUp className="w-4 h-4" aria-hidden="true" /></button>
+                      <span className="text-sm font-semibold px-1 tabular-nums" aria-label={`Posição ${index + 1}`}>{index + 1}</span>
+                      <button type="button" className="btn-icon" onClick={() => setEntries((cur) => moveItem(cur, index, 'down'))} disabled={index === entries.length - 1} aria-label={`Descer ${entry.title}`}><ArrowDown className="w-4 h-4" aria-hidden="true" /></button>
                     </div>
                   )}
                 </div>
-
-                <div className="p-4 space-y-2">
-                  <h3 className="font-semibold text-surface-900 line-clamp-1">{entry.title}</h3>
-                  <p className="text-sm text-surface-500 line-clamp-2">{entry.description}</p>
-                  <div className="flex items-center gap-2 text-xs text-surface-500">
-                    <time>{new Date(entry.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}</time>
+                <div className="p-4 flex-1 flex flex-col gap-2">
+                  <h2 className="font-semibold text-surface-900 line-clamp-1">{entry.title}</h2>
+                  <p className="text-sm text-surface-600 line-clamp-2">{entry.description}</p>
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-surface-600">
+                    <time dateTime={entry.date}>{entry.dateDisplay || formatDateBR(entry.date)}</time>
                     {entry.trip && <span className="badge badge-info">{entry.trip.title}</span>}
                     {entry.visit && <span className="badge badge-neutral">{entry.visit.title}</span>}
                   </div>
-
-                  <div className="flex items-center gap-2 pt-2 border-t border-surface-100">
-                    <button 
-                      className={`btn-ghost p-2 flex-1 ${entry.isFeatured ? 'text-yellow-600' : 'text-surface-500'}`}
+                  <div className="flex items-center gap-1 pt-3 mt-auto border-t border-surface-100">
+                    <Button
+                      small
+                      variant="ghost"
+                      className={`flex-1 ${entry.isFeatured ? 'text-yellow-800' : ''}`}
+                      loading={busyId === entry.id && !toDelete}
+                      loadingText="Salvando..."
+                      icon={<Star className={`w-4 h-4 ${entry.isFeatured ? 'fill-current' : ''}`} aria-hidden="true" />}
                       onClick={() => toggleFeatured(entry)}
-                      aria-label={entry.isFeatured ? 'Remover destaque' : 'Marcar como destaque'}
+                      aria-pressed={entry.isFeatured}
+                      aria-label={`${entry.isFeatured ? 'Tirar o destaque de' : 'Destacar'} ${entry.title}`}
                     >
-                      {entry.isFeatured ? <StarIcon className="w-4 h-4 fill-current" /> : <StarOutlineIcon className="w-4 h-4" />}
-                      <span className="hidden sm:inline">Destaque</span>
-                    </button>
-                    <button className="btn-ghost p-2" onClick={() => openEditForm(entry)} aria-label={`Editar ${entry.title}`}>
-                      <EditIcon className="w-4 h-4" />
-                    </button>
-                    <button className="btn-ghost p-2 text-red-600 hover:bg-red-50" onClick={() => handleDelete(entry.id, entry.title)} aria-label={`Excluir ${entry.title}`}>
-                      <TrashIcon className="w-4 h-4" />
-                    </button>
+                      {entry.isFeatured ? 'Em destaque' : 'Destacar'}
+                    </Button>
+                    <button type="button" className="btn-icon" onClick={() => openEdit(entry)} aria-label={`Editar ${entry.title}`}><Pencil className="w-4 h-4" aria-hidden="true" /></button>
+                    <button type="button" className="btn-icon text-red-700 hover:bg-red-50" onClick={() => setToDelete(entry)} aria-label={`Excluir ${entry.title}`}><Trash2 className="w-4 h-4" aria-hidden="true" /></button>
                   </div>
                 </div>
-              </article>
+              </li>
             ))}
-          </div>
+          </ul>
         )}
-
-        {entries.length > 1 && !reordering && (
-          <div className="mt-4 pt-4 border-t border-surface-200 flex justify-end">
-            <button className="btn-secondary" onClick={() => setReordering(true)}>
-              <GripIcon className="w-4 h-4" /> Reordenar
-            </button>
-          </div>
-        )}
-
-        {/* Pagination */}
-        {pagination.totalPages > 1 && (
-          <div className="mt-4 pt-4 border-t border-surface-200">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-surface-500">
-                Mostrando {((pagination.page - 1) * pagination.limit) + 1} a {Math.min(pagination.page * pagination.limit, pagination.total)} de {pagination.total} resultados
-              </p>
-              <div className="pagination">
-                <button className="pagination-btn" onClick={() => handlePageChange(pagination.page - 1)} disabled={pagination.page === 1} aria-label="Página anterior"><ChevronLeftIcon className="w-4 h-4" /></button>
-                {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                  let pageNum: number;
-                  if (pagination.totalPages <= 5) pageNum = i + 1;
-                  else if (pagination.page <= 3) pageNum = i + 1;
-                  else if (pagination.page >= pagination.totalPages - 2) pageNum = pagination.totalPages - 4 + i;
-                  else pageNum = pagination.page - 2 + i;
-                  return <button key={pageNum} className={`pagination-btn ${pagination.page === pageNum ? 'pagination-btn-active' : ''}`} onClick={() => handlePageChange(pageNum)} aria-label={`Página ${pageNum}`} aria-current={pagination.page === pageNum ? 'page' : undefined}>{pageNum}</button>;
-                })}
-                <button className="pagination-btn" onClick={() => handlePageChange(pagination.page + 1)} disabled={pagination.page === pagination.totalPages} aria-label="Próxima página"><ChevronRightIcon className="w-4 h-4" /></button>
-              </div>
-            </div>
-          </div>
-        )}
+        <div className="-mx-4 -mb-4 mt-4"><Pagination pagination={pagination} onChange={list.setPage} /></div>
       </div>
 
-      {/* Form Modal */}
-      {showForm && (
-        <div className="modal-overlay" onClick={closeForm} role="dialog" aria-modal="true" aria-labelledby="form-title">
-          <div className="modal max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2 id="form-title" className="text-lg font-semibold text-surface-900">{editingEntry ? 'Editar Memória' : 'Nova Memória'}</h2>
-              <button className="btn-ghost p-2" onClick={closeForm} aria-label="Fechar">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
+      <Modal
+        open={formOpen}
+        onOpenChange={(open) => { if (!open) closeForm(); }}
+        title={editingEntry ? 'Editar memória' : 'Nova memória'}
+        description="Só título, data e foto são necessários."
+        widthClass="max-w-2xl"
+        footer={
+          <>
+            <Button onClick={closeForm} disabled={saving}>Cancelar</Button>
+            <Button type="submit" form="gallery-form" variant="primary" loading={saving} loadingText="Salvando...">{editingEntry ? 'Salvar' : 'Criar memória'}</Button>
+          </>
+        }
+      >
+        <form id="gallery-form" onSubmit={handleSubmit} noValidate className="space-y-4">
+          {formError && <div className="alert-error" role="alert">{formError}</div>}
+          <Field id="g-title" label="Título" required>
+            <input id="g-title" className="input" value={form.title} onChange={(e) => patch({ title: e.target.value })} autoComplete="off" />
+          </Field>
+          <Field id="g-date" label="Data" required>
+            <input id="g-date" type="datetime-local" className="input" value={form.date} onChange={(e) => patch({ date: e.target.value })} />
+          </Field>
+
+          <fieldset className="space-y-2">
+            <legend className="label">Fotos <span className="text-red-700" aria-hidden="true">*</span></legend>
+            <p className="hint">Cole o link de cada foto. A primeira é a capa.</p>
+            {form.images.map((img, idx) => (
+              <div key={idx} className="flex items-center gap-2">
+                <ImageThumb src={img.src} className="w-10 h-10" />
+                <input type="text" className="input flex-1 min-w-0" value={img.src} onChange={(e) => setImage(idx, { src: e.target.value })} placeholder="Link da foto" aria-label={`Link da foto ${idx + 1}`} />
+                <button type="button" className="btn-icon text-red-700 hover:bg-red-50" onClick={() => patch({ images: form.images.filter((_, i) => i !== idx) })} disabled={form.images.length <= 1} aria-label={`Remover foto ${idx + 1}`}>
+                  <X className="w-4 h-4" aria-hidden="true" />
+                </button>
+              </div>
+            ))}
+            <Button small icon={<ImagePlus className="w-4 h-4" aria-hidden="true" />} onClick={() => patch({ images: [...form.images, { src: '', alt: '' }] })}>Adicionar outra foto</Button>
+          </fieldset>
+
+          <FormSection title="Texto" summary="Descrição e data como aparece no site" filled={countFilled([form.description, form.dateDisplay])}>
+            <Field id="g-description" label="Descrição" hint="Se ficar vazia, usamos o título.">
+              <textarea id="g-description" className="input" value={form.description} onChange={(e) => patch({ description: e.target.value })} rows={4} />
+            </Field>
+            <Field id="g-dateDisplay" label="Data como aparece no site" hint={`Se ficar vazia, usamos “${formatDateDisplay(form.date) || 'a data por extenso'}”.`}>
+              <input id="g-dateDisplay" className="input" value={form.dateDisplay} onChange={(e) => patch({ dateDisplay: e.target.value })} placeholder="Ex.: 15 de janeiro de 2026" />
+            </Field>
+            <div className="form-group !mb-0">
+              <p className="label">Descrição das fotos (opcional)</p>
+              <p className="hint mb-2">Ajuda quem usa leitor de tela. Se ficar vazia, usamos o título.</p>
+              <div className="space-y-2">
+                {form.images.map((img, idx) => img.src.trim() ? (
+                  <input key={idx} type="text" className="input" value={img.alt} onChange={(e) => setImage(idx, { alt: e.target.value })} placeholder={`Descrição da foto ${idx + 1}`} aria-label={`Descrição da foto ${idx + 1} (opcional)`} />
+                ) : null)}
+              </div>
             </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              <div className="form-group">
-                <label htmlFor="g-title" className="label">Título *</label>
-                <input id="g-title" name="title" className="input" value={formData.title} onChange={handleChange} required />
-              </div>
+          </FormSection>
 
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="g-date" className="label">Data *</label>
-                  <input id="g-date" name="date" type="datetime-local" className="input" value={formData.date} onChange={handleChange} required />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="g-dateDisplay" className="label">Data como aparece no site *</label>
-                  <input id="g-dateDisplay" name="dateDisplay" className="input" value={formData.dateDisplay} onChange={handleChange} placeholder="Ex: 15 de janeiro de 2026" required />
-                </div>
-              </div>
+          <FormSection title="Ligações e destaque" summary="Viagem, visita e posição" filled={countFilled([form.tripId, form.visitId, form.isFeatured])}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field id="g-tripId" label="Viagem">
+                <select id="g-tripId" className="select" value={form.tripId} onChange={(e) => patch({ tripId: e.target.value })}>
+                  <option value="">Sem viagem</option>
+                  {trips.map((t) => <option key={t.id} value={t.id}>{t.title}</option>)}
+                  {form.tripId && !trips.some((t) => t.id === form.tripId) && <option value={form.tripId}>{editingEntry?.trip?.title ?? 'Viagem ligada'}</option>}
+                </select>
+              </Field>
+              <Field id="g-visitId" label="Visita">
+                <select id="g-visitId" className="select" value={form.visitId} onChange={(e) => patch({ visitId: e.target.value })}>
+                  <option value="">Sem visita</option>
+                  {visits.map((v) => <option key={v.id} value={v.id}>{v.title}</option>)}
+                  {form.visitId && !visits.some((v) => v.id === form.visitId) && <option value={form.visitId}>{editingEntry?.visit?.title ?? 'Visita ligada'}</option>}
+                </select>
+              </Field>
+              <Field id="g-orderIndex" label="Posição na galeria" hint="Número menor aparece primeiro.">
+                <input id="g-orderIndex" type="number" inputMode="numeric" min="0" className="input" value={form.orderIndex} onChange={(e) => patch({ orderIndex: e.target.value ? parseInt(e.target.value, 10) : 0 })} />
+              </Field>
+            </div>
+            <label className="checkbox-label min-h-[32px]">
+              <input type="checkbox" className="checkbox-input" checked={form.isFeatured} onChange={(e) => patch({ isFeatured: e.target.checked })} />
+              <span className="text-sm text-surface-700">Destacar na página inicial (só uma memória fica em destaque)</span>
+            </label>
+          </FormSection>
+        </form>
+      </Modal>
 
-              <div className="form-group">
-                <label htmlFor="g-description" className="label">Descrição *</label>
-                <textarea id="g-description" name="description" className="input" value={formData.description} onChange={handleChange} rows={4} required />
-              </div>
-
-              <fieldset className="space-y-2">
-                <legend className="label">Fotos *</legend>
-                <p className="text-xs text-surface-500">Cole o link de cada foto. A descrição é opcional: se ficar vazia, usamos o título da memória.</p>
-                {(formData.images || []).map((img, idx) => (
-                  <div key={idx} className="flex items-center gap-2">
-                    {img.src.trim() ? (
-                      <img src={resolveAssetSrc(img.src.trim())} alt="" className="w-10 h-10 object-cover rounded bg-surface-100 flex-shrink-0" />
-                    ) : (
-                      <div className="w-10 h-10 rounded bg-surface-100 flex-shrink-0" aria-hidden="true" />
-                    )}
-                    <input type="text" className="input flex-1 min-w-0" value={img.src} onChange={(e) => handleImageChange(idx, 'src', e.target.value)} placeholder="Link da foto" aria-label={`Link da foto ${idx + 1}`} />
-                    <button type="button" className="btn-ghost p-2 text-red-600 hover:bg-red-50" onClick={() => removeImage(idx)} disabled={(formData.images || []).length <= 1} aria-label={`Remover foto ${idx + 1}`}>
-                      <TrashIcon className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-                {(formData.images || []).some(img => img.src.trim()) && (
-                  <details className="text-sm">
-                    <summary className="cursor-pointer text-surface-600">Descrição das fotos (opcional)</summary>
-                    <div className="mt-2 space-y-2">
-                      {(formData.images || []).map((img, idx) => img.src.trim() ? (
-                        <input key={idx} type="text" className="input" value={img.alt} onChange={(e) => handleImageChange(idx, 'alt', e.target.value)} placeholder={`Descrição da foto ${idx + 1} (opcional)`} aria-label={`Descrição da foto ${idx + 1} (opcional)`} />
-                      ) : null)}
-                    </div>
-                  </details>
-                )}
-                <button type="button" className="btn-secondary" onClick={addImage}>
-                  <PlusIcon className="w-4 h-4" /> Adicionar foto
-                </button>
-              </fieldset>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="g-tripId" className="label">Viagem (opcional)</label>
-                  <select id="g-tripId" name="tripId" className="select" value={formData.tripId} onChange={handleChange}>
-                    <option value="">— Sem viagem —</option>
-                    {/* Trips would be loaded here */}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label htmlFor="g-visitId" className="label">Visita (opcional)</label>
-                  <select id="g-visitId" name="visitId" className="select" value={formData.visitId} onChange={handleChange}>
-                    <option value="">— Sem visita —</option>
-                    {/* Visits would be loaded here */}
-                  </select>
-                </div>
-              </div>
-
-              <div className="form-row">
-                <div className="form-group">
-                  <label htmlFor="g-orderIndex" className="label">Posição na galeria</label>
-                  <input id="g-orderIndex" name="orderIndex" type="number" min="0" className="input" value={formData.orderIndex ?? 0} onChange={handleChange} />
-                </div>
-                <div className="form-group flex items-end">
-                  <label className="checkbox-label">
-                    <input name="isFeatured" type="checkbox" className="checkbox-input" checked={formData.isFeatured} onChange={handleChange} />
-                    <span className="text-sm text-surface-700">Destacar na página inicial</span>
-                  </label>
-                </div>
-              </div>
-
-              <div className="modal-footer">
-                <button type="button" className="btn-secondary" onClick={closeForm}>Cancelar</button>
-                <button type="submit" className="btn-primary" disabled={saving}>
-                  {saving ? 'Salvando...' : (editingEntry ? 'Atualizar' : 'Criar')}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={!!toDelete}
+        onOpenChange={(open) => { if (!open) setToDelete(null); }}
+        title="Excluir esta memória?"
+        description={`“${toDelete?.title ?? ''}” será apagada de vez e sai do site. Isso não pode ser desfeito.`}
+        confirmLabel="Sim, excluir"
+        busyLabel="Excluindo..."
+        busy={!!toDelete && busyId === toDelete.id}
+        onConfirm={remove}
+      />
     </div>
   );
+}
+
+function EntryImage({ src, alt }: { src: string; alt: string }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return <div className="w-full h-full flex items-center justify-center text-sm text-surface-600">Foto não encontrada</div>;
+  return <img src={resolveAssetSrc(src)} alt={alt} className="w-full h-full object-cover" loading="lazy" onError={() => setFailed(true)} />;
 }
