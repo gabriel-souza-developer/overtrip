@@ -30,7 +30,7 @@ input, select, textarea {
 }
 
 .btn-primary {
-  @apply btn bg-primary-500 text-surface-900 hover:bg-primary-400;
+  @apply btn bg-primary-500 text-white hover:bg-primary-400;
 }
 
 .btn-secondary {

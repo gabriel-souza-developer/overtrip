@@ -379,9 +379,9 @@ export default function TripForm() {
           </div>
         </fieldset>
 
-        <p className="text-sm text-surface-600 px-1">Mais detalhes (todos opcionais). O que você preencher aqui fica guardado mesmo com a seção fechada.</p>
+        <p className="text-sm text-surface-600 px-1">Os detalhes abaixo são opcionais para salvar como rascunho. Para publicar, a viagem precisa ter valor ou ser gratuita e ter pelo menos uma foto. O que você preencher fica salvo mesmo quando a seção está fechada.</p>
 
-        <FormSection title="Sobre a viagem" summary="Descrição, categoria, intensidade, vagas e o que inclui" filled={countFilled([f.category, f.description, f.spotsLeft, f.includes])}>
+        <FormSection title="Informações da viagem" summary="Descrição, categoria, intensidade, vagas e itens incluídos" filled={countFilled([f.category, f.description, f.spotsLeft, f.includes])}>
           <Field id="description" label="Descrição" hint="Se ficar vazia, usamos o nome da viagem.">
             <textarea id="description" name="description" className="input" value={f.description} onChange={handleChange} rows={4} />
           </Field>
@@ -438,7 +438,7 @@ export default function TripForm() {
           </div>
         </FormSection>
 
-        <FormSection title="Roteiro e avisos" summary="Passo a passo e o que o cliente precisa saber" filled={countFilled([f.itinerary, f.routeNotes, f.importantInfo])}>
+        <FormSection title="Roteiro e informações para viajantes" summary="Etapas da viagem, condições do percurso e o que levar" filled={countFilled([f.itinerary, f.routeNotes, f.importantInfo])}>
           <Field id="itinerary-input" label="Roteiro">
             <ArrayInput id="itinerary-input" value={f.itinerary} onChange={(val) => setList('itinerary', val)} placeholder="Ex.: 06h - Encontro, 07h - Saída" />
           </Field>
@@ -450,7 +450,7 @@ export default function TripForm() {
           </Field>
         </FormSection>
 
-        <FormSection title="Ajustes do site (raramente necessário)" summary="Tudo aqui tem um valor automático. Só mexa se precisar." filled={countAdvancedFilled(f)}>
+        <FormSection title="Exibição no site" summary="Personalizações opcionais. Os valores padrão já funcionam." filled={countAdvancedFilled(f)}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field id="headlineDisplay" label="Título do card" hint="Opcional: uma versão menor do nome.">
               <input id="headlineDisplay" name="headlineDisplay" className="input" value={f.headlineDisplay} onChange={handleChange} />
@@ -475,7 +475,7 @@ export default function TripForm() {
                   const sample = opt.value === 'button-dark'
                     ? 'bg-surface-900 text-white'
                     : opt.value === 'button-rust'
-                      ? 'bg-primary-500 text-surface-900'
+                      ? 'bg-primary-500 text-white'
                       : opt.value === 'button-light'
                         ? 'bg-white text-surface-900 border border-surface-300'
                         : 'bg-transparent text-white border border-white';
