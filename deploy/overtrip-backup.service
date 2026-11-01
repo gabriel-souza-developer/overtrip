@@ -1,0 +1,7 @@
+[Unit]
+Description=Backup diário do banco OVERTRIP
+
+[Service]
+Type=oneshot
+User=overtrip
+ExecStart=/srv/overtrip/app/deploy/backup-sqlite.sh /var/lib/overtrip/overtrip.db /var/backups/overtrip 14

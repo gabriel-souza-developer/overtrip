@@ -1,34 +1,63 @@
 const TRIPS = [];
 let tripsLoadError = null;
 
+const TRIPS_API_URL = "/api/public/trips";
+const TRIPS_FALLBACK_URL = "/trips.json";
+const TRIPS_API_TIMEOUT_MS = 3000;
+
+// Lê um endereço e devolve um array de trips; qualquer outra coisa (erro de
+// rede, HTTP != 2xx, HTML, objeto) vira exceção.
+const requestTripsArray = async (fetchFn, url, signal) => {
+  const response = await fetchFn(url, { cache: "no-cache", signal });
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+  }
+
+  const payload = await response.json();
+
+  if (!Array.isArray(payload)) {
+    throw new Error(`A resposta de ${url} não é um array válido.`);
+  }
+
+  return payload;
+};
+
+// Lê da API (com tempo limite); se falhar, cai para /trips.json e avisa no
+// console. Array vazio da API é resposta válida (nada publicado).
+const fetchTripsWithFallback = async (fetchFn, { timeoutMs = TRIPS_API_TIMEOUT_MS, warn = console.warn } = {}) => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await requestTripsArray(fetchFn, TRIPS_API_URL, controller.signal);
+  } catch (error) {
+    warn(`[OVERTRIP] API de trips indisponível (${error?.message || error}); usando ${TRIPS_FALLBACK_URL}.`);
+    return requestTripsArray(fetchFn, TRIPS_FALLBACK_URL);
+  } finally {
+    clearTimeout(timer);
+  }
+};
+
 const loadTrips = async () => {
   if (TRIPS.length > 0) {
     return TRIPS;
   }
 
   try {
-    // A home já dispara a requisição no <head> (ver index.html); aqui só
-    // reaproveita. Nas demais páginas, ou se ela falhou, busca normalmente.
+    // A home já dispara a requisição no <head> (ver index.html) e entrega o
+    // array pronto; aqui só reaproveita. Nas demais páginas, ou se ela
+    // falhou, busca normalmente (API e, se preciso, /trips.json).
     const early = window.__tripsRequest ? await window.__tripsRequest : null;
     window.__tripsRequest = null;
-    const response = early || await fetch("/trips.json", { cache: "no-cache" });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-
-    const payload = await response.json();
-
-    if (!Array.isArray(payload)) {
-      throw new Error("A resposta de /trips.json não é um array válido.");
-    }
+    const payload = Array.isArray(early) ? early : await fetchTripsWithFallback(fetch.bind(globalThis));
 
     TRIPS.splice(0, TRIPS.length, ...payload);
     tripsLoadError = null;
     return TRIPS;
   } catch (error) {
     tripsLoadError = error;
-    console.error("[OVERTRIP] Não foi possível carregar as trips em /trips.json.", error);
+    console.error("[OVERTRIP] Não foi possível carregar as trips.", error);
     return TRIPS;
   }
 };
@@ -152,4 +181,4 @@ const TESTIMONIALS = [
   },
 ];
 
-export { TRIPS, GALLERY, TESTIMONIALS, loadTrips, getTripsLoadError };
+export { TRIPS, GALLERY, TESTIMONIALS, loadTrips, getTripsLoadError, fetchTripsWithFallback };

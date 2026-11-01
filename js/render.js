@@ -1,4 +1,5 @@
 import { TRIPS, GALLERY, TESTIMONIALS, loadTrips, getTripsLoadError } from "./data.js";
+import { resolveGallery } from "./publicData.js";
 
 const formatTripDate = (isoString) => {
   const date = new Date(/^\d{4}-\d{2}-\d{2}$/.test(isoString) ? `${isoString}T12:00:00-03:00` : isoString);
@@ -38,7 +39,11 @@ const formatTripShortDate = (isoString) => {
   return `${day} ${month}`;
 };
 
+// Data sem hora ("AAAA-MM-DD") não tem horário: devolve "" (o rótulo some).
 const formatTripTime = (isoString) => {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(isoString)) {
+    return "";
+  }
   const date = new Date(isoString);
   const formatted = new Intl.DateTimeFormat("pt-BR", {
     hour: "2-digit",
@@ -103,7 +108,45 @@ const getMapsHref = (point) => point.mapsUrl
   || (point.mapsQuery ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(point.mapsQuery)}` : "");
 
 // Texto único do embarque (mensagem do WhatsApp, aria-label).
-const getMeetingLabel = (trip) => trip.meetingInfo || `${trip.meetingCity} (${trip.meetingPoint})`;
+const getMeetingLabel = (trip) => {
+  if (trip.meetingInfo) {
+    return trip.meetingInfo;
+  }
+  if (trip.meetingCity && trip.meetingPoint) {
+    return `${trip.meetingCity} (${trip.meetingPoint})`;
+  }
+  return trip.meetingCity || trip.meetingPoint || "Local a combinar";
+};
+
+// A API (e o painel) podem devolver null ou deixar campos vazios, por exemplo
+// uma viagem sem fotos. Normaliza só o que o HTML dos cards trata como texto
+// ou lista, sem alterar viagens completas.
+const text = (value, fallback = "") => (typeof value === "string" ? value : fallback);
+const list = (value) => (Array.isArray(value) ? value : []);
+
+const normalizeTrip = (trip) => ({
+  ...trip,
+  title: text(trip.title),
+  description: text(trip.description),
+  category: text(trip.category),
+  city: text(trip.city),
+  region: text(trip.region),
+  intensityLabel: text(trip.intensityLabel),
+  includes: list(trip.includes).filter((item) => typeof item === "string"),
+  includesHighlight: text(trip.includesHighlight),
+  media: list(trip.media).filter((item) => item && typeof item.src === "string" && item.src),
+  departures: list(trip.departures),
+  priceUnit: text(trip.priceUnit, "por pessoa"),
+  priceDisplay: text(trip.priceDisplay, "Consulte"),
+  buttonLabel: text(trip.buttonLabel, "Quero viajar"),
+  buttonClass: text(trip.buttonClass, "button-dark"),
+});
+
+// Esgotada ou encerrada: continua na lista, mas não vende (sem Pix, botão vira aviso).
+const CLOSED_NOTICES = { sold_out: "Esgotado", closed: "Inscrições encerradas" };
+const getClosedNotice = (trip) => CLOSED_NOTICES[String(trip.status || "").toLowerCase()] || "";
+const buildClosedNoticeHTML = (notice) =>
+  notice ? `<p class="trip-closed-notice" role="status">${notice}</p>` : "";
 
 const hasDepartures = (trip) => Array.isArray(trip.departures) && trip.departures.length > 0;
 
@@ -129,7 +172,8 @@ const buildDeparturesHTML = (trip) => {
           </div>`;
 };
 
-const buildTripCardHTML = (trip, tripIndex) => {
+const buildTripCardHTML = (rawTrip, tripIndex) => {
+  const trip = normalizeTrip(rawTrip);
   const includesHTML = trip.includes
     .map((item) => `<li><span class="trip-includes-icon" aria-hidden="true">${TRIP_ICON_CHECK_CIRCLE}</span><span>${item}</span></li>`)
     .join("");
@@ -137,7 +181,7 @@ const buildTripCardHTML = (trip, tripIndex) => {
   const departure = trip.departureTime || (trip.scheduleTBD ? "" : formatTripTime(trip.startDateISO));
   const levelWord = trip.intensityLabel.replace(/^Intensidade\s*/i, "");
 
-  const cover = trip.media.find((item) => item.type !== "video") || trip.media[0];
+  const cover = trip.media.find((item) => item.type !== "video") || trip.media[0] || null;
   const mediaCount = trip.media.length;
   const photoBadge = mediaCount > 1
     ? `<span class="gallery-photo-dots" aria-hidden="true">${trip.media.map((_, index) => `<i class="${index === 0 ? "is-active" : ""}"></i>`).join("")}</span>`
@@ -164,21 +208,23 @@ const buildTripCardHTML = (trip, tripIndex) => {
     ? `<span class="trip-media-intensity">Nível: ${levelWord}</span>`
     : "";
 
+  const closedNotice = getClosedNotice(trip);
+
   return `
     <article class="trip-card reveal" data-month="${formatTripMonth(trip.startDateISO)}">
       <button
         type="button"
-        class="trip-media"
+        class="trip-media${cover ? "" : " trip-media--empty"}"${cover ? "" : ' style="background: var(--moss)"'}
         data-trip-index="${tripIndex}"
         aria-label="Abrir galeria de ${trip.title}"
       >
-        <img src="${cover.src}"${getHeroSrcset(cover.src) ? ` srcset="${getHeroSrcset(cover.src)}" sizes="${TRIP_CARD_IMG_SIZES}"` : ""} alt="${cover.alt}" loading="lazy" decoding="async" fetchpriority="low">
+        ${cover ? `<img src="${cover.src}"${getHeroSrcset(cover.src) ? ` srcset="${getHeroSrcset(cover.src)}" sizes="${TRIP_CARD_IMG_SIZES}"` : ""} alt="${text(cover.alt)}" loading="lazy" decoding="async" fetchpriority="low">` : ""}
         <span class="trip-media-category">${trip.category}</span>
         ${intensityHTML}
         ${photoBadge}
       </button>
       <div class="trip-body">
-        <h3 id="trip-title-${tripIndex}">${trip.title}</h3>
+        ${buildClosedNoticeHTML(closedNotice)}<h3 id="trip-title-${tripIndex}">${trip.title}</h3>
         <p class="trip-description">${trip.description}</p>
 
         <div class="trip-meta-list">
@@ -195,10 +241,10 @@ const buildTripCardHTML = (trip, tripIndex) => {
           <div class="trip-includes-body">
             <p class="trip-includes-heading">O que você vai viver</p>
             <ul class="trip-includes">${includesHTML}</ul>
-            <div class="trip-includes-highlight">
+            ${trip.includesHighlight ? `<div class="trip-includes-highlight">
               <span class="trip-includes-highlight-icon" aria-hidden="true">${TRIP_ICON_SHIELD}</span>
               <span>${trip.includesHighlight}</span>
-            </div>
+            </div>` : ""}
           </div>
         </details>
 
@@ -226,15 +272,15 @@ const buildTripCardHTML = (trip, tripIndex) => {
               data-wa-destination="${trip.city} - ${trip.region}"
               data-wa-meeting="${meetingLabel}"
               data-wa-price="${trip.free ? "Gratuito" : trip.priceDisplay}"
-              data-wa-kind="${trip.free ? "participar" : "viajar"}"
+              data-wa-kind="${closedNotice ? "avisar" : trip.free ? "participar" : "viajar"}"${closedNotice ? ` data-wa-notice="${closedNotice}"` : ""}
               aria-labelledby="trip-title-${tripIndex}"
               href="#"
               target="_blank"
               rel="noreferrer"
             >
-              ${trip.buttonLabel}
+              ${closedNotice ? "Avise-me da próxima" : trip.buttonLabel}
             </a>
-            ${trip.free ? "" : `<button
+            ${trip.free || closedNotice ? "" : `<button
               type="button"
               class="button button-pix pix-trigger"
               data-pix-trip-index="${tripIndex}"
@@ -249,7 +295,8 @@ const buildTripCardHTML = (trip, tripIndex) => {
   `;
 };
 
-const buildTripSchema = (trip) => {
+const buildTripSchema = (rawTrip) => {
+  const trip = normalizeTrip(rawTrip);
   const schema = {
     "@type": "Event",
     name: trip.title,
@@ -271,7 +318,7 @@ const buildTripSchema = (trip) => {
       "@type": "Offer",
       price: trip.free ? "0" : trip.priceValue,
       priceCurrency: "BRL",
-      availability: trip.availabilitySchema,
+      availability: getClosedNotice(trip) ? "https://schema.org/SoldOut" : trip.availabilitySchema,
       url: "https://overtrip.com.br/#proxima",
     },
   };
@@ -352,15 +399,19 @@ const getCountdownLabel = (isoString) => {
   return label.charAt(0).toUpperCase() + label.slice(1);
 };
 
-const buildHeroTripHTML = (trip) => {
+const buildHeroTripHTML = (rawTrip) => {
+  const trip = normalizeTrip(rawTrip);
   const levelWord = trip.intensityLabel.replace(/^Intensidade\s*/i, "");
   const countdown = getCountdownLabel(trip.startDateISO);
   const dateDisplay = formatTripDate(trip.startDateISO);
   const departure = trip.departureTime || (trip.scheduleTBD ? "" : formatTripTime(trip.startDateISO));
   const scheduleLabel = trip.scheduleInfo || [departure, trip.returnTime].filter(Boolean).join(" às ");
   const meetingLabel = getMeetingLabel(trip);
-  const spotsNote = Number(trip.spotsLeft) > 0 ? ` Restam ${Number(trip.spotsLeft)} vagas.` : "";
-  const priceUnit = trip.free ? "" : `${trip.priceUnit}, `;
+  const closedNotice = getClosedNotice(trip);
+  const spotsNote = !closedNotice && Number(trip.spotsLeft) > 0 ? ` Restam ${Number(trip.spotsLeft)} vagas.` : "";
+  const priceNote = [trip.free ? "" : trip.priceUnit, levelWord ? `nível ${levelWord.toLowerCase()}` : ""]
+    .filter(Boolean)
+    .join(", ");
 
   return `
     <aside class="hero-trip" data-trip-title="${trip.title}" aria-label="Próxima viagem: ${trip.title}">
@@ -381,10 +432,10 @@ const buildHeroTripHTML = (trip) => {
           <span>${meetingLabel}</span>
         </div>`}
       </div>
-      <div class="hero-trip-footer">
+      ${buildClosedNoticeHTML(closedNotice)}<div class="hero-trip-footer">
         <span class="hero-trip-price">
           <strong>${trip.free ? "Gratuito" : trip.priceDisplay}</strong>
-          <small>${priceUnit}nível ${levelWord.toLowerCase()}.${spotsNote}</small>
+          <small>${priceNote ? `${priceNote}.` : ""}${spotsNote}</small>
         </span>
         <a
           class="button button-rust hero-trip-cta wa-link"
@@ -393,11 +444,11 @@ const buildHeroTripHTML = (trip) => {
           data-wa-destination="${trip.city} - ${trip.region}"
           data-wa-meeting="${meetingLabel}"
           data-wa-price="${trip.free ? "Gratuito" : trip.priceDisplay}"
-          data-wa-kind="${trip.free ? "participar" : "viajar"}"
+          data-wa-kind="${closedNotice ? "avisar" : trip.free ? "participar" : "viajar"}"${closedNotice ? ` data-wa-notice="${closedNotice}"` : ""}
           href="#"
           target="_blank"
           rel="noreferrer"
-        >${trip.buttonLabel}</a>
+        >${closedNotice ? "Avise-me da próxima" : trip.buttonLabel}</a>
       </div>
     </aside>
   `;
@@ -589,17 +640,37 @@ const renderHeroNextTrip = () => {
   // Tira o estado de carregamento (espaço reservado e brilho; ver hero.css).
   hero.classList.remove("is-loading-trip");
 
-  const trip = getNextTrip(TRIPS);
+  const trip = safely("próxima viagem", null, () => getNextTrip(TRIPS), null);
   if (!trip) {
     // Sem trip futura (ou JSON com erro): libera a foto de grupo do HTML.
     hero.classList.add("show-fallback");
     return;
   }
 
-  visual.insertAdjacentHTML("afterbegin", buildHeroTripHTML(trip));
+  const heroHTML = safely("hero", trip, () => buildHeroTripHTML(trip), "");
+  if (!heroHTML) {
+    hero.classList.add("show-fallback");
+    return;
+  }
+  visual.insertAdjacentHTML("afterbegin", heroHTML);
   hero.classList.add("has-trip");
   showHeroTripPhoto(hero, trip);
 };
+
+// Uma viagem com dados ruins não pode derrubar as outras: roda a etapa
+// isolada e, se falhar, registra um aviso e devolve `fallback`.
+const safely = (step, trip, fn, fallback) => {
+  try {
+    return fn();
+  } catch (error) {
+    console.warn(`[OVERTRIP] Viagem ignorada (${step}): ${trip?.title ?? "sem título"}.`, error);
+    return fallback;
+  }
+};
+
+const buildTripCardsHTML = (listedTrips) => listedTrips
+  .map(({ trip, index }) => safely("card", trip, () => buildTripCardHTML(trip, index), ""))
+  .join("");
 
 const renderTrips = async () => {
   const grid = document.querySelector("#trip-grid");
@@ -615,7 +686,7 @@ const renderTrips = async () => {
   // TRIPS por ele.
   const listedTrips = trips
     .map((trip, index) => ({ trip, index }))
-    .filter(({ trip }) => isUpcomingTrip(trip))
+    .filter(({ trip }) => safely("filtrar", trip, () => isUpcomingTrip(trip), false))
     .sort((a, b) => a.trip.startDateISO.slice(0, 10).localeCompare(b.trip.startDateISO.slice(0, 10)));
   const hasTrips = listedTrips.length > 0;
   const today = getSaoPauloDateKey();
@@ -630,7 +701,7 @@ const renderTrips = async () => {
       ? '<p class="trip-empty-state">Não foi possível carregar as expedições no momento. Tente novamente em alguns instantes ou fale com a OVERTRIP pelo WhatsApp.</p>'
       : '<p class="trip-empty-state">Nenhuma expedição com embarque agendado no momento. Acompanhe nossos canais para saber das próximas datas.</p>';
   } else {
-    grid.innerHTML = listedTrips.map(({ trip, index }) => buildTripCardHTML(trip, index)).join("");
+    grid.innerHTML = buildTripCardsHTML(listedTrips);
   }
 
   document.querySelector(".trip-search")?.toggleAttribute("hidden", !hasTrips);
@@ -651,7 +722,9 @@ const renderTrips = async () => {
     schemaScript.type = "application/ld+json";
     schemaScript.textContent = JSON.stringify({
       "@context": "https://schema.org",
-      "@graph": listedTrips.map(({ trip }) => buildTripSchema(trip)),
+      "@graph": listedTrips
+        .map(({ trip }) => safely("schema", trip, () => buildTripSchema(trip), null))
+        .filter(Boolean),
     });
     document.head.appendChild(schemaScript);
   }
@@ -702,16 +775,19 @@ const buildGalleryCardHTML = (entry, index, { reveal = false, delay = 0 } = {}) 
   `;
 };
 
-const renderGallery = () => {
+const renderGallery = async () => {
   const grid = document.querySelector("#gallery-grid");
 
   if (!grid) {
     return;
   }
 
-  // Ordena no lugar: o lightbox lê GALLERY[index], então a ordem da tela e a
-  // do array precisam ser a mesma.
-  GALLERY.sort((a, b) => b.dateISO.localeCompare(a.dateISO));
+  // Galeria do painel (API, 3 s de limite); se falhar, a lista fixa de data.js.
+  // Troca o conteúdo de GALLERY no lugar: o lightbox lê GALLERY[index], então a
+  // ordem da tela e a do array precisam ser a mesma (destaque primeiro, depois
+  // data decrescente).
+  const resolved = await resolveGallery(fetch.bind(globalThis), GALLERY);
+  GALLERY.splice(0, GALLERY.length, ...resolved);
 
   const total = GALLERY.length;
   const controls = document.querySelector("#gallery-more");
@@ -772,7 +848,7 @@ const getTripLightboxEntry = (trip) => ({
   title: trip.title,
   description: trip.free
     ? formatTripDate(trip.startDateISO)
-    : `${formatTripDate(trip.startDateISO)} · ${trip.priceDisplay}`,
+    : `${formatTripDate(trip.startDateISO)} · ${trip.priceDisplay ?? "Consulte"}`,
   images: trip.media,
 });
 
@@ -881,7 +957,8 @@ const setupLightbox = () => {
   const openFromTripMedia = (media) => {
     const index = Number(media.dataset.tripIndex);
     const trip = TRIPS[index];
-    if (trip) {
+    // Viagem sem fotos: não há o que abrir.
+    if (trip && Array.isArray(trip.media) && trip.media.length) {
       openLightbox(getTripLightboxEntry(trip), media);
     }
   };
@@ -1049,4 +1126,4 @@ const updateYearsCount = () => {
   statEl.textContent = years > 0 ? `${years} anos` : "1º ano";
 };
 
-export { renderHeroNextTrip, renderTrips, renderGallery, renderTestimonials, updateYearsCount, setupLightbox, setupTestimonialCarousel };
+export { formatTripTime, buildTripSchema, normalizeTrip, buildTripCardHTML, buildHeroTripHTML, buildTripCardsHTML, renderHeroNextTrip, renderTrips, renderGallery, renderTestimonials, updateYearsCount, setupLightbox, setupTestimonialCarousel };

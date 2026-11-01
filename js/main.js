@@ -1,6 +1,6 @@
 import { renderHeroNextTrip, renderTrips, renderGallery, renderTestimonials, updateYearsCount, setupLightbox, setupTestimonialCarousel } from "./render.js";
 import { loadTrips } from "./data.js";
-import { setupWaLinks, setupWaTooltip } from "./whatsapp.js";
+import { loadWhatsappNumber, setupWaLinks, setupWaTooltip } from "./whatsapp.js";
 import { setupNavigation, setupMarquee, setupMonthFilter, setupRevealAnimation, setupHeroExperiment, setupHeroTracking, setupUniversePanels } from "./ui.js";
 import { setupPixModal } from "./pix.js";
 
@@ -13,7 +13,9 @@ const init = async () => {
   setupHeroExperiment();
 
   // Conteúdos síncronos podem ser renderizados imediatamente.
-  renderGallery();
+  // A galeria vem da API (até 3 s); a promessa é aguardada antes do reveal.
+  const galleryReady = renderGallery();
+  const whatsappReady = loadWhatsappNumber();
   renderTestimonials();
   updateYearsCount();
 
@@ -31,6 +33,8 @@ const init = async () => {
   await loadTrips();
   renderHeroNextTrip();
   await renderTrips();
+
+  await Promise.all([galleryReady, whatsappReady]);
 
   setupWaLinks();
   setupPixModal();

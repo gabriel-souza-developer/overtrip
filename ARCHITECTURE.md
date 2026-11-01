@@ -1,13 +1,15 @@
-# OVERTRIP v6 — Arquitetura do Projeto
+# OVERTRIP v6 — Arquitetura do Site Público
+
+Este documento cobre só o site público. O painel administrativo (`frontend/`), a API (`src/`) e o banco (`prisma/`) estão descritos em `CLAUDE.md`, que resume a arquitetura do produto.
 
 ## Visão Geral
 
-**OVERTRIP** é um site estático de agência de ecoturismo e aventura construído com HTML5, CSS3 puro e JavaScript modular (ES modules). O projeto prioriza performance, acessibilidade e experiência do usuário com uma abordagem de **content-driven design**.
+O site público da **OVERTRIP** é uma página estática de agência de ecoturismo e aventura construída com HTML5, CSS3 puro e JavaScript modular (ES modules). Ele prioriza performance, acessibilidade e experiência do usuário com uma abordagem de **content-driven design**.
 
-- **Modelo:** Site estático (sem backend, hosting em servidor Apache)
+- **Modelo:** Site estático; lê conteúdo público da API do painel
 - **Stack:** HTML + CSS + Vanilla JS
-- **Renderização:** Client-side com dados de `trips.json`
-- **Deploy:** Apache com HTTPS, headers de segurança e cache inteligente
+- **Renderização:** Client-side. Viagens, galeria e destinos vêm da API pública; o site mantém dados locais de fallback.
+- **Hospedagem:** `.htaccess` contém regras para Apache. `deploy/` contém a configuração planejada para Caddy e Oracle Cloud; o deploy ainda não foi realizado.
 
 ---
 
@@ -34,8 +36,9 @@ overtrip.v6/
 │
 ├── js/                        # JavaScript modular (ES6 modules)
 │   ├── main.js                # Orquestração: inicialização e sequência
-│   ├── data.js                # Dados estáticos e carregamento de JSON
-│   ├── render.js              # Renderização de HTML (1000+ linhas)
+│   ├── data.js                # Carregamento de viagens e dados locais de fallback
+│   ├── publicData.js          # Carregamento e fallback de galeria e destinos
+│   ├── render.js              # Renderização de HTML e conteúdo
 │   ├── ui.js                  # Interações e animações
 │   ├── whatsapp.js            # Integração WhatsApp (links + tooltip)
 │   ├── pix.js                 # Modal de pagamento Pix
@@ -76,11 +79,15 @@ overtrip.v6/
 ### 1. **Camada de Dados (`data.js` + `trips.json`)**
 
 ```
-trips.json (servidor)
+GET /api/public/trips (API; timeout de 3 s)
+    ↓ em caso de falha
+trips.json (fallback estático)
     ↓
 loadTrips() → TRIPS[] (memória)
     ↓
-GALLERY[] (memórias de viagens passadas)
+GET /api/public/gallery → GALLERY[] (fallback: dados locais em data.js)
+GET /api/public/destinations → destinos do mapa (fallback: VISITED_PLACES em map.js)
+GET /api/public/settings/whatsapp → número de contato (fallback: número reservado no site)
 TESTIMONIALS[] (depoimentos de clientes)
 knowledge.json (contexto da empresa)
 ```
@@ -95,15 +102,17 @@ knowledge.json (contexto da empresa)
   - `media[]` (fotos, vídeos com srcset para WebP)
   - `intensityLabel`, `spotsLeft`, `availabilitySchema`
 
-- **GALLERY**: Memórias de viagens realizadas (galeria bento)
+- **GALLERY**: Memórias de viagens realizadas. A API do painel é a fonte preferencial; `data.js` fornece o fallback.
   - `title`, `date`, `dateISO`, `description`
   - `images[]` com alt text descritivo
 
-- **TESTIMONIALS**: Depoimentos com rating de 1-5 estrelas
+- **TESTIMONIALS**: Depoimentos com rating de 1-5 estrelas, mantidos localmente em `data.js`
+- **Destinos**: visitas com coordenadas vêm da API do painel e são combinadas com a lista fixa local em `map.js`
+- **WhatsApp**: o número padrão é configurado por administrador no painel. O site consulta a API pública e usa o número local de reserva se ela estiver indisponível. Essa rota só entrega o número de contato; ela não é uma integração com WhatsApp Business nem com um agente de IA.
 
 ---
 
-### 2. **Camada de Renderização (`render.js` ~ 1000 linhas)**
+### 2. **Camada de Renderização (`render.js`)**
 
 Responsável por todo HTML gerado dinamicamente:
 
@@ -119,7 +128,7 @@ renderHeroNextTrip()
   ├─ buildHeroTripHTML() → card destacado no hero
   └─ showHeroTripPhoto() → slideshow de fotos com preload
 
-renderGallery()
+renderGallery() (assíncrona; consulta `publicData.js`)
   ├─ Ordena GALLERY por dateISO (recente → antiga)
   ├─ Primeiro batch: 5 cards (1 em destaque + 4 normais)
   └─ "Ver mais" carrega mais 4 em batches
@@ -144,7 +153,7 @@ Sizes: diferentes para hero vs cards vs mobile
 
 ---
 
-### 3. **Camada de Interação (`ui.js` ~ 430 linhas)**
+### 3. **Camada de Interação (`ui.js`)**
 
 Manipulação do DOM, navegação, filtros e animações:
 
@@ -239,7 +248,7 @@ trackHeroEvent(event, params)
 
 ---
 
-### 5. **Camada de Apresentação (`css/` ~ 2000 linhas)**
+### 5. **Camada de Apresentação (`css/`)**
 
 **Arquitetura CSS:**
 
@@ -282,7 +291,7 @@ footer.css
 
 responsive.css
   ├─ Mobile-first (320px → desktop)
-  ├─ Breakpoints: 720px, 980px
+  ├─ Breakpoints: consultar os media queries em `responsive.css` (atualmente inclui 719px)
   ├─ Grid de trips: 1 col (mobile) → 2 cols (tablet) → 3 cols (desktop)
   ├─ Gallery bento: redimensiona em mobile
   └─ Esconde/mostra elementos conforme viewport
@@ -290,11 +299,11 @@ responsive.css
 
 **Cores (OKLCH):**
 ```
---bone:      #F5F3EF  (fundo principal)
---paper:     #F0EDE7  (cards, fundo secundário)
---ink:       #292621  (texto principal)
---moss:      #5A8A5A  (acentos verdes)
---rust:      #FF4500  (tema, CTAs)
+--bone:      oklch(0.965 0 0)      (fundo principal)
+--paper:     oklch(0.94 0 0)       (cards, fundo secundário)
+--ink:       oklch(0.16 0 0)       (texto principal)
+--moss:      oklch(0.34 0.025 155) (acentos verdes)
+--rust:      oklch(0.66 0.17 48)   (destaque)
 --line:      rgba(17, 17, 17, 0.1)
 --text-soft: #72706D
 ```
@@ -323,13 +332,14 @@ index.html carregado
 <body> classes removidas/adicionadas (no-js → js)
   ↓
 main.js init()
-  ├─ [SÍNCRONO] renderGallery() → GALLERY
+  ├─ [ASYNC] renderGallery() → API pública ou fallback local
   ├─ [SÍNCRONO] renderTestimonials() → TESTIMONIALS
   ├─ [SÍNCRONO] updateYearsCount()
   ├─ [SÍNCRONO] setupNavigation(), setupLightbox(), etc
-  ├─ [ASYNC] await loadTrips() → /trips.json
+  ├─ [ASYNC] await loadTrips() → API pública ou trips.json
   ├─ renderHeroNextTrip() → card + slideshow
   ├─ await renderTrips() → grid completa
+  ├─ aguarda renderGallery() para concluir
   ├─ setupWaLinks(), setupPixModal(), setupMonthFilter()
   ├─ setupRevealAnimation() → IntersectionObserver
   ├─ setupHeroTracking() → analytics
@@ -339,7 +349,7 @@ main.js init()
 **Por que essa ordem?**
 1. Renderização síncrona não bloqueia: gallery, testimonials, years
 2. Setup de interações genéricas: menu, lightbox, carousel
-3. Espera o JSON (pode ser lento)
+3. Aguarda viagens e galeria; cada chamada pública usa timeout de 3 s
 4. Hero renderiza **antes** da grid (máxima prioridade)
 5. Só depois configura recursos que dependem dos cards (filtro, tracking)
 
@@ -489,9 +499,9 @@ HSTS:        1 ano (sem preload por segurança)
 ✅ Vantagem: Modularização clara (data, render, ui)
 ❌ Trade-off: Requer `type="module"` no HTML
 
-### **4. Static HTML + Apache**
-✅ Vantagem: Simples, rápido, hospedagem barata (cPanel)
-❌ Trade-off: Sem SSR/SSG, sem dynamic routes
+### **4. Site estático + API**
+✅ Vantagem: O site público não precisa de build para atualizar dados servidos pela API
+❌ Trade-off: A renderização depende de JavaScript e da disponibilidade da API ou dos fallbacks
 
 ### **5. OKLCH para Cores**
 ✅ Vantagem: Espaço de cor perceptual, melhor consistência visual
@@ -555,8 +565,8 @@ HSTS:        1 ano (sem preload por segurança)
 - **Analytics:** Slot para Google Analytics, Mixpanel, etc
 
 ### **Build/Deploy**
-- Apache + PHP 8.4 (cPanel)
-- Sem build step (HTML/CSS/JS servidos direto)
+- O site público usa HTML/CSS/JS estáticos; o painel e a API têm builds separados.
+- `.htaccess` mantém regras Apache para hospedagem compatível. `deploy/README.md` descreve a implantação planejada com Caddy na Oracle Cloud.
 - Geração de imagens WebP: `tools/gerar-imagens-hero.py`
 
 ---
@@ -577,5 +587,5 @@ HSTS:        1 ano (sem preload por segurança)
 ---
 
 **Versão:** 6.0  
-**Última atualização:** Outubro 2026  
+**Última atualização:** Novembro 2026
 **Responsável:** OVERTRIP

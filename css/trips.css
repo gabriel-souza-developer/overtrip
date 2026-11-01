@@ -554,3 +554,19 @@ button.trip-media {
   min-height: 44px;
   padding-block: 0.55rem;
 }
+
+/* Viagem esgotada ou encerrada: aviso em texto, sem depender só da cor. */
+.trip-closed-notice {
+  align-self: flex-start;
+  margin: 0;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  font-family: "Inter Tight", sans-serif;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--bone);
+  background: var(--ink);
+  border: 1px solid var(--bone);
+}

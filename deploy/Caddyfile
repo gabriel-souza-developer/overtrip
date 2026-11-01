@@ -1,0 +1,54 @@
+# OVERTRIP — Caddy (HTTPS automático). Ajuste SITE_ROOT se o código ficar em outro lugar.
+# Código em /srv/overtrip/app ; painel compilado em /srv/overtrip/app/dist/frontend
+
+www.overtrip.com.br {
+	redir https://overtrip.com.br{uri} permanent
+}
+
+overtrip.com.br {
+	encode zstd gzip
+
+	header {
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		X-Frame-Options "SAMEORIGIN"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+
+	# API: só Node local
+	handle /api/* {
+		reverse_proxy 127.0.0.1:3001
+	}
+	handle /health {
+		reverse_proxy 127.0.0.1:3001
+	}
+
+	# Painel (React) em /admin, com fallback de SPA
+	handle_path /admin/* {
+		root * /srv/overtrip/app/dist/frontend
+		@assets path /assets/* /brand/*
+		header @assets Cache-Control "public, max-age=31536000, immutable"
+		header /index.html Cache-Control "no-cache"
+		try_files {path} /index.html
+		file_server
+	}
+	redir /admin /admin/ permanent
+
+	# Site público: SÓ o que está nesta lista (o repositório não é exposto)
+	@publico path / /index.html /trips.json /knowledge.json /robots.txt /sitemap.xml /site.webmanifest /css/* /js/* /assets/* /blog/* /riders/*
+	handle @publico {
+		root * /srv/overtrip/app
+		@estatico path /assets/* /css/* /js/*
+		header @estatico Cache-Control "public, max-age=604800"
+		@html path / /index.html /blog/* /riders/*
+		header @html Cache-Control "no-cache"
+		file_server
+	}
+
+	# Todo o resto: 404
+	handle {
+		respond "Não encontrado" 404
+	}
+}
