@@ -44,8 +44,15 @@ describe('contraste da paleta da marca no painel', () => {
     expect(scales.surface['50']).toBe('#fafafa');
   });
 
-  it.each(['.btn-primary', '.pagination-btn-active'])('%s: tons exatos e contraste AA nos dois estados', (sel) => {
-    const c = rule(sel);
+  it('.btn-primary: usa o laranja principal com texto branco', () => {
+    const c = rule('.btn-primary');
+    expect(find(c, 'bg-')).toBe('bg-primary-500');
+    expect(find(c, 'text-')).toBe('text-white');
+    expect(find(c, 'hover:bg-')).toBe('hover:bg-primary-400');
+  });
+
+  it('.pagination-btn-active: mantém o rust claro com texto ink e contraste AA', () => {
+    const c = rule('.pagination-btn-active');
     expect(find(c, 'bg-')).toBe('bg-primary-500');
     expect(find(c, 'text-')).toBe('text-surface-900');
     expect(find(c, 'hover:bg-')).toBe('hover:bg-primary-400');
@@ -54,7 +61,7 @@ describe('contraste da paleta da marca no painel', () => {
     expect(contrast(text, hexOf(find(c, 'hover:bg-')))).toBeGreaterThanOrEqual(4.5);
   });
 
-  it('rust puro com texto branco NÃO passa AA (por isso o texto é ink)', () => {
+  it('rust puro com texto branco NÃO passa AA', () => {
     expect(contrast(white, scales.primary['500'])).toBeLessThan(4.5);
   });
 

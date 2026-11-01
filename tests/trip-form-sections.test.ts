@@ -17,14 +17,14 @@ describe('TripForm: seções', () => {
   const titles = [...form.matchAll(/<FormSection title="([^"]+)"/g)].map((m) => m[1]);
 
   it('tem 3 seções visíveis e uma única seção recolhida de ajustes', () => {
-    expect(titles).toEqual(['Sobre a viagem', 'Embarque e horários', 'Roteiro e avisos', 'Ajustes do site (raramente necessário)']);
+    expect(titles).toEqual(['Informações da viagem', 'Embarque e horários', 'Roteiro e informações para viajantes', 'Exibição no site']);
     expect(form).not.toMatch(/FormSection[^>]*defaultOpen/);
   });
 
   it.each([
-    ['Sobre a viagem', ['id="description"', 'id="category"', 'id="intensityClass"', 'id="spotsLeft"', 'id="includes-custom-input"']],
+    ['Informações da viagem', ['id="description"', 'id="category"', 'id="intensityClass"', 'id="spotsLeft"', 'id="includes-custom-input"']],
     ['Embarque e horários', ['id="meetingCity"', 'id="meetingPoint"', 'id="endDateISO"', 'id="returnTime"']],
-    ['Ajustes do site', ['id="headlineDisplay"', 'id="priceDisplay"', 'id="priceUnit"', 'id="buttonLabel"', 'id="departureTolerance"', 'id="meetingMapsQuery"', 'id="supportPoint"', 'DeparturesInput']],
+    ['Exibição no site', ['id="headlineDisplay"', 'id="priceDisplay"', 'id="priceUnit"', 'id="buttonLabel"', 'id="departureTolerance"', 'id="meetingMapsQuery"', 'id="supportPoint"', 'DeparturesInput']],
   ])('seção %s contém os campos esperados', (title, fields) => {
     const start = form.indexOf(`<FormSection title="${title}`);
     const end = form.indexOf('</FormSection>', start);
