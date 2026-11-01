@@ -4,35 +4,37 @@ import { authenticate, type AuthRequest } from '../middleware/auth.js';
 import { createRateLimiter } from '../middleware/rateLimit.js';
 import {
   AiDraftError,
-  DEFAULT_AI_MODEL,
   MAX_TEXT_LENGTH,
-  createAnthropicClient,
+  createProviderFromEnv,
   generateTripDraft,
   type AiClient,
+  type AiProvider,
 } from '../services/aiTripDraft.js';
 
 export interface AiRoutesDeps {
   auth?: RequestHandler;
   /** Devolve o cliente de IA, ou null quando não há chave. */
-  getClient?: () => AiClient | null;
-  model?: () => string;
+  getClient?: () => AiProvider | AiClient | null;
+  /** Modelo escolhido (AI_MODEL). Vazio = padrão do provedor. */
+  model?: () => string | undefined;
   limiter?: RequestHandler;
   log?: (message: string, data: Record<string, unknown>) => void;
 }
 
-let cachedClient: { key: string; client: AiClient } | null = null;
+let cachedProvider: { signature: string; provider: AiProvider | null } | null = null;
 
-function envClient(): AiClient | null {
-  const key = process.env.ANTHROPIC_API_KEY;
-  if (!key) return null;
-  if (!cachedClient || cachedClient.key !== key) cachedClient = { key, client: createAnthropicClient(key) };
-  return cachedClient.client;
+function envProvider(): AiProvider | null {
+  const signature = [process.env.GEMINI_API_KEY, process.env.GOOGLE_API_KEY, process.env.ANTHROPIC_API_KEY].join('|');
+  if (!cachedProvider || cachedProvider.signature !== signature) {
+    cachedProvider = { signature, provider: createProviderFromEnv() };
+  }
+  return cachedProvider.provider;
 }
 
 export function createAiRouter(deps: AiRoutesDeps = {}): Router {
   const auth = deps.auth ?? (authenticate as RequestHandler);
-  const getClient = deps.getClient ?? envClient;
-  const model = deps.model ?? (() => process.env.AI_MODEL || DEFAULT_AI_MODEL);
+  const getClient = deps.getClient ?? envProvider;
+  const model = deps.model ?? (() => process.env.AI_MODEL || undefined);
   const log = deps.log ?? ((message, data) => console.info(message, data));
   const limiter =
     deps.limiter ??
@@ -71,6 +73,7 @@ export function createAiRouter(deps: AiRoutesDeps = {}): Router {
       try {
         const result = await generateTripDraft(client, text.trim(), model(), (usage) =>
           log('[ai] trip-draft', { userId: req.user?.id, ...usage }),
+          (info) => log('[ai] trip-draft erro', { userId: req.user?.id, ...info }),
         );
         res.json(result);
       } catch (error) {

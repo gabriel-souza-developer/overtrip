@@ -1,9 +1,13 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
+import { GoogleGenAI } from '@google/genai';
 import { z } from 'zod/v4';
 import { tripCreateSchema } from '../validators/index.js';
 
-export const DEFAULT_AI_MODEL = 'claude-opus-5-5';
+export const DEFAULT_AI_MODEL = 'claude-opus-5-5'; // padrão da Anthropic
+/** Modelo Flash com plano gratuito (ai.google.dev/gemini-api/docs/pricing). */
+export const DEFAULT_GEMINI_MODEL = 'gemini-3.5-flash-lite';
+const REQUEST_TIMEOUT_MS = 60_000;
 export const MAX_TEXT_LENGTH = 8000;
 const MAX_TOKENS = 4096;
 
@@ -16,6 +20,19 @@ export interface AiClient {
       usage?: { input_tokens?: number; output_tokens?: number };
     }>;
   };
+}
+
+export type StopReason = 'end' | 'refusal' | 'max_tokens' | 'other';
+
+/** Interface mínima de um provedor: texto de entrada -> objeto + motivo de parada + tokens. */
+export interface AiProvider {
+  name: 'gemini' | 'anthropic';
+  defaultModel: string;
+  generate(input: { system: string; userText: string; model: string }): Promise<{
+    object: unknown;
+    stopReason: StopReason;
+    usage?: { inputTokens: number; outputTokens: number };
+  }>;
 }
 
 /** Erro com mensagem já pronta para o agente (português simples). */
@@ -190,6 +207,9 @@ export function sanitizeDraft(raw: unknown): TripDraftResult {
   if (start && end && end < start) {
     delete draft.endDateISO;
     warnings.push('A data de fim ficou antes da saída; deixei em branco.');
+  } else if (start && end && end === start) {
+    // A IA costuma repetir a data de saída quando o texto não cita fim: descarta sem aviso.
+    delete draft.endDateISO;
   }
 
   if (typeof input.priceValue === 'number' && Number.isFinite(input.priceValue) && input.priceValue >= 0) {
@@ -222,50 +242,158 @@ export function sanitizeDraft(raw: unknown): TripDraftResult {
   return { draft, warnings };
 }
 
-/** Chama o modelo (cliente injetável) e devolve só campos válidos. Não loga o texto. */
+export function isAiProvider(value: AiProvider | AiClient): value is AiProvider {
+  return typeof (value as AiProvider).generate === 'function';
+}
+
+/** Chama o provedor (injetável) e devolve só campos válidos. Não loga o texto. */
 export async function generateTripDraft(
-  client: AiClient,
+  provider: AiProvider | AiClient,
   text: string,
-  model: string,
+  model?: string,
   onUsage?: (usage: { inputTokens: number; outputTokens: number }) => void,
+  onError?: (info: ProviderErrorInfo) => void,
 ): Promise<TripDraftResult> {
+  const p = isAiProvider(provider) ? provider : createAnthropicProvider(provider);
   let response;
   try {
-    response = await client.messages.parse({
-      model,
-      max_tokens: MAX_TOKENS,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: wrapAgentText(text) }],
-      output_config: { effort: 'low', format: zodOutputFormat(aiDraftOutputSchema) },
-    });
+    response = await p.generate({ system: SYSTEM_PROMPT, userText: wrapAgentText(text), model: model || p.defaultModel });
   } catch (error) {
+    if (!(error instanceof AiDraftError)) onError?.(describeProviderError(error, p.name, model || p.defaultModel));
     throw mapProviderError(error);
   }
 
-  if (response.usage) {
-    onUsage?.({ inputTokens: response.usage.input_tokens ?? 0, outputTokens: response.usage.output_tokens ?? 0 });
-  }
-  if (response.stop_reason === 'refusal') {
+  if (response.usage) onUsage?.(response.usage);
+  if (response.stopReason === 'refusal') {
     throw new AiDraftError('A IA não pôde analisar este texto. Preencha o formulário à mão ou tente reescrever o texto.', 422);
   }
-  if (response.stop_reason === 'max_tokens') {
+  if (response.stopReason === 'max_tokens') {
     throw new AiDraftError('O texto gerou uma resposta grande demais e ela foi cortada. Tente com um texto menor.', 422);
   }
-  const parsed = aiDraftOutputSchema.safeParse(response.parsed_output);
+  const parsed = aiDraftOutputSchema.safeParse(response.object);
   if (!parsed.success) {
     throw new AiDraftError('A IA devolveu uma resposta que não consegui usar. Tente de novo.', 502);
   }
   return sanitizeDraft(parsed.data);
 }
 
+/** Só estes campos podem ir ao log: nada de mensagem do provedor, texto do agente ou chave. */
+export interface ProviderErrorInfo {
+  provider: string;
+  model: string;
+  status: number;
+  code?: string;
+}
+
+const SHORT_CODE = /^[A-Z][A-Z_]{2,39}$/;
+
+export function describeProviderError(error: unknown, provider: string, model: string): ProviderErrorInfo {
+  const e = error as { status?: unknown; code?: unknown; message?: unknown } | null;
+  const info: ProviderErrorInfo = { provider, model, status: typeof e?.status === 'number' ? e.status : 0 };
+  let code: string | undefined;
+  if (typeof e?.code === 'string' && SHORT_CODE.test(e.code)) code = e.code;
+  else if (typeof e?.message === 'string') {
+    // Gemini traz o corpo JSON na mensagem: extrai só o campo "status" (código curto).
+    const m = /"status"\s*:\s*"([A-Z][A-Z_]{2,39})"/.exec(e.message);
+    if (m) code = m[1];
+  }
+  if (code) info.code = code;
+  return info;
+}
+
 function mapProviderError(error: unknown): AiDraftError {
   if (error instanceof AiDraftError) return error;
-  const status = typeof (error as { status?: unknown })?.status === 'number' ? (error as { status: number }).status : 0;
-  if (status === 429) return new AiDraftError('A IA está com muitos pedidos agora. Tente de novo em instantes.', 503);
+  const e = error as { status?: unknown; message?: unknown };
+  const status = typeof e?.status === 'number' ? e.status : 0;
+  // A mensagem do provedor só é inspecionada aqui; nunca é repassada nem registrada.
+  if (status === 429 || (typeof e?.message === 'string' && e.message.includes('RESOURCE_EXHAUSTED'))) {
+    return new AiDraftError('A IA gratuita atingiu o limite de uso agora. Tente em alguns minutos ou preencha à mão.', 503);
+  }
   return new AiDraftError('A ajuda de IA não está disponível agora. Você pode preencher o formulário normalmente.', 502);
 }
 
-/** Cliente real. A chave vem só do ambiente do servidor. */
+/** Provedor Anthropic sobre um cliente com a forma de `AiClient` (injetável nos testes). */
+export function createAnthropicProvider(client: AiClient): AiProvider {
+  return {
+    name: 'anthropic',
+    defaultModel: DEFAULT_AI_MODEL,
+    async generate({ system, userText, model }) {
+      const r = await client.messages.parse({
+        model,
+        max_tokens: MAX_TOKENS,
+        system,
+        messages: [{ role: 'user', content: userText }],
+        output_config: { effort: 'low', format: zodOutputFormat(aiDraftOutputSchema) },
+      });
+      const stopReason: StopReason =
+        r.stop_reason === 'refusal' ? 'refusal' : r.stop_reason === 'max_tokens' ? 'max_tokens' : r.stop_reason === 'end_turn' ? 'end' : 'other';
+      return {
+        object: r.parsed_output,
+        stopReason,
+        usage: r.usage ? { inputTokens: r.usage.input_tokens ?? 0, outputTokens: r.usage.output_tokens ?? 0 } : undefined,
+      };
+    },
+  };
+}
+
+/** Parte do cliente Gemini que usamos (`models.generateContent`). */
+export interface GeminiLikeClient {
+  models: { generateContent: (params: any) => Promise<any> };
+}
+
+const GEMINI_BLOCK_REASONS = new Set(['SAFETY', 'PROHIBITED_CONTENT', 'BLOCKLIST', 'SPII', 'RECITATION', 'IMAGE_SAFETY']);
+
+export function createGeminiProvider(client: GeminiLikeClient): AiProvider {
+  const { $schema: _ignored, ...responseJsonSchema } = z.toJSONSchema(aiDraftOutputSchema) as Record<string, unknown>;
+  return {
+    name: 'gemini',
+    defaultModel: DEFAULT_GEMINI_MODEL,
+    async generate({ system, userText, model }) {
+      const r = await client.models.generateContent({
+        model,
+        contents: userText,
+        config: {
+          systemInstruction: system,
+          responseMimeType: 'application/json',
+          responseJsonSchema,
+          maxOutputTokens: 8192,
+        },
+      });
+      const usage = r?.usageMetadata
+        ? { inputTokens: r.usageMetadata.promptTokenCount ?? 0, outputTokens: r.usageMetadata.candidatesTokenCount ?? 0 }
+        : undefined;
+      const finish: string | undefined = r?.candidates?.[0]?.finishReason;
+      let stopReason: StopReason = 'end';
+      if (r?.promptFeedback?.blockReason || (finish && GEMINI_BLOCK_REASONS.has(finish))) stopReason = 'refusal';
+      else if (finish === 'MAX_TOKENS') stopReason = 'max_tokens';
+      let object: unknown;
+      if (stopReason === 'end') {
+        try {
+          object = JSON.parse(String(r?.text ?? ''));
+        } catch {
+          object = undefined;
+        }
+      }
+      return { object, stopReason, usage };
+    },
+  };
+}
+
+/** Escolhe o provedor pelo ambiente: Gemini > Anthropic > nenhum. A chave vem só do servidor. */
+export function createProviderFromEnv(env: NodeJS.ProcessEnv = process.env): AiProvider | null {
+  const geminiKey = env.GEMINI_API_KEY || env.GOOGLE_API_KEY;
+  if (geminiKey) {
+    const ai = new GoogleGenAI({
+      apiKey: geminiKey,
+      httpOptions: { timeout: REQUEST_TIMEOUT_MS, retryOptions: { attempts: 1 } },
+    });
+    return createGeminiProvider(ai as unknown as GeminiLikeClient);
+  }
+  if (env.ANTHROPIC_API_KEY) return createAnthropicProvider(createAnthropicClient(env.ANTHROPIC_API_KEY));
+  return null;
+}
+
+/** Cliente real da Anthropic. */
 export function createAnthropicClient(apiKey: string): AiClient {
-  return new Anthropic({ apiKey, maxRetries: 1, timeout: 60_000 }) as unknown as AiClient;
+  return new Anthropic({ apiKey, maxRetries: 1, timeout: REQUEST_TIMEOUT_MS }) as unknown as AiClient;
 }

@@ -77,6 +77,7 @@ export default function AiDraftBlock({ form, defaults, onApply }: Props) {
         <h2 id="ai-title" className="text-lg font-semibold text-surface-900">Preencher com IA</h2>
       </div>
       <p className="hint">Cole a conversa ou o roteiro. A IA sugere os campos; nada é salvo até você clicar em Salvar. O que não estiver no texto fica vazio.</p>
+      <p className="alert-info" role="note">Não cole dados pessoais de clientes, como nome, telefone ou CPF. No plano gratuito, o texto enviado pode ser usado pelo Google para melhorar seus produtos.</p>
       <label htmlFor="ai-text" className="sr-only">Texto da viagem</label>
       <textarea id="ai-text" className="input" rows={4} maxLength={8000} value={text} onChange={(e) => setText(e.target.value)} placeholder="Cole aqui a descrição da viagem…" />
       <div>
