@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "dev:frontend": "vite --host",
+    "dev:site": "vite --config vite.public.config.ts --host",
+    "dev:local": "node scripts/dev-local.mjs",
     "build": "tsc",
     "build:frontend": "vite build",
     "start": "node dist/index.js",
