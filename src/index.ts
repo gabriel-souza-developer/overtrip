@@ -1,7 +1,7 @@
 import { config } from './config.js';
 import app from './app.js';
 
-const server = app.listen(config.port, () => {
+const server = app.listen(...([config.port, ...(config.host ? [config.host] : [])] as [number]), () => {
   console.log(`🚀 OVERTRIP API running on port ${config.port}`);
   console.log(`   Environment: ${config.nodeEnv}`);
   console.log(`   Health check: http://localhost:${config.port}/health`);

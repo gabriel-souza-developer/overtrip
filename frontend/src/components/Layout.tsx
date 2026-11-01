@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { brandUrl } from '../lib/basePath';
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import * as Menu from '@radix-ui/react-dropdown-menu';
 import { ChevronDown, Home, Image as ImageIcon, LogOut, MapPin, Menu as MenuIcon, Plane, User, X } from 'lucide-react';
@@ -59,7 +60,7 @@ export default function Layout() {
       >
         <div className="flex flex-col h-full">
           <div className="flex items-center justify-between px-5 py-4 border-b border-surface-200">
-            <img src="/brand/overtrip-logo-com-fundo-laranja-192.png" alt="OVERTRIP" width={56} height={56} className="w-14 h-14 rounded-lg" />
+            <img src={brandUrl('overtrip-logo-com-fundo-laranja-192.png')} alt="OVERTRIP" width={56} height={56} className="w-14 h-14 rounded-lg" />
             <button type="button" className="btn-icon lg:hidden" onClick={() => setSidebarOpen(false)} aria-label="Fechar menu">
               <X className="w-5 h-5" aria-hidden="true" />
             </button>

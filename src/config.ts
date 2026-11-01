@@ -19,7 +19,17 @@ export function buildConfig(env: NodeJS.ProcessEnv) {
     );
   }
 
+  // Atrás do Caddy (produção) o IP real vem em X-Forwarded-For: confia em 1 proxy.
+  // TRUST_PROXY=0 desliga; fora de produção fica sempre desligado.
+  const trustProxyHops = parseInt(env.TRUST_PROXY ?? '1', 10);
+  const trustProxy = nodeEnv === 'production' && Number.isFinite(trustProxyHops) ? Math.max(0, trustProxyHops) : 0;
+
+  // Em produção só escuta em loopback (o Caddy é a porta de entrada); HOST sobrescreve.
+  const host = env.HOST || (nodeEnv === 'production' ? '127.0.0.1' : undefined);
+
   return {
+    host,
+    trustProxy,
     port: parseInt(env.PORT || '3001', 10),
     nodeEnv,
     jwtSecret,

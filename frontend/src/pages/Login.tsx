@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { brandUrl } from '../lib/basePath';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import Button from '../components/Button';
@@ -36,7 +37,7 @@ export default function Login() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <img src="/brand/overtrip-logo-com-fundo-laranja-192.png" alt="OVERTRIP" width={96} height={96} className="w-24 h-24 rounded-xl mx-auto mb-4" />
+          <img src={brandUrl('overtrip-logo-com-fundo-laranja-192.png')} alt="OVERTRIP" width={96} height={96} className="w-24 h-24 rounded-xl mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-surface-900">Painel OVERTRIP</h1>
           <p className="text-surface-600 mt-1">Entre para gerenciar as viagens</p>
         </div>

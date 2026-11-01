@@ -12,6 +12,8 @@ import publicRoutes from './routes/publicRoutes.js';
 
 const app = express();
 
+if (config.trustProxy) app.set('trust proxy', config.trustProxy);
+
 // Rota pública do site: monta ANTES do cors global (tem CORS próprio, aberto)
 app.use('/api/public', publicRoutes);
 
