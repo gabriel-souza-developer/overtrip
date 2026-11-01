@@ -48,6 +48,25 @@ const TRIP_JSON_FIELDS = [
   'media',
 ];
 
+type PublicationData = {
+  free?: boolean | null;
+  priceValue?: number | null;
+  media?: unknown;
+};
+
+function assertReadyForPublication(data: PublicationData) {
+  const media = Array.isArray(data.media) ? data.media : [];
+  const hasPrice = typeof data.priceValue === 'number' && Number.isFinite(data.priceValue) && data.priceValue > 0;
+  const missing: string[] = [];
+
+  if (media.length === 0) missing.push('adicione pelo menos uma foto');
+  if (!data.free && !hasPrice) missing.push('informe o valor ou marque a viagem como gratuita');
+
+  if (missing.length > 0) {
+    throw AppError.badRequest(`Não é possível publicar: ${missing.join('; ')}.`);
+  }
+}
+
 export const tripService = {
   async findAll(query: TripQueryInput) {
     const { page = 1, limit = 20, status, search } = query;
@@ -109,6 +128,8 @@ export const tripService = {
 
   async create(data: TripCreateInput) {
     const { departures, ...tripData } = data;
+
+    if (tripData.status === 'OPEN') assertReadyForPublication(tripData);
     
     // Generate storedIdentity if not provided (for manual creation)
     const storedIdentity = data.storedIdentity || `manual:${Date.now()}:${Math.random().toString(36).substring(7)}`;
@@ -133,6 +154,7 @@ export const tripService = {
         ...stringifyJsonFields(tripData, TRIP_JSON_FIELDS),
         ...searchData,
         storedIdentity,
+        publishedAt: tripData.status === 'OPEN' ? new Date() : undefined,
         departures: departures?.length ? {
           create: departures.map(d => ({
             ...d,
@@ -153,7 +175,15 @@ export const tripService = {
     const { departures, ...tripData } = data;
 
     // Check if trip exists
-    await this.findById(id);
+    const current = await this.findById(id);
+
+    if (tripData.status === 'OPEN' && current.status !== 'OPEN') {
+      assertReadyForPublication({
+        free: tripData.free ?? current.free,
+        priceValue: tripData.priceValue ?? current.priceValue,
+        media: tripData.media ?? current.media,
+      });
+    }
 
     // Update normalized search columns if relevant fields are being updated
     const searchData: Record<string, string> = {};
@@ -173,6 +203,7 @@ export const tripService = {
       data: {
         ...stringifyJsonFields(tripData, TRIP_JSON_FIELDS),
         ...searchData,
+        publishedAt: tripData.status === 'OPEN' && current.status !== 'OPEN' ? new Date() : undefined,
       },
       include: {
         departures: { orderBy: { orderIndex: 'asc' } },
@@ -231,16 +262,21 @@ export const tripService = {
   },
 
   async publish(id: string) {
-    // Ensure _search columns stay in sync (defensive: they don't change here but included for consistency)
-    const trip = await prisma.trip.findUnique({ where: { id }, select: { title: true, city: true, category: true } });
+    // A regra de publicação vale para todos os clientes da API, não só para o formulário.
+    const trip = await prisma.trip.findUnique({
+      where: { id },
+      select: { title: true, city: true, category: true, priceValue: true, free: true, media: true },
+    });
+    if (!trip) throw AppError.notFound('Viagem não encontrada');
+    assertReadyForPublication({ ...trip, media: parseJsonFields(trip, ['media']).media });
     const tripData = await prisma.trip.update({
       where: { id },
       data: { 
         status: 'OPEN',
         publishedAt: new Date(),
-        titleSearch: trip ? normalizeForSearch(trip.title) : undefined,
-        citySearch: trip ? normalizeForSearch(trip.city) : undefined,
-        categorySearch: trip ? normalizeForSearch(trip.category) : undefined,
+        titleSearch: normalizeForSearch(trip.title),
+        citySearch: normalizeForSearch(trip.city),
+        categorySearch: normalizeForSearch(trip.category),
       },
     });
     return parseJsonFields(tripData, TRIP_JSON_FIELDS);
@@ -249,13 +285,14 @@ export const tripService = {
   async unpublish(id: string) {
     // Ensure _search columns stay in sync (defensive: they don't change here but included for consistency)
     const trip = await prisma.trip.findUnique({ where: { id }, select: { title: true, city: true, category: true } });
+    if (!trip) throw AppError.notFound('Viagem não encontrada');
     const tripData = await prisma.trip.update({
       where: { id },
       data: { 
         status: 'DRAFT',
-        titleSearch: trip ? normalizeForSearch(trip.title) : undefined,
-        citySearch: trip ? normalizeForSearch(trip.city) : undefined,
-        categorySearch: trip ? normalizeForSearch(trip.category) : undefined,
+        titleSearch: normalizeForSearch(trip.title),
+        citySearch: normalizeForSearch(trip.city),
+        categorySearch: normalizeForSearch(trip.category),
       },
     });
     return parseJsonFields(tripData, TRIP_JSON_FIELDS);

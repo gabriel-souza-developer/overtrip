@@ -51,7 +51,8 @@ beforeAll(async () => {
       startDateISO: new Date('2026-12-01T06:00:00-03:00'),
       intensityClass: 'moderado',
       includes: JSON.stringify([]),
-      media: JSON.stringify([]),
+      priceValue: 100,
+      media: JSON.stringify([{ src: 'https://example.com/publish.jpg', alt: 'Foto da viagem' }]),
       storedIdentity: `publish-http-test:${Date.now()}`,
     },
   });
@@ -167,6 +168,27 @@ describe('POST /api/trips/:id/publish e /:id/unpublish (HTTP real)', () => {
     });
     expect(res.status).toBe(403);
   });
+
+  it('recusa publicar sem foto ou valor, mesmo pela API', async () => {
+    const invalidTrip = await prisma.trip.create({
+      data: {
+        title: 'Trip sem dados de publicação', category: 'Test', description: 'Test', city: 'City', region: 'PB',
+        startDateISO: new Date('2026-12-01T06:00:00-03:00'), intensityClass: 'moderado',
+        includes: JSON.stringify([]), media: JSON.stringify([]),
+        storedIdentity: `publish-http-test:invalid:${Date.now()}`,
+      },
+    });
+
+    const res = await fetch(`${baseUrl}/api/trips/${invalidTrip.id}/publish`, {
+      method: 'POST', headers: { Authorization: `Bearer ${token}` },
+    });
+
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.code).toBe('BAD_REQUEST');
+    expect(body.error).toContain('pelo menos uma foto');
+    expect(body.error).toContain('viagem como gratuita');
+  });
 });
 
 describe('bypass de status via POST/PUT /api/trips (HTTP real)', () => {
@@ -223,7 +245,10 @@ describe('bypass de status via POST/PUT /api/trips (HTTP real)', () => {
   });
 
   it('POST de admin com status OPEN segue funcionando', async () => {
-    const res = await send('POST', '/api/trips', token, basePayload({ status: 'OPEN' }));
+    const res = await send('POST', '/api/trips', token, basePayload({
+      status: 'OPEN', priceValue: 100,
+      media: [{ src: 'https://example.com/publish.jpg', alt: 'Foto da viagem' }],
+    }));
     expect(res.status).toBe(201);
     expect((await res.json()).status).toBe('OPEN');
   });
@@ -261,8 +286,18 @@ describe('bypass de status via POST/PUT /api/trips (HTTP real)', () => {
 
   it('PUT de admin mudando o status segue funcionando', async () => {
     const trip = await makeTrip('DRAFT');
-    const res = await send('PUT', `/api/trips/${trip.id}`, token, { status: 'OPEN' });
+    const res = await send('PUT', `/api/trips/${trip.id}`, token, {
+      status: 'OPEN', priceValue: 100,
+      media: [{ src: 'https://example.com/publish.jpg', alt: 'Foto da viagem' }],
+    });
     expect(res.status).toBe(200);
     expect((await res.json()).status).toBe('OPEN');
+  });
+
+  it('PUT de admin não abre viagem sem foto ou valor', async () => {
+    const trip = await makeTrip('DRAFT');
+    const res = await send('PUT', `/api/trips/${trip.id}`, token, { status: 'OPEN' });
+    expect(res.status).toBe(400);
+    expect((await res.json()).code).toBe('BAD_REQUEST');
   });
 });
