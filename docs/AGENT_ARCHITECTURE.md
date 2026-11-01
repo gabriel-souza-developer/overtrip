@@ -34,7 +34,7 @@ O relato de 30/10 registra Sonnet no papel Builder e Opus no Builder de uma sess
 ## Contexto, ferramentas e cotas
 
 - Forneça a cada agente somente os arquivos, diff, evidência e contexto necessários. Prefira resumo curto com caminhos em vez de repassar histórico integral.
-- Consulte Skills por gatilho e carregue apenas as necessárias; limite usual de duas por tarefa. Skills continuam sendo procedimentos e conhecimento, não ferramentas executáveis.
+- Consulte Skills por gatilho e carregue apenas as necessárias. Use duas ou menos como referência, mas exceda esse número quando uma instrução necessária à tarefa exigir. Skills fornecem procedimentos e conhecimento; MCPs fornecem ferramentas.
 - MCP continua adequado para integrações pequenas e chamadas diretas. Code Mode só deve ser avaliado quando existir catálogo grande, definições volumosas ou encadeamento que reduza contexto de forma mensurável. Não criar serviço/infraestrutura para adotá-lo sem benefício e autorização.
 - Não confundir tokens de contexto, cotas de assinatura e créditos de API. Trate cada limite conforme o provedor; não presumir que Claude Pro, ChatGPT Plus ou Google AI Pro estejam disponíveis no 9Router.
 - Para medir economia, compare antes/depois em uma tarefa representativa: definições carregadas, tokens/contexto reportados pelo cliente e número de chamadas. Não inferir custo de assinatura a partir de token count.
