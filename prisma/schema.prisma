@@ -314,6 +314,45 @@ model AssistantResponseAudit {
   @@index([knowledgeVersion])
 }
 
+model AssistantConversationState {
+  id        String   @id
+  state     String   @default("ASSISTANT")
+  revision  Int      @default(0)
+  updatedAt DateTime @updatedAt
+  events    AssistantConversationEvent[]
+  notices   AssistantHandoffNotice[]
+}
+
+model AssistantHandoffNotice {
+  id             String   @id @default(cuid())
+  conversationId String
+  requestEventId String
+  status         String   @default("PENDING")
+  attempts       Int      @default(0)
+  leaseToken     String?
+  leaseUntil     DateTime?
+  nextAttemptAt  DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  conversation   AssistantConversationState @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, requestEventId])
+  @@index([status, createdAt])
+}
+
+model AssistantConversationEvent {
+  conversationId String
+  eventId        String
+  event          String
+  expectedRevision Int
+  resultState    String
+  resultRevision Int
+  createdAt      DateTime @default(now())
+  conversation   AssistantConversationState @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@id([conversationId, eventId])
+}
+
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // SETTINGS: Configurações globais
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

@@ -1,0 +1,6 @@
+CREATE TABLE "AssistantConversationState" (
+  "id" TEXT NOT NULL PRIMARY KEY,
+  "state" TEXT NOT NULL DEFAULT 'ASSISTANT',
+  "revision" INTEGER NOT NULL DEFAULT 0,
+  "updatedAt" DATETIME NOT NULL
+);

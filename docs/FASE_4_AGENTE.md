@@ -23,8 +23,30 @@ Paulo. O catálogo não inclui documentos, notas internas ou dados de clientes.
 4. Definir estados e responsáveis do atendimento humano: solicitação, aviso,
    confirmação de recebimento, atendimento e retorno controlado ao assistente.
    Prever falha de aviso e evitar prometer uma transferência não confirmada.
+   A máquina de estados interna está implementada e testada. Ela distingue
+   `ASSISTANT`, `WAITING_NOTIFICATION`, `WAITING_HUMAN` e `HUMAN`, mantém
+   o bot pausado enquanto aguarda a equipe e exige liberação humana explícita.
+   Há persistência interna do estado com revisão otimista para rejeitar
+   alterações antigas. É uma base para simulação, sem envio de avisos ou canal.
+   Pedidos de atendimento geram um registro de aviso na mesma transação; falha
+   mantém o aviso pendente, confirmação o marca como enviado e a equipe assumir
+   cancela avisos ainda pendentes ou reservados. A fila interna reserva uma
+   tentativa por token com expiração, recupera reservas interrompidas e agenda
+   nova tentativa após falha. Ainda não há processo consumidor nem envio real.
+   Um envio externo pode ter ocorrido antes de uma queda ou cancelamento; o
+   conector deve usar chave idempotente no provedor quando disponível e tratar
+   a possibilidade de aviso duplicado. A reserva não impede envio já iniciado.
+   Eventos usam chave de idempotência e revisão original; repetição retorna
+   resultado histórico sem permissões de resposta e sem alterar o estado. Antes
+   de responder, o adaptador precisa ler o estado atual e coordenar o envio com
+   a eventual tomada humana; uma leitura isolada não garante essa proteção.
+   Antes da integração, o adaptador deverá autenticar eventos humanos, associar
+   cada evento ao ciclo correto da conversa e controlar concorrência/reentregas.
 5. Exercitar os fluxos localmente com fontes e canal simulados; só depois
    escolher e integrar o canal externo com aprovação específica.
+   O fluxo de transferência já foi testado com eventos simulados e banco
+   isolado, incluindo falha e reentrega. A simulação não cobre ainda respostas
+   reais de IA, aviso efetivo, autenticação nem corrida durante o envio.
 
 O protótipo oferece exemplos de pedido explícito de humano, pagamento,
 reclamação, ausência de resposta e retorno ao assistente. Os prazos e mensagens
@@ -41,7 +63,10 @@ o agente não pode afirmar que foram concluídos por conta própria.
 - Como aprovar campos comunicáveis e como tratar disponibilidade sujeita a
   confirmação. Não presumir que todo conteúdo operacional seja público.
 
-Não há canal conectado, autenticação de serviço nem auditoria de respostas reais.
+Não há canal conectado, endpoint de serviço nem auditoria de respostas reais.
+A verificação interna de credencial própria está implementada, mas ainda não
+está ligada a uma rota; escopos, rotação e transporte seguro serão definidos
+antes de expor o conector. Não concede ações humanas ao conector.
 A gestão HTTP de conhecimento exige autenticação e papel de administrador; ela
 não é uma API do conector. A migração precisa ser aplicada no ambiente quando
 esta etapa for implantada. Informações inseridas são dados, não instruções de
