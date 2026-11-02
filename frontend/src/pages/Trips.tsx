@@ -19,6 +19,7 @@ import Button from '../components/Button';
 
 const statusColors: Record<TripStatus, string> = {
   DRAFT: 'badge-neutral',
+  REVIEW: 'badge-warning',
   OPEN: 'badge-success',
   COMPLETED: 'badge-info',
   CANCELLED: 'badge-danger',

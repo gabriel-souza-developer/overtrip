@@ -13,16 +13,18 @@ describe('canChangeTripStatus', () => {
 describe('campo Situação em TripForm.tsx', () => {
   const tripForm = readFileSync('frontend/src/pages/TripForm.tsx', 'utf8');
 
-  it('fica desabilitado para quem não é administrador, com dica curta', () => {
-    expect(tripForm).toContain('disabled={!canEditStatus}');
-    expect(tripForm).toContain('Só administradores alteram a situação');
+  it('fica visível apenas para administradores, dentro de "Preparar publicação"', () => {
+    expect(tripForm).toContain('canEditStatus &&');
+    expect(tripForm).toContain('id="status"');
   });
 
-  it('fica em "O básico", logo depois do valor, e não em "Exibição no site"', () => {
+  it('fica em "Preparar publicação", e não em "Ajustes avançados"', () => {
     const status = tripForm.indexOf('id="status"');
-    expect(status).toBeGreaterThan(tripForm.indexOf('id="priceValue"'));
-    expect(status).toBeLessThan(tripForm.indexOf('<FormSection title="Informações da viagem"'));
-    const adv = tripForm.indexOf('<FormSection title="Exibição no site');
-    expect(tripForm.slice(adv)).not.toContain('id="status"');
+    const preparar = tripForm.indexOf('<FormSection title="Preparar publicação"');
+    const ajustes = tripForm.indexOf('<FormSection title="Ajustes avançados"');
+    expect(status).toBeGreaterThan(preparar);
+    expect(status).toBeLessThan(ajustes);
+    const ajustesBlock = tripForm.slice(ajustes);
+    expect(ajustesBlock).not.toContain('id="status"');
   });
 });

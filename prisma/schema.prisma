@@ -70,7 +70,7 @@ model Trip {
   buttonClass       String    @default("button-dark")
   
   // Status e SEO
-  status            String    @default("DRAFT") // DRAFT, OPEN, COMPLETED, CANCELLED, SOLD_OUT, CLOSED
+  status            String    @default("DRAFT") // DRAFT, REVIEW, OPEN, COMPLETED, CANCELLED, SOLD_OUT, CLOSED
   availabilitySchema String    @default("https://schema.org/InStock")
   
   // Rastreabilidade de importação
@@ -88,6 +88,7 @@ model Trip {
   
   // Relações
   departures        TripDeparture[]
+  documents         TripDocument[]
   visits            Visit[]
   galleryEntries    GalleryEntry[]
   
@@ -97,6 +98,43 @@ model Trip {
   @@index([titleSearch])
   @@index([citySearch])
   @@index([categorySearch])
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// TRIP_DOCUMENT: Arquivos privados anexados à preparação de uma viagem
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// O arquivo físico nunca fica no banco, em assets/ ou em URL pública. storageKey
+// é uma chave opaca gerada pelo servidor para o diretório privado configurado.
+model TripDocument {
+  id               String   @id @default(cuid())
+  tripId           String
+  trip             Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  originalFilename String
+  storageKey       String   @unique
+  mimeType         String
+  sizeBytes        Int
+  sha256           String
+  createdById      String
+
+  // PENDING_SCAN, CLEAN, INFECTED, ERROR, DELETED
+  scanStatus       String   @default("PENDING_SCAN")
+  // PENDING, PROCESSING, READY, FAILED, SKIPPED
+  extractionStatus String   @default("PENDING")
+  extractionStartedAt DateTime?
+  extractedAt       DateTime?
+  extractionError   String?
+
+  // Retenção vale para o arquivo físico e para os metadados. Após excluir o
+  // arquivo, deletedAt preserva uma trilha mínima de auditoria até a limpeza.
+  retentionUntil DateTime
+  deletedAt      DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([tripId])
+  @@index([scanStatus])
+  @@index([retentionUntil])
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

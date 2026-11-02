@@ -4,6 +4,7 @@ import type { AddressInfo } from 'node:net';
 import { PrismaClient } from '@prisma/client';
 import app from '../src/app.js';
 import { generateToken } from '../src/middleware/auth.js';
+import { settingsService, TRIP_PRESENTATION_DEFAULTS_KEY } from '../src/services/settingsService.js';
 
 const prisma = new PrismaClient();
 
@@ -62,6 +63,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await prisma.trip.deleteMany({ where: { storedIdentity: { startsWith: 'publish-http-test:' } } });
+  await prisma.setting.delete({ where: { key: TRIP_PRESENTATION_DEFAULTS_KEY } }).catch(() => undefined);
   await prisma.user.delete({ where: { id: userId } }).catch(() => {});
   await prisma.user.delete({ where: { id: nonAdminUserId } }).catch(() => {});
   await prisma.$disconnect();
@@ -226,7 +228,8 @@ describe('bypass de status via POST/PUT /api/trips (HTTP real)', () => {
         intensityClass: 'moderado',
         meetingTBD: true,
         includes: JSON.stringify([]),
-        media: JSON.stringify([]),
+        priceValue: status === 'OPEN' ? 100 : null,
+        media: JSON.stringify(status === 'OPEN' ? [{ src: 'https://example.com/publish.jpg', alt: 'Foto da viagem' }] : []),
         status,
         storedIdentity: `publish-http-test:bypass-seed:${Date.now()}:${Math.random().toString(36).slice(2)}`,
       },
@@ -257,6 +260,25 @@ describe('bypass de status via POST/PUT /api/trips (HTTP real)', () => {
     expect((await res.json()).status).toBe('OPEN');
   });
 
+  it('POST de admin aceita múltiplos embarques sem ponto único', async () => {
+    const res = await send('POST', '/api/trips', token, basePayload({
+      status: 'OPEN', priceValue: 100,
+      media: [{ src: 'https://example.com/publish.jpg', alt: 'Foto da viagem' }],
+      meetingTBD: false,
+      departures: [{ time: '06:00', place: 'Rodoviária', city: 'Campina Grande', orderIndex: 0 }],
+    }));
+    expect(res.status).toBe(201);
+    expect((await res.json()).status).toBe('OPEN');
+  });
+
+  it('POST usa os padrões globais quando CTA, estilo e unidade não são enviados', async () => {
+    await settingsService.setTripPresentationDefaults({ buttonLabel: 'Reservar agora', buttonClass: 'button-rust', priceUnit: 'por casal' });
+    const res = await send('POST', '/api/trips', token, basePayload());
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body).toMatchObject({ buttonLabel: 'Reservar agora', buttonClass: 'button-rust', priceUnit: 'por casal' });
+  });
+
   it('PUT de não-admin mudando o status responde 403 e não altera a viagem', async () => {
     const trip = await makeTrip('DRAFT');
     const res = await send('PUT', `/api/trips/${trip.id}`, nonAdminToken, { status: 'OPEN' });
@@ -280,6 +302,15 @@ describe('bypass de status via POST/PUT /api/trips (HTTP real)', () => {
     const body = await res.json();
     expect(body.title).toBe('Novo título');
     expect(body.status).toBe('OPEN');
+  });
+
+  it('PUT não permite remover requisito de uma viagem já aberta', async () => {
+    const trip = await makeTrip('OPEN');
+    const res = await send('PUT', `/api/trips/${trip.id}`, nonAdminToken, { media: [], status: 'OPEN' });
+    expect(res.status).toBe(400);
+    expect((await res.json()).code).toBe('BAD_REQUEST');
+    const after = await prisma.trip.findUnique({ where: { id: trip.id } });
+    expect(JSON.parse(after!.media)).toHaveLength(1);
   });
 
   it('PUT de não-admin sem o campo status passa', async () => {

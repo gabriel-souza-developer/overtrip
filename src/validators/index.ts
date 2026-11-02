@@ -20,7 +20,7 @@ export const tripCreateSchema = z.object({
   scheduleTBD: z.boolean().default(false),
   priceValue: z.number().optional().nullable(),
   priceDisplay: z.string().optional().nullable(),
-  priceUnit: z.string().default('por pessoa'),
+  priceUnit: z.string().trim().min(1, 'Unidade do preço é obrigatória').optional(),
   free: z.boolean().default(false),
   intensityClass: z.enum(['leve', 'moderado', 'intenso', 'extremo']).default('moderado'),
   spotsLeft: z.number().int().optional().nullable(),
@@ -44,9 +44,9 @@ export const tripCreateSchema = z.object({
     focus: z.string().optional(),
     type: z.enum(['image', 'video']).optional(),
   })).default([]),
-  buttonLabel: z.string().default('Quero viajar'),
-  buttonClass: z.string().default('button-dark'),
-  status: z.enum(['DRAFT', 'OPEN', 'COMPLETED', 'CANCELLED', 'SOLD_OUT', 'CLOSED']).default('DRAFT'),
+  buttonLabel: z.string().trim().min(1, 'Texto do botão é obrigatório').optional(),
+  buttonClass: z.string().trim().min(1, 'Estilo do botão é obrigatório').optional(),
+  status: z.enum(['DRAFT', 'REVIEW', 'OPEN', 'COMPLETED', 'CANCELLED', 'SOLD_OUT', 'CLOSED']).default('DRAFT'),
   availabilitySchema: z.string().url().default('https://schema.org/InStock'),
   storedIdentity: z.string().optional(),
   departures: z.array(z.object({
@@ -62,7 +62,7 @@ export const tripCreateSchema = z.object({
 export const tripUpdateSchema = tripCreateSchema.partial();
 
 export const tripQuerySchema = z.object({
-  status: z.enum(['DRAFT', 'OPEN', 'COMPLETED', 'CANCELLED', 'SOLD_OUT', 'CLOSED']).optional(),
+  status: z.enum(['DRAFT', 'REVIEW', 'OPEN', 'COMPLETED', 'CANCELLED', 'SOLD_OUT', 'CLOSED']).optional(),
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(20),
   search: z.string().optional(),
@@ -169,6 +169,12 @@ export const defaultWhatsappSchema = z.object({
   defaultWhatsapp: z.string().regex(/^\d{12,13}$/, 'Informe o WhatsApp com 12 ou 13 dígitos, incluindo DDI e DDD'),
 });
 
+export const tripPresentationDefaultsSchema = z.object({
+  buttonLabel: z.string().trim().min(1, 'Texto do botão é obrigatório').max(80),
+  buttonClass: z.enum(['button-dark', 'button-rust', 'button-light', 'button-outline']),
+  priceUnit: z.string().trim().min(1, 'Unidade do preço é obrigatória').max(60),
+});
+
 // Type exports
 export type TripCreateInput = z.infer<typeof tripCreateSchema>;
 export type TripUpdateInput = z.infer<typeof tripUpdateSchema>;
@@ -182,3 +188,4 @@ export type GalleryQueryInput = z.infer<typeof galleryQuerySchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 export type DefaultWhatsappInput = z.infer<typeof defaultWhatsappSchema>;
+export type TripPresentationDefaultsInput = z.infer<typeof tripPresentationDefaultsSchema>;

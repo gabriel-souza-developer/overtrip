@@ -45,6 +45,7 @@ beforeAll(async () => {
   });
   baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   await makeTrip('draft', 'DRAFT', new Date('2030-01-10T09:00:00-03:00'));
+  await makeTrip('review', 'REVIEW', new Date('2030-01-11T09:00:00-03:00'));
   await makeTrip('open', 'OPEN', new Date('2030-03-10T09:00:00-03:00'), { publishedAt: new Date(), includes: JSON.stringify(['X', 'Y']) });
   await makeTrip('done', 'COMPLETED', new Date('2030-02-10T09:00:00-03:00'));
   await makeTrip('cancel', 'CANCELLED', new Date('2030-04-10T09:00:00-03:00'));
@@ -66,6 +67,7 @@ describe('GET /api/public/trips', () => {
   it('rascunho não aparece; publicar faz aparecer; despublicar faz sumir', async () => {
     let { mine } = await listPublic();
     expect(mine.map((t) => t.title)).not.toContain(`${TAG} draft`);
+    expect(mine.map((t) => t.title)).not.toContain(`${TAG} review`);
 
     await prisma.trip.update({ where: { id: ids.draft }, data: { status: 'OPEN' } });
     ({ mine } = await listPublic());

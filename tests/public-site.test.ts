@@ -5,7 +5,7 @@ import { PrismaClient } from '@prisma/client';
 import app from '../src/app.js';
 import { visitService } from '../src/services/index.js';
 import { orderGallery, resolveGallery, mergeDestinations, fetchPublicArray } from '../js/publicData.js';
-import { DEFAULT_WHATSAPP_KEY } from '../src/services/settingsService.js';
+import { DEFAULT_WHATSAPP_KEY, TRIP_PRESENTATION_DEFAULTS_KEY } from '../src/services/settingsService.js';
 import { generateToken } from '../src/middleware/auth.js';
 
 const prisma = new PrismaClient();
@@ -45,6 +45,7 @@ afterAll(async () => {
   await prisma.galleryEntry.deleteMany({ where: { storedIdentity: { startsWith: TAG } } });
   await prisma.visit.deleteMany({ where: { storedIdentity: { startsWith: TAG } } });
   await prisma.setting.delete({ where: { key: DEFAULT_WHATSAPP_KEY } }).catch(() => undefined);
+  await prisma.setting.delete({ where: { key: TRIP_PRESENTATION_DEFAULTS_KEY } }).catch(() => undefined);
   await prisma.user.delete({ where: { id: adminId } });
   await prisma.$disconnect();
   await new Promise<void>((r) => server.close(() => r()));
@@ -87,6 +88,30 @@ describe('PUT /api/settings/whatsapp', () => {
     });
     expect(saved.status).toBe(200);
     expect(await saved.json()).toEqual({ defaultWhatsapp: '5583987745549' });
+  });
+});
+
+describe('GET/PUT /api/settings/trip-presentation', () => {
+  const defaults = { buttonLabel: 'Reservar', buttonClass: 'button-rust', priceUnit: 'por casal' };
+
+  it('exige admin, valida e persiste os padrões de novas viagens', async () => {
+    const denied = await fetch(`${baseUrl}/api/settings/trip-presentation`);
+    expect(denied.status).toBe(401);
+
+    const invalid = await fetch(`${baseUrl}/api/settings/trip-presentation`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminToken}` },
+      body: JSON.stringify({ ...defaults, buttonClass: 'button-neon' }),
+    });
+    expect(invalid.status).toBe(400);
+
+    const saved = await fetch(`${baseUrl}/api/settings/trip-presentation`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${adminToken}` }, body: JSON.stringify(defaults),
+    });
+    expect(saved.status).toBe(200);
+    expect(await saved.json()).toEqual(defaults);
+
+    const loaded = await fetch(`${baseUrl}/api/settings/trip-presentation`, { headers: { Authorization: `Bearer ${adminToken}` } });
+    expect(await loaded.json()).toEqual(defaults);
   });
 });
 

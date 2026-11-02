@@ -7,8 +7,8 @@ const layout = readFileSync('frontend/src/components/Layout.tsx', 'utf8');
 const dashboard = readFileSync('frontend/src/pages/Dashboard.tsx', 'utf8');
 
 const empty = {
-  headlineDisplay: '', priceDisplay: '', priceUnit: 'por pessoa', departureTolerance: '',
-  buttonLabel: 'Quero viajar', buttonClass: 'button-dark', scheduleInfo: '', scheduleTBD: false,
+  headlineDisplay: '', priceDisplay: '', departureTolerance: '',
+  scheduleInfo: '', scheduleTBD: false,
   trailDistance: '', supportPoint: '', supportPointInfo: '', includesHighlight: '',
   includedServices: [] as string[], meetingDetails: '', meetingMapsQuery: '', departures: [] as unknown[],
 };
@@ -16,15 +16,16 @@ const empty = {
 describe('TripForm: seções', () => {
   const titles = [...form.matchAll(/<FormSection title="([^"]+)"/g)].map((m) => m[1]);
 
-  it('tem 3 seções visíveis e uma única seção recolhida de ajustes', () => {
-    expect(titles).toEqual(['Informações da viagem', 'Embarque e horários', 'Roteiro e informações para viajantes', 'Exibição no site']);
-    expect(form).not.toMatch(/FormSection[^>]*defaultOpen/);
+  it('tem 3 seções recolhíveis: Preparar publicação, Detalhes para viajantes e Ajustes avançados', () => {
+    expect(titles).toEqual(['Preparar publicação', 'Detalhes para viajantes', 'Ajustes avançados']);
+    // Preparar publicação abre por padrão ao editar
+    expect(form).toMatch(/FormSection[^>]*defaultOpen={isEditing}/);
   });
 
   it.each([
-    ['Informações da viagem', ['id="description"', 'id="category"', 'id="intensityClass"', 'id="spotsLeft"', 'id="includes-custom-input"']],
-    ['Embarque e horários', ['id="meetingCity"', 'id="meetingPoint"', 'id="endDateISO"', 'id="returnTime"']],
-    ['Exibição no site', ['id="headlineDisplay"', 'id="priceDisplay"', 'id="priceUnit"', 'id="buttonLabel"', 'id="departureTolerance"', 'id="meetingMapsQuery"', 'id="supportPoint"', 'DeparturesInput']],
+    ['Preparar publicação', ['id="description"', 'id="priceValue"', 'MediaInput', 'id="meetingCity"', 'id="meetingPoint"', 'id="meetingTBD"', 'PublicationReadinessPanel', 'TripCardPreview']],
+    ['Detalhes para viajantes', ['id="category"', 'id="intensityClass"', 'id="spotsLeft"', 'id="departureTime"', 'id="endDateISO"', 'id="returnTime"', 'id="includes-custom-input"', 'id="itinerary-input"']],
+    ['Ajustes avançados', ['id="headlineDisplay"', 'id="priceDisplay"', 'id="departureTolerance"', 'id="meetingMapsQuery"', 'id="supportPoint"', 'DeparturesInput']],
   ])('seção %s contém os campos esperados', (title, fields) => {
     const start = form.indexOf(`<FormSection title="${title}`);
     const end = form.indexOf('</FormSection>', start);
@@ -55,9 +56,8 @@ describe('countAdvancedFilled', () => {
   it('valores padrão não contam', () => {
     expect(countAdvancedFilled(empty)).toBe(0);
   });
-  it('conta o que está preenchido e o que mudou do padrão', () => {
-    expect(countAdvancedFilled({ ...empty, priceDisplay: 'R$ 10', buttonLabel: 'Reservar', departures: [{}], scheduleTBD: true })).toBe(4);
-    expect(countAdvancedFilled({ ...empty, buttonLabel: 'Quero viajar', priceUnit: 'por casal' })).toBe(1);
+  it('conta o que está preenchido', () => {
+    expect(countAdvancedFilled({ ...empty, priceDisplay: 'R$ 10', departures: [{}], scheduleTBD: true })).toBe(3);
   });
 });
 

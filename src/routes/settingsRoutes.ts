@@ -8,5 +8,7 @@ const router = Router();
 router.use(authenticate, authorize('admin'));
 router.get('/whatsapp', asyncHandler(settingsController.getDefaultWhatsapp));
 router.put('/whatsapp', asyncHandler(settingsController.updateDefaultWhatsapp));
+router.get('/trip-presentation', asyncHandler(settingsController.getTripPresentationDefaults));
+router.put('/trip-presentation', asyncHandler(settingsController.updateTripPresentationDefaults));
 
 export default router;

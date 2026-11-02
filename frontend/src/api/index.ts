@@ -136,7 +136,17 @@ export const settingsApi = {
   updateWhatsapp: (defaultWhatsapp: string) => request<{ defaultWhatsapp: string }>('/settings/whatsapp', {
     method: 'PUT', body: JSON.stringify({ defaultWhatsapp }),
   }),
+  getTripPresentation: () => request<TripPresentationDefaults>('/settings/trip-presentation'),
+  updateTripPresentation: (defaults: TripPresentationDefaults) => request<TripPresentationDefaults>('/settings/trip-presentation', {
+    method: 'PUT', body: JSON.stringify(defaults),
+  }),
 };
+
+export interface TripPresentationDefaults {
+  buttonLabel: string;
+  buttonClass: 'button-dark' | 'button-rust' | 'button-light' | 'button-outline';
+  priceUnit: string;
+}
 
 // Types
 export interface Trip {
@@ -198,7 +208,7 @@ export interface TripDeparture {
   orderIndex: number;
 }
 
-export type TripStatus = 'DRAFT' | 'OPEN' | 'COMPLETED' | 'CANCELLED' | 'SOLD_OUT' | 'CLOSED';
+export type TripStatus = 'DRAFT' | 'REVIEW' | 'OPEN' | 'COMPLETED' | 'CANCELLED' | 'SOLD_OUT' | 'CLOSED';
 
 export interface TripFormData {
   title: string;

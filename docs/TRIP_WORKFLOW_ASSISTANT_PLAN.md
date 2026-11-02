@@ -73,25 +73,26 @@ configurações globais.
 
 - Transformar a primeira tela em criação de rascunho + painel de pendências.
 - Mover preço, capa, resumo e embarque para bloco “Preparar publicação”.
-- Mover CTA, estilo e unidade para padrões globais; preservar exceções.
-- Adicionar prévia do card/página e estados de revisão.
+- Mover CTA, estilo e unidade para padrões globais; preservar exceções. ✅ Concluído: os padrões são configuráveis no painel e só se aplicam a novas viagens; as existentes mantêm seus valores legados.
+- Adicionar prévia do card/página e estados de revisão. ✅ Prévia do card e estado interno `REVIEW` concluídos; `REVIEW` não é público e só um administrador pode publicar.
 
 ### Fase 3 — documentos e IA
 
 - Definir armazenamento privado, retenção, limite de tamanho, antivírus e
-  exclusão de PDFs antes de aceitar upload.
+  exclusão de PDFs antes de aceitar upload. ✅ Política e modelo de metadados
+  definidos em `docs/FASE_3_DOCUMENTOS.md`; upload permanece desabilitado até
+  scanner, rota privada e limpeza automática existirem.
 - Criar `TripDocument`, extração assíncrona, OCR opcional e referências de
   página/trecho por sugestão.
 - Exigir revisão humana de cada sugestão e impedir publicação automática.
 
 ### Fase 4 — Agente OVERTRIP no WhatsApp
 
-- Escolher Cloud API da Meta ou BSP, responsável humano, política de opt-in e
-  fluxo de handoff.
+- O protótipo atual está documentado em `docs/IA_Agente_OVERTRIP v30.json`. Ele usa n8n, WAHA e PostgreSQL para receber mensagens, consultar viagens e FAQ, manter contexto, transcrever áudio e transferir para a equipe. É referência de comportamento e integração, não arquitetura final nem autorização para conectar o novo sistema.
+- Preservar no desenho futuro os comportamentos úteis do protótipo: resposta humanizada baseada em fatos aprovados, consulta de disponibilidade, transferência explícita ao humano quando solicitada ou necessária e retorno controlado ao assistente.
 - Criar autenticação serviço-a-serviço, catálogo privado, conhecimento
   versionado e auditoria de respostas.
-- O agente recomenda somente viagens publicadas e disponíveis; não confirma
-  pagamento/reserva sem fluxo transacional próprio.
+- Definir responsável humano, política de opt-in, limites de automação e o fluxo de handoff antes de integrar qualquer canal externo.
 
 ## Critérios de segurança antes de cada fase
 
@@ -104,7 +105,7 @@ configurações globais.
 
 ## Próximo ponto de retomada
 
-Ao continuar, conclua e revise a Fase 1 antes de iniciar Fase 2. A decisão
-pendente para Fase 3 é onde PDFs serão guardados e por quanto tempo. Para a
-Fase 4, decidir provedor do WhatsApp, dono do atendimento e quando o agente
+As Fases 1 e 2 foram implementadas e revisadas. A decisão pendente para a
+Fase 3 é onde PDFs serão guardados e por quanto tempo. Para a Fase 4, decidir
+provedor do WhatsApp, dono do atendimento e quando o agente
 deve transferir a conversa para uma pessoa.

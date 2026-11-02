@@ -14,6 +14,7 @@ import {
 } from '../validators/index.js';
 import { normalizeForSearch, normalizeForSearchRegion, applySearchFilter, applyDirectFilter } from '../utils/searchUtils.js';
 import { publicationProblems } from './tripReadiness.js';
+import { settingsService } from './settingsService.js';
 
 function parseJsonFields(data: any, jsonFields: string[]): any {
   const result = { ...data };
@@ -133,8 +134,15 @@ export const tripService = {
 
   async create(data: TripCreateInput) {
     const { departures, ...tripData } = data;
+    const presentation = await settingsService.getTripPresentationDefaults();
+    const tripWithDefaults = {
+      ...tripData,
+      buttonLabel: tripData.buttonLabel ?? presentation.buttonLabel,
+      buttonClass: tripData.buttonClass ?? presentation.buttonClass,
+      priceUnit: tripData.priceUnit ?? presentation.priceUnit,
+    };
 
-    if (tripData.status === 'OPEN') assertReadyForPublication(tripData);
+    if (tripWithDefaults.status === 'OPEN') assertReadyForPublication({ ...tripWithDefaults, departures });
     
     // Generate storedIdentity if not provided (for manual creation)
     const storedIdentity = data.storedIdentity || `manual:${Date.now()}:${Math.random().toString(36).substring(7)}`;
@@ -149,17 +157,17 @@ export const tripService = {
 
     // Add normalized search columns
     const searchData = {
-      titleSearch: normalizeForSearch(tripData.title || ''),
-      citySearch: normalizeForSearch(tripData.city || ''),
-      categorySearch: normalizeForSearch(tripData.category || ''),
+      titleSearch: normalizeForSearch(tripWithDefaults.title || ''),
+      citySearch: normalizeForSearch(tripWithDefaults.city || ''),
+      categorySearch: normalizeForSearch(tripWithDefaults.category || ''),
     };
 
     const trip = await prisma.trip.create({
       data: {
-        ...stringifyJsonFields(tripData, TRIP_JSON_FIELDS),
+        ...stringifyJsonFields(tripWithDefaults, TRIP_JSON_FIELDS),
         ...searchData,
         storedIdentity,
-        publishedAt: tripData.status === 'OPEN' ? new Date() : undefined,
+        publishedAt: tripWithDefaults.status === 'OPEN' ? new Date() : undefined,
         departures: departures?.length ? {
           create: departures.map(d => ({
             ...d,
@@ -182,7 +190,10 @@ export const tripService = {
     // Check if trip exists
     const current = await this.findById(id);
 
-    if (tripData.status === 'OPEN' && current.status !== 'OPEN') {
+    // Uma viagem aberta continua precisando atender aos requisitos quando é
+    // alterada. Sem isso, um cliente poderia remover foto, preço ou embarque
+    // de uma viagem já publicada sem mudar o status.
+    if ((tripData.status ?? current.status) === 'OPEN') {
       assertReadyForPublication({
         title: tripData.title ?? current.title, city: tripData.city ?? current.city, region: tripData.region ?? current.region,
         startDateISO: tripData.startDateISO ?? current.startDateISO, description: tripData.description ?? current.description,

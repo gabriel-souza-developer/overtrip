@@ -37,7 +37,10 @@ describe('formulário de viagem', () => {
 });
 
 describe('tripListAction', () => {
-  it('administrador: Publicar só em rascunho', () => expect(tripListAction('DRAFT', true)).toBe('publish'));
+  it('administrador: Publicar a partir de rascunho ou revisão', () => {
+    expect(tripListAction('DRAFT', true)).toBe('publish');
+    expect(tripListAction('REVIEW', true)).toBe('publish');
+  });
   it('administrador: Tirar do site só em publicada, esgotada e fechada', () => {
     for (const status of ['OPEN', 'SOLD_OUT', 'CLOSED']) expect(tripListAction(status, true)).toBe('unpublish');
   });
@@ -46,7 +49,7 @@ describe('tripListAction', () => {
     expect(tripListAction('CANCELLED', true)).toBeNull();
   });
   it('quem não é administrador não vê botão em nenhuma situação', () => {
-    for (const status of ['DRAFT', 'OPEN', 'SOLD_OUT', 'CLOSED', 'COMPLETED', 'CANCELLED']) {
+    for (const status of ['DRAFT', 'REVIEW', 'OPEN', 'SOLD_OUT', 'CLOSED', 'COMPLETED', 'CANCELLED']) {
       expect(tripListAction(status, false)).toBeNull();
     }
   });

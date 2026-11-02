@@ -2,6 +2,7 @@
 
 export const TRIP_STATUS_LABELS: Record<string, string> = {
   DRAFT: 'Rascunho',
+  REVIEW: 'Em revisão',
   OPEN: 'Publicada',
   COMPLETED: 'Concluída',
   CANCELLED: 'Cancelada',
@@ -69,10 +70,10 @@ export function countFilled(values: unknown[]): number {
   }).length;
 }
 
-/** Quantos campos da seção "Ajustes do site" estão diferentes do valor automático (padrões não contam). */
+/** Quantos campos da seção "Ajustes avançados" estão preenchidos. */
 export function countAdvancedFilled(f: {
-  headlineDisplay: string; priceDisplay: string; priceUnit: string; departureTolerance: string;
-  buttonLabel: string; buttonClass: string; scheduleInfo: string; scheduleTBD: boolean;
+  headlineDisplay: string; priceDisplay: string; departureTolerance: string;
+  scheduleInfo: string; scheduleTBD: boolean;
   trailDistance: string; supportPoint: string; supportPointInfo: string; includesHighlight: string;
   includedServices: unknown[]; meetingDetails: string; meetingMapsQuery: string; departures: unknown[];
 }): number {
@@ -80,9 +81,6 @@ export function countAdvancedFilled(f: {
     f.headlineDisplay, f.priceDisplay, f.departureTolerance, f.scheduleInfo, f.scheduleTBD,
     f.trailDistance, f.supportPoint, f.supportPointInfo, f.includesHighlight, f.includedServices,
     f.meetingDetails, f.meetingMapsQuery, f.departures,
-    f.priceUnit !== 'por pessoa' ? f.priceUnit : '',
-    f.buttonLabel !== 'Quero viajar' ? f.buttonLabel : '',
-    f.buttonClass !== 'button-dark' ? f.buttonClass : '',
   ]);
 }
 
@@ -193,7 +191,7 @@ export type TripListAction = 'publish' | 'unpublish' | null;
  */
 export function tripListAction(status: string, isAdmin: boolean): TripListAction {
   if (!isAdmin) return null;
-  if (status === 'DRAFT') return 'publish';
+  if (status === 'DRAFT' || status === 'REVIEW') return 'publish';
   if (status === 'OPEN' || status === 'SOLD_OUT' || status === 'CLOSED') return 'unpublish';
   return null;
 }
