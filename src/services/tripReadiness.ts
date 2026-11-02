@@ -24,8 +24,12 @@ const text = (value: unknown) => typeof value === 'string' && value.trim().lengt
 
 export function hasClearDeparture(data: TripReadinessInput): boolean {
   if (data.meetingTBD) return true;
-  if (text(data.meetingCity) || text(data.meetingPoint)) return true;
-  return Array.isArray(data.departures) && data.departures.length > 0;
+  if (Array.isArray(data.departures) && data.departures.length > 0) return data.departures.every((item: unknown) => {
+    if (!item || typeof item !== 'object') return false;
+    const point = item as Record<string, unknown>;
+    return text(point.time) && text(point.place) && text(point.city);
+  });
+  return text(data.meetingCity) || text(data.meetingPoint);
 }
 
 /** Itens que precisam estar explícitos antes de a viagem aparecer no site. */

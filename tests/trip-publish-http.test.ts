@@ -235,6 +235,21 @@ describe('bypass de status via POST/PUT /api/trips (HTTP real)', () => {
       },
     });
 
+  it('cria rascunho, prepara, publica, exibe no site e retira de circulação', async () => {
+    const title = `Fluxo completo ${Date.now()}`;
+    const create = await send('POST', '/api/trips', token, basePayload({ title, status: 'DRAFT' }));
+    expect(create.status).toBe(201);
+    const trip = await create.json();
+    const publicTrips = async () => await (await fetch(`${baseUrl}/api/public/trips`)).json() as Array<{ title: string; status: string }>;
+    expect((await publicTrips()).some(item => item.title === title)).toBe(false);
+    const prepare = await send('PUT', `/api/trips/${trip.id}`, token, { priceValue: 150, media: [{ src: 'https://example.com/cover.jpg', alt: 'Capa' }] });
+    expect(prepare.status).toBe(200);
+    expect((await fetch(`${baseUrl}/api/trips/${trip.id}/publish`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } })).status).toBe(200);
+    expect((await publicTrips()).find(item => item.title === title)).toMatchObject({ title, status: 'open' });
+    expect((await fetch(`${baseUrl}/api/trips/${trip.id}/unpublish`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } })).status).toBe(200);
+    expect((await publicTrips()).some(item => item.title === title)).toBe(false);
+  });
+
   it('POST de não-admin com status OPEN responde 403 e não cria a viagem', async () => {
     const payload = basePayload({ status: 'OPEN' });
     const res = await send('POST', '/api/trips', nonAdminToken, payload);
@@ -269,6 +284,20 @@ describe('bypass de status via POST/PUT /api/trips (HTTP real)', () => {
     }));
     expect(res.status).toBe(201);
     expect((await res.json()).status).toBe('OPEN');
+  });
+
+  it('não permite remover preço de viagem aberta com valor nulo', async () => {
+    const payload = basePayload({ status: 'OPEN', priceValue: 100, media: [{ src: 'https://example.com/a.jpg', alt: 'Foto' }] });
+    const created = await send('POST', '/api/trips', token, payload);
+    const trip = await created.json();
+    const updated = await send('PUT', `/api/trips/${trip.id}`, token, { priceValue: null });
+    expect(updated.status).toBe(400);
+    expect((await prisma.trip.findUniqueOrThrow({ where: { id: trip.id } })).priceValue).toBe(100);
+  });
+
+  it('não publica com ponto de embarque vazio', async () => {
+    const res = await send('POST', '/api/trips', token, basePayload({ status: 'OPEN', priceValue: 100, media: [{ src: 'https://example.com/a.jpg', alt: 'Foto' }], meetingTBD: false, departures: [{ time: '', city: '', place: '', orderIndex: 0 }] }));
+    expect(res.status).toBe(400);
   });
 
   it('POST usa os padrões globais quando CTA, estilo e unidade não são enviados', async () => {

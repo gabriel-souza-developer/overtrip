@@ -23,6 +23,11 @@ describe('prontidão de viagem', () => {
     expect(publicationProblems({ ...complete, meetingCity: null, meetingTBD: true })).toEqual([]);
   });
 
+  it('não considera ponto vazio um embarque definido', () => {
+    expect(hasClearDeparture({ departures: [{ time: '', place: '', city: '' }] })).toBe(false);
+    expect(hasClearDeparture({ departures: [{ time: '06:00', place: 'Praça', city: 'Pocinhos' }] })).toBe(true);
+  });
+
   it('só libera ao agente viagens abertas e com vagas', () => {
     expect(assistantProblems(complete)).toEqual([]);
     expect(assistantProblems({ ...complete, status: 'DRAFT' })).toContain('a viagem não está disponível para recomendação');

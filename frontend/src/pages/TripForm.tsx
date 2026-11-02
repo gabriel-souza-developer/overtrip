@@ -291,7 +291,7 @@ export default function TripForm() {
   const invalid = (name: string) => (errors[name] ? 'input-error' : '');
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 pb-24">
+    <div className="max-w-7xl mx-auto space-y-6 pb-24">
       <div className="flex items-center gap-3">
         <button type="button" onClick={leave} className="btn-icon" aria-label="Voltar para a lista de viagens">
           <ArrowLeft className="w-5 h-5" aria-hidden="true" />
@@ -305,7 +305,9 @@ export default function TripForm() {
       {id && user?.role === 'admin' && <TripDocuments key={id} tripId={id} form={formData as Record<string, unknown>} defaults={defaultsRef.current} onApply={applyAiDraft} />}
       <AiDraftBlock form={formData as Record<string, unknown>} defaults={defaultsRef.current} onApply={applyAiDraft} />
 
-      <form id="trip-form" onSubmit={handleSubmit} noValidate className="space-y-4">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(300px,380px)] xl:items-start">
+      <details className="xl:hidden card p-4"><summary className="cursor-pointer font-semibold text-surface-900">Ver prévia da viagem</summary><div className="mt-4"><TripCardPreview trip={f} /></div></details>
+      <form id="trip-form" onSubmit={handleSubmit} noValidate className="space-y-4 min-w-0">
         {errorKeys.length > 0 && (
           <div ref={summaryRef} className="alert-error" role="alert">
             <p className="font-semibold">Falta pouco para salvar:</p>
@@ -369,7 +371,6 @@ export default function TripForm() {
         {/* SEÇÃO 2: Preparar publicação */}
         <FormSection title="Preparar publicação" summary="Campos obrigatórios para aparecer no site" filled={countFilled([f.description, f.priceValue, f.media, f.meetingCity || f.meetingPoint || f.meetingTBD])} defaultOpen={isEditing}>
           <PublicationReadinessPanel problems={publicationPending} />
-          <TripCardPreview trip={f} />
 
           <Field id="description" label="Resumo da experiência" required error={err('description')} hint="Descreva o que os viajantes vão viver.">
             <textarea id="description" name="description" className={`input ${invalid('description')}`} value={f.description} onChange={handleChange} rows={4} aria-invalid={!!errors.description} placeholder="Conte o que torna essa viagem especial..." />
@@ -549,6 +550,8 @@ export default function TripForm() {
           </div>
         </div>
       </form>
+      <div className="hidden xl:block xl:sticky xl:top-6"><TripCardPreview trip={f} /></div>
+      </div>
 
       <ConfirmDialog
         open={leaveOpen}

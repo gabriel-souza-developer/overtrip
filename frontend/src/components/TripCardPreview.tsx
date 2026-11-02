@@ -1,6 +1,8 @@
 import { CalendarDays, Clock3, MapPin } from 'lucide-react';
+import { useState } from 'react';
 import { formatDateBR } from '../lib/dateInput';
 import { formatBRL } from '../lib/formHelpers';
+import { resolveAssetSrc } from '../lib/assetUrl';
 
 type PreviewTrip = {
   title: string; headlineDisplay: string; category: string; description: string;
@@ -9,6 +11,8 @@ type PreviewTrip = {
   priceDisplay: string; priceUnit: string; free: boolean; meetingCity: string;
   meetingPoint: string; meetingTBD: boolean; media: Array<{ src: string; alt: string; type?: string }>;
   buttonLabel: string; buttonClass: string;
+  status: string;
+  departures?: Array<{ time: string; place: string; city: string }>;
 };
 
 const buttonClass: Record<string, string> = {
@@ -17,6 +21,11 @@ const buttonClass: Record<string, string> = {
   'button-light': 'bg-white text-surface-900 border border-surface-300',
   'button-outline': 'border border-surface-700 text-surface-900',
 };
+
+function PreviewCover({ src, alt }: { src: string; alt: string }) {
+  const [failed, setFailed] = useState(false);
+  return failed ? <div className="flex h-full items-center justify-center text-sm text-surface-600">Não foi possível carregar a capa</div> : <img src={resolveAssetSrc(src.trim())} alt={alt} className="h-full w-full object-cover" onError={() => setFailed(true)} />;
+}
 
 export default function TripCardPreview({ trip }: { trip: PreviewTrip }) {
   const cover = trip.media.find(item => item.type !== 'video') ?? trip.media[0];
@@ -28,12 +37,12 @@ export default function TripCardPreview({ trip }: { trip: PreviewTrip }) {
   return (
     <aside className="rounded-xl border border-surface-200 bg-surface-50 p-4" aria-label="Prévia do card no site">
       <div className="mb-3 flex items-baseline justify-between gap-3">
-        <div><h3 className="font-semibold text-surface-900">Prévia do card</h3><p className="text-sm text-surface-600">Como a viagem aparecerá no site.</p></div>
-        <span className="badge badge-info">Rascunho</span>
+        <div><h3 className="font-semibold text-surface-900">Prévia do card</h3><p className="text-sm text-surface-600">Atualizada enquanto você preenche. A aparência pode variar no site.</p></div>
+        <span className="badge badge-info">{{ DRAFT: 'Rascunho', REVIEW: 'Em revisão', OPEN: 'Publicada', SOLD_OUT: 'Esgotada', CLOSED: 'Encerrada', COMPLETED: 'Realizada', CANCELLED: 'Cancelada' }[trip.status] || 'Rascunho'}</span>
       </div>
       <article className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-surface-200">
         <div className="aspect-[16/9] bg-surface-200">
-          {cover ? <img src={cover.src} alt={cover.alt || title} className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-sm text-surface-600">A capa aparecerá aqui</div>}
+          {cover ? <PreviewCover key={cover.src} src={cover.src} alt={cover.alt || title} /> : <div className="flex h-full items-center justify-center text-sm text-surface-600">A capa aparecerá aqui</div>}
         </div>
         <div className="space-y-3 p-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-primary-700">{trip.category.trim() || 'Viagem'}</p>
@@ -42,7 +51,7 @@ export default function TripCardPreview({ trip }: { trip: PreviewTrip }) {
           <div className="space-y-2 text-sm text-surface-700">
             <p className="flex gap-2"><CalendarDays className="h-4 w-4 shrink-0 text-primary-700" aria-hidden="true" />{formatDateBR(trip.startDateISO)}</p>
             <p className="flex gap-2"><Clock3 className="h-4 w-4 shrink-0 text-primary-700" aria-hidden="true" />{schedule}</p>
-            <p className="flex gap-2"><MapPin className="h-4 w-4 shrink-0 text-primary-700" aria-hidden="true" />{departure}</p>
+            <div className="flex gap-2"><MapPin className="h-4 w-4 shrink-0 text-primary-700" aria-hidden="true" /><div>{!trip.meetingTBD && trip.departures?.length ? <ul className="space-y-1">{trip.departures.map((point, index) => <li key={index}>{[point.time, point.place, point.city].filter(Boolean).join(' · ') || 'Ponto não informado'}</li>)}</ul> : departure}</div></div>
           </div>
           <div className="flex items-center justify-between gap-3 border-t border-surface-200 pt-3">
             <div><p className="text-lg font-bold text-surface-900">{price}</p>{!trip.free && <p className="text-xs text-surface-600">{trip.priceUnit || 'por pessoa'}</p>}</div>

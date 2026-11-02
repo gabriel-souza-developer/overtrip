@@ -2,6 +2,7 @@
 # Backup consistente do SQLite (sqlite3 .backup), compactado, com retenção de 14 dias.
 # Uso: backup-sqlite.sh <banco.db> <pasta-de-backup> [dias=14]
 set -euo pipefail
+umask 077
 DB="${1:?informe o arquivo do banco}"
 DEST="${2:?informe a pasta de backup}"
 DIAS="${3:-14}"

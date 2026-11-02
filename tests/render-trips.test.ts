@@ -2,11 +2,45 @@ import { describe, it, expect, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 // @ts-expect-error módulo JS do site
-import { formatTripTime, buildTripSchema, normalizeTrip, buildTripCardHTML, buildHeroTripHTML, buildTripCardsHTML } from '../js/render.js';
+import { formatTripTime, buildTripSchema, normalizeTrip, buildTripCardHTML, buildHeroTripHTML, buildTripCardsHTML, buildGalleryCardHTML, buildTestimonialHTML } from '../js/render.js';
 // @ts-expect-error módulo JS do site
 import { FALLBACK_WHATSAPP_NUMBER, loadWhatsappNumber, setupWaLinks } from '../js/whatsapp.js';
 
 const full = JSON.parse(readFileSync(resolve(__dirname, '../trips.json'), 'utf-8'))[0];
+
+describe('renderização segura dos dados da viagem', () => {
+  it('escapa texto e atributos no card e no destaque sem alterar os dados originais', () => {
+    const payload = '\"><img src=x onerror=alert(1)>';
+    const trip = { ...full, title: payload, description: payload, city: payload, includes: [payload], includesHighlight: payload, priceDisplay: payload, buttonLabel: payload, scheduleInfo: payload, media: [{ src: 'https://example.com/photo.jpg', alt: payload }], departures: [{ time: payload, place: payload, city: payload, mapsUrl: 'javascript:alert(1)' }] };
+    for (const html of [buildTripCardHTML(trip, 0), buildHeroTripHTML(trip)]) {
+      expect(html).not.toContain('<img src=x onerror=alert(1)>');
+      expect(html).not.toContain('href="javascript:');
+      expect(html).toContain('&lt;img src=x onerror=alert(1)&gt;');
+    }
+    expect(trip.title).toBe(payload);
+  });
+
+  it('não usa URLs de mídia inválidas e não cria link para embarque a confirmar', () => {
+    const trip = { ...full, meetingTBD: true, meetingMapsQuery: 'endereço antigo', meetingCity: 'local antigo', departures: [{ time: '05h', place: 'antigo', city: 'cidade' }], media: [{ src: 'javascript:alert(1)', alt: 'foto' }] };
+    const html = buildTripCardHTML(trip, 0);
+    expect(html).toContain('Embarque a confirmar');
+    expect(html).not.toContain('endereço antigo');
+    expect(html).not.toContain('javascript:');
+    expect(html).not.toContain('trip-boarding-list');
+  });
+
+  it('escapa conteúdo da galeria e dos depoimentos e rejeita mídia insegura', () => {
+    const attack = '\"><img src=x onerror=alert(1)>';
+    const gallery = buildGalleryCardHTML({ title: attack, date: attack, description: attack, images: [{ src: 'javascript:alert(1)', alt: attack }] }, 0);
+    const testimonial = buildTestimonialHTML({ quote: attack, name: attack, place: attack, rating: 99 });
+    for (const html of [gallery, testimonial]) {
+      expect(html).not.toContain('<img src=x onerror=alert(1)>');
+      expect(html).toContain('&lt;img src=x onerror=alert(1)&gt;');
+      expect(html).not.toContain('javascript:');
+    }
+    expect(testimonial).toContain('★★★★★');
+  });
+});
 
 describe('configuração pública do WhatsApp', () => {
   it('mantém o número de reserva se a API falhar antes de haver configuração', async () => {

@@ -68,6 +68,45 @@ test('destino visitado preenche cidade e estado, e serviço padrão pode ser mar
   await expect(page.getByRole('checkbox', { name: 'Guia' })).toBeChecked();
 });
 
+test('prévia acompanha o preenchimento sem salvar a viagem', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  let writes = 0;
+  await page.route('**/api/trips', route => { if (route.request().method() !== 'GET') writes++; return route.fulfill({ json: {} }); });
+  await page.goto('/trips/new');
+  const preview = page.getByRole('complementary', { name: 'Prévia do card no site' }).filter({ visible: true });
+  await page.locator('#title').fill('Trilha da serra');
+  await expect(preview.getByRole('heading', { name: 'Trilha da serra' })).toBeVisible();
+  await page.locator('#title').fill('Trilha do pôr do sol');
+  await expect(preview.getByRole('heading', { name: 'Trilha do pôr do sol' })).toBeVisible();
+  await page.locator('#startDateISO').fill('2026-12-15');
+  await expect(preview).toContainText('15/12/2026');
+  expect(writes).toBe(0);
+});
+
+test('prévia pode ser aberta e atualizada no celular', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/trips/new');
+  await page.getByText('Ver prévia da viagem').click();
+  await page.locator('#title').fill('Viagem para o mar');
+  await expect(page.getByRole('complementary', { name: 'Prévia do card no site' }).filter({ visible: true })).toContainText('Viagem para o mar');
+});
+
+test('prévia carrega capa relativa à raiz do site ao editar viagem', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.route('**/api/trips/trip-1', route => route.fulfill({ json: {
+    id: 'trip-1', title: 'Viagem com capa', category: '', description: '', city: '', region: '',
+    startDateISO: '2027-01-01T00:00:00.000Z', endDateISO: null, departureTime: '', returnTime: '',
+    scheduleTBD: false, priceValue: null, priceUnit: 'por pessoa', free: false, intensityClass: 'moderado', spotsLeft: null,
+    meetingTBD: false, includes: [], itinerary: [], media: [{ src: 'assets/images/coqueirinho-praia-vista-aerea.jpg', alt: 'Capa' }],
+    buttonLabel: 'Quero viajar', buttonClass: 'button-dark', status: 'DRAFT', availabilitySchema: 'https://schema.org/InStock',
+  } }));
+  await page.route('**/api/trips/trip-1/documents', route => route.fulfill({ json: [] }));
+  await page.goto('/trips/trip-1/edit');
+  const cover = page.getByRole('complementary', { name: 'Prévia do card no site' }).filter({ visible: true }).getByRole('img', { name: 'Capa' });
+  await expect(cover).toHaveAttribute('src', '/assets/images/coqueirinho-praia-vista-aerea.jpg');
+  await expect.poll(() => cover.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0)).toBe(true);
+});
+
 test('opção de CTA claro fica selecionável nos padrões globais', async ({ page }) => {
   await page.route('**/api/settings/whatsapp', route => route.fulfill({ json: { defaultWhatsapp: null } }));
   await page.goto('/settings');

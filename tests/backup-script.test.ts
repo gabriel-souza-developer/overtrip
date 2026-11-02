@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readdirSync, utimesSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readdirSync, statSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { gunzipSync } from 'node:zlib';
@@ -26,6 +26,7 @@ describe.skipIf(!hasSqlite)('backup-sqlite.sh', () => {
     const files = readdirSync(dest);
     expect(files).not.toContain('overtrip-antigo.db.gz');
     const gz = files.find((f) => f.endsWith('.db.gz'))!;
+    expect(statSync(join(dest, gz)).mode & 0o077).toBe(0);
     const restored = join(dir, 'r.db');
     writeFileSync(restored, gunzipSync(readFileSync(join(dest, gz))));
     expect(spawnSync('sqlite3', [restored, 'select x from t;'], { encoding: 'utf8' }).stdout.trim()).toBe('42');

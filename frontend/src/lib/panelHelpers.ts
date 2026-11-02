@@ -136,7 +136,13 @@ export function validateTripMinimum(data: TripMinimum): Record<string, string> {
     if (!data.free && !(data.priceValue && data.priceValue > 0)) {
       errors.priceValue = 'Para publicar, informe o valor ou marque “Viagem gratuita”.';
     }
-    const hasDeparture = data.meetingTBD || !!data.meetingCity?.trim() || !!data.meetingPoint?.trim() || (data.departures?.length ?? 0) > 0;
+    const points = data.departures ?? [];
+    const validPoints = points.length > 0 && points.every(item => {
+      if (!item || typeof item !== 'object') return false;
+      const point = item as Record<string, unknown>;
+      return ['time', 'place', 'city'].every(key => typeof point[key] === 'string' && (point[key] as string).trim().length > 0);
+    });
+    const hasDeparture = data.meetingTBD || (points.length ? validPoints : !!data.meetingCity?.trim() || !!data.meetingPoint?.trim());
     if (!hasDeparture) errors.departure = 'Para publicar, informe o embarque ou marque que ele está a confirmar.';
   }
   return errors;

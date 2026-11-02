@@ -57,7 +57,7 @@ O limite de tentativas de login usa o IP real automaticamente (a API confia em 1
 ## 6. Banco de dados
 O projeto tem a migração `0_init`; o comando certo é **`prisma migrate deploy`** (não `db push`).
 - **Banco novo:** `DATABASE_URL=file:/var/lib/overtrip/overtrip.db npx prisma migrate deploy`
-- **Copiar o banco atual** (do seu computador, `prisma/dev.db`): envie com `scp` para `/var/lib/overtrip/overtrip.db`. Se o banco foi criado com `db push`, o `migrate deploy` reclama que ele "não está vazio" (erro P3005); nesse caso rode uma vez `npx prisma migrate resolve --applied 0_init` (com a mesma `DATABASE_URL`) e depois `migrate deploy`.
+- **Copiar banco existente:** faça backup e confira seu histórico e schema antes de executar migrações. Bancos criados com `db push` podem já conter colunas de várias migrações; não marque `0_init` nem outras como aplicadas sem comparar o schema e planejar o baseline.
 - Depois: `sudo chown -R overtrip:overtrip /var/lib/overtrip /var/backups/overtrip`
 
 ## 7. Criar o administrador
@@ -78,9 +78,15 @@ sudo systemctl reload caddy
 ```
 O código precisa ser legível pelo usuário `overtrip` (API) e pelo `caddy` (site e painel):
 ```
-sudo chmod -R o+rX /srv/overtrip/app    # ou: sudo chown -R overtrip:caddy /srv/overtrip/app && sudo chmod -R g+rX,o-rwx /srv/overtrip/app
+sudo chown -R overtrip:caddy /srv/overtrip/app
+sudo chmod -R o-rwx /srv/overtrip/app
+sudo chmod g+x /srv/overtrip/app
+sudo chmod -R g+rX /srv/overtrip/app/index.html /srv/overtrip/app/css /srv/overtrip/app/js /srv/overtrip/app/assets /srv/overtrip/app/blog /srv/overtrip/app/riders /srv/overtrip/app/dist/frontend
 sudo -u caddy test -r /srv/overtrip/app/index.html && echo "caddy lê o código"
 ```
+Garanta acesso de leitura do grupo também aos demais arquivos públicos listados
+no Caddyfile. Mantenha `.env`, exports de workflows e outros arquivos privados
+fora da pasta publicada e sem permissão de leitura para o grupo `caddy`.
 Se o código não estiver em `/srv/overtrip/app`, ajuste os caminhos no `Caddyfile` e nos `.service`.
 
 ## 9. DNS
@@ -114,8 +120,12 @@ sudo systemctl restart overtrip-api
 ## Restaurar um backup
 ```
 sudo systemctl stop overtrip-api
-sudo cp /var/lib/overtrip/overtrip.db /var/lib/overtrip/overtrip.db.antes-restauracao   # guarda o banco atual
+# Pare também qualquer worker que use o banco antes de prosseguir.
+sudo -u overtrip sh -c 'umask 077; gunzip -c /var/backups/overtrip/overtrip-AAAAMMDD-HHMMSS.db.gz > /var/lib/overtrip/restauracao.tmp.db'
+sudo -u overtrip sqlite3 /var/lib/overtrip/restauracao.tmp.db 'PRAGMA integrity_check;'
+# Prossiga somente se o resultado for exatamente "ok".
+sudo cp /var/lib/overtrip/overtrip.db /var/lib/overtrip/overtrip.db.antes-restauracao
 sudo rm -f /var/lib/overtrip/overtrip.db-wal /var/lib/overtrip/overtrip.db-shm
-gunzip -c /var/backups/overtrip/overtrip-AAAAMMDD-HHMMSS.db.gz | sudo -u overtrip tee /var/lib/overtrip/overtrip.db >/dev/null
+sudo mv /var/lib/overtrip/restauracao.tmp.db /var/lib/overtrip/overtrip.db
 sudo systemctl start overtrip-api
 ```

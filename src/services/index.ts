@@ -187,8 +187,12 @@ export const tripService = {
   async update(id: string, data: TripUpdateInput) {
     const { departures, ...tripData } = data;
 
+    return prisma.$transaction(async tx => {
+
     // Check if trip exists
-    const current = await this.findById(id);
+    const row = await tx.trip.findUnique({ where: { id }, include: { departures: { orderBy: { orderIndex: 'asc' } } } });
+    if (!row) throw AppError.notFound('Viagem não encontrada');
+    const current = parseJsonFields(row, TRIP_JSON_FIELDS);
 
     // Uma viagem aberta continua precisando atender aos requisitos quando é
     // alterada. Sem isso, um cliente poderia remover foto, preço ou embarque
@@ -197,9 +201,9 @@ export const tripService = {
       assertReadyForPublication({
         title: tripData.title ?? current.title, city: tripData.city ?? current.city, region: tripData.region ?? current.region,
         startDateISO: tripData.startDateISO ?? current.startDateISO, description: tripData.description ?? current.description,
-        free: tripData.free ?? current.free, priceValue: tripData.priceValue ?? current.priceValue,
-        media: tripData.media ?? current.media, meetingCity: tripData.meetingCity ?? current.meetingCity,
-        meetingPoint: tripData.meetingPoint ?? current.meetingPoint, meetingTBD: tripData.meetingTBD ?? current.meetingTBD,
+        free: tripData.free ?? current.free, priceValue: tripData.priceValue === undefined ? current.priceValue : tripData.priceValue,
+        media: tripData.media ?? current.media, meetingCity: tripData.meetingCity === undefined ? current.meetingCity : tripData.meetingCity,
+        meetingPoint: tripData.meetingPoint === undefined ? current.meetingPoint : tripData.meetingPoint, meetingTBD: tripData.meetingTBD ?? current.meetingTBD,
         departures: departures ?? current.departures,
       });
     }
@@ -217,11 +221,12 @@ export const tripService = {
     }
 
     // Update trip
-    const trip = await prisma.trip.update({
+    const trip = await tx.trip.update({
       where: { id },
       data: {
         ...stringifyJsonFields(tripData, TRIP_JSON_FIELDS),
         ...searchData,
+        ...(departures !== undefined ? { departures: { deleteMany: {}, create: departures.map(d => ({ ...d, mapsUrl: d.mapsUrl || null, mapsQuery: d.mapsQuery || null })) } } : {}),
         publishedAt: tripData.status === 'OPEN' && current.status !== 'OPEN' ? new Date() : undefined,
       },
       include: {
@@ -229,33 +234,8 @@ export const tripService = {
       },
     });
 
-    // Update departures if provided
-    if (departures) {
-      await prisma.tripDeparture.deleteMany({ where: { tripId: id } });
-      
-      if (departures.length > 0) {
-        await prisma.tripDeparture.createMany({
-          data: departures.map(d => ({
-            tripId: id,
-            time: d.time,
-            place: d.place,
-            city: d.city,
-            mapsUrl: d.mapsUrl || null,
-            mapsQuery: d.mapsQuery || null,
-            orderIndex: d.orderIndex,
-          })),
-        });
-      }
-    }
-
-    const updated = await prisma.trip.findUnique({
-      where: { id },
-      include: {
-        departures: { orderBy: { orderIndex: 'asc' } },
-      },
+    return parseJsonFields(trip, TRIP_JSON_FIELDS);
     });
-
-    return parseJsonFields(updated!, TRIP_JSON_FIELDS);
   },
 
   async delete(id: string) {

@@ -66,6 +66,7 @@ function findRows() {
 }
 
 function meetingInfo(trip: TripRow): string | null {
+  if (trip.meetingTBD) return null;
   if (trip.departures.length > 1) {
     return trip.departures.map((d: DepartureRow) => `${d.city} (${d.place}) às ${d.time}`).join(' e ');
   }
@@ -86,13 +87,13 @@ export function mapPublicTrip(trip: TripRow) {
     description: trip.description,
     city: trip.city,
     region: trip.region,
-    meetingCity: trip.meetingCity,
-    meetingPoint: trip.meetingPoint,
+    meetingCity: trip.meetingTBD ? null : trip.meetingCity,
+    meetingPoint: trip.meetingTBD ? null : trip.meetingPoint,
     meetingTBD: trip.meetingTBD,
     meetingInfo: meetingInfo(trip),
-    meetingDetails: trip.meetingDetails,
-    meetingMapsQuery: trip.meetingMapsQuery,
-    departures: trip.departures.map((d: DepartureRow) => ({
+    meetingDetails: trip.meetingTBD ? null : trip.meetingDetails,
+    meetingMapsQuery: trip.meetingTBD ? null : trip.meetingMapsQuery,
+    departures: (trip.meetingTBD ? [] : trip.departures).map((d: DepartureRow) => ({
       time: d.time,
       place: d.place,
       city: d.city,

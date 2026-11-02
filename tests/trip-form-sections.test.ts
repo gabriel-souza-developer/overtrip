@@ -23,7 +23,7 @@ describe('TripForm: seções', () => {
   });
 
   it.each([
-    ['Preparar publicação', ['id="description"', 'id="priceValue"', 'MediaInput', 'id="meetingCity"', 'id="meetingPoint"', 'id="meetingTBD"', 'PublicationReadinessPanel', 'TripCardPreview']],
+    ['Preparar publicação', ['id="description"', 'id="priceValue"', 'MediaInput', 'id="meetingCity"', 'id="meetingPoint"', 'id="meetingTBD"', 'PublicationReadinessPanel']],
     ['Detalhes para viajantes', ['id="category"', 'id="intensityClass"', 'id="spotsLeft"', 'id="departureTime"', 'id="endDateISO"', 'id="returnTime"', 'id="includes-custom-input"', 'id="itinerary-input"']],
     ['Ajustes avançados', ['id="headlineDisplay"', 'id="priceDisplay"', 'id="departureTolerance"', 'id="meetingMapsQuery"', 'id="supportPoint"', 'DeparturesInput']],
   ])('seção %s contém os campos esperados', (title, fields) => {

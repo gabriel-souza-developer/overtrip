@@ -267,6 +267,11 @@ const PIN_ICON_SVG = `
 // Zoom aplicado ao clicar num item da lista ou num pin.
 const MAP_SELECT_ZOOM = 12;
 
+// Títulos, cidades e datas também podem chegar da API do painel.
+const escapeMapHTML = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
+  "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+})[char]);
+
 /* ==========================================================================
    MONTAGEM DOS DADOS: destinos únicos + popups
    ========================================================================== */
@@ -300,7 +305,7 @@ const getUniqueDestinations = () => {
 
 const buildPopupHTML = (destination) => {
   if (destination.isHub) {
-    return `<h3>${destination.title}</h3><p>${destination.subtitle}</p>`;
+    return `<h3>${escapeMapHTML(destination.title)}</h3><p>${escapeMapHTML(destination.subtitle)}</p>`;
   }
 
   const dates = destination.visits
@@ -308,9 +313,9 @@ const buildPopupHTML = (destination) => {
     .filter(Boolean)
     .join(" · ");
   return `
-    <h3>${destination.title}</h3>
-    <p>${destination.place}</p>
-    ${dates ? `<p class="popup-dates">${dates}</p>` : ""}
+    <h3>${escapeMapHTML(destination.title)}</h3>
+    <p>${escapeMapHTML(destination.place)}</p>
+    ${dates ? `<p class="popup-dates">${escapeMapHTML(dates)}</p>` : ""}
   `;
 };
 
@@ -326,7 +331,7 @@ const buildPopupHTML = (destination) => {
 const createPinIcon = (entry) =>
   L.divIcon({
     className: "overtrip-pin-icon",
-    html: `<span class="overtrip-pin ${entry.isHub ? "overtrip-pin--hub" : ""}">${entry.isHub ? entry.code : ""}</span>`,
+    html: `<span class="overtrip-pin ${entry.isHub ? "overtrip-pin--hub" : ""}">${entry.isHub ? escapeMapHTML(entry.code) : ""}</span>`,
     iconSize: entry.isHub ? [30, 30] : [10, 10],
     iconAnchor: entry.isHub ? [15, 15] : [5, 5],
     popupAnchor: [0, entry.isHub ? -18 : -16],
@@ -346,13 +351,13 @@ const buildSidebarItemHTML = (entry, index) => `
   <button
     type="button"
     class="map-destination${entry.isHub ? " is-hub" : ""}"
-    data-destination-index="${index}"
+    data-destination-index="${escapeMapHTML(index)}"
   >
     <span class="map-destination-info">
-      <span class="map-destination-icon" aria-hidden="true">${entry.isHub ? entry.code : PIN_ICON_SVG}</span>
+      <span class="map-destination-icon" aria-hidden="true">${entry.isHub ? escapeMapHTML(entry.code) : PIN_ICON_SVG}</span>
       <span class="map-destination-text">
-        <span class="map-destination-title">${entry.title}</span>
-        <span class="map-destination-subtitle">${entry.isHub ? entry.subtitle : entry.place}</span>
+        <span class="map-destination-title">${escapeMapHTML(entry.title)}</span>
+        <span class="map-destination-subtitle">${escapeMapHTML(entry.isHub ? entry.subtitle : entry.place)}</span>
       </span>
     </span>
     <span class="map-destination-action">Ver no mapa</span>

@@ -104,11 +104,28 @@ const PIX_BUTTON_ICON = `
    [{ time, place, city, mapsUrl | mapsQuery }], na ordem em que o ônibus passa.
    ========================================================================== */
 
-const getMapsHref = (point) => point.mapsUrl
+// Dados de viagens chegam da API e devem sempre ser tratados como texto.
+const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
+  "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+})[char]);
+
+const safeHttpUrl = (value) => {
+  if (typeof value !== "string" || !/^https?:\/\//i.test(value) || /[\u0000-\u0020\u007f]/.test(value)) return "";
+  try { const url = new URL(value); return ["http:", "https:"].includes(url.protocol) && !url.username && !url.password ? value : ""; } catch { return ""; }
+};
+const safeMediaUrl = (value) => {
+  if (typeof value !== "string" || /[\u0000-\u0020\u007f]/.test(value)) return "";
+  if (/^(?:\/?assets\/)/i.test(value) && !value.startsWith('//')) return value;
+  if (/^[a-z0-9_-]+\.(?:jpe?g|png|webp|gif)$/i.test(value)) return value;
+  return safeHttpUrl(value);
+};
+
+const getMapsHref = (point) => safeHttpUrl(point.mapsUrl)
   || (point.mapsQuery ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(point.mapsQuery)}` : "");
 
 // Texto único do embarque (mensagem do WhatsApp, aria-label).
 const getMeetingLabel = (trip) => {
+  if (trip.meetingTBD) return 'Embarque a confirmar';
   if (trip.meetingInfo) {
     return trip.meetingInfo;
   }
@@ -134,7 +151,7 @@ const normalizeTrip = (trip) => ({
   intensityLabel: text(trip.intensityLabel),
   includes: list(trip.includes).filter((item) => typeof item === "string"),
   includesHighlight: text(trip.includesHighlight),
-  media: list(trip.media).filter((item) => item && typeof item.src === "string" && item.src),
+  media: list(trip.media).filter((item) => item && safeMediaUrl(item.src)),
   departures: list(trip.departures),
   priceUnit: text(trip.priceUnit, "por pessoa"),
   priceDisplay: text(trip.priceDisplay, "Consulte"),
@@ -148,17 +165,17 @@ const getClosedNotice = (trip) => CLOSED_NOTICES[String(trip.status || "").toLow
 const buildClosedNoticeHTML = (notice) =>
   notice ? `<p class="trip-closed-notice" role="status">${notice}</p>` : "";
 
-const hasDepartures = (trip) => Array.isArray(trip.departures) && trip.departures.length > 0;
+const hasDepartures = (trip) => !trip.meetingTBD && Array.isArray(trip.departures) && trip.departures.length > 0;
 
 const buildDeparturesHTML = (trip) => {
   const items = trip.departures.map((point) => {
     const href = getMapsHref(point);
     const place = href
-      ? `<a class="trip-map-link" href="${href}" target="_blank" rel="noreferrer" aria-label="Abrir ${point.place}, ${point.city}, no Google Maps, em nova aba">${point.place}</a>`
-      : `<span>${point.place}</span>`;
+      ? `<a class="trip-map-link" href="${escapeHtml(href)}" target="_blank" rel="noreferrer" aria-label="Abrir ${escapeHtml(point.place)}, ${escapeHtml(point.city)}, no Google Maps, em nova aba">${escapeHtml(point.place)}</a>`
+      : `<span>${escapeHtml(point.place)}</span>`;
     return `<li class="trip-boarding-item">
-              <time class="trip-boarding-time">${point.time}</time>
-              <span class="trip-boarding-place">${place}<small>${point.city}</small></span>
+              <time class="trip-boarding-time">${escapeHtml(point.time)}</time>
+              <span class="trip-boarding-place">${place}<small>${escapeHtml(point.city)}</small></span>
             </li>`;
   }).join("");
   const count = trip.departures.length;
@@ -175,7 +192,7 @@ const buildDeparturesHTML = (trip) => {
 const buildTripCardHTML = (rawTrip, tripIndex) => {
   const trip = normalizeTrip(rawTrip);
   const includesHTML = trip.includes
-    .map((item) => `<li><span class="trip-includes-icon" aria-hidden="true">${TRIP_ICON_CHECK_CIRCLE}</span><span>${item}</span></li>`)
+    .map((item) => `<li><span class="trip-includes-icon" aria-hidden="true">${TRIP_ICON_CHECK_CIRCLE}</span><span>${escapeHtml(item)}</span></li>`)
     .join("");
   const dateDisplay = formatTripDate(trip.startDateISO);
   const departure = trip.departureTime || (trip.scheduleTBD ? "" : formatTripTime(trip.startDateISO));
@@ -190,13 +207,13 @@ const buildTripCardHTML = (rawTrip, tripIndex) => {
   const scheduleHTML = scheduleLabel
     ? `<div class="trip-meta-row">
             <span class="trip-meta-icon trip-meta-icon--muted" aria-hidden="true">${TRIP_ICON_CLOCK}</span>
-            <span>${scheduleLabel}</span>
+            <span>${escapeHtml(scheduleLabel)}</span>
           </div>`
     : "";
   const meetingLabel = getMeetingLabel(trip);
-  const meetingHTML = trip.meetingMapsQuery
-    ? `<a class="trip-map-link" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(trip.meetingMapsQuery)}" target="_blank" rel="noreferrer" aria-label="Abrir ${meetingLabel} no Google Maps, em nova aba">${meetingLabel}</a>`
-    : `<span>${meetingLabel}</span>`;
+  const meetingHTML = !trip.meetingTBD && trip.meetingMapsQuery
+    ? `<a class="trip-map-link" href="https://www.google.com/maps/search/?api=1&amp;query=${encodeURIComponent(trip.meetingMapsQuery)}" target="_blank" rel="noreferrer" aria-label="Abrir ${escapeHtml(meetingLabel)} no Google Maps, em nova aba">${escapeHtml(meetingLabel)}</a>`
+    : `<span>${escapeHtml(meetingLabel)}</span>`;
   // Um ponto: linha simples com pin. Vários pontos: bloco com horário em cada um.
   const boardingHTML = hasDepartures(trip)
     ? buildDeparturesHTML(trip)
@@ -205,7 +222,7 @@ const buildTripCardHTML = (rawTrip, tripIndex) => {
             ${meetingHTML}
           </div>`;
   const intensityHTML = levelWord
-    ? `<span class="trip-media-intensity">Nível: ${levelWord}</span>`
+    ? `<span class="trip-media-intensity">Nível: ${escapeHtml(levelWord)}</span>`
     : "";
 
   const closedNotice = getClosedNotice(trip);
@@ -215,17 +232,17 @@ const buildTripCardHTML = (rawTrip, tripIndex) => {
       <button
         type="button"
         class="trip-media${cover ? "" : " trip-media--empty"}"${cover ? "" : ' style="background: var(--moss)"'}
-        data-trip-index="${tripIndex}"
-        aria-label="Abrir galeria de ${trip.title}"
+        data-trip-index="${escapeHtml(tripIndex)}"
+        aria-label="Abrir galeria de ${escapeHtml(trip.title)}"
       >
-        ${cover ? `<img src="${cover.src}"${getHeroSrcset(cover.src) ? ` srcset="${getHeroSrcset(cover.src)}" sizes="${TRIP_CARD_IMG_SIZES}"` : ""} alt="${text(cover.alt)}" loading="lazy" decoding="async" fetchpriority="low">` : ""}
-        <span class="trip-media-category">${trip.category}</span>
+        ${cover ? `<img src="${escapeHtml(cover.src)}"${getHeroSrcset(cover.src) ? ` srcset="${escapeHtml(getHeroSrcset(cover.src))}" sizes="${TRIP_CARD_IMG_SIZES}"` : ""} alt="${escapeHtml(cover.alt)}" loading="lazy" decoding="async" fetchpriority="low">` : ""}
+        <span class="trip-media-category">${escapeHtml(trip.category)}</span>
         ${intensityHTML}
         ${photoBadge}
       </button>
       <div class="trip-body">
-        ${buildClosedNoticeHTML(closedNotice)}<h3 id="trip-title-${tripIndex}">${trip.title}</h3>
-        <p class="trip-description">${trip.description}</p>
+        ${buildClosedNoticeHTML(closedNotice)}<h3 id="trip-title-${escapeHtml(tripIndex)}">${escapeHtml(trip.title)}</h3>
+        <p class="trip-description">${escapeHtml(trip.description)}</p>
 
         <div class="trip-meta-list">
           <div class="trip-meta-row">
@@ -243,7 +260,7 @@ const buildTripCardHTML = (rawTrip, tripIndex) => {
             <ul class="trip-includes">${includesHTML}</ul>
             ${trip.includesHighlight ? `<div class="trip-includes-highlight">
               <span class="trip-includes-highlight-icon" aria-hidden="true">${TRIP_ICON_SHIELD}</span>
-              <span>${trip.includesHighlight}</span>
+              <span>${escapeHtml(trip.includesHighlight)}</span>
             </div>` : ""}
           </div>
         </details>
@@ -260,30 +277,30 @@ const buildTripCardHTML = (rawTrip, tripIndex) => {
             : `<div class="trip-price-block">
             <span class="trip-price-info">
               <span class="trip-price-label">Investimento</span>
-              <span class="trip-price-unit">${trip.priceUnit}</span>
+              <span class="trip-price-unit">${escapeHtml(trip.priceUnit)}</span>
             </span>
-            <span class="trip-price-value">${trip.priceDisplay}</span>
+            <span class="trip-price-value">${escapeHtml(trip.priceDisplay)}</span>
           </div>`}
           <div class="trip-footer-actions">
             <a
-              class="button ${trip.buttonClass} wa-link"
-              data-wa-trip="${trip.title}"
+              class="button ${escapeHtml(trip.buttonClass)} wa-link"
+              data-wa-trip="${escapeHtml(trip.title)}"
               data-wa-date="${dateDisplay}"
-              data-wa-destination="${trip.city} - ${trip.region}"
-              data-wa-meeting="${meetingLabel}"
-              data-wa-price="${trip.free ? "Gratuito" : trip.priceDisplay}"
+              data-wa-destination="${escapeHtml(trip.city)} - ${escapeHtml(trip.region)}"
+              data-wa-meeting="${escapeHtml(meetingLabel)}"
+              data-wa-price="${escapeHtml(trip.free ? "Gratuito" : trip.priceDisplay)}"
               data-wa-kind="${closedNotice ? "avisar" : trip.free ? "participar" : "viajar"}"${closedNotice ? ` data-wa-notice="${closedNotice}"` : ""}
-              aria-labelledby="trip-title-${tripIndex}"
+              aria-labelledby="trip-title-${escapeHtml(tripIndex)}"
               href="#"
               target="_blank"
               rel="noreferrer"
             >
-              ${closedNotice ? "Avise-me da próxima" : trip.buttonLabel}
+              ${closedNotice ? "Avise-me da próxima" : escapeHtml(trip.buttonLabel)}
             </a>
             ${trip.free || closedNotice ? "" : `<button
               type="button"
               class="button button-pix pix-trigger"
-              data-pix-trip-index="${tripIndex}"
+              data-pix-trip-index="${escapeHtml(tripIndex)}"
             >
               ${PIX_BUTTON_ICON}
               Pagar Pix
@@ -414,41 +431,41 @@ const buildHeroTripHTML = (rawTrip) => {
     .join(", ");
 
   return `
-    <aside class="hero-trip" data-trip-title="${trip.title}" aria-label="Próxima viagem: ${trip.title}">
+    <aside class="hero-trip" data-trip-title="${escapeHtml(trip.title)}" aria-label="Próxima viagem: ${escapeHtml(trip.title)}">
       <div class="hero-trip-top">
         <p class="hero-trip-label"><span class="hero-trip-dot" aria-hidden="true"></span>Próxima viagem</p>
         ${countdown ? `<span class="hero-trip-countdown">${countdown}</span>` : ""}
       </div>
-      <p class="hero-trip-title">${trip.title}</p>
+      <p class="hero-trip-title">${escapeHtml(trip.title)}</p>
       <div class="trip-meta-list">
         <div class="trip-meta-row">
           <span class="trip-meta-icon" aria-hidden="true">${TRIP_ICON_CALENDAR}</span>
-          <span>${dateDisplay}${scheduleLabel ? `, ${scheduleLabel}` : ""}</span>
+          <span>${dateDisplay}${scheduleLabel ? `, ${escapeHtml(scheduleLabel)}` : ""}</span>
         </div>
         ${hasDepartures(trip)
           ? buildDeparturesHTML(trip)
           : `<div class="trip-meta-row">
           <span class="trip-meta-icon trip-meta-icon--muted" aria-hidden="true">${TRIP_ICON_PIN}</span>
-          <span>${meetingLabel}</span>
+          <span>${escapeHtml(meetingLabel)}</span>
         </div>`}
       </div>
       ${buildClosedNoticeHTML(closedNotice)}<div class="hero-trip-footer">
         <span class="hero-trip-price">
-          <strong>${trip.free ? "Gratuito" : trip.priceDisplay}</strong>
-          <small>${priceNote ? `${priceNote}.` : ""}${spotsNote}</small>
+          <strong>${escapeHtml(trip.free ? "Gratuito" : trip.priceDisplay)}</strong>
+          <small>${priceNote ? `${escapeHtml(priceNote)}.` : ""}${spotsNote}</small>
         </span>
         <a
           class="button button-rust hero-trip-cta wa-link"
-          data-wa-trip="${trip.title}"
+          data-wa-trip="${escapeHtml(trip.title)}"
           data-wa-date="${dateDisplay}"
-          data-wa-destination="${trip.city} - ${trip.region}"
-          data-wa-meeting="${meetingLabel}"
-          data-wa-price="${trip.free ? "Gratuito" : trip.priceDisplay}"
+          data-wa-destination="${escapeHtml(trip.city)} - ${escapeHtml(trip.region)}"
+          data-wa-meeting="${escapeHtml(meetingLabel)}"
+          data-wa-price="${escapeHtml(trip.free ? "Gratuito" : trip.priceDisplay)}"
           data-wa-kind="${closedNotice ? "avisar" : trip.free ? "participar" : "viajar"}"${closedNotice ? ` data-wa-notice="${closedNotice}"` : ""}
           href="#"
           target="_blank"
           rel="noreferrer"
-        >${closedNotice ? "Avise-me da próxima" : trip.buttonLabel}</a>
+        >${closedNotice ? "Avise-me da próxima" : escapeHtml(trip.buttonLabel)}</a>
       </div>
     </aside>
   `;
@@ -760,16 +777,16 @@ const buildGalleryCardHTML = (entry, index, { reveal = false, delay = 0 } = {}) 
       ${delay ? `style="--enter-delay: ${delay}ms"` : ""}
       tabindex="0"
       role="button"
-      aria-label="Ver fotos de ${entry.title}"
+      aria-label="Ver fotos de ${escapeHtml(entry.title)}"
     >
       <div class="gallery-image">
-        <img src="${cover.src}" alt="${cover.alt}" loading="lazy" decoding="async">
+        ${safeMediaUrl(cover.src) ? `<img src="${escapeHtml(cover.src)}" alt="${escapeHtml(cover.alt)}" loading="lazy" decoding="async">` : ""}
         ${badge}
       </div>
       <div class="gallery-copy">
-        <p class="gallery-date">${entry.date}</p>
-        <h3>${entry.title}</h3>
-        ${isFeature ? `<p class="gallery-desc">${entry.description}</p>` : ""}
+        <p class="gallery-date">${escapeHtml(entry.date)}</p>
+        <h3>${escapeHtml(entry.title)}</h3>
+        ${isFeature ? `<p class="gallery-desc">${escapeHtml(entry.description)}</p>` : ""}
       </div>
     </article>
   `;
@@ -1029,17 +1046,18 @@ const setupLightbox = () => {
 };
 
 const buildTestimonialHTML = (testimonial) => {
-  const stars = "★".repeat(testimonial.rating) + "☆".repeat(5 - testimonial.rating);
+  const rating = Number.isInteger(testimonial.rating) ? Math.min(5, Math.max(0, testimonial.rating)) : 0;
+  const stars = "★".repeat(rating) + "☆".repeat(5 - rating);
 
   return `
     <figure class="quote-card reveal">
       <div class="quote-rating" aria-hidden="true">${stars}</div>
       <span class="quote-mark">"</span>
-      <blockquote>${testimonial.quote}</blockquote>
+      <blockquote>${escapeHtml(testimonial.quote)}</blockquote>
       <figcaption>
         <div>
-          <strong>${testimonial.name}</strong>
-          <span>${testimonial.place}</span>
+          <strong>${escapeHtml(testimonial.name)}</strong>
+          <span>${escapeHtml(testimonial.place)}</span>
         </div>
       </figcaption>
     </figure>
@@ -1126,4 +1144,4 @@ const updateYearsCount = () => {
   statEl.textContent = years > 0 ? `${years} anos` : "1º ano";
 };
 
-export { formatTripTime, buildTripSchema, normalizeTrip, buildTripCardHTML, buildHeroTripHTML, buildTripCardsHTML, renderHeroNextTrip, renderTrips, renderGallery, renderTestimonials, updateYearsCount, setupLightbox, setupTestimonialCarousel };
+export { formatTripTime, buildTripSchema, normalizeTrip, buildTripCardHTML, buildHeroTripHTML, buildTripCardsHTML, buildGalleryCardHTML, buildTestimonialHTML, renderHeroNextTrip, renderTrips, renderGallery, renderTestimonials, updateYearsCount, setupLightbox, setupTestimonialCarousel };
