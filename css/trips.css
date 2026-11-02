@@ -342,6 +342,7 @@
   flex-direction: column;
   gap: 0.55rem;
   min-width: 0;
+  flex: 1;
 }
 
 .trip-boarding-title {
@@ -363,14 +364,15 @@
 }
 
 .trip-boarding-item {
-  display: flex;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: 3.4rem minmax(0, 1fr);
+  align-items: start;
   gap: 0.65rem;
 }
 
 .trip-boarding-time {
-  flex: 0 0 auto;
-  min-width: 3.4rem;
+  display: block;
+  min-width: 0;
   padding: 0.2rem 0.55rem;
   border-radius: 999px;
   background: color-mix(in oklch, var(--rust) 16%, transparent);
@@ -385,8 +387,10 @@
 .trip-boarding-place {
   display: flex;
   flex-direction: column;
+  gap: 0.15rem;
   min-width: 0;
-  line-height: 1.3;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
 }
 
 .trip-boarding-place small {
