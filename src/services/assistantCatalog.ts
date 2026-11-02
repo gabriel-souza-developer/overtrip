@@ -37,7 +37,7 @@ function jsonArray(value: string | null): unknown[] {
 }
 
 function jsonList(value: string | null): string[] {
-  return jsonArray(value).filter((item): item is string => typeof item === 'string');
+  return jsonArray(value).filter((item): item is string => typeof item === 'string' && item.trim().length > 0).map(item => item.trim());
 }
 
 /**
@@ -45,9 +45,16 @@ function jsonList(value: string | null): string[] {
  * Não contém IDs internos, mídia, documentos, custos, notas, dados de clientes
  * nem links de pagamento. Este serviço não é uma rota HTTP pública.
  */
-export function toAssistantCatalogTrip(trip: CatalogTrip) {
+export function toAssistantCatalogTrip(trip: CatalogTrip, now = new Date()) {
   const problems = assistantProblems({ ...trip, media: jsonArray(trip.media) });
   if (problems.length > 0) return null;
+
+  // A data de saída é uma data civil; não ofereça saídas de dias anteriores
+  // mesmo quando o status ainda não tiver sido atualizado pela operação.
+  const today = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(now);
+  if (toSiteDate(trip.startDateISO) < today) return null;
 
   return {
     title: trip.title,
@@ -77,8 +84,9 @@ export function toAssistantCatalogTrip(trip: CatalogTrip) {
 export const assistantCatalogService = {
   async list() {
     const rows = await prisma.trip.findMany({ where: { status: 'OPEN' } });
+    const now = new Date();
     return rows
-      .map(toAssistantCatalogTrip)
+      .map((trip) => toAssistantCatalogTrip(trip, now))
       .filter((trip): trip is NonNullable<typeof trip> => trip !== null)
       .sort((a, b) => a.schedule.startDateISO.localeCompare(b.schedule.startDateISO));
   },

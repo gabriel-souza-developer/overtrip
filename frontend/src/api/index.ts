@@ -2,6 +2,10 @@ import { translateApiError } from '../lib/formHelpers';
 
 const API_BASE = '/api';
 
+export interface KnowledgeEntry { question: string; answer: string }
+export interface KnowledgeVersion { version: number; entries: KnowledgeEntry[]; approvedById: string; approvedAt: string }
+export type KnowledgeVersionSummary = Omit<KnowledgeVersion, 'entries'>;
+
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const token = localStorage.getItem('auth_token');
   
@@ -46,6 +50,15 @@ export const authApi = {
   },
 };
 
+export const knowledgeApi = {
+  current: () => request<KnowledgeVersion | null>('/assistant-knowledge'),
+  versions: () => request<KnowledgeVersionSummary[]>('/assistant-knowledge/versions'),
+  version: (version: number) => request<KnowledgeVersion>(`/assistant-knowledge/versions/${version}`),
+  approve: (entries: KnowledgeEntry[], expectedVersion: number | null) => request<KnowledgeVersion>('/assistant-knowledge', {
+    method: 'POST', body: JSON.stringify({ entries, expectedVersion }),
+  }),
+};
+
 export const tripApi = {
   list: (params?: Record<string, string | number | boolean>) => {
     const searchParams = new URLSearchParams();
@@ -68,6 +81,33 @@ export const tripApi = {
   publish: (id: string) => request<Trip>(`/trips/${id}/publish`, { method: 'POST' }),
 
   unpublish: (id: string) => request<Trip>(`/trips/${id}/unpublish`, { method: 'POST' }),
+};
+
+export interface TripDocument {
+  id: string; originalFilename: string; sizeBytes: number; retentionUntil: string;
+  extractionStatus: string;
+}
+export interface DocumentSuggestions {
+  draft: Record<string, string | number | boolean | string[]>;
+  warnings: string[];
+  sources: Record<string, { documentId: string; filename: string; page: number; excerpt: string }>;
+}
+const documentUrl = (tripId: string, documentId = '') => `/trips/${encodeURIComponent(tripId)}/documents${documentId ? `/${encodeURIComponent(documentId)}` : ''}`;
+export const documentApi = {
+  list: (tripId: string) => request<TripDocument[]>(documentUrl(tripId)),
+  upload: (tripId: string, file: File) => request<TripDocument>(documentUrl(tripId), {
+    method: 'POST', headers: { 'Content-Type': 'application/pdf', 'X-Document-Filename': encodeURIComponent(file.name) }, body: file,
+  }),
+  remove: (tripId: string, id: string) => request<void>(documentUrl(tripId, id), { method: 'DELETE' }),
+  suggestions: (tripId: string, id: string) => request<DocumentSuggestions>(`${documentUrl(tripId, id)}/suggestions`, { method: 'POST' }),
+  download: async (tripId: string, doc: TripDocument) => {
+    const token = localStorage.getItem('auth_token');
+    const response = await fetch(`${API_BASE}${documentUrl(tripId, doc.id)}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+    if (!response.ok) throw new Error('Não foi possível baixar o documento.');
+    const url = URL.createObjectURL(await response.blob());
+    const link = document.createElement('a'); link.href = url; link.download = doc.originalFilename; link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  },
 };
 
 export const aiApi = {

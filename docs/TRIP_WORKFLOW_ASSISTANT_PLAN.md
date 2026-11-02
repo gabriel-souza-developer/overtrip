@@ -14,8 +14,9 @@ site, nunca fonte para atendimento ou operação.
   candidatos e avisos; não publica nem altera status.
 - O status legado (`DRAFT`, `OPEN`, `SOLD_OUT`, `CLOSED`, `COMPLETED`,
   `CANCELLED`) ainda mistura publicação, venda e operação.
-- O WhatsApp hoje é apenas um número configurável. Não existe integração de
-  bot, upload de PDF, armazenamento de documentos ou credencial de canal.
+- O WhatsApp hoje é apenas um número configurável; não existe integração de
+  bot nem credencial de canal. O fluxo de PDFs está implementado, mas ainda
+  depende de preparação e validação no ambiente antes da ativação.
 
 ## Decisões de arquitetura
 
@@ -78,26 +79,51 @@ configurações globais.
 
 ### Fase 3 — documentos e IA
 
+**Adiada:** a ativação e os ajustes de PDF serão retomados mais adiante.
+
 - Definir armazenamento privado, retenção, limite de tamanho, antivírus e
   exclusão de PDFs antes de aceitar upload. ✅ Política e modelo de metadados
-  definidos em `docs/FASE_3_DOCUMENTOS.md`; upload permanece desabilitado até
-  scanner, rota privada e limpeza automática existirem.
+  definidos em `docs/FASE_3_DOCUMENTOS.md`; rotas privadas, integração ClamAV e
+  limpeza automática implementadas. Ativação depende de configuração do ambiente.
 - Criar `TripDocument`, extração assíncrona, OCR opcional e referências de
   página/trecho por sugestão.
 - Exigir revisão humana de cada sugestão e impedir publicação automática.
 
+#### Infraestrutura a avaliar na retomada
+
+- Começar pela máquina prevista no deploy, se houver capacidade: API e worker
+  separados, SQLite, diretório privado de documentos, Poppler e ClamAV locais.
+  Medir memória e carga; 4 GiB de RAM é apenas ponto inicial de avaliação.
+- Instalar e validar o ClamAV real, executar a migração e testar o fluxo com
+  PDF real. O worker precisa ser supervisionado e compartilhar banco e arquivos
+  privados com a API. OCR permanece pendente.
+- Complementar o backup SQLite com os PDFs, cópia externa, retenção compatível
+  e teste de restauração; verificar exclusão e retenção também nos backups.
+- Para IA, avaliar modelo econômico e plano pago, termos de dados e qualidade;
+  medir tokens, tentativas e custo reais antes de estimar despesas. Manter o
+  envio mediante ação explícita e aviso. Comparar preços vigentes na retomada.
+- Monitorar memória, disco, falhas de varredura e fila. Considerar banco e
+  armazenamento de objetos separados somente quando as medições justificarem;
+  essa mudança requer adaptação do código.
+
 ### Fase 4 — Agente OVERTRIP no WhatsApp
 
-- O protótipo atual está documentado em `docs/IA_Agente_OVERTRIP v30.json`. Ele usa n8n, WAHA e PostgreSQL para receber mensagens, consultar viagens e FAQ, manter contexto, transcrever áudio e transferir para a equipe. É referência de comportamento e integração, não arquitetura final nem autorização para conectar o novo sistema.
+- O protótipo local de referência usa n8n, WAHA e PostgreSQL para receber mensagens, consultar viagens e FAQ, manter contexto, transcrever áudio e transferir para a equipe. Seu arquivo exportado não é versionado por conter referências operacionais. É referência de comportamento e integração, não arquitetura final nem autorização para conectar o novo sistema.
 - Preservar no desenho futuro os comportamentos úteis do protótipo: resposta humanizada baseada em fatos aprovados, consulta de disponibilidade, transferência explícita ao humano quando solicitada ou necessária e retorno controlado ao assistente.
 - Criar autenticação serviço-a-serviço, catálogo privado, conhecimento
   versionado e auditoria de respostas.
+- Base inicial: catálogo interno sem HTTP e gestão administrativa de versões
+  completas de conhecimento aprovadas por administrador. Autenticação entre
+  serviços e auditoria de respostas ainda estão pendentes; detalhes em
+  `docs/FASE_4_AGENTE.md`.
 - Definir responsável humano, política de opt-in, limites de automação e o fluxo de handoff antes de integrar qualquer canal externo.
 
 ## Critérios de segurança antes de cada fase
 
-- Não expor segredo, token, documento ou dado de cliente em prompt/log/API
-  pública.
+- Não expor segredos, tokens ou dados de clientes em prompts, logs ou APIs
+  públicas. O texto de um documento de viagem pode ser enviado ao provedor de
+  IA configurado exclusivamente quando um administrador solicitar sugestões,
+  após o aviso de privacidade no painel; nunca enviar automaticamente.
 - Validar entradas no servidor e aplicar limite de requisições/tamanho.
 - Versionar conhecimento e registrar a versão usada pelo agente.
 - Testar regras de publicação no HTTP real, não apenas na interface.
@@ -105,7 +131,8 @@ configurações globais.
 
 ## Próximo ponto de retomada
 
-As Fases 1 e 2 foram implementadas e revisadas. A decisão pendente para a
-Fase 3 é onde PDFs serão guardados e por quanto tempo. Para a Fase 4, decidir
-provedor do WhatsApp, dono do atendimento e quando o agente
-deve transferir a conversa para uma pessoa.
+As Fases 1 e 2 foram implementadas e revisadas. Na Fase 3, o worker e a revisão
+de sugestões foram implementados; ativação, validação real e OCR estão adiados.
+O envio ao provedor externo foi autorizado mediante ação explícita e aviso.
+A próxima frente é a Fase 4, iniciando pela base interna. Antes de conectar o
+WhatsApp, decidir provedor, responsável pelo atendimento e política de handoff.

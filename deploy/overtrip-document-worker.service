@@ -1,0 +1,21 @@
+[Unit]
+Description=OVERTRIP PDF extraction worker
+After=network.target
+
+[Service]
+Type=simple
+User=overtrip
+Group=overtrip
+WorkingDirectory=/srv/overtrip/app
+EnvironmentFile=/etc/overtrip/env
+ExecStart=/usr/bin/node dist/documentWorker.js
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/overtrip
+
+[Install]
+WantedBy=multi-user.target

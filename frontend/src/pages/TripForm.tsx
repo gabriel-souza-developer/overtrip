@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Save } from 'lucide-react';
-import { tripApi, TripFormData } from '../api';
+import { tripApi, settingsApi, TripFormData } from '../api';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../App';
 import { CityAutocomplete, UfSelect } from '../components/LocationFields';
@@ -18,6 +18,7 @@ import Field from '../components/Field';
 import FormSection from '../components/FormSection';
 import ConfirmDialog from '../components/ConfirmDialog';
 import AiDraftBlock from '../components/AiDraftBlock';
+import TripDocuments from '../components/TripDocuments';
 import PublicationReadinessPanel from '../components/PublicationReadinessPanel';
 import TripCardPreview from '../components/TripCardPreview';
 import { applySuggestions, type DraftKey, type TripDraft } from '../lib/aiDraft';
@@ -301,6 +302,7 @@ export default function TripForm() {
         </div>
       </div>
 
+      {id && user?.role === 'admin' && <TripDocuments key={id} tripId={id} form={formData as Record<string, unknown>} defaults={defaultsRef.current} onApply={applyAiDraft} />}
       <AiDraftBlock form={formData as Record<string, unknown>} defaults={defaultsRef.current} onApply={applyAiDraft} />
 
       <form id="trip-form" onSubmit={handleSubmit} noValidate className="space-y-4">

@@ -10,6 +10,9 @@ import dashboardRoutes from './routes/dashboardRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
 import publicRoutes from './routes/publicRoutes.js';
 import settingsRoutes from './routes/settingsRoutes.js';
+import assistantKnowledgeRoutes from './routes/assistantKnowledgeRoutes.js';
+
+import documentRoutes from './routes/documentRoutes.js';
 
 const app = express();
 
@@ -23,6 +26,7 @@ app.use(cors({
   origin: config.corsOrigin,
   credentials: true,
 }));
+app.use('/api/trips/:tripId/documents', documentRoutes);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
@@ -38,6 +42,7 @@ app.use('/api/visits', visitRoutes);
 app.use('/api/gallery', galleryRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/assistant-knowledge', assistantKnowledgeRoutes);
 app.use('/api/ai', aiRoutes);
 
 // 404 handler

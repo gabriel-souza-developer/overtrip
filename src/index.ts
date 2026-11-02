@@ -1,5 +1,8 @@
 import { config } from './config.js';
 import app from './app.js';
+import { startDocumentRetention } from './services/documentRetention.js';
+
+const stopDocumentRetention = startDocumentRetention();
 
 const server = app.listen(...([config.port, ...(config.host ? [config.host] : [])] as [number]), () => {
   console.log(`🚀 OVERTRIP API running on port ${config.port}`);
@@ -9,6 +12,7 @@ const server = app.listen(...([config.port, ...(config.host ? [config.host] : []
 
 // Graceful shutdown
 const shutdown = async (signal: string) => {
+  stopDocumentRetention();
   console.log(`\n${signal} received. Shutting down gracefully...`);
   server.close(() => {
     console.log('HTTP server closed');

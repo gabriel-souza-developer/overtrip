@@ -23,7 +23,7 @@ export interface AiRoutesDeps {
 
 let cachedProvider: { signature: string; provider: AiProvider | null } | null = null;
 
-function envProvider(): AiProvider | null {
+export function envProvider(): AiProvider | null {
   const signature = [process.env.GEMINI_API_KEY, process.env.GOOGLE_API_KEY, process.env.ANTHROPIC_API_KEY].join('|');
   if (!cachedProvider || cachedProvider.signature !== signature) {
     cachedProvider = { signature, provider: createProviderFromEnv() };

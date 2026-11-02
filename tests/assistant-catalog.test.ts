@@ -8,22 +8,34 @@ const base = {
   includes: '["Transporte"]', itinerary: null, importantInfo: '["Leve água"]', status: 'OPEN',
   media: '[{"src":"https://example.com/capa.jpg"}]',
 };
+const beforeTrip = new Date('2026-11-01T12:00:00Z');
 
 describe('catálogo interno do agente', () => {
   it('expõe apenas a projeção comunicável e pede handoff para reserva', () => {
-    expect(toAssistantCatalogTrip(base)).toEqual(expect.objectContaining({
+    expect(toAssistantCatalogTrip(base, beforeTrip)).toEqual(expect.objectContaining({
       title: 'Trilha do Jabre', availability: 'CONFIRMAR_COM_EQUIPE', handoffRequiredForBooking: true,
       departure: { status: 'DEFINIDO', city: 'Campina Grande', place: 'Rodoviária' },
     }));
+    expect(toAssistantCatalogTrip(base, beforeTrip)).not.toHaveProperty('media');
   });
 
   it('não inclui viagem esgotada ou não publicada', () => {
-    expect(toAssistantCatalogTrip({ ...base, spotsLeft: 0 })).toBeNull();
-    expect(toAssistantCatalogTrip({ ...base, status: 'DRAFT' })).toBeNull();
+    expect(toAssistantCatalogTrip({ ...base, spotsLeft: 0 }, beforeTrip)).toBeNull();
+    expect(toAssistantCatalogTrip({ ...base, status: 'DRAFT' }, beforeTrip)).toBeNull();
   });
 
   it('comunica embarque a confirmar sem inventar local', () => {
-    expect(toAssistantCatalogTrip({ ...base, meetingCity: null, meetingPoint: null, meetingTBD: true })?.departure)
+    expect(toAssistantCatalogTrip({ ...base, meetingCity: null, meetingPoint: null, meetingTBD: true }, beforeTrip)?.departure)
       .toEqual({ status: 'CONFIRMAR_COM_EQUIPE' });
+  });
+
+  it('não recomenda saídas anteriores ao dia atual em São Paulo', () => {
+    expect(toAssistantCatalogTrip(base, new Date('2026-12-02T03:00:00Z'))).toBeNull();
+    expect(toAssistantCatalogTrip(base, new Date('2026-12-02T02:59:00Z'))).not.toBeNull();
+  });
+
+  it('descarta itens vazios e recusa foto malformada', () => {
+    expect(toAssistantCatalogTrip({ ...base, includes: '[" ", " Transporte "]' }, beforeTrip)?.includes).toEqual(['Transporte']);
+    expect(toAssistantCatalogTrip({ ...base, media: '{' }, beforeTrip)).toBeNull();
   });
 });

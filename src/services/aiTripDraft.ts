@@ -28,7 +28,7 @@ export type StopReason = 'end' | 'refusal' | 'max_tokens' | 'other';
 export interface AiProvider {
   name: 'gemini' | 'anthropic';
   defaultModel: string;
-  generate(input: { system: string; userText: string; model: string }): Promise<{
+  generate(input: { system: string; userText: string; model: string; schema?: z.ZodType }): Promise<{
     object: unknown;
     stopReason: StopReason;
     usage?: { inputTokens: number; outputTokens: number };
@@ -301,7 +301,7 @@ export function describeProviderError(error: unknown, provider: string, model: s
   return info;
 }
 
-function mapProviderError(error: unknown): AiDraftError {
+export function mapProviderError(error: unknown): AiDraftError {
   if (error instanceof AiDraftError) return error;
   const e = error as { status?: unknown; message?: unknown };
   const status = typeof e?.status === 'number' ? e.status : 0;
@@ -317,13 +317,13 @@ export function createAnthropicProvider(client: AiClient): AiProvider {
   return {
     name: 'anthropic',
     defaultModel: DEFAULT_AI_MODEL,
-    async generate({ system, userText, model }) {
+    async generate({ system, userText, model, schema }) {
       const r = await client.messages.parse({
         model,
         max_tokens: MAX_TOKENS,
         system,
         messages: [{ role: 'user', content: userText }],
-        output_config: { effort: 'low', format: zodOutputFormat(aiDraftOutputSchema) },
+        output_config: { effort: 'low', format: zodOutputFormat(schema ?? aiDraftOutputSchema) },
       });
       const stopReason: StopReason =
         r.stop_reason === 'refusal' ? 'refusal' : r.stop_reason === 'max_tokens' ? 'max_tokens' : r.stop_reason === 'end_turn' ? 'end' : 'other';
@@ -344,11 +344,11 @@ export interface GeminiLikeClient {
 const GEMINI_BLOCK_REASONS = new Set(['SAFETY', 'PROHIBITED_CONTENT', 'BLOCKLIST', 'SPII', 'RECITATION', 'IMAGE_SAFETY']);
 
 export function createGeminiProvider(client: GeminiLikeClient): AiProvider {
-  const { $schema: _ignored, ...responseJsonSchema } = z.toJSONSchema(aiDraftOutputSchema) as Record<string, unknown>;
   return {
     name: 'gemini',
     defaultModel: DEFAULT_GEMINI_MODEL,
-    async generate({ system, userText, model }) {
+    async generate({ system, userText, model, schema }) {
+      const { $schema: _ignored, ...responseJsonSchema } = z.toJSONSchema(schema ?? aiDraftOutputSchema) as Record<string, unknown>;
       const r = await client.models.generateContent({
         model,
         contents: userText,

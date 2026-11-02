@@ -67,6 +67,15 @@ export const errorHandler = (
     return;
   }
 
+  // express.raw/json usam body-parser, cujo erro de limite não é AppError.
+  if ((err as Error & { type?: string; status?: number }).type === 'entity.too.large') {
+    res.status(413).json({
+      error: 'Arquivo grande demais para esta solicitação',
+      code: 'PAYLOAD_TOO_LARGE',
+    });
+    return;
+  }
+
   // Prisma errors
   if (err instanceof Prisma.PrismaClientKnownRequestError) {
     if (err.code === 'P2002') {

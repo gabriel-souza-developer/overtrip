@@ -3,6 +3,12 @@
 Tudo na mesma máquina e no mesmo domínio: site em `overtrip.com.br/`, painel em `/admin`, API em `/api`. O banco (SQLite) fica **fora** do repositório, com backup diário.
 Nada aqui foi publicado ainda. Cada passo abaixo é feito por você, na ordem.
 
+**Migração histórica:** `0_init` teve texto de aviso do Prisma removido do fim
+do SQL. Isso muda seu checksum. Em bancos que já registraram essa migração,
+faça backup e verifique o histórico antes de usar comandos de desenvolvimento;
+não execute reset nem modifique `_prisma_migrations` automaticamente. Em banco
+novo, `prisma migrate deploy` aplica a cadeia completa normalmente.
+
 ## 1. Criar a máquina
 Na Oracle Cloud, crie uma instância Ubuntu (pode ser ARM, "Ampere"). Guarde o IP público e entre por SSH com a chave que a Oracle gerar.
 

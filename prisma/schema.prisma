@@ -124,6 +124,7 @@ model TripDocument {
   extractionStartedAt DateTime?
   extractedAt       DateTime?
   extractionError   String?
+  pages             TripDocumentPage[]
 
   // Retenção vale para o arquivo físico e para os metadados. Após excluir o
   // arquivo, deletedAt preserva uma trilha mínima de auditoria até a limpeza.
@@ -134,7 +135,19 @@ model TripDocument {
 
   @@index([tripId])
   @@index([scanStatus])
+  @@index([extractionStatus, scanStatus])
   @@index([retentionUntil])
+}
+
+// Texto privado, separado por página para preservar a origem das futuras sugestões.
+model TripDocumentPage {
+  id         String       @id @default(cuid())
+  documentId String
+  document   TripDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  pageNumber Int
+  text       String
+
+  @@unique([documentId, pageNumber])
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -274,8 +287,31 @@ model User {
   role      String   @default("admin")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  approvedKnowledge AssistantKnowledgeVersion[]
   
   @@index([email])
+}
+
+// Cada registro é uma versão aprovada completa; o serviço não altera versões.
+model AssistantKnowledgeVersion {
+  version      Int      @id @default(autoincrement())
+  entries      String   // JSON validado pelo serviço
+  approvedById String
+  approvedBy   User     @relation(fields: [approvedById], references: [id], onDelete: Restrict)
+  approvedAt   DateTime @default(now())
+  responseAudits AssistantResponseAudit[]
+}
+
+// Metadados mínimos, sem texto de conversa ou identificadores de clientes.
+model AssistantResponseAudit {
+  id               String   @id @default(cuid())
+  knowledgeVersion Int?
+  knowledge        AssistantKnowledgeVersion? @relation(fields: [knowledgeVersion], references: [version], onDelete: Restrict)
+  outcome          String
+  createdAt        DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([knowledgeVersion])
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
