@@ -1,5 +1,18 @@
 # Viagens, IA e Agente OVERTRIP — plano de evolução
 
+## Ideias futuras a avaliar — referência ViajaHUB
+
+Referência consultada em 03/11/2026: [ViajaHUB](https://www.viajahub.tur.br/). As ideias abaixo são hipóteses para descoberta e priorização após o MVP atual; não são recursos prontos nem alteram as fases já definidas.
+
+- **Atendimento e CRM:** vincular interessados às viagens, com histórico, responsável e próximos contatos; avaliar como integrar o fluxo de WhatsApp existente.
+- **Reservas e disponibilidade:** avaliar solicitações de reserva vinculadas à viagem, vagas e dados dos participantes, com regras claras de confirmação.
+- **Financeiro por reserva:** estudar parcelas, registro de recebimentos e avisos; considerar a premissa de sinal de 50% já discutida, sujeita à validação comercial e operacional.
+- **Propostas e documentos:** investigar propostas com marca própria, compartilhamento e revisão humana, respeitando o adiamento atual de PDF/OCR.
+- **Catálogo por operação:** explorar personalização de marca e catálogo; antes de oferecer a múltiplas empresas, definir isolamento de dados, permissões e implantação.
+- **Experiência de implantação:** considerar um fluxo guiado para configurar informações iniciais, apoio à migração e exportação dos dados.
+
+Os detalhes, custos, dependências e prioridade dessas possibilidades dependem de pesquisa com usuários e planejamento futuro.
+
 ## Objetivo
 
 Uma viagem é um único registro operacional no banco. Site, painel e Agente
@@ -108,7 +121,8 @@ configurações globais.
 
 ### Fase 4 — Agente OVERTRIP no WhatsApp
 
-- O protótipo local de referência usa n8n, WAHA e PostgreSQL para receber mensagens, consultar viagens e FAQ, manter contexto, transcrever áudio e transferir para a equipe. Seu arquivo exportado não é versionado por conter referências operacionais. É referência de comportamento e integração, não arquitetura final nem autorização para conectar o novo sistema.
+- O protótipo local de referência `docs/OVERTRIP Assistente WhatsApp v31.json` usa n8n, WAHA e PostgreSQL para receber mensagens, consultar viagens e FAQ, manter contexto, transcrever áudio e transferir para a equipe. Seu arquivo exportado não é versionado por conter referências operacionais. É referência de comportamento e integração, não arquitetura final nem autorização para conectar o novo sistema.
+- Decisão posterior: usar WAHA/n8n do protótipo; o grupo de avisos já está configurado. O fluxo ativo não deve ser alterado antes de adaptar e validar as fontes e resolver a duplicidade do estado de atendimento, conforme `docs/FASE_4_AGENTE.md`.
 - Preservar no desenho futuro os comportamentos úteis do protótipo: resposta humanizada baseada em fatos aprovados, consulta de disponibilidade, transferência explícita ao humano quando solicitada ou necessária e retorno controlado ao assistente.
 - Criar autenticação serviço-a-serviço, catálogo privado, conhecimento
   versionado e auditoria de respostas.
@@ -134,5 +148,13 @@ configurações globais.
 As Fases 1 e 2 foram implementadas e revisadas. Na Fase 3, o worker e a revisão
 de sugestões foram implementados; ativação, validação real e OCR estão adiados.
 O envio ao provedor externo foi autorizado mediante ação explícita e aviso.
-A próxima frente é a Fase 4, iniciando pela base interna. Antes de conectar o
-WhatsApp, decidir provedor, responsável pelo atendimento e política de handoff.
+O usuário optou por adiar a integração do WhatsApp e priorizar o MVP do site e
+painel: criação de viagens, prévia durante o preenchimento, publicação, dados
+públicos corretos, revisão de segurança, testes e preparação de infraestrutura.
+A prévia é ilustrativa e acompanha o formulário sem salvar ou publicar. O
+fluxo WAHA/n8n existente permanece em uso separado; a entrada é de 50%, mas a
+ficha do protótipo precisará ser atualizada e validada em etapa posterior.
+
+Antes de colocar o MVP no ar, validar o ambiente real, cópia de backup fora do
+servidor e restauração nesse ambiente. Os testes locais não substituem essa
+verificação; PDFs e a nova integração de WhatsApp continuam adiados.

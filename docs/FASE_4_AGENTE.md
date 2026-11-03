@@ -2,7 +2,8 @@
 
 ## Ponto de partida
 
-O protótipo n8n/WAHA é uma referência de comportamento, não uma integração
+O protótipo `docs/OVERTRIP Assistente WhatsApp v31.json` é a referência local
+n8n/WAHA de comportamento, não uma integração
 aprovada. A aplicação já dispõe de um catálogo interno derivado de `Trip`, sem
 rota HTTP, que exclui viagens não publicadas, indisponíveis ou com saída em dia
 passado. Disponibilidade desconhecida e embarque a confirmar são explícitos;
@@ -32,7 +33,8 @@ Paulo. O catálogo não inclui documentos, notas internas ou dados de clientes.
    mantém o aviso pendente, confirmação o marca como enviado e a equipe assumir
    cancela avisos ainda pendentes ou reservados. A fila interna reserva uma
    tentativa por token com expiração, recupera reservas interrompidas e agenda
-   nova tentativa após falha. Ainda não há processo consumidor nem envio real.
+   nova tentativa após falha. Há uma função processadora testada com adaptador
+   simulado; ainda não há processo persistente nem envio real.
    Um envio externo pode ter ocorrido antes de uma queda ou cancelamento; o
    conector deve usar chave idempotente no provedor quando disponível e tratar
    a possibilidade de aviso duplicado. A reserva não impede envio já iniciado.
@@ -56,17 +58,53 @@ o agente não pode afirmar que foram concluídos por conta própria.
 
 ## Decisões pendentes antes da integração
 
-- Provedor e modalidade de WhatsApp; política de opt-in e limites de automação.
+- Integração escolhida: WAHA/n8n do protótipo; os avisos já têm grupo definido.
+  Ainda faltam política de opt-in e limites de automação.
 - Responsável pelo atendimento, horários, canais de aviso e alternativa quando
   ninguém assumir; condições e autorização para retorno ao assistente.
 - Quem aprova e atualiza a base de conhecimento, retenção e acesso à auditoria.
 - Como aprovar campos comunicáveis e como tratar disponibilidade sujeita a
   confirmação. Não presumir que todo conteúdo operacional seja público.
 
-Não há canal conectado, endpoint de serviço nem auditoria de respostas reais.
-A verificação interna de credencial própria está implementada, mas ainda não
-está ligada a uma rota; escopos, rotação e transporte seguro serão definidos
-antes de expor o conector. Não concede ações humanas ao conector.
+## Integração com o protótipo n8n/WAHA
+
+O arquivo local v31 contém 61 nós. O protótipo consulta fontes de viagens e conhecimento por HTTP e mantém o
+estado do atendimento no PostgreSQL. A transferência grava o estado, envia
+aviso pelo WAHA ao grupo já configurado e registra o resultado. Não criar um
+segundo envio automático pela fila local enquanto esse fluxo estiver ativo.
+
+O formato do catálogo e da base privada é diferente das fontes do protótipo;
+trocar somente as URLs não é suficiente. Antes de ativar a integração:
+
+1. No MVP, preservar no n8n/PostgreSQL o estado, os avisos ao grupo e os prazos
+   automáticos da versão 31 (12h após resposta ou 72h sem resposta); a máquina
+   nova não deve rodar em paralelo. Monitorar atendimentos pendentes e validar
+   os prazos com a equipe durante a operação.
+2. Adaptar e testar em cópia do fluxo a conversão do catálogo e da FAQ para o
+   contrato esperado pelo prompt, inclusive base vazia e disponibilidade incerta.
+   A versão aprovada da FAQ deve acompanhar a auditoria de respostas.
+   O serviço privado oferece `/n8n/trips` como projeção inicial reduzida; não
+   é substituição completa da API pública: a montagem da ficha do protótipo usa
+   campos adicionais e assume entrada de 50% quando a base não informa valor.
+   Remover esse padrão implícito na cópia, exigir informação aprovada e testar
+   fichas sem preço, com regras ausentes e com disponibilidade desconhecida.
+   A FAQ versionada é lista de perguntas e respostas, diferente do objeto
+   estruturado esperado por `montaFicha`; faltam adaptação e revisão humana.
+3. Configurar a credencial no gerenciador do n8n, sem incluí-la no fluxo
+   exportado. O serviço privado escuta em loopback: n8n em outro container ou
+   máquina precisará de transporte privado autenticado, sem expor a porta no
+   proxy público; não presumir que os ambientes compartilhem loopback.
+4. Validar mensagens, transferência, falha de aviso e retomada em ambiente
+   isolado antes de alterar o workflow ativo. Nunca duplicar notificações no
+   grupo existente durante testes.
+
+Não há canal conectado nem auditoria de respostas reais. Existe um serviço
+separado, somente leitura, que escuta exclusivamente em 127.0.0.1 e exige
+credencial própria: `ASSISTANT_SERVICE_SECRET` de 32 bytes em hexadecimal;
+`npm run start:assistant-private` inicia o serviço compilado na porta 3010
+(configurável por `ASSISTANT_SERVICE_PORT`). Não é montado na API pública.
+O serviço não concede ações humanas; rotação, limites e transporte entre
+máquinas precisam ser definidos antes de qualquer integração externa.
 A gestão HTTP de conhecimento exige autenticação e papel de administrador; ela
 não é uma API do conector. A migração precisa ser aplicada no ambiente quando
 esta etapa for implantada. Informações inseridas são dados, não instruções de
@@ -84,5 +122,5 @@ sistema. Antes de usá-las em respostas, definir responsabilidades operacionais.
 - O contrato não concede escrita em viagens, reservas ou conhecimento; não
   garante vaga, pagamento ou transferência. A auditoria deve registrar versão,
   resultado e identificadores mínimos, com retenção a definir.
-- Não publicar endpoint, conectar WhatsApp ou escolher fornecedor antes das
-  decisões e da aprovação específica previstas no plano principal.
+- Não expor o serviço fora do loopback nem alterar o fluxo ativo antes de
+  definir o transporte privado e validar a integração em ambiente isolado.

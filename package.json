@@ -21,6 +21,7 @@
     "test:e2e": "playwright test",
     "test:watch": "vitest",
     "worker:documents": "node dist/documentWorker.js",
+    "start:assistant-private": "node dist/assistantPrivateServer.js",
     "dev:worker:documents": "tsx src/documentWorker.ts"
   },
   "dependencies": {
