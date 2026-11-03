@@ -59,7 +59,19 @@ export const tripCreateSchema = z.object({
   })).optional().default([]),
 });
 
-export const tripUpdateSchema = tripCreateSchema.partial();
+// Zod 4 applies defaults inside optional properties. Updates must preserve
+// omitted fields instead of silently resetting them to their create defaults.
+export const tripUpdateSchema = tripCreateSchema.extend({
+  scheduleTBD: tripCreateSchema.shape.scheduleTBD.removeDefault(),
+  free: tripCreateSchema.shape.free.removeDefault(),
+  intensityClass: tripCreateSchema.shape.intensityClass.removeDefault(),
+  meetingTBD: tripCreateSchema.shape.meetingTBD.removeDefault(),
+  includes: tripCreateSchema.shape.includes.removeDefault(),
+  media: tripCreateSchema.shape.media.removeDefault(),
+  status: tripCreateSchema.shape.status.removeDefault(),
+  availabilitySchema: tripCreateSchema.shape.availabilitySchema.removeDefault(),
+  departures: tripCreateSchema.shape.departures.removeDefault(),
+}).partial();
 
 export const tripQuerySchema = z.object({
   status: z.enum(['DRAFT', 'REVIEW', 'OPEN', 'COMPLETED', 'CANCELLED', 'SOLD_OUT', 'CLOSED']).optional(),
@@ -101,7 +113,9 @@ export const visitCreateSchema = z.object({
   storedIdentity: z.string().optional(),
 });
 
-export const visitUpdateSchema = visitCreateSchema.partial();
+export const visitUpdateSchema = visitCreateSchema.extend({
+  needsReview: visitCreateSchema.shape.needsReview.removeDefault(),
+}).partial();
 
 export const visitQuerySchema = z.object({
   needsReview: queryBoolean,
@@ -131,7 +145,10 @@ export const galleryCreateSchema = z.object({
   storedIdentity: z.string().optional(),
 });
 
-export const galleryUpdateSchema = galleryCreateSchema.partial();
+export const galleryUpdateSchema = galleryCreateSchema.extend({
+  isFeatured: galleryCreateSchema.shape.isFeatured.removeDefault(),
+  orderIndex: galleryCreateSchema.shape.orderIndex.removeDefault(),
+}).partial();
 
 export const galleryQuerySchema = z.object({
   isFeatured: queryBoolean,
