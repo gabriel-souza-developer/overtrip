@@ -1,3 +1,5 @@
+# MODELO HISTÓRICO: NÃO instale na Oracle atual. Veja deploy/ORACLE_STATUS.md.
+# Não preserva o bind do Tailscale e inclui caminhos de dados privados.
 # OVERTRIP — Caddy (HTTPS automático). Ajuste SITE_ROOT se o código ficar em outro lugar.
 # Código em /srv/overtrip/app ; painel compilado em /srv/overtrip/app/dist/frontend
 

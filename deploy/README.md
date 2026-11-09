@@ -1,5 +1,15 @@
 # Colocar o OVERTRIP no ar (máquina Oracle)
 
+> **Atenção: roteiro histórico.** A Oracle já está publicada e difere das
+> instruções abaixo. Consulte primeiro [ORACLE_STATUS.md](ORACLE_STATUS.md).
+> Não execute os comandos de firewall, publicação, atualização ou restauração
+> deste roteiro na VM atual sem revisão: o Caddy usa bind específico para
+> preservar o Tailscale, os arquivos públicos ficam em `/srv/overtrip-public`
+> e `/srv/overtrip/app` foi instalado por `git archive` e não possui Git.
+> Não use `netfilter-persistent save` para capturar regras dinâmicas do Tailscale.
+> A restauração SQLite abaixo também precisa de procedimento revisado e backup
+> consistente antes de sua execução.
+
 Tudo na mesma máquina e no mesmo domínio: site em `overtrip.com.br/`, painel em `/admin`, API em `/api`. O banco (SQLite) fica **fora** do repositório, com backup diário.
 Nada aqui foi publicado ainda. Cada passo abaixo é feito por você, na ordem.
 
