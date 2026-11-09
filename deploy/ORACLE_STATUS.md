@@ -1,6 +1,6 @@
 # Estado da preparação na Oracle
 
-Registro atualizado em 9 de novembro de 2026, com base nas saídas da VM compartilhadas pelo operador. O domínio público continua hospedado na HostGator; a Oracle ainda não recebe o tráfego público do domínio.
+Registro atualizado em 9 de novembro de 2026, com base nas saídas da VM e em consulta DNS pública. O domínio continua hospedado na HostGator; a delegação autoritativa observada é `ns64.hostgator.com.br` e `ns65.hostgator.com.br`, portanto a zona DNS atual é gerenciada pela HostGator, não pela Cloudflare. A Oracle ainda não recebe o tráfego público do domínio.
 
 ## Preparado
 
@@ -21,7 +21,7 @@ Registro atualizado em 9 de novembro de 2026, com base nas saídas da VM compart
 
 ## Próximos passos
 
-1. No Cloudflare, apontar os registros A de `overtrip.com.br` e `www` para `136.248.78.185` quando for a hora da publicação. O domínio permanece na HostGator até essa alteração; registrar a configuração anterior para retorno. Preferir DNS only durante a validação inicial do certificado Caddy.
+1. Na zona DNS da HostGator, apontar os registros A de `overtrip.com.br` e `www` para `136.248.78.185` quando for a hora da publicação. Registrar a configuração anterior para retorno e preservar registros de e-mail (MX/TXT) e outros serviços. Preferir a validação direta na Oracle antes de alterar DNS; manter a hospedagem HostGator para retorno.
 2. Após a mudança, acompanhar `journalctl -u caddy` e confirmar certificado, HTTP/HTTPS, site, painel, API e respostas 404 para caminhos privados. Manter a hospedagem HostGator disponível até validar tudo.
 3. Confirmar externamente que as regras TCP 80/443 da VCN estão aplicadas. A tentativa anterior de conexão às portas ocorreu antes da ativação do Caddy; ainda não há teste externo bem-sucedido registrado.
 4. Não instalar cegamente o `deploy/Caddyfile` versionado: ele é um modelo genérico antigo, aponta para `/srv/overtrip/app` e lista `/trips.json` e `/knowledge.json`, diferindo da configuração privada preparada na VM.
