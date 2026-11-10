@@ -154,3 +154,35 @@ sudo rm -f /var/lib/overtrip/overtrip.db-wal /var/lib/overtrip/overtrip.db-shm
 sudo mv /var/lib/overtrip/restauracao.tmp.db /var/lib/overtrip/overtrip.db
 sudo systemctl start overtrip-api
 ```
+
+## Assistente WhatsApp (n8n) — serviço privado
+
+O fluxo `docs/OVERTRIP Assistente WhatsApp v35.json` busca viagens e base de conhecimento
+no serviço privado (`/n8n/v2/trips` e `/n8n/v2/knowledge`), que só escuta em `127.0.0.1:3010`
+e é publicado **apenas na tailnet** pelo `tailscale serve`. Nada passa pelo Caddy.
+A v35 é gerada da v34 por `python3 -I scripts/build-assistant-v35.py`. O repositório guarda só versões
+com marcadores (`__WAHA_HOST__`, `__TAILNET_HOST__`, `__TEAM_GROUP_ID__`, `__WEBHOOK_PATH__`); o fluxo real
+fica em `docs/local/` (fora do git). Com a v34 real em `docs/local/`, o script gera lá a v35 pronta para importar.
+
+Na VM (a credencial é gerada lá e nunca vai para o repositório):
+```
+sudo sh -c 'umask 077; printf "ASSISTANT_SERVICE_SECRET=%s\n" "$(openssl rand -hex 32)" > /etc/overtrip/assistant.env'
+sudo cp deploy/overtrip-assistant.service /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now overtrip-assistant
+sudo tailscale serve --bg --https=8443 http://127.0.0.1:3010
+sudo tailscale serve status        # deve listar :8443 (tailnet only) além do Qwen em :443
+```
+Teste a partir de uma máquina da tailnet (sem credencial deve dar 401):
+```
+curl -s -o /dev/null -w '%{http_code}\n' https://<host-da-vm>.<tailnet>.ts.net:8443/n8n/v2/trips   # mesmo host do Qwen
+```
+No n8n:
+1. Crie a credencial **Header Auth** chamada `OVERTRIP Serviço Privado`: nome `Authorization`,
+   valor `Bearer <segredo>` (o valor está em `/etc/overtrip/assistant.env`; leia na VM com `sudo cat`).
+2. Importe `docs/local/OVERTRIP Assistente WhatsApp v35.json` (entra **desligada** e como fluxo novo), selecione essa credencial nos nós
+   "Consulta trips do site" e "Consulta base de conhecimento" e teste com uma conversa.
+3. Desative a v34 e ative a v35 (as duas usam o mesmo webhook do WAHA; só uma pode ficar ativa).
+
+A entrada da reserva vem de `reservation.depositPercentage` no `knowledge.json` (50%).
+A FAQ aprovada no painel substitui a do arquivo quando existir uma versão aprovada.
+Para voltar: reative a v34 (que depende do `/trips.json`, indisponível na Oracle).
