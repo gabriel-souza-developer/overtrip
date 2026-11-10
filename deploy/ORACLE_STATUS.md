@@ -19,6 +19,9 @@ Registro atualizado em 9 de novembro de 2026, com base nas saídas da VM, consul
 - Teste temporário do Caddy como usuário `caddy`, em loopback na porta 8090, passou: site, CSS, painel, JS do painel e API retornaram HTTP 200; `/knowledge.json` e `/trips.json` retornaram HTTP 404. A unidade temporária foi parada ao fim do teste. O inventário preparado exclui esses arquivos de dados privados.
 - A configuração de armazenamento de documentos foi omitida; o worker de documentos não foi habilitado. Não presumir que PDFs tenham sido transferidos.
 
+- Em 10 de novembro (01:53 UTC), o operador publicou a versão de interface: logout com revogação de sessão (sessão padrão de 2h, `JWT_EXPIRES_IN` não definido; todos precisaram entrar de novo), filtro por categoria, nova seção de depoimentos, reutilização de viagem e log de erros sem dados pessoais. Sem migração nem mudança de dependências. O script de instalação fez backup do banco, guardou a versão anterior em `/srv/overtrip/retorno-final-20261110-015323` e conferiu `/health`, `/api/public/trips`, `/`, `/admin/` (200) e logout sem token (401). Teste externo confirmou as mesmas rotas, 404 para `/js/script.js`, `/css/styles.css`, `/.index-novo.html` e `/trips.json`, e o navegador não registrou erros de JavaScript.
+- O monitor `overtrip-health.timer` roda a cada 5 minutos como `overtrip` (sem root) e registrou apenas `OK` após a publicação. Ainda não envia alertas para fora da VM.
+
 ## Próximos passos
 
 1. Acompanhar a propagação DNS e o funcionamento público; manter a HostGator disponível para retorno. Se necessário, reverter o A principal ao valor anterior, preservando os demais registros.
@@ -28,7 +31,7 @@ Registro atualizado em 9 de novembro de 2026, com base nas saídas da VM, consul
 5. Preparar armazenamento, scanner e backup dos PDFs antes de habilitar o processamento de documentos.
 6. Confirmar periodicamente a execução e a restauração dos backups; não foi criado backup adicional antes do reinício por decisão do operador.
 7. Verificar e remover o acesso SSH temporário de transferência quando não for mais necessário, preservando as demais chaves autorizadas.
-8. A branch local `feat/evolucao-painel-viagens` contém trabalho de interessados, reservas e propostas, ainda não implantado na VM. Definir e testar o procedimento de atualização antes de instalá-lo; `/srv/overtrip/app` veio de `git archive` e não aceita `git pull`.
+8. O CRM de interessados e reservas e a prévia de proposta (branch `feat/evolucao-painel-viagens`) ainda não foram implantados: exigem 3 migrações novas no banco. Definir e testar o procedimento de atualização antes de instalá-lo; `/srv/overtrip/app` veio de `git archive` e não aceita `git pull`.
 
 ## Auditoria de segurança (9 de novembro de 2026)
 
