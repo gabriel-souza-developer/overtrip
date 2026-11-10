@@ -2,6 +2,13 @@
 
 Registro atualizado em 10 de novembro de 2026 após publicação do pacote principal baseado no commit `5f4583f` e do painel `d503876`. O site está publicado na Oracle. A zona DNS continua na HostGator (`ns64.hostgator.com.br` e `ns65.hostgator.com.br`); mantenha a hospedagem anterior disponível até a migração estar consolidada.
 
+## Painel com o laranja do site (10 de novembro, 08:53 UTC)
+
+- Publicado só o painel do commit `629b1b6`, compilado a partir de `git archive`, pacote SHA-256 `6f21680fba58d4c4566ccda9b5469ca8a4ffe720ced9d77c12290c4fd3dcfc4b`. API, site, banco, dependências e serviços não mudaram. Retorno em `/srv/overtrip/retorno-painel-20261110-085313`.
+- O painel troca os tons escuros (`#BF5200`/`#993E00`) pelo laranja do site (`#E26B1B`) e escreve as datas por extenso com maiúscula só na primeira letra. Decisão de marca: textos pequenos em `#E26B1B` ficam abaixo de 4,5:1 sobre branco; o foco mantém 3,3:1.
+- O instalador conferiu `/admin/` e seus arquivos (200), saúde, API pública e site (200), `/api/leads` sem login (401) e API, Caddy e timers ativos. Teste externo confirmou o CSS servido só com o laranja da marca e o tom claro do hover. Testes locais: 624 aprovados, tipos e build.
+- O serviço do assistente (`overtrip-assistant`) continua não instalado e a porta 8443 não está publicada na tailnet.
+
 ## Atualização visual do painel
 
 - Publicado o painel do commit `d503876`, compilado a partir de `git archive`, SHA-256 `a55fc1064f802dae8727eaaa97cbc1b7a5c502e95d5a6edbd7195644484d3d9d`. A versão anterior está em `/srv/overtrip/retorno-painel-20261110-073749`.
