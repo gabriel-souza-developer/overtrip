@@ -1,7 +1,8 @@
 import { z } from 'zod';
-import { isValidImageSrc, IMAGE_SRC_MESSAGE } from './imageSrc.js';
+import { isValidImageSrc, IMAGE_SRC_MESSAGE, hasRequiredAlt, UPLOADED_ALT_MESSAGE } from './imageSrc.js';
 
 export const imageSrcSchema = z.string().refine(isValidImageSrc, { message: IMAGE_SRC_MESSAGE });
+const requireUploadedAlt = { message: UPLOADED_ALT_MESSAGE, path: ['alt'] };
 
 // Trip schemas
 export const tripCreateSchema = z.object({
@@ -43,7 +44,7 @@ export const tripCreateSchema = z.object({
     alt: z.string(),
     focus: z.string().optional(),
     type: z.enum(['image', 'video']).optional(),
-  })).default([]),
+  }).refine(hasRequiredAlt, requireUploadedAlt)).default([]),
   buttonLabel: z.string().trim().min(1, 'Texto do botão é obrigatório').optional(),
   buttonClass: z.string().trim().min(1, 'Estilo do botão é obrigatório').optional(),
   status: z.enum(['DRAFT', 'REVIEW', 'OPEN', 'COMPLETED', 'CANCELLED', 'SOLD_OUT', 'CLOSED']).default('DRAFT'),
@@ -105,7 +106,7 @@ export const visitCreateSchema = z.object({
   images: z.array(z.object({
     src: imageSrcSchema,
     alt: z.string(),
-  })).optional().nullable(),
+  }).refine(hasRequiredAlt, requireUploadedAlt)).optional().nullable(),
   tripId: z.string().cuid().optional().nullable(),
   needsReview: z.boolean().default(true),
   notes: z.string().optional().nullable(),
@@ -137,7 +138,7 @@ export const galleryCreateSchema = z.object({
   images: z.array(z.object({
     src: imageSrcSchema,
     alt: z.string(),
-  })).min(1, 'Pelo menos uma imagem é obrigatória'),
+  }).refine(hasRequiredAlt, requireUploadedAlt)).min(1, 'Pelo menos uma imagem é obrigatória'),
   tripId: z.string().cuid().optional().nullable(),
   visitId: z.string().cuid().optional().nullable(),
   isFeatured: z.boolean().default(false),

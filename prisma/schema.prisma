@@ -175,6 +175,28 @@ model TripDocument {
   @@index([retentionUntil])
 }
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// MEDIA_ASSET: Imagens enviadas pelo painel (só metadados)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Os arquivos ficam em UPLOADS_DIR (fora do repositório e do site publicado),
+// reprocessados e sem EXIF. storageKey é gerado pelo servidor; o nome do
+// arquivo enviado não é guardado. path é o src público da versão principal.
+model MediaAsset {
+  id            String   @id @default(cuid())
+  storageKey    String   @unique
+  path          String   @unique
+  mimeType      String
+  width         Int
+  height        Int
+  sizeBytes     Int      // versão principal reprocessada
+  originalBytes Int      // arquivo recebido
+  sha256        String   // do arquivo recebido; evita duplicar o mesmo envio
+  createdById   String
+  createdAt     DateTime @default(now())
+
+  @@index([sha256])
+}
+
 // Texto privado, separado por página para preservar a origem das futuras sugestões.
 model TripDocumentPage {
   id         String       @id @default(cuid())

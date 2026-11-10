@@ -59,3 +59,44 @@ describe('regra compartilhada com o painel', () => {
     expect(isValidImageSrc('javascript:alert(1)')).toBe(false);
   });
 });
+
+import { isUploadedMediaSrc } from '../src/validators/imageSrc';
+describe('imagens enviadas pelo painel', () => {
+  const key = '0123456789abcdef0123456789abcdef';
+  it.each([`/api/public/media/${key}.jpg`, `/api/public/media/${key}.png`])('aceita %s', (v) => {
+    expect(imageSrcSchema.safeParse(v).success).toBe(true);
+    expect(isUploadedMediaSrc(v)).toBe(true);
+  });
+
+  it.each([
+    `api/public/media/${key}.jpg`,
+    `/api/public/media/${key}-w640.webp`,
+    `/api/public/media/${key}.JPG`,
+    `/api/public/media/${key.toUpperCase()}.jpg`,
+    `/api/public/media/${key}.jpg?x=1`,
+    `/api/public/media/${key}.jpg#a`,
+    `/api/public/media/../${key}.jpg`,
+    `/api/public/media/%2e%2e/${key}.jpg`,
+    `/api/public/media/${key.slice(1)}.jpg`,
+    `/api/public/media/${key}.svg`,
+    `/api/public/media/${key}.jpg/x`,
+    `/api/public/media/sub/${key}.jpg`,
+    `/api/private/media/${key}.jpg`,
+    `//api/public/media/${key}.jpg`,
+    `/api/public/media/${key}.jpg\n`,
+    `javascript:/api/public/media/${key}.jpg`,
+  ])('recusa %j', (v) => {
+    expect(imageSrcSchema.safeParse(v).success).toBe(false);
+  });
+
+  it('exige texto alternativo só para a foto enviada', () => {
+    const base = { title: 't', category: 'c', description: 'd', city: 'c', region: 'r', startDateISO: '2026-12-01T06:00:00-03:00' };
+    const uploaded = `/api/public/media/${key}.jpg`;
+    const tripIssues = tripCreateSchema.safeParse({ ...base, media: [{ src: uploaded, alt: '  ' }] }).error?.issues ?? [];
+    expect(tripIssues.some((i) => i.path.join('.') === 'media.0.alt')).toBe(true);
+    expect(tripCreateSchema.safeParse({ ...base, media: [{ src: uploaded, alt: 'Grupo na cachoeira' }] }).success).toBe(true);
+    expect(tripCreateSchema.safeParse({ ...base, media: [{ src: 'assets/images/a.jpg', alt: '' }] }).success).toBe(true);
+    expect(galleryUpdateSchema.safeParse({ images: [{ src: uploaded, alt: '' }] }).success).toBe(false);
+    expect(galleryUpdateSchema.safeParse({ images: [{ src: uploaded, alt: 'Trilha' }] }).success).toBe(true);
+  });
+});

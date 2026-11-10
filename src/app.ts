@@ -16,6 +16,7 @@ import documentRoutes from './routes/documentRoutes.js';
 import leadRoutes from './routes/leadRoutes.js';
 import reservationRoutes from './routes/reservationRoutes.js';
 import systemRoutes from './routes/systemRoutes.js';
+import mediaRoutes from './routes/mediaRoutes.js';
 
 const app = express();
 
@@ -30,6 +31,8 @@ app.use(cors({
   credentials: true,
 }));
 app.use('/api/trips/:tripId/documents', documentRoutes);
+// Envio de imagens: corpo bruto, montado antes do express.json.
+app.use('/api/media', mediaRoutes);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
