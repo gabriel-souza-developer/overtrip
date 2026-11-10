@@ -1,6 +1,15 @@
 # Estado da produção na Oracle
 
-Registro atualizado em 10 de novembro de 2026 após publicação do pacote baseado no commit `90ee0af`. O site está publicado na Oracle. A zona DNS continua na HostGator (`ns64.hostgator.com.br` e `ns65.hostgator.com.br`); mantenha a hospedagem anterior disponível até a migração estar consolidada.
+Registro atualizado em 10 de novembro de 2026 após publicação do pacote baseado no commit `5f4583f`. O site está publicado na Oracle. A zona DNS continua na HostGator (`ns64.hostgator.com.br` e `ns65.hostgator.com.br`); mantenha a hospedagem anterior disponível até a migração estar consolidada.
+
+## Painel, CRM e reservas em 10 de novembro
+
+- Publicado o commit `5f4583f`, compilado a partir de `git archive`, pacote SHA-256 `a902a8bd32af9975987b842269a96aa4aa3a3629242bbc01b82cc18406e09b5f`. O pacote Prisma contém somente esquema, migrações e seed, sem bancos de desenvolvimento ou arquivos de ambiente. Retorno de código em `/srv/overtrip/retorno-20261110-073104`.
+- Publicados calendário e indicadores do painel, cadastro de destino visitado, avisos de fotos e campos pendentes, página Riders redesenhada e CRM/reservas. Aplicadas as três migrações `20261103010000_leads_crm`, `20261103020000_reservations` e `20261103103000_reservation_lead`: 15 migrações aplicadas, `integrity_check` igual a `ok`, quatro viagens e uma mídia mantidas na conferência. Não foram criados clientes nem reservas de teste em produção.
+- Antes da publicação, as migrações foram ensaiadas numa cópia isolada do banco da VM, com contagens preservadas e comparação Prisma sem diferenças. Em banco temporário, o código anterior continuou funcionando após as migrações e retornou 409 ao excluir viagem com reserva. Retorno de código não restaura o banco: dados de CRM existentes precisam ser preservados, mesmo que o painel anterior não os mostre.
+- `/`, `/admin/`, `/riders/`, `/health` e `/api/public/trips` retornaram 200; `/api/leads` e `/api/reservations` sem login retornaram 401, e `/.git/config` retornou 404. API, Caddy, Tailscale e os timers de backup/monitor ativos; monitor `ok`. O assistente auxiliar continua inativo. Testes locais: 620 aprovados, dois ignorados; 17 testes de navegador aprovados, além de testes da migração e retorno.
+- Reservas e parcelas são registros administrativos manuais: não processam pagamentos e não descontam vagas automaticamente. Acesso ao CRM/reservas é restrito ao administrador. O uso de PDF em produção depende de armazenamento, scanner e worker ainda não preparados; verificar disponibilidade antes de orientar usuários.
+- Revisão do Claude identificou `test.db` indevido em `/srv/overtrip/app/prisma`, trazido em publicação anterior. Arquivo movido sem exclusão para `/var/lib/overtrip-quarentena/teste-publicacao-20261110.db`, diretório root 700 e arquivo root 600; nenhum `*.db` permaneceu no diretório Prisma da aplicação.
 
 ## Correções de viagens de 10 de novembro
 
@@ -48,7 +57,7 @@ Registro atualizado em 10 de novembro de 2026 após publicação do pacote basea
 5. Preparar armazenamento, scanner e backup dos PDFs antes de habilitar o processamento de documentos.
 6. Confirmar periodicamente a execução e a restauração dos backups; não foi criado backup adicional antes do reinício por decisão do operador.
 7. Verificar e remover o acesso SSH temporário de transferência quando não for mais necessário, preservando as demais chaves autorizadas.
-8. O CRM de interessados e reservas e a prévia de proposta (branch `feat/evolucao-painel-viagens`) ainda não foram implantados: exigem 3 migrações novas no banco. Definir e testar o procedimento de atualização antes de instalá-lo; `/srv/overtrip/app` veio de `git archive` e não aceita `git pull`.
+8. Validar o uso de CRM e reservas com o operador; definir como controlar vagas e formalizar retenção e cópia externa segura dos dados. `/srv/overtrip/app` veio de `git archive` e não aceita `git pull`.
 
 ## Auditoria de segurança (9 de novembro de 2026)
 
