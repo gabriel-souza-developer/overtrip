@@ -27,7 +27,9 @@ const setupWaLinks = () => {
   waLinks.forEach((link) => {
     const message = buildTripMessage(link);
     const encodedMessage = encodeURIComponent(message);
-    link.href = hasConfiguredNumber
+    // Compartilhar (data-wa-share) deixa a pessoa escolher o contato; nunca vai para a OVERTRIP.
+    const isShare = link.dataset.waShare !== undefined;
+    link.href = hasConfiguredNumber && !isShare
       ? `https://wa.me/${whatsappNumber}?text=${encodedMessage}`
       : `https://wa.me/?text=${encodedMessage}`;
 

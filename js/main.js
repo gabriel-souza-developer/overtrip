@@ -1,6 +1,6 @@
 import { renderHeroNextTrip, renderTrips, renderGallery, renderTestimonials, updateYearsCount, setupLightbox, setupTestimonialTabs } from "./render.js?v=category-20261110";
 import { loadTrips } from "./data.js";
-import { loadWhatsappNumber, setupWaLinks, setupWaTooltip } from "./whatsapp.js";
+import { loadWhatsappNumber, setupWaLinks, setupWaTooltip } from "./whatsapp.js?v=paginas-20261110";
 import { setupNavigation, setupMarquee, setupMonthFilter, setupRevealAnimation, setupHeroExperiment, setupHeroTracking, setupUniversePanels } from "./ui.js?v=category-20261110";
 import { setupPixModal } from "./pix.js";
 
