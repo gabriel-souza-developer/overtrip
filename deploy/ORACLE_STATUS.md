@@ -1,5 +1,13 @@
 # Estado da produção na Oracle
 
+## Correção de cache do painel (10 de novembro, 20:24 UTC)
+
+- Após o operador informar que o painel ainda parecia antigo, confirmei que os novos chunks JavaScript da build `9f7e64b` estavam em produção e eram referenciados pelo bundle principal; não há service worker no painel.
+- A resposta HTTPS de `/admin/` não trazia `Cache-Control`, pois a regra antiga só correspondia a `/index.html`, enquanto o Caddy serve o app shell em `/admin/`. Isso podia deixar o navegador reutilizar a página anterior.
+- Ajustei a configuração ativa do Caddy para enviar `Cache-Control: no-cache, no-store, must-revalidate` na rota do painel. Uma cópia anterior do Caddyfile foi criada em `/etc/caddy/` com o prefixo `Caddyfile.antes-cache-admin-`.
+- `caddy validate` passou. Como `admin off` desativa a API usada pelo comando de reload, foi necessário reiniciar o serviço; Caddy e API permaneceram ativos. Após reiniciar, `/admin/` e CSS responderam 200 com o novo cabeçalho, e `/health` respondeu 200.
+- A política também impede cache dos assets do painel, inclusive os versionados. Isso prioriza a atualização imediata; uma otimização futura pode manter cache longo nos assets imutáveis com uma regra Caddy sem sobreposição.
+
 ## Ajustes de clareza no painel e na prévia do card (10 de novembro, 20:17 UTC)
 
 - Publicado o commit `9f7e64b` (`fix(panel): clarifica campos e replica previa do card`), somente com os arquivos compilados do painel. Pacote SHA-256 `b1c85f31169b37a46e3976e6fbcae599cbe565dcb497561712459925ab8a7e88`.
