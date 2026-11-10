@@ -4,6 +4,7 @@ import { publicTripsService } from '../services/publicTrips.js';
 import { publicSiteService } from '../services/publicSite.js';
 import { settingsService } from '../services/settingsService.js';
 import { MEDIA_FILE_PATTERN, mediaDirectory, mediaFilePath } from '../services/mediaStorage.js';
+import { publicFaqService } from '../services/publicFaq.js';
 
 const MEDIA_MAX_AGE_MS = 365 * 24 * 60 * 60 * 1000;
 
@@ -17,6 +18,16 @@ router.get('/trips', async (_req, res, next) => {
     const trips = await publicTripsService.list();
     res.set('Cache-Control', 'no-cache');
     res.json(trips);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/faq', async (_req, res, next) => {
+  try {
+    const faq = await publicFaqService.get();
+    res.set('Cache-Control', 'no-store');
+    res.json({ entries: faq.entries });
   } catch (error) {
     next(error);
   }

@@ -42,9 +42,11 @@ export default function AssistantKnowledgeSettings() {
 
   return <section className="card p-5 sm:p-6 space-y-5" aria-labelledby="knowledge-title">
     <div><h2 id="knowledge-title" className="text-lg font-semibold text-surface-900">Conhecimento do assistente</h2>
-      <p className="text-sm text-surface-600 mt-1">Cadastre informações revisadas para o futuro atendimento. Aprovar cria uma nova versão completa; o assistente ainda não está conectado.</p>
+      <p className="text-sm text-surface-600 mt-1">Este conteúdo é privado e serve de referência para o atendimento da assistente. Edite as perguntas e respostas aqui; para o FAQ público, use a seção acima.</p>
       <p className="text-sm text-surface-600 mt-1">{version === null ? 'Nenhuma versão aprovada.' : `Versão atual: ${version}.`}</p></div>
     <form onSubmit={save} className="space-y-4">
+      {loading && <p role="status" className="text-sm text-surface-600">Carregando o conhecimento da assistente…</p>}
+      {!loading && loaded && entries.length === 0 && <p className="rounded-lg bg-surface-50 p-3 text-sm text-surface-600">Ainda não há perguntas e respostas nesta base. Adicione um item para começar.</p>}
       {entries.map((entry, index) => <fieldset key={index} className="space-y-2 border border-surface-200 rounded-lg p-3" disabled={loading || saving}>
         <legend className="text-sm font-semibold">Item {index + 1}</legend>
         <label className="label" htmlFor={`knowledge-question-${index}`}>Pergunta</label>
@@ -55,10 +57,10 @@ export default function AssistantKnowledgeSettings() {
       </fieldset>)}
       <div className="flex flex-wrap gap-3">
         <button type="button" className="btn-secondary" disabled={!loaded || loading || saving || entries.length >= 100} onClick={() => setEntries(previous => [...previous, { question: '', answer: '' }])}>Adicionar pergunta</button>
-        <button type="submit" className="btn-primary" disabled={!loaded || loading || saving}>{saving ? 'Aprovando...' : 'Aprovar nova versão'}</button>
+        <button type="submit" className="btn-primary" disabled={!loaded || loading || saving}>{saving ? 'Salvando…' : 'Salvar conhecimento da assistente'}</button>
         <button type="button" className="btn-secondary" disabled={loading || saving} onClick={() => void load()}>Recarregar base</button>
       </div>
-      <p className="text-sm text-surface-600">Recarregar descarta as alterações ainda não aprovadas. Uma versão sem itens deixa a base vazia.</p>
+      <p className="text-sm text-surface-600">Cada salvamento cria uma versão. Recarregar descarta as alterações que ainda não foram salvas.</p>
     </form>
     {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
     {message && <p role="status" className="text-sm text-green-700">{message}</p>}

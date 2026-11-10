@@ -10,6 +10,7 @@ export class ApiRequestError extends Error {
 export interface KnowledgeEntry { question: string; answer: string }
 export interface KnowledgeVersion { version: number; entries: KnowledgeEntry[]; approvedById: string; approvedAt: string }
 export type KnowledgeVersionSummary = Omit<KnowledgeVersion, 'entries'>;
+export interface PublicFaqState { version: number; entries: KnowledgeEntry[]; updatedAt: string | null }
 
 export async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const token = localStorage.getItem('auth_token');
@@ -66,6 +67,13 @@ export const knowledgeApi = {
   version: (version: number) => request<KnowledgeVersion>(`/assistant-knowledge/versions/${version}`),
   approve: (entries: KnowledgeEntry[], expectedVersion: number | null) => request<KnowledgeVersion>('/assistant-knowledge', {
     method: 'POST', body: JSON.stringify({ entries, expectedVersion }),
+  }),
+};
+
+export const publicFaqApi = {
+  current: () => request<PublicFaqState>('/settings/public-faq'),
+  publish: (entries: KnowledgeEntry[], expectedVersion: number) => request<PublicFaqState>('/settings/public-faq', {
+    method: 'PUT', body: JSON.stringify({ entries, expectedVersion }),
   }),
 };
 

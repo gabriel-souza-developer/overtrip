@@ -9,6 +9,7 @@ test('administrador edita e aprova uma versão de conhecimento', async ({ page }
   await page.route(/\/api\/(?!.*\.tsx?(?:\?|$))/, async route => {
     const path = new URL(route.request().url()).pathname;
     if (path.endsWith('/auth/me')) return route.fulfill({ json: { id: 'admin', email: 'admin@example.test', name: 'Admin', role: 'admin' } });
+    if (path.endsWith('/settings/public-faq')) return route.fulfill({ json: { version: 0, updatedAt: null, entries: [{ question: 'FAQ do site?', answer: 'Resposta pública.' }] } });
     if (path.endsWith('/assistant-knowledge/versions')) return route.fulfill({ json: [] });
     if (path.endsWith('/assistant-knowledge')) {
       if (route.request().method() === 'POST') {
@@ -22,10 +23,11 @@ test('administrador edita e aprova uma versão de conhecimento', async ({ page }
     return route.fulfill({ json: {} });
   });
   await page.goto('/settings');
-  await page.getByRole('button', { name: 'Adicionar pergunta' }).click();
-  await page.getByLabel('Pergunta', { exact: true }).fill('Como reservar?');
-  await page.getByLabel('Resposta aprovada').fill('Fale com a equipe.');
-  await page.getByRole('button', { name: 'Aprovar nova versão' }).click();
-  await expect(page.getByRole('status')).toContainText('Versão 1 aprovada.');
+  const knowledge = page.getByRole('region', { name: 'Conhecimento do assistente' });
+  await knowledge.getByRole('button', { name: 'Adicionar pergunta' }).click();
+  await knowledge.getByLabel('Pergunta', { exact: true }).fill('Como reservar?');
+  await knowledge.getByLabel('Resposta aprovada').fill('Fale com a equipe.');
+  await knowledge.getByRole('button', { name: 'Salvar conhecimento da assistente' }).click();
+  await expect(knowledge.getByRole('status')).toContainText('Versão 1 aprovada.');
   expect(sent).toEqual({ expectedVersion: null, entries: [{ question: 'Como reservar?', answer: 'Fale com a equipe.' }] });
 });

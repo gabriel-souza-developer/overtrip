@@ -45,7 +45,6 @@ test('formulário T23 oferece campos únicos de data e horário', async ({ page 
   await expect(page.locator('input[type="time"]')).toHaveCount(2);
 
   await page.locator('#startDateISO').fill('2026-12-15');
-  await page.locator('summary').filter({ hasText: 'Detalhes opcionais' }).click();
   await page.locator('#departureTime').fill('06:30');
   await page.locator('#endDateISO').fill('2026-12-16');
   await page.locator('#returnTime').fill('20:15');
@@ -61,7 +60,6 @@ test('formulário não tem mais o atalho de destino visitado, e serviço padrão
 
   await expect(page.locator('#visited-place-search')).toHaveCount(0);
 
-  await page.locator('summary').filter({ hasText: 'Detalhes opcionais' }).click();
   await page.getByRole('checkbox', { name: 'Guia' }).check();
   await expect(page.getByRole('checkbox', { name: 'Guia' })).toBeChecked();
 });
@@ -89,7 +87,6 @@ test('não salva nem descarta texto digitado antes de adicionar à lista', async
   let writes = 0;
   await page.route('**/api/trips', route => { if (route.request().method() !== 'GET') writes++; return route.fulfill({ json: {} }); });
   await page.goto('/trips/new');
-  await page.locator('summary').filter({ hasText: 'Detalhes opcionais' }).click();
   await page.locator('#itinerary-input').fill('Banho no rio');
   await expect(page.getByText('Adicione ou apague os itens em preenchimento antes de salvar.')).toBeVisible();
   await page.locator('#trip-form button[type="submit"]').click();
@@ -142,6 +139,9 @@ test('prévia carrega capa relativa à raiz do site ao editar viagem', async ({ 
 
 test('opção de CTA claro fica selecionável nos padrões globais', async ({ page }) => {
   await page.route('**/api/settings/whatsapp', route => route.fulfill({ json: { defaultWhatsapp: null } }));
+  await page.route('**/api/settings/public-faq', route => route.fulfill({ json: { version: 0, updatedAt: null, entries: [] } }));
+  await page.route('**/api/assistant-knowledge/versions', route => route.fulfill({ json: [] }));
+  await page.route('**/api/assistant-knowledge', route => route.fulfill({ json: null }));
   await page.goto('/settings');
   const style = page.getByLabel('Estilo do botão');
   await style.selectOption('button-light');
@@ -172,7 +172,6 @@ test('prévia da proposta mostra o horário preenchido, mesmo com "horário não
 test('prévia da proposta também existe em viagem nova', async ({ page }) => {
   await page.goto('/trips/new');
   await page.locator('#title').fill('Trilha nova');
-  await page.locator('summary').filter({ hasText: 'Detalhes opcionais' }).click();
   await page.locator('#departureTime').fill('06:30');
   await page.getByRole('button', { name: 'Prévia da proposta' }).click();
   await expect(page.getByRole('dialog', { name: 'Prévia da proposta' })).toContainText('Saída: 06h30');

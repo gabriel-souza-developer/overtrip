@@ -40,6 +40,9 @@ const setupWaLinks = () => {
   });
 };
 
+// FAQ é renderizado a partir do painel depois do carregamento inicial da página.
+if (typeof document !== 'undefined') document.addEventListener('overtrip:faq-updated', setupWaLinks);
+
 const loadWhatsappNumber = async (fetchFn = fetch, { timeoutMs = 3000, warn = console.warn } = {}) => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);

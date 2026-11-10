@@ -24,6 +24,9 @@ async function mockApi(page: Page) {
     if (path === '/api/dashboard/stats') return route.fulfill({ json: { tripsTotal: 0, tripsPublished: 0, tripsDraft: 0, visitsNeedsReview: 0 } });
     if (path === '/api/system/health') return route.fulfill({ json: { state: 'ok', checkedAt: new Date().toISOString(), ageMinutes: 0, checks: [] } });
     if (path === '/api/system/health/history') return route.fulfill({ json: [] });
+    if (path === '/api/settings/public-faq') return route.fulfill({ json: { version: 0, updatedAt: null, entries: [{ question: 'Pergunta?', answer: 'Resposta.' }] } });
+    if (path === '/api/assistant-knowledge') return route.fulfill({ json: null });
+    if (path === '/api/assistant-knowledge/versions') return route.fulfill({ json: [] });
     return route.fulfill({ json: { data: [], pagination: { page: 1, limit: 20, total: 0, totalPages: 0 } } });
   });
 }

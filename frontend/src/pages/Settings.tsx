@@ -4,6 +4,7 @@ import PageHeader from '../components/PageHeader';
 import { settingsApi, type TripPresentationDefaults } from '../api';
 import { useToast } from '../hooks/useToast';
 import AssistantKnowledgeSettings from '../components/AssistantKnowledgeSettings';
+import PublicFaqSettings from '../components/PublicFaqSettings';
 
 export default function Settings() {
   const { toast } = useToast();
@@ -138,6 +139,7 @@ export default function Settings() {
           <Save className="w-4 h-4" aria-hidden="true" /> {savingPresentation ? 'Salvando...' : 'Salvar padrões'}
         </button>
       </form>
+      <PublicFaqSettings />
       <AssistantKnowledgeSettings />
     </div>
   );

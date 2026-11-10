@@ -1,4 +1,4 @@
-import { TRIPS, GALLERY, TESTIMONIALS, loadTrips, getTripsLoadError } from "./data.js";
+import { TRIPS, GALLERY, TESTIMONIALS, loadTrips, getTripsLoadError } from "./data.js?v=status-finalizadas-20261110-v2";
 import { resolveGallery } from "./publicData.js";
 
 const formatTripDate = (isoString) => {

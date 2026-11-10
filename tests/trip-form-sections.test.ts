@@ -14,26 +14,33 @@ const empty = {
 };
 
 describe('TripForm: seções', () => {
-  const titles = [...form.matchAll(/<FormSection title="([^"]+)"/g)].map((m) => m[1]);
-
-  it('apresenta dados principais e uma seção de detalhes opcionais', () => {
-    expect(titles).toEqual(['Detalhes opcionais']);
+  it('mantém os campos públicos em um único bloco de dados da viagem', () => {
     expect(form).toContain('Dados da viagem');
-    expect(form).toContain('Outros detalhes da viagem');
+    expect(form).toContain('Informações para os viajantes');
+    expect(form).not.toContain('Detalhes opcionais');
+    expect(form).not.toContain('Outros detalhes da viagem');
   });
 
   it.each([
-    ['Dados da viagem', '<fieldset className="card p-5 space-y-5">', '</fieldset>', ['id="description"', 'id="priceValue"', 'MediaInput', 'id="meetingCity"', 'id="meetingPoint"', 'id="meetingTBD"', 'PublicationReadinessPanel', 'DeparturesInput']],
-    ['Detalhes opcionais', '<FormSection title="Detalhes opcionais"', '</FormSection>', ['id="category"', 'id="intensityClass"', 'id="spotsLeft"', 'id="departureTime"', 'id="endDateISO"', 'id="returnTime"', 'id="includes-custom-input"', 'id="itinerary-input"', 'id="headlineDisplay"', 'id="priceDisplay"', 'id="departureTolerance"', 'id="meetingMapsQuery"', 'id="supportPoint"']],
-  ])('seção %s contém os campos esperados', (_title, opening, closing, fields) => {
-    const start = form.indexOf(opening as string);
-    const end = form.indexOf(closing as string, start);
+    ['dados principais e publicação', ['id="description"', 'id="priceValue"', 'MediaInput', 'id="meetingCity"', 'id="meetingPoint"', 'id="meetingTBD"', 'PublicationReadinessPanel', 'DeparturesInput']],
+    ['informações públicas opcionais', ['id="filterCategory"', 'id="category"', 'id="intensityClass"', 'id="spotsLeft"', 'id="departureTime"', 'id="endDateISO"', 'id="returnTime"', 'id="priceDisplay"', 'id="includes-custom-input"', 'id="itinerary-input"', 'id="route-notes-input"', 'id="important-info-input"', 'id="scheduleInfo"', 'id="trailDistance"', 'id="supportPoint"', 'id="meetingMapsQuery"']],
+  ])('%s permanecem no bloco principal', (_title, fields) => {
+    const start = form.indexOf('<fieldset className="card p-5 space-y-5">');
+    const end = form.indexOf('</fieldset>', start);
     const block = form.slice(start, end);
     for (const f of fields as string[]) expect(block).toContain(f);
   });
 
+  it('mostra a prévia mobile após os dados da viagem e mantém o uso de modelo discreto', () => {
+    expect(form.indexOf('Ver prévia da viagem')).toBeGreaterThan(form.indexOf('</fieldset>'));
+    expect(form).toContain('Usar como modelo');
+    expect(form).toContain('/trips/new?modelo=');
+    expect(form).not.toContain('Criar outra viagem com estes dados');
+    expect(form).not.toContain('Um cadastro para sua viagem');
+  });
+
   it('todos os campos que existiam continuam no formulário (nenhum valor some)', () => {
-    for (const name of ['headlineDisplay', 'trailDistance', 'supportPoint', 'supportPointInfo', 'includesHighlight', 'meetingDetails', 'scheduleInfo', 'scheduleTBD', 'status']) {
+    for (const name of ['headlineDisplay', 'trailDistance', 'supportPoint', 'supportPointInfo', 'includesHighlight', 'meetingDetails', 'meetingMapsQuery', 'priceDisplay', 'departureTolerance', 'scheduleInfo', 'scheduleTBD', 'status']) {
       expect(form).toMatch(new RegExp(`(name|id)="${name}|'${name}'|${name}-input`));
     }
   });
@@ -68,7 +75,8 @@ describe('nomes do painel', () => {
     expect(layout).toContain("label: 'Destinos visitados'");
     expect(layout).toContain("label: 'Galeria de memórias'");
     expect(layout).not.toMatch(/label: '(Visitas|Galeria)'/);
-    expect(dashboard).toContain("label: 'Viagens cadastradas'");
+    expect(dashboard).toContain("label: 'Total de viagens'");
+    expect(dashboard).toContain("detail: 'Inclui viagens já realizadas'");
     expect(dashboard).toContain("label: 'Destinos para revisar'");
     expect(dashboard).not.toMatch(/label: '(Viagens|Visitas)'/);
   });

@@ -23,6 +23,11 @@ export function tripPeriodWhere(period: TripPeriod, now = new Date()): Prisma.Tr
   const dateOnlyToday = new Date(`${today}T00:00:00.000Z`);
   const startOfToday = new Date(`${today}T03:00:00.000Z`);
   return period === 'upcoming'
-    ? { OR: [{ startDateISO: { gte: startOfToday } }, { startDateISO: dateOnlyToday }] }
+    ? {
+      AND: [
+        { OR: [{ startDateISO: { gte: startOfToday } }, { startDateISO: dateOnlyToday }] },
+        { status: { notIn: ['COMPLETED', 'CANCELLED'] } },
+      ],
+    }
     : { AND: [{ startDateISO: { lt: startOfToday } }, { startDateISO: { not: dateOnlyToday } }] };
 }

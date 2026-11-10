@@ -21,7 +21,7 @@ describe('campo Situação em TripForm.tsx', () => {
   it('fica nos dados da viagem, e não nos detalhes opcionais', () => {
     const status = tripForm.indexOf('id="status"');
     const preparar = tripForm.indexOf('Dados da viagem');
-    const ajustes = tripForm.indexOf('<FormSection title="Detalhes opcionais"');
+    const ajustes = tripForm.indexOf('Configurações adicionais do painel');
     expect(status).toBeGreaterThan(preparar);
     expect(status).toBeLessThan(ajustes);
     const ajustesBlock = tripForm.slice(ajustes);

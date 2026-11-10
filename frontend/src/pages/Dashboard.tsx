@@ -9,7 +9,7 @@ import { capitalizeFirst } from '../lib/tripCalendar';
 type Tone = 'primary' | 'success' | 'warning' | 'danger';
 const statsConfig: { key: keyof DashboardStats; label: string; icon: LucideIcon; tone: Tone; to: string; detail: string }[] = [
   // Os totais contam todas as viagens, então os links abrem a lista completa (não só as próximas).
-  { key: 'tripsTotal', label: 'Viagens cadastradas', icon: Plane, tone: 'primary', to: '/trips?period=all', detail: 'Ver todas as viagens' },
+  { key: 'tripsTotal', label: 'Total de viagens', icon: Plane, tone: 'primary', to: '/trips?period=all', detail: 'Inclui viagens já realizadas' },
   { key: 'tripsPublished', label: 'Publicadas no site', icon: CheckCircle2, tone: 'success', to: '/trips?status=OPEN&period=all', detail: 'Viagens no site' },
   { key: 'tripsDraft', label: 'Rascunhos', icon: Pencil, tone: 'warning', to: '/trips?status=DRAFT&period=all', detail: 'Continuar preparando' },
   { key: 'visitsNeedsReview', label: 'Destinos para revisar', icon: AlertTriangle, tone: 'danger', to: '/visits?needsReview=true', detail: 'Revisar destinos' },
