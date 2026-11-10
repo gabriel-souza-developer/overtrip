@@ -144,16 +144,26 @@ const getMeetingLabel = (trip) => {
 const text = (value, fallback = "") => (typeof value === "string" ? value : fallback);
 const list = (value) => (Array.isArray(value) ? value : []);
 const textList = (value) => list(value).filter((item) => typeof item === "string" && item.trim()).map((item) => item.trim());
+// O painel reúne serviços antigos e itens na mesma lista. A apresentação
+// pública deve mostrar os mesmos dados mesmo antes de salvar uma viagem antiga.
+const includedItems = (trip) => {
+  const result = [];
+  for (const item of [...textList(trip.includes), ...textList(trip.includedServices)]) {
+    if (!result.some((existing) => existing.toLowerCase() === item.toLowerCase())) result.push(item);
+  }
+  return result;
+};
 
 const normalizeTrip = (trip) => ({
   ...trip,
   title: text(trip.title),
   description: text(trip.description),
   category: text(trip.category),
+  filterCategory: text(trip.filterCategory),
   city: text(trip.city),
   region: text(trip.region),
   intensityLabel: text(trip.intensityLabel),
-  includes: list(trip.includes).filter((item) => typeof item === "string"),
+  includes: includedItems(trip),
   includesHighlight: text(trip.includesHighlight),
   media: list(trip.media).filter((item) => item && safeMediaUrl(item.src)),
   departures: list(trip.departures),
@@ -229,9 +239,10 @@ const buildTripCardHTML = (rawTrip, tripIndex) => {
   const levelWord = trip.intensityLabel.replace(/^Intensidade\s*/i, "");
 
   const cover = trip.media.find((item) => item.type !== "video") || trip.media[0] || null;
-  const mediaCount = trip.media.length;
+  const photos = trip.media.filter((item) => item.type !== "video");
+  const mediaCount = photos.length;
   const photoBadge = mediaCount > 1
-    ? `<span class="gallery-photo-dots" aria-hidden="true">${trip.media.map((_, index) => `<i class="${index === 0 ? "is-active" : ""}"></i>`).join("")}</span>`
+    ? `<span class="gallery-photo-dots" aria-hidden="true">${photos.map((_, index) => `<i class="${index === 0 ? "is-active" : ""}"></i>`).join("")}</span>`
     : "";
   const scheduleLabel = trip.scheduleInfo || [departure, trip.returnTime].filter(Boolean).join(" às ");
   const scheduleHTML = scheduleLabel
@@ -258,7 +269,8 @@ const buildTripCardHTML = (rawTrip, tripIndex) => {
   const closedNotice = getClosedNotice(trip);
 
   return `
-    <article class="trip-card reveal" data-month="${formatTripMonth(trip.startDateISO)}" data-category="${escapeHtml(trip.category)}">
+    <article class="trip-card reveal" data-month="${formatTripMonth(trip.startDateISO)}" data-category="${escapeHtml(trip.filterCategory)}">
+      <div class="trip-media-wrapper">
       <button
         type="button"
         class="trip-media${cover ? "" : " trip-media--empty"}"${cover ? "" : ' style="background: var(--moss)"'}
@@ -270,6 +282,8 @@ const buildTripCardHTML = (rawTrip, tripIndex) => {
         ${intensityHTML}
         ${photoBadge}
       </button>
+      ${mediaCount > 1 ? `<button type="button" class="trip-media-motion" data-trip-motion="${escapeHtml(tripIndex)}" aria-label="Pausar fotos de ${escapeHtml(trip.title)}" aria-pressed="false">Pausar fotos</button>` : ""}
+      </div>
       <div class="trip-body">
         ${buildClosedNoticeHTML(closedNotice)}<h3 id="trip-title-${escapeHtml(tripIndex)}">${escapeHtml(trip.title)}</h3>
         <p class="trip-description">${escapeHtml(trip.description)}</p>
@@ -286,7 +300,7 @@ const buildTripCardHTML = (rawTrip, tripIndex) => {
         <details class="trip-includes-toggle">
           <summary><span class="trip-includes-toggle-label">Ver roteiro &amp; o que inclui</span></summary>
           <div class="trip-includes-body">
-            ${includesHTML ? `<p class="trip-includes-heading">O que você vai viver</p>
+            ${includesHTML ? `<p class="trip-includes-heading">O que inclui</p>
             <ul class="trip-includes">${includesHTML}</ul>` : ""}
             ${trip.includesHighlight ? `<div class="trip-includes-highlight">
               <span class="trip-includes-highlight-icon" aria-hidden="true">${TRIP_ICON_SHIELD}</span>
@@ -720,6 +734,84 @@ const buildTripCardsHTML = (listedTrips) => listedTrips
   .map(({ trip, index }) => safely("card", trip, () => buildTripCardHTML(trip, index), ""))
   .join("");
 
+// Troca apenas fotos dos cards visíveis; o usuário pode pausar a animação.
+const setupTripCardSlides = (grid, trips) => {
+  const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)");
+  grid.querySelectorAll("[data-trip-motion]").forEach((control) => {
+    const entry = trips.find(({ index }) => String(index) === control.dataset.tripMotion);
+    const photos = normalizeTrip(entry?.trip || {}).media.filter((item) => item.type !== "video");
+    const wrapper = control.closest(".trip-media-wrapper");
+    const image = wrapper?.querySelector(".trip-media img");
+    const dots = wrapper?.querySelectorAll(".gallery-photo-dots i");
+    if (!image || photos.length < 2) return;
+
+    let current = 0;
+    let paused = Boolean(reducedMotion?.matches);
+    let visible = !("IntersectionObserver" in window);
+    let timer;
+    const syncControl = () => {
+      control.setAttribute("aria-pressed", String(paused));
+      control.textContent = paused ? "Reproduzir fotos" : "Pausar fotos";
+      control.setAttribute("aria-label", `${control.textContent} da viagem`);
+    };
+    const schedule = () => {
+      window.clearTimeout(timer);
+      if (!paused && visible && !document.hidden) timer = window.setTimeout(advance, 6000);
+    };
+    const advance = () => {
+      const next = (current + 1) % photos.length;
+      const item = photos[next];
+      const preload = new Image();
+      const srcset = getHeroSrcset(item.src);
+      let triedOriginal = !srcset;
+      preload.onload = () => {
+        if (paused || !visible || document.hidden) return;
+        if (!triedOriginal) {
+          image.sizes = TRIP_CARD_IMG_SIZES;
+          image.srcset = srcset;
+        } else {
+          image.removeAttribute("srcset");
+          image.removeAttribute("sizes");
+        }
+        image.src = item.src;
+        image.alt = item.alt || "";
+        image.classList.remove("trip-media-image-enter");
+        void image.offsetWidth;
+        image.classList.add("trip-media-image-enter");
+        current = next;
+        dots?.forEach((dot, index) => dot.classList.toggle("is-active", index === current));
+        schedule();
+      };
+      preload.onerror = () => {
+        if (!triedOriginal) {
+          triedOriginal = true;
+          preload.removeAttribute("srcset");
+          preload.removeAttribute("sizes");
+          preload.src = item.src;
+          return;
+        }
+        current = next;
+        schedule();
+      };
+      if (srcset) {
+        preload.sizes = TRIP_CARD_IMG_SIZES;
+        preload.srcset = srcset;
+      }
+      preload.src = item.src;
+    };
+    control.addEventListener("click", () => { paused = !paused; syncControl(); schedule(); });
+    document.addEventListener("visibilitychange", schedule);
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver((entries) => {
+        visible = entries.some((item) => item.isIntersecting);
+        schedule();
+      }, { threshold: 0.1 }).observe(wrapper);
+    }
+    syncControl();
+    schedule();
+  });
+};
+
 const renderTrips = async () => {
   const grid = document.querySelector("#trip-grid");
 
@@ -757,6 +849,7 @@ const renderTrips = async () => {
   document.querySelector(".trip-category-filter")?.toggleAttribute("hidden", !hasTrips);
   updateProximaStatus(nextTrip);
   bindTripIncludesToggles();
+  setupTripCardSlides(grid, listedTrips);
 
   // Se a versão leve (WebP) de alguma capa não existir (trip nova), cai no JPG.
   grid.querySelectorAll(".trip-media img[srcset]").forEach((img) => {

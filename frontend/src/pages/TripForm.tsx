@@ -55,7 +55,7 @@ type AllRequired = { [K in keyof Required<TripFormData>]: NonNullable<Required<T
 type FormState = Omit<AllRequired, 'priceValue' | 'spotsLeft'> & { priceValue: number | null; spotsLeft: number | null };
 
 const emptyForm = (): FormState => ({
-  title: '', headlineDisplay: '', category: '', description: '', city: '', region: '',
+  title: '', headlineDisplay: '', category: '', filterCategory: '', description: '', city: '', region: '',
   startDateISO: isoToLocalInput(new Date().toISOString()).slice(0, 10), endDateISO: '',
   departureTime: '', departureTolerance: '', returnTime: '', scheduleInfo: '', scheduleTBD: false,
   priceValue: null, priceDisplay: '', priceUnit: 'por pessoa', free: false,
@@ -129,6 +129,7 @@ export default function TripForm() {
         title: trip.title,
         headlineDisplay: trip.headlineDisplay || '',
         category: trip.category,
+        filterCategory: trip.filterCategory || '',
         description: trip.description,
         city: trip.city,
         region: trip.region,
@@ -452,8 +453,11 @@ export default function TripForm() {
         {/* SEÇÃO 3: Detalhes para viajantes */}
         <FormSection title="Detalhes opcionais" summary="Horários, roteiro, o que inclui e outros detalhes" filled={countFilled([f.category, f.intensityClass !== 'moderado', f.spotsLeft, f.departureTime, f.endDateISO, f.returnTime, f.includes])}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field id="category" label="Categoria" hint={'Se ficar vazia, usamos “Viagem”.'}>
-              <input id="category" name="category" className="input" value={f.category} onChange={handleChange} placeholder="Ex.: Trilha, Praia, Aventura" />
+            <Field id="filterCategory" label="Categoria para o filtro" hint="Escolha um nome curto, como Trilha ou Praia. Se vazia, a viagem aparecerá apenas em Todas as categorias.">
+              <input id="filterCategory" name="filterCategory" className="input" value={f.filterCategory} onChange={handleChange} maxLength={80} placeholder="Ex.: Trilha" />
+            </Field>
+            <Field id="category" label="Chamada sobre a foto" hint="Texto exibido no card. Não altera a categoria do filtro.">
+              <input id="category" name="category" className="input" value={f.category} onChange={handleChange} placeholder="Ex.: Trilha, natureza e patrimônio" />
             </Field>
             <Field id="intensityClass" label="Intensidade">
               <select id="intensityClass" name="intensityClass" className="select" value={f.intensityClass} onChange={handleChange}>

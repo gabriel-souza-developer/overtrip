@@ -9,6 +9,7 @@ export const tripCreateSchema = z.object({
   title: z.string().min(1, 'Título é obrigatório'),
   headlineDisplay: z.string().optional().nullable(),
   category: z.string().min(1, 'Categoria é obrigatória'),
+  filterCategory: z.string().trim().max(80).optional().nullable(),
   description: z.string().min(1, 'Descrição é obrigatória'),
   city: z.string().min(1, 'Cidade é obrigatória'),
   region: z.string().min(1, 'Região é obrigatória'),

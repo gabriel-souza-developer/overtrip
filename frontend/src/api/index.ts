@@ -249,6 +249,7 @@ export interface Trip {
   title: string;
   headlineDisplay: string | null;
   category: string;
+  filterCategory: string | null;
   description: string;
   city: string;
   region: string;
@@ -309,6 +310,7 @@ export interface TripFormData {
   title: string;
   headlineDisplay?: string | null;
   category: string;
+  filterCategory?: string | null;
   description: string;
   city: string;
   region: string;

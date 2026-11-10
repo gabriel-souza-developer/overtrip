@@ -21,7 +21,7 @@ describe('renderização segura dos dados da viagem', () => {
   });
 
   it('escapa a categoria também no atributo usado pelo filtro', () => {
-    const html = buildTripCardHTML({ ...full, category: 'Trilha" onmouseover="alert(1)' }, 0);
+    const html = buildTripCardHTML({ ...full, filterCategory: 'Trilha" onmouseover="alert(1)' }, 0);
     expect(html).toContain('data-category="Trilha&quot;');
     expect(html).not.toContain('data-category="Trilha" onmouseover=');
   });

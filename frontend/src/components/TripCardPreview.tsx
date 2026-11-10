@@ -15,6 +15,12 @@ type PreviewTrip = {
   intensityClass?: string;
   includes?: string[];
   includesHighlight?: string;
+  itinerary?: string[];
+  routeNotes?: string[];
+  importantInfo?: string[];
+  trailDistance?: string;
+  supportPoint?: string;
+  supportPointInfo?: string;
   departures?: Array<{ time: string; place: string; city: string }>;
 };
 
@@ -61,9 +67,16 @@ export default function TripCardPreview({ trip }: { trip: PreviewTrip }) {
           <details className="rounded-lg border border-surface-200 p-3 text-sm">
             <summary className="cursor-pointer font-semibold">Ver roteiro &amp; o que inclui</summary>
             <div className="mt-2 space-y-2">
-              <p className="font-medium">O que você vai viver</p>
-              {trip.includes?.length ? <ul className="list-disc pl-5">{trip.includes.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}</ul> : <p className="text-surface-600">Nenhum item informado.</p>}
+              {!!trip.includes?.length && <><p className="font-medium">O que inclui</p><ul className="list-disc pl-5">{trip.includes.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}</ul></>}
               {trip.includesHighlight && <p>{trip.includesHighlight}</p>}
+              {!!trip.itinerary?.length && <><p className="font-medium">Roteiro</p><ol className="list-decimal pl-5">{trip.itinerary.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}</ol></>}
+              {(trip.trailDistance || trip.supportPoint || trip.supportPointInfo || !!trip.routeNotes?.length) && <><p className="font-medium">Sobre o percurso</p><ul className="list-disc pl-5">
+                {trip.trailDistance && <li>Percurso: {trip.trailDistance}</li>}
+                {trip.supportPoint && <li>Ponto de apoio: {trip.supportPoint}{trip.supportPointInfo && ` (${trip.supportPointInfo})`}</li>}
+                {!trip.supportPoint && trip.supportPointInfo && <li>{trip.supportPointInfo}</li>}
+                {trip.routeNotes?.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}
+              </ul></>}
+              {!!trip.importantInfo?.length && <><p className="font-medium">Informações importantes</p><ul className="list-disc pl-5">{trip.importantInfo.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}</ul></>}
             </div>
           </details>
           <div className="flex items-center justify-between gap-3 border-t border-surface-200 pt-3">

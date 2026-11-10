@@ -84,6 +84,7 @@ export function mapPublicTrip(trip: TripRow) {
     title: trip.title,
     headlineDisplay: trip.headlineDisplay,
     category: trip.category,
+    filterCategory: trip.filterCategory,
     description: trip.description,
     city: trip.city,
     region: trip.region,

@@ -194,12 +194,45 @@
   transform: translateZ(0);
 }
 
+.trip-media-wrapper {
+  position: relative;
+}
+
 .trip-media {
   position: relative;
   overflow: hidden;
   aspect-ratio: 4 / 3;
   cursor: pointer;
   transform: translateZ(0);
+}
+
+.trip-media-motion {
+  position: absolute;
+  z-index: 3;
+  left: 0.75rem;
+  bottom: 0.7rem;
+  min-height: 2rem;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 999px;
+  color: white;
+  background: rgba(17, 17, 17, 0.8);
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+
+.trip-media-motion:focus-visible {
+  outline: 3px solid white;
+  outline-offset: 2px;
+}
+
+@keyframes trip-photo-enter {
+  from { opacity: 0.55; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .trip-media-image-enter { animation: trip-photo-enter 450ms ease-out; }
 }
 
 .trip-media:focus-visible {

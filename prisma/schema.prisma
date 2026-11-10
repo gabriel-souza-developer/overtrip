@@ -21,6 +21,7 @@ model Trip {
   title             String
   headlineDisplay   String?
   category          String
+  filterCategory    String?  // Categoria escolhida para o filtro do site
   description       String
   city              String
   region            String
