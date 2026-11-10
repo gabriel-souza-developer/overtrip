@@ -8,6 +8,7 @@ import TripForm from './pages/TripForm';
 import Visits from './pages/Visits';
 import Leads from './pages/Leads';
 import Reservations from './pages/Reservations';
+import SystemHealthPage from './pages/SystemHealth';
 import Gallery from './pages/Gallery';
 import Settings from './pages/Settings';
 import { ApiRequestError, authApi } from './api';
@@ -121,6 +122,7 @@ const AppRoutes = () => (
         <Route path="/reservations" element={<Reservations />} />
         <Route path="/gallery" element={<Gallery />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/system" element={<SystemHealthPage />} />
       </Route>
     </Route>
     <Route path="*" element={<Navigate to="/dashboard" replace />} />

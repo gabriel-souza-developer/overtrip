@@ -7,6 +7,9 @@ Type=oneshot
 # Sem root: precisa apenas listar /var/backups/overtrip (dono overtrip) e consultar serviços.
 User=overtrip
 Group=overtrip
+# Resultado para o painel (Servidor). A pasta é criada na instalação; sem ela, só o journal recebe o resultado.
+Environment=HEALTH_STATUS_FILE=/var/lib/overtrip/health/status.json
+ReadWritePaths=-/var/lib/overtrip/health
 ExecStart=/usr/local/libexec/overtrip-health.sh
 NoNewPrivileges=true
 ProtectSystem=strict

@@ -1,4 +1,5 @@
 import { translateApiError } from '../lib/formHelpers';
+import type { SystemHealth } from '../lib/systemHealth';
 
 const API_BASE = '/api';
 
@@ -178,6 +179,10 @@ export const galleryApi = {
 
 export const dashboardApi = {
   stats: () => request<DashboardStats>('/dashboard/stats'),
+};
+
+export const systemApi = {
+  health: () => request<SystemHealth>('/system/health'),
 };
 
 export const settingsApi = {

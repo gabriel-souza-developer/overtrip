@@ -35,6 +35,8 @@ export function buildConfig(env: NodeJS.ProcessEnv) {
     jwtSecret,
     jwtExpiresIn: (env.JWT_EXPIRES_IN || '2h') as SignOptions['expiresIn'],
     corsOrigin: env.CORS_ORIGIN || 'http://localhost:3100',
+    // Gravado pelo deploy/monitor-health.sh; lido pelo painel em /api/system/health.
+    healthStatusFile: env.HEALTH_STATUS_FILE || '/var/lib/overtrip/health/status.json',
   };
 }
 

@@ -2,8 +2,21 @@
 # Verificação local sem acesso ao conteúdo do banco ou das credenciais.
 set -u -o pipefail
 status=0
-fail() { printf 'ALERTA: %s\n' "$*"; status=1; }
-ok() { printf 'OK: %s\n' "$*"; }
+checks=()
+# Se HEALTH_STATUS_FILE estiver definido, o resultado também vai para um JSON lido pelo painel.
+record() { local text=${2//\\/\\\\}; checks+=("{\"status\":\"$1\",\"message\":\"${text//\"/\\\"}\"}"); }
+fail() { printf 'ALERTA: %s\n' "$*"; record alert "$*"; status=1; }
+ok() { printf 'OK: %s\n' "$*"; record ok "$*"; }
+write_status() {
+  [ -n "${HEALTH_STATUS_FILE:-}" ] || return 0
+  local tmp ok_json=true joined
+  (( status == 0 )) || ok_json=false
+  joined=$(IFS=,; printf '%s' "${checks[*]}")
+  tmp=$(mktemp "${HEALTH_STATUS_FILE}.XXXXXX") || return 0
+  printf '{"checkedAt":"%s","ok":%s,"checks":[%s]}\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$ok_json" "$joined" > "$tmp" &&
+    chmod 640 "$tmp" && mv -f "$tmp" "$HEALTH_STATUS_FILE" || rm -f "$tmp"
+}
+trap write_status EXIT
 
 for service in overtrip-api.service caddy.service tailscaled.service overtrip-backup.timer; do
   if systemctl is-active --quiet "$service"; then ok "$service ativo"; else fail "$service inativo"; fi
@@ -16,6 +29,7 @@ if [[ "$memory" =~ ^[0-9]+$ ]] && (( memory >= 10 )); then ok "memória disponí
 load=$(awk '{print $1}' /proc/loadavg)
 cpus=$(getconf _NPROCESSORS_ONLN)
 printf 'MÉTRICA: carga 1 minuto=%s; CPUs=%s\n' "$load" "$cpus"
+record metric "carga 1 minuto=${load}; CPUs=${cpus}"
 
 if find /var/backups/overtrip -maxdepth 1 -type f -name 'overtrip-*.db.gz' -mmin -1800 -print -quit 2>/dev/null | grep -q .; then
   ok 'backup local encontrado nas últimas 30 horas'

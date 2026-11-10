@@ -103,6 +103,7 @@ Verificação de saúde a cada 5 minutos (serviços, disco, memória, backup rec
 Roda como `overtrip`, sem root, e não lê banco nem credenciais:
 ```
 sudo install -m 755 -o root -g root deploy/monitor-health.sh /usr/local/libexec/overtrip-health.sh
+sudo install -d -o overtrip -g overtrip -m 750 /var/lib/overtrip/health   # status.json lido pelo painel
 sudo cp deploy/overtrip-health.service deploy/overtrip-health.timer /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo -u overtrip ls /var/backups/overtrip >/dev/null && echo "overtrip lê os backups"
@@ -110,7 +111,8 @@ sudo systemctl enable --now overtrip-health.timer
 sudo systemctl start overtrip-health.service; journalctl -u overtrip-health.service -n 20
 ```
 Falhas aparecem como `ALERTA:` no journal e deixam o serviço em estado `failed`
-(`systemctl --failed`). Ainda não há envio de alerta para fora da máquina.
+(`systemctl --failed`). O último resultado aparece no painel em **Servidor** (só administradores),
+lido de `/var/lib/overtrip/health/status.json` (`HEALTH_STATUS_FILE` muda o caminho). Ainda não há envio de alerta para fora da máquina.
 
 ## 9. DNS
 1. **Um ou dois dias antes**, baixe o TTL dos registros do domínio para 300 segundos (5 min), no provedor atual.
