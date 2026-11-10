@@ -1,5 +1,5 @@
 {
-  "name": "OVERTRIP Assistente WhatsApp v35",
+  "name": "OVERTRIP Assistente WhatsApp v34 — MODELO (não importar)",
   "nodes": [
     {
       "parameters": {
@@ -346,12 +346,8 @@
     },
     {
       "parameters": {
-        "url": "https://__TAILNET_HOST__:8443/n8n/v2/trips",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "options": {
-          "timeout": 10000
-        }
+        "url": "https://overtrip.com.br/trips.json",
+        "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
@@ -363,17 +359,11 @@
       "name": "Consulta trips do site",
       "retryOnFail": true,
       "maxTries": 3,
-      "waitBetweenTries": 2000,
-      "credentials": {
-        "httpHeaderAuth": {
-          "name": "OVERTRIP Serviço Privado"
-        }
-      },
-      "alwaysOutputData": true
+      "waitBetweenTries": 2000
     },
     {
       "parameters": {
-        "jsCode": "// Com alwaysOutputData, uma lista vazia chega como um item vazio; ele não é viagem.\nreturn [\n  {\n    json: {\n      trips: $input.all().map(item => item.json).filter(trip => trip && trip.title)\n    }\n  }\n];"
+        "jsCode": "return [\n  {\n    json: {\n      trips: $input.all().map(item => item.json)\n    }\n  }\n];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -386,12 +376,8 @@
     },
     {
       "parameters": {
-        "url": "https://__TAILNET_HOST__:8443/n8n/v2/knowledge",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "options": {
-          "timeout": 10000
-        }
+        "url": "https://overtrip.com.br/knowledge.json",
+        "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
@@ -403,12 +389,7 @@
       "name": "Consulta base de conhecimento",
       "retryOnFail": true,
       "maxTries": 3,
-      "waitBetweenTries": 2000,
-      "credentials": {
-        "httpHeaderAuth": {
-          "name": "OVERTRIP Serviço Privado"
-        }
-      }
+      "waitBetweenTries": 2000
     },
     {
       "parameters": {
@@ -3030,7 +3011,7 @@
       ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate",

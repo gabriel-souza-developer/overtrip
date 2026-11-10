@@ -1,9 +1,9 @@
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 type Node = { name: string; type: string; parameters: Record<string, unknown>; credentials?: Record<string, { id?: string; name: string }>; alwaysOutputData?: boolean };
-const path = (version: string) => `docs/OVERTRIP Assistente WhatsApp ${version}.json`;
+const path = (version: string) => `docs/OVERTRIP Assistente WhatsApp ${version} (modelo).json`;
 const load = (version: string) => JSON.parse(readFileSync(path(version), 'utf8'));
 
 describe('fluxo n8n v35 (versão do repositório)', () => {
@@ -50,6 +50,10 @@ describe('fluxo n8n v35 (versão do repositório)', () => {
     expect(String(nodes['Agrupa trips do site'].parameters.jsCode)).toContain('trip.title');
   });
 
+  it.each(['v34', 'v35'])('o modelo %s avisa no nome que não deve ser importado', (version) => {
+    expect(load(version).name).toMatch(/MODELO \(não importar\)$/);
+  });
+
   it('importa desligado e como fluxo novo', () => {
     expect(v35.active).toBe(false);
     expect(v35).not.toHaveProperty('id');
@@ -60,5 +64,33 @@ describe('fluxo n8n v35 (versão do repositório)', () => {
     expect(v35.connections).toEqual(v34.connections);
     const changed = (v35.nodes as Node[]).filter((n, i) => JSON.stringify(n) !== JSON.stringify(v34.nodes[i])).map((n) => n.name);
     expect(changed.sort()).toEqual(['Agrupa trips do site', 'Consulta base de conhecimento', 'Consulta trips do site']);
+  });
+});
+
+// O arquivo real só existe na máquina do operador (docs/local/, fora do git).
+const IMPORT = 'docs/local/IMPORTAR NO N8N - OVERTRIP Assistente WhatsApp v35.json';
+const REAL_V34 = 'docs/local/OVERTRIP Assistente WhatsApp v34.json';
+describe.skipIf(!existsSync(IMPORT) || !existsSync(REAL_V34))('arquivo para importar no n8n (docs/local)', () => {
+  const read = (file: string) => JSON.parse(readFileSync(file, 'utf8'));
+  it('está pronto: sem marcadores, desligado e com o nome da v35', () => {
+    const text = readFileSync(IMPORT, 'utf8');
+    expect(text).not.toMatch(/__[A-Z_]+__/);
+    const flow = JSON.parse(text);
+    expect(flow.name).toBe('OVERTRIP Assistente WhatsApp v35');
+    expect(flow.active).toBe(false);
+  });
+
+  it('mantém o webhook e as credenciais da v34 real e aponta as consultas para a tailnet', () => {
+    const v35real = read(IMPORT); const v34real = read(REAL_V34);
+    const hook = (f: { nodes: Node[] }) => f.nodes.find((n) => n.type.endsWith('.webhook'))!;
+    expect(hook(v35real).parameters.path).toBe(hook(v34real).parameters.path);
+    const byName = Object.fromEntries((v35real.nodes as Node[]).map((n) => [n.name, n]));
+    for (const n of v34real.nodes as Node[]) {
+      if (['Consulta trips do site', 'Consulta base de conhecimento'].includes(n.name)) continue;
+      expect(byName[n.name].credentials, n.name).toEqual(n.credentials);
+    }
+    for (const name of ['Consulta trips do site', 'Consulta base de conhecimento']) {
+      expect(String(byName[name].parameters.url)).toMatch(/^https:\/\/[a-z0-9-]+\.tail[0-9a-f]+\.ts\.net:8443\/n8n\/v2\//);
+    }
   });
 });

@@ -7,8 +7,8 @@ cabeçalho guardada no n8n. Estado, avisos e IA ficam iguais à v34.
 
 Arquivos:
 - docs/local/OVERTRIP Assistente WhatsApp v34.json  real, fora do git (opcional)
-- docs/local/OVERTRIP Assistente WhatsApp v35.json  real, para importar no n8n
-- docs/OVERTRIP Assistente WhatsApp v34.json e v35.json  versões com marcadores, no git
+- docs/local/IMPORTAR NO N8N - OVERTRIP Assistente WhatsApp v35.json  real, para importar no n8n
+- docs/OVERTRIP Assistente WhatsApp v34 (modelo).json e v35 (modelo).json  com marcadores, no git (NÃO importar)
 
 Sem a v34 real, o script trabalha só com as versões com marcadores.
 Uso: python3 -I scripts/build-assistant-v35.py
@@ -21,6 +21,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 LOCAL = ROOT / "docs" / "local"
 NAME = "OVERTRIP Assistente WhatsApp {}.json"
+# No git ficam só modelos com marcadores; o nome do arquivo e do fluxo avisam para não importar.
+MODEL_NAME = "OVERTRIP Assistente WhatsApp {} (modelo).json"
+IMPORT_NAME = "IMPORTAR NO N8N - OVERTRIP Assistente WhatsApp v35.json"
+MODEL_FLOW_SUFFIX = " — MODELO (não importar)"
 
 # Marcadores no lugar de dados da rede e da conta (ver deploy/README.md).
 TAILNET_HOST = "__TAILNET_HOST__"
@@ -55,6 +59,8 @@ def _scrub(value):
 def sanitize(flow: dict) -> dict:
     """Remove o que identifica a rede, a conta n8n e o endereço do webhook."""
     flow = _scrub(copy.deepcopy(flow))
+    if not flow["name"].endswith(MODEL_FLOW_SUFFIX):
+        flow["name"] += MODEL_FLOW_SUFFIX
     flow.get("meta", {}).pop("instanceId", None)
     for key in ("id", "versionId"):
         flow.pop(key, None)
@@ -114,10 +120,10 @@ def main() -> None:
     real_v34 = LOCAL / NAME.format("v34")
     if real_v34.exists():
         v34 = json.loads(real_v34.read_text(encoding="utf-8"))
-        write(LOCAL / NAME.format("v35"), to_v35(v34))
-        write(ROOT / "docs" / NAME.format("v34"), sanitize(v34))
-    v34_public = json.loads((ROOT / "docs" / NAME.format("v34")).read_text(encoding="utf-8"))
-    write(ROOT / "docs" / NAME.format("v35"), sanitize(to_v35(v34_public)))
+        write(LOCAL / IMPORT_NAME, to_v35(v34))
+        write(ROOT / "docs" / MODEL_NAME.format("v34"), sanitize(v34))
+    v34_public = json.loads((ROOT / "docs" / MODEL_NAME.format("v34")).read_text(encoding="utf-8"))
+    write(ROOT / "docs" / MODEL_NAME.format("v35"), sanitize(to_v35(v34_public)))
 
 
 if __name__ == "__main__":

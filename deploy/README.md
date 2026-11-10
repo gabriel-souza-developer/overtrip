@@ -157,7 +157,7 @@ sudo systemctl start overtrip-api
 
 ## Assistente WhatsApp (n8n) — serviço privado
 
-O fluxo `docs/OVERTRIP Assistente WhatsApp v35.json` busca viagens e base de conhecimento
+O fluxo v35 (`docs/local/IMPORTAR NO N8N - OVERTRIP Assistente WhatsApp v35.json`) busca viagens e base de conhecimento
 no serviço privado (`/n8n/v2/trips` e `/n8n/v2/knowledge`), que só escuta em `127.0.0.1:3010`
 e é publicado **apenas na tailnet** pelo `tailscale serve`. Nada passa pelo Caddy.
 A v35 é gerada da v34 por `python3 -I scripts/build-assistant-v35.py`. O repositório guarda só versões
@@ -179,7 +179,7 @@ curl -s -o /dev/null -w '%{http_code}\n' https://<host-da-vm>.<tailnet>.ts.net:8
 No n8n:
 1. Crie a credencial **Header Auth** chamada `OVERTRIP Serviço Privado`: nome `Authorization`,
    valor `Bearer <segredo>` (o valor está em `/etc/overtrip/assistant.env`; leia na VM com `sudo cat`).
-2. Importe `docs/local/OVERTRIP Assistente WhatsApp v35.json` (entra **desligada** e como fluxo novo), selecione essa credencial nos nós
+2. Importe `docs/local/IMPORTAR NO N8N - OVERTRIP Assistente WhatsApp v35.json` (nunca os arquivos "(modelo)" de `docs/`, que têm marcadores no lugar de endereços e do webhook; entra **desligada** e como fluxo novo), selecione essa credencial nos nós
    "Consulta trips do site" e "Consulta base de conhecimento" e teste com uma conversa.
 3. Desative a v34 e ative a v35 (as duas usam o mesmo webhook do WAHA; só uma pode ficar ativa).
 
