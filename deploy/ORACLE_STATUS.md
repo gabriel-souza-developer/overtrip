@@ -1,5 +1,14 @@
 # Estado da produção na Oracle
 
+## Ajustes de clareza no painel e na prévia do card (10 de novembro, 20:17 UTC)
+
+- Publicado o commit `9f7e64b` (`fix(panel): clarifica campos e replica previa do card`), somente com os arquivos compilados do painel. Pacote SHA-256 `b1c85f31169b37a46e3976e6fbcae599cbe565dcb497561712459925ab8a7e88`.
+- A cópia do painel anterior está em `/srv/overtrip/retorno-painel-9f7e64b-20261110-201727/admin` (67 arquivos). A publicação substituiu `/srv/overtrip-public/admin`; não alterou API, banco, esquema, site público ou serviços.
+- O resumo agora informa “Viagens cadastradas” e deixa claro que inclui viagens realizadas. O atalho de sugestão por PDF/IA aparece no início do formulário com a orientação para salvar o rascunho antes de anexar o documento. A descrição de fotos usa linguagem simples (“O que aparece nesta foto?”).
+- A prévia “Roteiro e o que inclui” foi alinhada à aparência pública, com marcadores, cores e bloco de destaque correspondentes.
+- Verificação após a publicação: `/admin/`, os arquivos versionados `index-PUBRVDHJ.js` e `index-luq3zdjO.css`, `/health` e `/api/public/trips` responderam HTTP 200. Caddy, API, Tailscale e temporizador de backup estão ativos.
+- Validação local antes da publicação: build, checagem de tipos do frontend, 15 testes Vitest direcionados e 17 cenários Playwright direcionados passaram; `git diff --check` passou.
+
 Registro atualizado em 10 de novembro de 2026 após publicação do pacote principal baseado no commit `5f4583f` e do painel `d503876`. O site está publicado na Oracle. A zona DNS continua na HostGator (`ns64.hostgator.com.br` e `ns65.hostgator.com.br`); mantenha a hospedagem anterior disponível até a migração estar consolidada.
 
 ## FAQ público, fluxo de viagens e cache (10 de novembro, 13:28 UTC)
