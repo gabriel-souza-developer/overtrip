@@ -122,8 +122,14 @@
     font-size: clamp(3.6rem, 5.2vw, 5rem);
   }
 
-  .quote-card blockquote {
-    font-size: 1.05rem;
+  .voices {
+    grid-template-columns: minmax(0, 1.7fr) minmax(16rem, 0.75fr);
+    gap: clamp(1.5rem, 3vw, 3rem);
+    align-items: start;
+  }
+
+  .voices-stage {
+    min-height: 26rem;
   }
 
   .map-shell {
@@ -219,13 +225,6 @@
     font-size: 4.2rem;
   }
 
-  .quote-card {
-    padding: 2rem;
-  }
-
-  .quote-card blockquote {
-    max-width: 100%;
-  }
 
 }
 
@@ -237,6 +236,8 @@
 
   .marquee-track,
   .status-pill-dot,
+  .voice-panel,
+  .voice-tab,
   body.js .reveal,
   body.js .reveal.is-visible {
     animation: none !important;

@@ -228,7 +228,7 @@ const buildTripCardHTML = (rawTrip, tripIndex) => {
   const closedNotice = getClosedNotice(trip);
 
   return `
-    <article class="trip-card reveal" data-month="${formatTripMonth(trip.startDateISO)}">
+    <article class="trip-card reveal" data-month="${formatTripMonth(trip.startDateISO)}" data-category="${escapeHtml(trip.category)}">
       <button
         type="button"
         class="trip-media${cover ? "" : " trip-media--empty"}"${cover ? "" : ' style="background: var(--moss)"'}
@@ -723,6 +723,7 @@ const renderTrips = async () => {
 
   document.querySelector(".trip-search")?.toggleAttribute("hidden", !hasTrips);
   document.querySelector(".trip-filter")?.toggleAttribute("hidden", !hasTrips);
+  document.querySelector(".trip-category-filter")?.toggleAttribute("hidden", !hasTrips);
   updateProximaStatus(nextTrip);
   bindTripIncludesToggles();
 
@@ -1045,85 +1046,141 @@ const setupLightbox = () => {
   });
 };
 
-const buildTestimonialHTML = (testimonial) => {
-  const rating = Number.isInteger(testimonial.rating) ? Math.min(5, Math.max(0, testimonial.rating)) : 0;
-  const stars = "★".repeat(rating) + "☆".repeat(5 - rating);
+/* --------------------------------------------------------------------------
+   13. VOZES / DEPOIMENTOS — voz em destaque + índice de relatos (abas ARIA)
+   Sem autoplay: a troca de voz só acontece por clique, toque ou teclado.
+   -------------------------------------------------------------------------- */
+const formatVoiceIndex = (index) => String(index + 1).padStart(2, "0");
+
+// Só devolve a nota quando o dado existe e é um inteiro; valores fora de 1–5 são limitados.
+const getTestimonialRating = (testimonial) => (
+  Number.isInteger(testimonial?.rating) ? Math.min(5, Math.max(1, testimonial.rating)) : null
+);
+
+const buildTestimonialHTML = (testimonial, index = 0, total = 1) => {
+  const rating = getTestimonialRating(testimonial);
+  const ratingHTML = rating
+    ? `<p class="voice-rating"><span aria-hidden="true">${"★".repeat(rating)}${"☆".repeat(5 - rating)}</span><span class="voice-sr">Nota ${rating} de 5</span></p>`
+    : "";
 
   return `
-    <figure class="quote-card reveal">
-      <div class="quote-rating" aria-hidden="true">${stars}</div>
-      <span class="quote-mark">"</span>
-      <blockquote>${escapeHtml(testimonial.quote)}</blockquote>
+    <figure class="voice-quote">
+      <div class="voice-meta">
+        <span class="voice-count" aria-hidden="true">${formatVoiceIndex(index)} / ${formatVoiceIndex(total - 1)}</span>
+        ${ratingHTML}
+      </div>
+      <blockquote><p>${escapeHtml(testimonial.quote)}</p></blockquote>
       <figcaption>
-        <div>
-          <strong>${escapeHtml(testimonial.name)}</strong>
-          <span>${escapeHtml(testimonial.place)}</span>
-        </div>
+        <strong>${escapeHtml(testimonial.name)}</strong>
+        <span>${escapeHtml(testimonial.place)}</span>
       </figcaption>
     </figure>
   `;
 };
 
-const renderTestimonials = () => {
-  const track = document.querySelector("#testimonials-track");
+const buildTestimonialTabHTML = (testimonial, index, isSelected) => `
+  <button
+    type="button"
+    class="voice-tab"
+    role="tab"
+    id="voice-tab-${index}"
+    aria-controls="voice-panel-${index}"
+    aria-selected="${isSelected}"
+    tabindex="${isSelected ? "0" : "-1"}"
+  >
+    <span class="voice-tab-number" aria-hidden="true">${formatVoiceIndex(index)}</span>
+    <span class="voice-tab-text">
+      <strong>${escapeHtml(testimonial.name)}</strong>
+      <span>${escapeHtml(testimonial.place)}</span>
+    </span>
+  </button>
+`;
 
-  if (!track) {
+const buildTestimonialPanelHTML = (testimonial, index, total, isSelected) => `
+  <div
+    class="voice-panel"
+    role="tabpanel"
+    id="voice-panel-${index}"
+    aria-labelledby="voice-tab-${index}"
+    tabindex="0"
+    ${isSelected ? "" : "hidden"}
+  >
+    ${buildTestimonialHTML(testimonial, index, total)}
+  </div>
+`;
+
+const renderTestimonials = (testimonials = TESTIMONIALS) => {
+  const panels = document.querySelector("#testimonials-panels");
+  const tabs = document.querySelector("#testimonials-tabs");
+  const voices = document.querySelector("#testimonials-voices");
+
+  if (!panels || !tabs) {
     return;
   }
 
-  track.innerHTML = TESTIMONIALS.map(buildTestimonialHTML).join("");
+  if (!testimonials.length) {
+    voices?.setAttribute("hidden", "");
+    return;
+  }
+
+  const total = testimonials.length;
+  panels.innerHTML = testimonials.map((item, index) => buildTestimonialPanelHTML(item, index, total, index === 0)).join("");
+  tabs.innerHTML = testimonials.map((item, index) => buildTestimonialTabHTML(item, index, index === 0)).join("");
 };
 
-const setupTestimonialCarousel = () => {
-  const track = document.querySelector("#testimonials-track");
-  const prevBtn = document.querySelector(".carousel-prev");
-  const nextBtn = document.querySelector(".carousel-next");
+const setupTestimonialTabs = () => {
+  const tablist = document.querySelector("#testimonials-tabs");
+  const tabs = tablist ? [...tablist.querySelectorAll('[role="tab"]')] : [];
 
-  if (!track || !prevBtn || !nextBtn) {
+  if (!tabs.length) {
     return;
   }
 
-  const scrollByCard = (direction) => {
-    const card = track.querySelector(".quote-card");
-    if (!card) {
-      return;
+  const select = (nextTab, { focus = false } = {}) => {
+    tabs.forEach((tab) => {
+      const isSelected = tab === nextTab;
+      const panel = document.getElementById(tab.getAttribute("aria-controls"));
+      tab.setAttribute("aria-selected", String(isSelected));
+      tab.tabIndex = isSelected ? 0 : -1;
+      panel?.toggleAttribute("hidden", !isSelected);
+    });
+
+    if (focus) {
+      nextTab.focus();
     }
-    const cardWidth = card.getBoundingClientRect().width;
-    const gap = parseFloat(getComputedStyle(track).columnGap || "16");
-    track.scrollBy({ left: direction * (cardWidth + gap), behavior: "smooth" });
   };
 
-  prevBtn.addEventListener("click", () => scrollByCard(-1));
-  nextBtn.addEventListener("click", () => scrollByCard(1));
-
-  // Arrastar com o mouse, além do gesto nativo de swipe em touch/trackpad.
-  let isDragging = false;
-  let dragStartX = 0;
-  let scrollStartLeft = 0;
-
-  track.addEventListener("pointerdown", (event) => {
-    isDragging = true;
-    track.classList.add("is-dragging");
-    dragStartX = event.clientX;
-    scrollStartLeft = track.scrollLeft;
-    track.setPointerCapture(event.pointerId);
+  tablist.addEventListener("click", (event) => {
+    const tab = event.target.closest('[role="tab"]');
+    if (tab) {
+      select(tab);
+    }
   });
 
-  track.addEventListener("pointermove", (event) => {
-    if (!isDragging) {
+  // Padrão WAI-ARIA de abas: setas movem e ativam; Home/End vão ao primeiro/último.
+  tablist.addEventListener("keydown", (event) => {
+    const current = tabs.indexOf(document.activeElement);
+    if (current === -1) {
       return;
     }
-    track.scrollLeft = scrollStartLeft - (event.clientX - dragStartX);
+
+    const lastIndex = tabs.length - 1;
+    const keyMap = {
+      ArrowDown: current === lastIndex ? 0 : current + 1,
+      ArrowRight: current === lastIndex ? 0 : current + 1,
+      ArrowUp: current === 0 ? lastIndex : current - 1,
+      ArrowLeft: current === 0 ? lastIndex : current - 1,
+      Home: 0,
+      End: lastIndex,
+    };
+
+    if (!(event.key in keyMap)) {
+      return;
+    }
+
+    event.preventDefault();
+    select(tabs[keyMap[event.key]], { focus: true });
   });
-
-  const stopDragging = () => {
-    isDragging = false;
-    track.classList.remove("is-dragging");
-  };
-
-  track.addEventListener("pointerup", stopDragging);
-  track.addEventListener("pointerleave", stopDragging);
-  track.addEventListener("pointercancel", stopDragging);
 };
 
 const updateYearsCount = () => {
@@ -1144,4 +1201,4 @@ const updateYearsCount = () => {
   statEl.textContent = years > 0 ? `${years} anos` : "1º ano";
 };
 
-export { formatTripTime, buildTripSchema, normalizeTrip, buildTripCardHTML, buildHeroTripHTML, buildTripCardsHTML, buildGalleryCardHTML, buildTestimonialHTML, renderHeroNextTrip, renderTrips, renderGallery, renderTestimonials, updateYearsCount, setupLightbox, setupTestimonialCarousel };
+export { formatTripTime, buildTripSchema, normalizeTrip, buildTripCardHTML, buildHeroTripHTML, buildTripCardsHTML, buildGalleryCardHTML, buildTestimonialHTML, buildTestimonialTabHTML, buildTestimonialPanelHTML, renderHeroNextTrip, renderTrips, renderGallery, renderTestimonials, updateYearsCount, setupLightbox, setupTestimonialTabs };

@@ -1,7 +1,7 @@
-import { renderHeroNextTrip, renderTrips, renderGallery, renderTestimonials, updateYearsCount, setupLightbox, setupTestimonialCarousel } from "./render.js";
+import { renderHeroNextTrip, renderTrips, renderGallery, renderTestimonials, updateYearsCount, setupLightbox, setupTestimonialTabs } from "./render.js?v=category-20261110";
 import { loadTrips } from "./data.js";
 import { loadWhatsappNumber, setupWaLinks, setupWaTooltip } from "./whatsapp.js";
-import { setupNavigation, setupMarquee, setupMonthFilter, setupRevealAnimation, setupHeroExperiment, setupHeroTracking, setupUniversePanels } from "./ui.js";
+import { setupNavigation, setupMarquee, setupMonthFilter, setupRevealAnimation, setupHeroExperiment, setupHeroTracking, setupUniversePanels } from "./ui.js?v=category-20261110";
 import { setupPixModal } from "./pix.js";
 
 document.body.classList.remove("no-js");
@@ -23,7 +23,7 @@ const init = async () => {
   setupNavigation();
   setupLightbox();
   setupWaTooltip();
-  setupTestimonialCarousel();
+  setupTestimonialTabs();
   setupMarquee();
 
   // As trips agora vêm de /trips.json. É necessário aguardar a renderização

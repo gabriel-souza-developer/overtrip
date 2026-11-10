@@ -59,19 +59,19 @@
   <link rel="canonical" href="https://overtrip.com.br/">
 
   
-  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/base.css?v=vozes-20261110">
   
   <link rel="stylesheet" href="/css/header.css">
   
   <link rel="stylesheet" href="/css/hero.css">
   
-  <link rel="stylesheet" href="/css/trips.css">
+  <link rel="stylesheet" href="/css/trips.css?v=category-20261110">
   
-  <link rel="stylesheet" href="/css/content.css">
+  <link rel="stylesheet" href="/css/content.css?v=vozes-20261110">
   
   <link rel="stylesheet" href="/css/footer.css">
   
-  <link rel="stylesheet" href="/css/responsive.css">
+  <link rel="stylesheet" href="/css/responsive.css?v=vozes-20261110">
   
 
   <!-- Open Graph -->
@@ -335,6 +335,13 @@
 
         <div class="trip-filter" role="group" aria-label="Filtrar por mês">
           <button type="button" class="trip-filter-btn is-active" data-month="all" aria-pressed="true">Todos</button>
+        </div>
+
+        <div class="trip-category-filter" hidden>
+          <label for="trip-category-select">Categoria</label>
+          <select id="trip-category-select" aria-controls="trip-grid">
+            <option value="">Todas as categorias</option>
+          </select>
         </div>
 
         <div class="trip-grid" id="trip-grid"></div>
@@ -780,11 +787,12 @@
           </div>
         </div>
 
-        <div class="testimonials-carousel">
-          <div class="testimonials-track" id="testimonials-track"></div>
-          <div class="carousel-controls">
-            <button type="button" class="carousel-nav carousel-prev" aria-label="Depoimento anterior">‹</button>
-            <button type="button" class="carousel-nav carousel-next" aria-label="Próximo depoimento">›</button>
+        <!-- Voz em destaque + índice de relatos (abas acessíveis montadas em render.js). -->
+        <div class="voices reveal" id="testimonials-voices">
+          <div class="voices-stage" id="testimonials-panels"></div>
+          <div class="voices-index">
+            <p class="voices-index-label" id="testimonials-index-label">Escolha uma voz</p>
+            <div class="voices-tabs" id="testimonials-tabs" role="tablist" aria-labelledby="testimonials-index-label"></div>
           </div>
         </div>
 
@@ -1092,7 +1100,7 @@
 </a>
 
 
-  <script type="module" src="/js/main.js"></script>
+  <script type="module" src="/js/main.js?v=category-20261110"></script>
   
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="/js/map.js"></script>

@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 // @ts-expect-error módulo JS do site
-import { formatTripTime, buildTripSchema, normalizeTrip, buildTripCardHTML, buildHeroTripHTML, buildTripCardsHTML, buildGalleryCardHTML, buildTestimonialHTML } from '../js/render.js';
+import { formatTripTime, buildTripSchema, normalizeTrip, buildTripCardHTML, buildHeroTripHTML, buildTripCardsHTML, buildGalleryCardHTML, buildTestimonialHTML, buildTestimonialTabHTML, buildTestimonialPanelHTML } from '../js/render.js';
 // @ts-expect-error módulo JS do site
 import { FALLBACK_WHATSAPP_NUMBER, loadWhatsappNumber, setupWaLinks } from '../js/whatsapp.js';
 
@@ -18,6 +18,12 @@ describe('renderização segura dos dados da viagem', () => {
       expect(html).toContain('&lt;img src=x onerror=alert(1)&gt;');
     }
     expect(trip.title).toBe(payload);
+  });
+
+  it('escapa a categoria também no atributo usado pelo filtro', () => {
+    const html = buildTripCardHTML({ ...full, category: 'Trilha" onmouseover="alert(1)' }, 0);
+    expect(html).toContain('data-category="Trilha&quot;');
+    expect(html).not.toContain('data-category="Trilha" onmouseover=');
   });
 
   it('não usa URLs de mídia inválidas e não cria link para embarque a confirmar', () => {
@@ -39,6 +45,45 @@ describe('renderização segura dos dados da viagem', () => {
       expect(html).not.toContain('javascript:');
     }
     expect(testimonial).toContain('★★★★★');
+    const tab = buildTestimonialTabHTML({ quote: attack, name: attack, place: attack, rating: 5 }, 0, true);
+    expect(tab).not.toContain('<img src=x onerror=alert(1)>');
+    expect(tab).toContain('&lt;img src=x onerror=alert(1)&gt;');
+  });
+});
+
+describe('seção Vozes (depoimentos)', () => {
+  const voice = { name: 'Anna', place: 'Barra de Santana - 2024', rating: 5, quote: 'Entrei sem conhecer ninguém.' };
+
+  it('monta o depoimento com figure, blockquote e figcaption e anuncia a nota em texto', () => {
+    const html = buildTestimonialHTML(voice, 1, 5);
+    expect(html).toMatch(/<figure class="voice-quote">[\s\S]*<blockquote>[\s\S]*<figcaption>/);
+    expect(html).toContain('02 / 05');
+    expect(html).toContain('Nota 5 de 5');
+  });
+
+  it('não desenha estrelas quando o depoimento não tem nota', () => {
+    const { rating, ...withoutRating } = voice;
+    const html = buildTestimonialHTML(withoutRating, 0, 1);
+    expect(html).not.toContain('★');
+    expect(html).not.toContain('Nota');
+  });
+
+  it('liga aba e painel por aria-controls/aria-labelledby e usa tabindex móvel', () => {
+    const selectedTab = buildTestimonialTabHTML(voice, 0, true);
+    const otherTab = buildTestimonialTabHTML(voice, 3, false);
+    expect(selectedTab).toContain('role="tab"');
+    expect(selectedTab).toContain('aria-controls="voice-panel-0"');
+    expect(selectedTab).toContain('aria-selected="true"');
+    expect(selectedTab).toContain('tabindex="0"');
+    expect(otherTab).toContain('aria-selected="false"');
+    expect(otherTab).toContain('tabindex="-1"');
+
+    const selectedPanel = buildTestimonialPanelHTML(voice, 0, 5, true);
+    const hiddenPanel = buildTestimonialPanelHTML(voice, 3, 5, false);
+    expect(selectedPanel).toContain('role="tabpanel"');
+    expect(selectedPanel).toContain('aria-labelledby="voice-tab-0"');
+    expect(selectedPanel).not.toMatch(/\shidden\s/);
+    expect(hiddenPanel).toMatch(/\shidden\s/);
   });
 });
 

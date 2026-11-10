@@ -147,7 +147,7 @@ const GALLERY = [
   },
 ];
 
-// rating vai de 1 a 5 — o carrossel desenha as estrelas a partir daqui.
+// rating vai de 1 a 5 — a seção Vozes desenha as estrelas a partir daqui (sem rating, sem estrelas).
 const TESTIMONIALS = [
   {
     name: "Anna",

@@ -1,4 +1,5 @@
 import { trackHeroEvent } from "./analytics.js";
+import { categoryOptions, matchesTripFilters } from "./tripFilters.js";
 
 const easeInOutCubic = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 
@@ -207,13 +208,13 @@ const setupMarquee = () => {
 };
 
 
-// Botões gerados a partir dos data-month presentes nos cards — uma trip
-// num mês novo já cria o botão sozinha. Combinado com a busca por texto:
-// um card só aparece se bater com o mês ativo E o termo digitado.
+// Os filtros de mês, categoria e texto são combinados; as opções vêm dos
+// cards publicados, portanto acompanham as categorias criadas no painel.
 const setupMonthFilter = () => {
   const tripFilter = document.querySelector(".trip-filter");
   const tripCards = document.querySelectorAll(".trip-card[data-month]");
   const searchInput = document.querySelector("#trip-search-input");
+  const categorySelect = document.querySelector("#trip-category-select");
   const tripGrid = document.querySelector("#trip-grid");
 
   if (!tripFilter || !tripCards.length || !tripGrid) {
@@ -233,21 +234,29 @@ const setupMonthFilter = () => {
   });
 
   const filterButtons = tripFilter.querySelectorAll(".trip-filter-btn");
+  categoryOptions(Array.from(tripCards, (card) => card.dataset.category)).forEach(({ value, label }) => {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = label;
+    categorySelect?.appendChild(option);
+  });
   let activeMonth = "all";
   const emptyState = document.createElement("p");
   emptyState.className = "trip-empty-state";
+  emptyState.setAttribute("role", "status");
   emptyState.textContent = "Nenhum roteiro encontrado com esses filtros.";
   emptyState.hidden = true;
   tripGrid.append(emptyState);
 
   const applyFilters = () => {
-    const term = searchInput ? searchInput.value.trim().toLowerCase() : "";
+    const term = searchInput ? searchInput.value.trim() : "";
     let visibleCount = 0;
 
     tripCards.forEach((card) => {
-      const matchesMonth = activeMonth === "all" || card.dataset.month === activeMonth;
-      const matchesSearch = !term || card.textContent.toLowerCase().includes(term);
-      const isVisible = matchesMonth && matchesSearch;
+      const isVisible = matchesTripFilters(
+        { month: card.dataset.month, category: card.dataset.category, text: card.textContent },
+        { activeMonth, activeCategory: categorySelect?.value || "", search: term },
+      );
       card.classList.toggle("is-hidden", !isVisible);
       visibleCount += Number(isVisible);
     });
@@ -270,6 +279,7 @@ const setupMonthFilter = () => {
   });
 
   searchInput?.addEventListener("input", applyFilters);
+  categorySelect?.addEventListener("change", applyFilters);
 };
 
 const setupRevealAnimation = () => {
