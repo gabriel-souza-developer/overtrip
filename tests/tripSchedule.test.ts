@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fieldsToSchedule, scheduleToFields } from '../frontend/src/lib/tripSchedule';
+import { displayTime, fieldsToSchedule, scheduleToFields } from '../frontend/src/lib/tripSchedule';
 
 describe('datas e horários da viagem', () => {
   it('divide os valores salvos em campos de data e hora', () => {
@@ -27,5 +27,16 @@ describe('datas e horários da viagem', () => {
     expect(fieldsToSchedule({ startDate: '2026-12-03', startTime: '06:15', endDate: '', endTime: '' })).toEqual({
       startDateISO: '2026-12-03T00:00:00.000Z', departureTime: '06h15', endDateISO: null, returnTime: null,
     });
+  });
+});
+
+describe('displayTime', () => {
+  it('converte o campo de hora para o formato do site e preserva texto já pronto', () => {
+    expect(displayTime('05:30')).toBe('05h30');
+    expect(displayTime('17:00')).toBe('17h00');
+    expect(displayTime('04h30')).toBe('04h30');
+    expect(displayTime(' 17h ')).toBe('17h');
+    expect(displayTime('')).toBe('');
+    expect(displayTime(null)).toBe('');
   });
 });

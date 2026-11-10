@@ -1,6 +1,7 @@
 import type { TripFormData } from '../api';
 import { formatDateBR } from './dateInput';
 import { formatBRL } from './formHelpers';
+import { displayTime } from './tripSchedule';
 
 export interface TripProposal {
   organizer: string;
@@ -28,14 +29,18 @@ export function buildTripProposal(trip: TripFormData, organizer: string): TripPr
   }
   const priceDisplay = text(trip.priceDisplay);
   const price = trip.free ? 'Gratuito' : priceDisplay || (trip.priceValue != null && trip.priceValue > 0 ? formatBRL(trip.priceValue) : null);
-  const times = [text(trip.departureTime) && `Saída: ${text(trip.departureTime)}`, text(trip.returnTime) && `Retorno: ${text(trip.returnTime)}`].filter(Boolean).join(' · ');
+  // Mesma regra do site (js/render.js): horário preenchido aparece; "a confirmar" só quando não há nenhum.
+  // O formulário guarda a hora em 'HH:mm'; aqui ela sai como no site ('05h30').
+  const departure = displayTime(trip.departureTime);
+  const back = displayTime(trip.returnTime);
+  const times = [departure && `Saída: ${departure}`, back && `Retorno: ${back}`].filter(Boolean).join(' · ');
   return {
     organizer: text(organizer) || 'Organizador',
     title: text(trip.title) || 'Viagem sem nome',
     description: text(trip.description),
     destination: destination || null,
     date: date === '—' ? null : date,
-    schedule: trip.scheduleTBD ? 'A confirmar' : text(trip.scheduleInfo) || times || null,
+    schedule: text(trip.scheduleInfo) || times || (trip.scheduleTBD ? 'A confirmar' : null),
     departures: points,
     price: price ? `${price}${!trip.free && text(trip.priceUnit) ? ` ${text(trip.priceUnit)}` : ''}` : null,
     includes: (trip.includes ?? []).map(x => x.trim()).filter(Boolean),

@@ -583,7 +583,7 @@ export default function TripForm() {
       </div>
 
       <div className="space-y-4">
-        {id && <TripProposalPreview trip={formData} dirty={dirty} />}
+        <TripProposalPreview trip={formData} dirty={dirty} />
       </div>
 
       <ConfirmDialog

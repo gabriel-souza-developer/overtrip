@@ -4,10 +4,10 @@ export const TRIP_STATUS_LABELS: Record<string, string> = {
   DRAFT: 'Rascunho',
   REVIEW: 'Em revisão',
   OPEN: 'Publicada',
-  COMPLETED: 'Concluída',
+  COMPLETED: 'Realizada',
   CANCELLED: 'Cancelada',
   SOLD_OUT: 'Esgotada',
-  CLOSED: 'Fechada',
+  CLOSED: 'Encerrada',
 };
 
 export function tripStatusLabel(status: string): string {

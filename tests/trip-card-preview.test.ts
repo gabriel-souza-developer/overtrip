@@ -18,4 +18,17 @@ describe('prévia do card', () => {
     expect(html).toContain('moderada');
     expect(html).toContain('Guia local');
   });
+
+  it('mostra horário como no site (05h30 às 17h00) e embarque "Cidade (Local)"', () => {
+    const html = renderToStaticMarkup(React.createElement(TripCardPreview, { trip: {
+      title: 'Trilha', headlineDisplay: '', category: '', description: '',
+      city: 'Lucena', region: 'PB', startDateISO: '2026-11-29', departureTime: '05:30', returnTime: '17:00',
+      scheduleInfo: '', scheduleTBD: true, priceValue: null, priceDisplay: '', priceUnit: '', free: false,
+      meetingCity: 'Campina Grande', meetingPoint: 'Rodoviária Nova', meetingTBD: false, media: [], buttonLabel: '', buttonClass: '', status: 'COMPLETED',
+    } }));
+    expect(html).toContain('05h30 às 17h00');
+    expect(html).not.toContain('Horário a confirmar');
+    expect(html).toContain('Campina Grande (Rodoviária Nova)');
+    expect(html).toContain('Realizada');
+  });
 });

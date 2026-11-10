@@ -147,3 +147,33 @@ test('opção de CTA claro fica selecionável nos padrões globais', async ({ pa
   await style.selectOption('button-light');
   await expect(style).toHaveValue('button-light');
 });
+
+test('prévia da proposta mostra o horário preenchido, mesmo com "horário não definido" marcado', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.route((url) => url.pathname.startsWith('/api/trips/trip-hora'), route => {
+    if (new URL(route.request().url()).pathname.endsWith('/documents')) return route.fulfill({ json: [] });
+    return route.fulfill({ json: {
+      id: 'trip-hora', title: 'Trilha em Lucena', category: 'Trilha', description: 'Banho de rio e mirante', city: 'Lucena', region: 'PB',
+      startDateISO: '2027-01-10T00:00:00.000Z', endDateISO: null, departureTime: '04h30', returnTime: '17h', scheduleInfo: null,
+      scheduleTBD: true, priceValue: 109.99, priceUnit: 'por pessoa', free: false, intensityClass: 'moderado', spotsLeft: null,
+      meetingCity: 'Campina Grande', meetingPoint: 'Rodoviária Nova', meetingTBD: false, includes: ['Transporte'], itinerary: [], media: [],
+      buttonLabel: 'Quero viajar', buttonClass: 'button-dark', status: 'OPEN', availabilitySchema: 'https://schema.org/InStock', departures: [],
+    } });
+  });
+  await page.goto('/trips/trip-hora/edit');
+  await expect(page.locator('#departureTime')).toHaveValue('04:30');
+  await page.getByRole('button', { name: 'Prévia da proposta' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Prévia da proposta' });
+  await expect(dialog).toContainText('Saída: 04h30 · Retorno: 17h');
+  await expect(dialog).not.toContainText('Não informado');
+  await expect(dialog).toContainText('Campina Grande');
+});
+
+test('prévia da proposta também existe em viagem nova', async ({ page }) => {
+  await page.goto('/trips/new');
+  await page.locator('#title').fill('Trilha nova');
+  await page.locator('summary').filter({ hasText: 'Detalhes opcionais' }).click();
+  await page.locator('#departureTime').fill('06:30');
+  await page.getByRole('button', { name: 'Prévia da proposta' }).click();
+  await expect(page.getByRole('dialog', { name: 'Prévia da proposta' })).toContainText('Saída: 06h30');
+});

@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import { formatDateBR } from '../lib/dateInput';
 import { formatBRL } from '../lib/formHelpers';
 import { resolveAssetSrc } from '../lib/assetUrl';
+import { displayTime } from '../lib/tripSchedule';
+import { tripStatusLabel } from '../lib/panelHelpers';
 
 type PreviewTrip = {
   title: string; headlineDisplay: string; category: string; description: string;
@@ -40,15 +42,18 @@ export default function TripCardPreview({ trip }: { trip: PreviewTrip }) {
   const cover = trip.media.find(item => item.type !== 'video') ?? trip.media[0];
   const title = trip.title.trim() || 'Nome da viagem';
   const intensity = ({ leve: 'leve', moderado: 'moderada', intenso: 'intensa', extremo: 'extrema' } as Record<string, string>)[trip.intensityClass?.trim().toLowerCase() || ''] || trip.intensityClass?.trim();
-  const schedule = trip.scheduleInfo.trim() || [trip.departureTime, trip.returnTime].filter(Boolean).join(' às ') || (trip.scheduleTBD ? 'Horário a confirmar' : 'Horário não informado');
-  const departure = trip.meetingTBD ? 'Embarque a confirmar' : [trip.meetingCity, trip.meetingPoint].filter(Boolean).join(' · ') || 'Embarque não informado';
+  // Mesmas regras do site (js/render.js): hora no formato '05h30' e embarque "Cidade (Local)".
+  const schedule = trip.scheduleInfo.trim() || [displayTime(trip.departureTime), displayTime(trip.returnTime)].filter(Boolean).join(' às ') || (trip.scheduleTBD ? 'Horário a confirmar' : 'Horário não informado');
+  const meetingCity = trip.meetingCity.trim();
+  const meetingPoint = trip.meetingPoint.trim();
+  const departure = trip.meetingTBD ? 'Embarque a confirmar' : (meetingCity && meetingPoint ? `${meetingCity} (${meetingPoint})` : meetingCity || meetingPoint || 'Embarque não informado');
   const price = trip.free ? 'Gratuito' : trip.priceDisplay.trim() || (trip.priceValue ? formatBRL(trip.priceValue) : 'Consulte');
 
   return (
     <aside className="rounded-xl border border-surface-200 bg-surface-50 p-4" aria-label="Prévia do card no site">
       <div className="mb-3 flex items-baseline justify-between gap-3">
         <div><h3 className="font-semibold text-surface-900">Prévia do card</h3><p className="text-sm text-surface-600">Atualizada enquanto você preenche. A aparência pode variar no site.</p></div>
-        <span className="badge badge-info">{{ DRAFT: 'Rascunho', REVIEW: 'Em revisão', OPEN: 'Publicada', SOLD_OUT: 'Esgotada', CLOSED: 'Encerrada', COMPLETED: 'Realizada', CANCELLED: 'Cancelada' }[trip.status] || 'Rascunho'}</span>
+        <span className="badge badge-info">{tripStatusLabel(trip.status || 'DRAFT')}</span>
       </div>
       <article className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-surface-200">
         <div className="aspect-[16/9] bg-surface-200 relative">

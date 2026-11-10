@@ -36,6 +36,15 @@ export function inputToTime(value: string | null | undefined): string {
   return `${m[1]}h${m[2]}`;
 }
 
+/**
+ * Hora como o site mostra ('05h30'). O formulário guarda o campo de hora em 'HH:mm';
+ * texto que já está no formato do site (ou livre, como 'manhã') volta como veio.
+ */
+export function displayTime(value: string | null | undefined): string {
+  const trimmed = (value ?? '').trim();
+  return inputToTime(trimmed) || trimmed;
+}
+
 const datePart = (iso: string | null | undefined) => isoToLocalInput(iso).slice(0, 10);
 
 // Hora de um momento: a hora guardada (05h30) ou, na falta dela, a hora real do instante.
