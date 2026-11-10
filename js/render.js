@@ -140,6 +140,7 @@ const getMeetingLabel = (trip) => {
 // ou lista, sem alterar viagens completas.
 const text = (value, fallback = "") => (typeof value === "string" ? value : fallback);
 const list = (value) => (Array.isArray(value) ? value : []);
+const textList = (value) => list(value).filter((item) => typeof item === "string" && item.trim()).map((item) => item.trim());
 
 const normalizeTrip = (trip) => ({
   ...trip,
@@ -153,6 +154,12 @@ const normalizeTrip = (trip) => ({
   includesHighlight: text(trip.includesHighlight),
   media: list(trip.media).filter((item) => item && safeMediaUrl(item.src)),
   departures: list(trip.departures),
+  itinerary: textList(trip.itinerary),
+  routeNotes: textList(trip.routeNotes),
+  importantInfo: textList(trip.importantInfo),
+  trailDistance: text(trip.trailDistance).trim(),
+  supportPoint: text(trip.supportPoint).trim(),
+  supportPointInfo: text(trip.supportPointInfo).trim(),
   priceUnit: text(trip.priceUnit, "por pessoa"),
   priceDisplay: text(trip.priceDisplay, "Consulte"),
   buttonLabel: text(trip.buttonLabel, "Quero viajar"),
@@ -187,6 +194,26 @@ const buildDeparturesHTML = (trip) => {
               <ol class="trip-boarding-list">${items}</ol>
             </div>
           </div>`;
+};
+
+// Detalhes cadastrados no painel (roteiro, percurso, apoio, avisos). Só aparecem se preenchidos.
+const buildTripDetailsHTML = (trip) => {
+  const items = (values) => values.map((item) => `<li>${escapeHtml(item)}</li>`).join("");
+  const section = (heading, body) => `<div class="trip-details-section">
+              <p class="trip-includes-heading">${heading}</p>
+              ${body}
+            </div>`;
+  const route = [
+    trip.trailDistance ? `<li>Percurso: ${escapeHtml(trip.trailDistance)}</li>` : "",
+    trip.supportPoint ? `<li>Ponto de apoio: ${escapeHtml(trip.supportPoint)}${trip.supportPointInfo ? ` <span class="trip-details-note">(${escapeHtml(trip.supportPointInfo)})</span>` : ""}</li>` : "",
+    !trip.supportPoint && trip.supportPointInfo ? `<li>${escapeHtml(trip.supportPointInfo)}</li>` : "",
+    items(trip.routeNotes),
+  ].join("");
+  return [
+    trip.itinerary.length ? section("Roteiro", `<ol class="trip-details-list trip-details-list--ordered">${items(trip.itinerary)}</ol>`) : "",
+    route ? section("Sobre o percurso", `<ul class="trip-details-list">${route}</ul>`) : "",
+    trip.importantInfo.length ? section("Informações importantes", `<ul class="trip-details-list">${items(trip.importantInfo)}</ul>`) : "",
+  ].join("");
 };
 
 const buildTripCardHTML = (rawTrip, tripIndex) => {
@@ -256,12 +283,13 @@ const buildTripCardHTML = (rawTrip, tripIndex) => {
         <details class="trip-includes-toggle">
           <summary><span class="trip-includes-toggle-label">Ver roteiro &amp; o que inclui</span></summary>
           <div class="trip-includes-body">
-            <p class="trip-includes-heading">O que você vai viver</p>
-            <ul class="trip-includes">${includesHTML}</ul>
+            ${includesHTML ? `<p class="trip-includes-heading">O que você vai viver</p>
+            <ul class="trip-includes">${includesHTML}</ul>` : ""}
             ${trip.includesHighlight ? `<div class="trip-includes-highlight">
               <span class="trip-includes-highlight-icon" aria-hidden="true">${TRIP_ICON_SHIELD}</span>
               <span>${escapeHtml(trip.includesHighlight)}</span>
             </div>` : ""}
+            ${buildTripDetailsHTML(trip)}
           </div>
         </details>
 
