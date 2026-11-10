@@ -29,6 +29,8 @@ EXTRAS = [
     # seção "Universo OVERTRIP" (painéis com foto)
     "assets/images/geral/overtrip-grupo-2vans.jpg",
     "assets/images/riders/over-riders-capa-tema.jpg",
+    # página /riders/ (cards e memórias)
+    "assets/images/cachoeira-do-pinga-pb/cachoeira-do-pinga-pb-estrada-moto.jpg",
 ]
 
 

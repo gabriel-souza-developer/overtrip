@@ -57,3 +57,21 @@ describe('páginas secundárias', () => {
     expect(html('blog/primeira-expedicao/index.html')).toContain('Documento original com foto (obrigatório para embarque)');
   });
 });
+
+describe('peso das imagens nas páginas secundárias', () => {
+  const HEAVY = /\/assets\/images\/(?:cachoeira-do-pinga-pb\/cachoeira-do-pinga-pb(?:-estrada-moto)?|riders\/over-riders-capa-tema)\.jpg/;
+  it.each(SECONDARY)('%s só usa as fotos grandes com versões WebP em srcset', (file) => {
+    for (const tag of html(file).match(/<img\b[^>]*>/g) ?? []) {
+      if (!HEAVY.test(tag)) continue;
+      expect(tag).toMatch(/srcset="[^"]*-w640\.webp 640w/);
+      expect(tag).toContain('sizes="');
+    }
+  });
+
+  it('as versões WebP referenciadas existem', async () => {
+    const { existsSync } = await import('node:fs');
+    for (const file of SECONDARY) {
+      for (const src of html(file).match(/\/assets\/images\/[^\s"]+\.webp/g) ?? []) expect(existsSync(src.slice(1)), src).toBe(true);
+    }
+  });
+});
