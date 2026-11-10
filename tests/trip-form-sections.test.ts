@@ -66,8 +66,8 @@ describe('nomes do painel', () => {
     expect(layout).toContain("label: 'Destinos visitados'");
     expect(layout).toContain("label: 'Galeria de memórias'");
     expect(layout).not.toMatch(/label: '(Viagens|Visitas|Galeria)'/);
-    expect(dashboard).toContain("label: 'Próxima trip'");
-    expect(dashboard).toContain("label: 'Destinos visitados'");
+    expect(dashboard).toContain("label: 'Viagens cadastradas'");
+    expect(dashboard).toContain("label: 'Destinos para revisar'");
     expect(dashboard).not.toMatch(/label: '(Viagens|Visitas)'/);
   });
   it('as URLs não mudam', () => {

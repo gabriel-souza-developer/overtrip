@@ -59,7 +59,13 @@ router.put('/:id', asyncHandler(async (req: Request, res: Response) => {
   const input = updateInput.parse(req.body);
   if (!Object.keys(input).length) throw AppError.badRequest('Informe ao menos um campo');
   const data = { ...clean(input), ...(input.nextFollowUpAt !== undefined ? { nextFollowUpAt: input.nextFollowUpAt ? new Date(input.nextFollowUpAt) : null } : {}) };
-  const item = await prisma.lead.update({ where: { id: req.params.id }, data, include });
+  const item = await prisma.$transaction(async (tx) => {
+    if (input.tripId) {
+      const conflicting = await tx.reservation.findFirst({ where: { leadId: req.params.id, tripId: { not: input.tripId } }, select: { id: true } });
+      if (conflicting) throw AppError.conflict('Este interessado possui reserva vinculada a outra viagem.');
+    }
+    return tx.lead.update({ where: { id: req.params.id }, data, include });
+  });
   res.json(item);
 }));
 
@@ -72,7 +78,11 @@ router.post('/:id/events', asyncHandler(async (req: Request, res: Response) => {
 }));
 
 router.delete('/:id', asyncHandler(async (req: Request, res: Response) => {
-  await prisma.lead.delete({ where: { id: req.params.id } });
+  await prisma.$transaction(async (tx) => {
+    const reservation = await tx.reservation.findFirst({ where: { leadId: req.params.id }, select: { id: true } });
+    if (reservation) throw AppError.conflict('Desvincule as reservas deste interessado antes de excluí-lo.');
+    await tx.lead.delete({ where: { id: req.params.id } });
+  });
   res.status(204).end();
 }));
 

@@ -11,7 +11,7 @@ export interface KnowledgeEntry { question: string; answer: string }
 export interface KnowledgeVersion { version: number; entries: KnowledgeEntry[]; approvedById: string; approvedAt: string }
 export type KnowledgeVersionSummary = Omit<KnowledgeVersion, 'entries'>;
 
-async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+export async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const token = localStorage.getItem('auth_token');
   
   const headers: HeadersInit = {

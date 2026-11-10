@@ -59,6 +59,7 @@ export default function Gallery() {
   const [form, setForm] = useState<EntryForm>(blankForm(0));
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [photoPending, setPhotoPending] = useState(false);
   const [reordering, setReordering] = useState(false);
   const [savingOrder, setSavingOrder] = useState(false);
   const [toDelete, setToDelete] = useState<GalleryEntry | null>(null);
@@ -127,6 +128,7 @@ export default function Gallery() {
 
   const closeForm = () => {
     if (saving) return;
+    setPhotoPending(false);
     setFormOpen(false);
   };
 
@@ -147,6 +149,7 @@ export default function Gallery() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (photoPending) { setFormError('Conclua ou descarte o envio da foto antes de salvar.'); return; }
     const problem = validate();
     setFormError(problem);
     if (problem) return;
@@ -343,7 +346,7 @@ export default function Gallery() {
         footer={
           <>
             <Button onClick={closeForm} disabled={saving}>Cancelar</Button>
-            <Button type="submit" form="gallery-form" variant="primary" loading={saving} loadingText="Salvando...">{editingEntry ? 'Salvar' : 'Criar memória'}</Button>
+            <Button type="submit" form="gallery-form" variant="primary" disabled={photoPending} loading={saving} loadingText="Salvando...">{editingEntry ? 'Salvar' : 'Criar memória'}</Button>
           </>
         }
       >
@@ -359,10 +362,11 @@ export default function Gallery() {
           <fieldset className="space-y-2">
             <legend className="label">Fotos <span className="text-red-700" aria-hidden="true">*</span></legend>
             <p className="hint">Envie a foto ou cole o link de cada uma. A primeira é a capa.</p>
-            <ImageUploader idPrefix="g-upload" onAdd={(item) => {
+            <ImageUploader idPrefix="g-upload" onPendingChange={setPhotoPending} onAdd={(item) => {
               const empty = form.images.findIndex((img) => !img.src.trim());
               patch({ images: empty >= 0 ? form.images.map((img, i) => (i === empty ? item : img)) : [...form.images, item] });
             }} />
+            {photoPending && <p className="hint" role="status">Conclua ou descarte a foto antes de salvar.</p>}
             {form.images.map((img, idx) => (
               <div key={idx} className="flex items-center gap-2">
                 <ImageThumb src={img.src} className="w-10 h-10" />

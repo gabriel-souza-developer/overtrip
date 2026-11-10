@@ -54,12 +54,16 @@ test('envia foto do computador, mostra prévia e exige texto alternativo', async
   await page.locator('#media-link-upload-file').setInputFiles({ name: 'IMG_0001.jpg', mimeType: 'image/jpeg', buffer: photo });
   const alt = page.getByLabel('Descrição da foto (obrigatória)');
   await expect(alt).toBeFocused();
+  await expect(page.getByText('Foto enviada. Descreva-a e clique em “Usar esta foto”.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Salvar viagem' })).toBeDisabled();
   const add = page.getByRole('button', { name: 'Usar esta foto' });
   await expect(add).toBeDisabled();
   await page.screenshot({ path: `${SHOTS}/painel-upload-alt.png`, fullPage: false });
 
   await alt.fill('Grupo na beira da cachoeira');
   await add.click();
+  await expect(page.getByText('Foto adicionada ao formulário. Salve para confirmar a alteração.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Salvar viagem' })).toBeEnabled();
   await expect(page.getByLabel('Link da foto 1')).toHaveValue(SRC);
   await expect(page.getByLabel('Descrição da foto 1 (obrigatória)')).toHaveValue('Grupo na beira da cachoeira');
   expect(uploads).toEqual([{ contentType: 'image/jpeg', bytes: photo.length }]);
@@ -91,6 +95,7 @@ test('cola imagem da área de transferência e mostra o progresso', async ({ pag
   }, [...photo]);
 
   await expect(page.locator('#media-link-upload-progress')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Salvar viagem' })).toBeDisabled();
   await expect(page.getByText(/Enviando foto… \d+%/)).toBeVisible();
   await page.screenshot({ path: `${SHOTS}/painel-upload-progresso.png` });
   release();
@@ -108,6 +113,7 @@ test('mostra erro claro para formato não aceito e para recusa do servidor', asy
 
   await page.locator('#media-link-upload-file').setInputFiles({ name: 'grande.jpg', mimeType: 'image/jpeg', buffer: photo });
   await expect(page.getByRole('alert').filter({ hasText: 'A imagem é grande demais (9000×9000)' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Salvar viagem' })).toBeEnabled();
   await page.getByTestId("media-link-upload-uploader").screenshot({ path: `${SHOTS}/painel-upload-erro.png` });
 });
 
@@ -116,8 +122,10 @@ test('galeria aceita foto enviada no lugar do link', async ({ page }) => {
   await page.goto('/gallery');
   await page.getByRole('button', { name: 'Nova memória' }).first().click();
   await page.locator('#g-upload-file').setInputFiles({ name: 'x.webp', mimeType: 'image/webp', buffer: photo });
+  await expect(page.getByRole('button', { name: 'Criar memória' })).toBeDisabled();
   await page.getByLabel('Descrição da foto (obrigatória)').fill('Pôr do sol no mirante');
   await page.getByRole('button', { name: 'Usar esta foto' }).click();
+  await expect(page.getByRole('button', { name: 'Criar memória' })).toBeEnabled();
   await expect(page.getByLabel('Link da foto 1')).toHaveValue(SRC);
   await expect(page.getByLabel('Descrição da foto 1 (obrigatória)')).toHaveValue('Pôr do sol no mirante');
   await page.screenshot({ path: `${SHOTS}/painel-upload-galeria.png` });

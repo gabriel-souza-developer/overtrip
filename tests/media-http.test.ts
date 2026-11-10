@@ -38,6 +38,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  await prisma.trip.deleteMany({ where: { storedIdentity: { startsWith: 'test:media-save:' } } });
   await prisma.mediaAsset.deleteMany({ where: { createdById: { in: Object.values(users).map((u) => u.id) } } });
   await prisma.user.deleteMany({ where: { id: { in: Object.values(users).map((u) => u.id) } } });
   vi.unstubAllEnvs();
@@ -109,6 +110,25 @@ describe('POST /api/media', () => {
     expect(again.status).toBe(200);
     expect((await again.json()).id).toBe(asset.id);
     expect(await readdir(directory)).toHaveLength(4);
+  });
+
+  it('mantém a foto ao salvar e consultar novamente uma viagem em rascunho', async () => {
+    const imageResponse = await upload(await jpeg(), { token: users.editor.token });
+    expect([200, 201]).toContain(imageResponse.status);
+    const image = await imageResponse.json();
+    const media = [{ src: image.src, alt: 'Grupo na trilha', type: 'image' }];
+    const created = await fetch(`${baseUrl}/api/trips`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${users.editor.token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: 'Foto no rascunho', category: 'Trilha', description: 'Passeio', city: 'Lucena', region: 'PB', startDateISO: '2026-12-01T09:00:00.000Z', storedIdentity: `test:media-save:${Date.now()}`, media }),
+    });
+    expect(created.status).toBe(201);
+    const trip = await created.json();
+    expect(trip.status).toBe('DRAFT');
+    const reloaded = await fetch(`${baseUrl}/api/trips/${trip.id}`, { headers: { Authorization: `Bearer ${users.editor.token}` } });
+    expect(reloaded.status).toBe(200);
+    expect((await reloaded.json()).media).toEqual(media);
+    expect((await fetch(baseUrl + image.src)).status).toBe(200);
   });
 });
 

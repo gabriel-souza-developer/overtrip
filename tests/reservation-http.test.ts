@@ -90,4 +90,17 @@ describe('reservas administrativas', () => {
     expect((await post(`/${reservationId}/installments`, { amountCents: 100 })).status).toBe(409);
     expect((await post(`/${reservationId}/installments/${installmentId}`, { paid: false }, adminToken, 'PATCH')).status).toBe(409);
   });
+  it('preserva a associação do interessado com a viagem da reserva', async () => {
+    const lead = await prisma.lead.create({ data: { name: 'Interessado da reserva', tripId } });
+    const other = await prisma.trip.create({ data: { title: 'Outra viagem', category: 'Teste', description: 'Outra viagem', city: 'Cidade', region: 'PB', startDateISO: new Date('2030-02-01T12:00:00Z'), intensityClass: 'light', includes: '[]', media: '[]', storedIdentity: 'reservation-http-other' } });
+    const linked = await post('', { tripId, leadId: lead.id, customerName: 'Pessoa vinculada', seats: 1, totalCents: 1000 });
+    expect(linked.status).toBe(201);
+    const saved = await linked.json() as { id: string; leadId: string };
+    expect(saved.leadId).toBe(lead.id);
+    const leadUrl = `${base.replace('/reservations', '/leads')}/${lead.id}`;
+    expect((await fetch(leadUrl, { method: 'PUT', headers: headers(adminToken), body: JSON.stringify({ tripId: other.id }) })).status).toBe(409);
+    expect((await fetch(leadUrl, { method: 'DELETE', headers: headers(adminToken) })).status).toBe(409);
+    expect((await post(`/${saved.id}`, { leadId: null }, adminToken, 'PATCH')).status).toBe(200);
+    expect((await fetch(leadUrl, { method: 'DELETE', headers: headers(adminToken) })).status).toBe(204);
+  });
 });

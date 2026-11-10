@@ -123,3 +123,89 @@
   .riders-facts { grid-template-columns: 1fr; }
   .riders-cta-card { padding: 1.25rem; }
 }
+
+/* OVER RIDERS: navegação por etapas e composição de viagem. */
+.riders-hero {
+  padding-block: clamp(4.25rem, 7vw, 7rem);
+  background: #161715;
+}
+.riders-hero::before {
+  width: min(47vw, 660px);
+  border: 1px solid rgba(255,255,255,.09);
+  background: transparent;
+  filter: none;
+  box-shadow: 0 0 0 5rem rgba(255,255,255,.018), 0 0 0 10rem rgba(255,255,255,.012);
+}
+.riders-hero-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); }
+.riders-hero h1 { max-width: 10ch; font-size: clamp(3.7rem, 6.6vw, 6.8rem); line-height: .91; }
+.riders-hero-copy > .riders-eyebrow { display: inline-flex; align-items: center; gap: .6rem; }
+.riders-hero-copy > .riders-eyebrow::before { content: ""; width: 2rem; height: 2px; background: currentColor; }
+.riders-hero-meta { gap: 1rem; }
+.riders-hero-meta li { border-top-color: rgba(245,243,239,.32); }
+.riders-showcase-main { inset: 0 8% 0 8%; transform: none; border-radius: 1.5rem; }
+.riders-showcase-card--road { left: 0; bottom: -2%; transform: rotate(-4deg); }
+.riders-showcase-card--water { right: 0; top: 5%; transform: rotate(4deg); }
+.riders-showcase-main figcaption { left: 1.5rem; right: 1.5rem; bottom: 1.5rem; }
+.riders-showcase-main figcaption span { padding: .6rem .75rem; border: 1px solid rgba(255,255,255,.65); border-radius: 999px; }
+
+.riders-guide { background: var(--rust); color: var(--ink); }
+.riders-guide-inner { display: flex; align-items: center; gap: .75rem; min-height: 5rem; }
+.riders-guide-label { margin-right: auto; font-family: "Inter Tight", "Inter Tight Fallback", sans-serif; font-size: 1rem; font-weight: 800; }
+.riders-guide a { display: inline-flex; align-items: center; gap: .65rem; padding: .75rem 1rem; border: 1px solid rgba(17,17,17,.25); border-radius: 999px; font-size: .78rem; font-weight: 700; transition: background .2s; }
+.riders-guide a span { opacity: .62; font-size: .65rem; }
+.riders-guide a:hover, .riders-guide a:focus-visible { background: rgba(255,255,255,.3); }
+.riders-guide a:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+
+.riders-format { background: #f5f4ef; }
+.riders-section-head h2, .riders-process h2, .riders-memory h2 { max-width: 15ch; }
+.riders-bento { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: minmax(280px, auto); }
+.riders-feature { min-height: 280px; border-radius: 1.25rem; }
+.riders-feature--wide { grid-column: span 2; min-height: 320px; background: #e9e8e1; }
+.riders-feature--rust { min-height: 320px; }
+.riders-feature--image { grid-column: span 2; min-height: 320px; }
+.riders-feature--dark { min-height: 320px; }
+.riders-feature-index { display: inline-flex; align-items: center; justify-content: center; width: 2.5rem; height: 2.5rem; border: 1px solid currentColor; border-radius: 50%; opacity: .7; }
+.riders-feature h3 { max-width: 20ch; }
+.riders-feature--image img { position: absolute; inset: 0; }
+.riders-feature-overlay { left: 1.25rem; bottom: 1.25rem; width: fit-content; max-width: calc(100% - 2.5rem); }
+.riders-process { background: #20231f; }
+.riders-steps li { grid-template-columns: 3rem minmax(0,1fr); gap: 1.25rem; }
+.riders-steps li > span { display: grid; place-items: center; width: 2.5rem; height: 2.5rem; border: 1px solid rgba(226,107,27,.7); border-radius: 50%; }
+.riders-memory-gallery { gap: .75rem; }
+.riders-fact { border-radius: .85rem; background: transparent; }
+.riders-cta-card { align-items: center; }
+
+@media (max-width: 980px) {
+  .riders-hero-grid { grid-template-columns: 1fr; }
+  .riders-showcase { width: 100%; }
+  .riders-guide-inner { flex-wrap: wrap; padding-block: 1rem; }
+  .riders-guide-label { flex-basis: 100%; }
+  .riders-bento { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .riders-feature--wide, .riders-feature--image { grid-column: auto; }
+}
+@media (max-width: 720px) {
+  .riders-hero { padding-block: 3.2rem 3rem; }
+  .riders-hero h1 { font-size: clamp(3rem, 13vw, 5rem); }
+  .riders-hero-meta { grid-template-columns: repeat(3, minmax(0,1fr)); gap: .65rem; margin-top: 2rem; }
+  .riders-hero-meta li { padding: .8rem 0; }
+  .riders-hero-meta strong { font-size: .7rem; }
+  .riders-hero-meta span { font-size: .66rem; line-height: 1.4; }
+  .riders-showcase-main { inset: auto; }
+  .riders-showcase-card--road, .riders-showcase-card--water { transform: none; }
+  .riders-guide-inner { gap: .5rem; }
+  .riders-guide-label { margin-bottom: .2rem; }
+  .riders-guide a { padding: .65rem .8rem; font-size: .75rem; }
+  .riders-bento { grid-template-columns: 1fr; grid-auto-rows: auto; }
+  .riders-feature, .riders-feature--wide, .riders-feature--rust, .riders-feature--image, .riders-feature--dark { min-height: 250px; }
+  .riders-feature--image { min-height: 300px; }
+  .riders-feature-overlay { width: auto; }
+}
+@media (max-width: 360px) {
+  .riders-hero-meta { grid-template-columns: 1fr; gap: 0; }
+  .riders-hero-meta li { display: flex; justify-content: space-between; gap: .5rem; }
+  .riders-hero-meta span { margin: 0; text-align: right; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .riders-showcase-card--road, .riders-showcase-card--water { transform: none; }
+  .riders-guide a { transition: none; }
+}

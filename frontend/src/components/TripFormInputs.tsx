@@ -6,7 +6,7 @@ import ImageThumb from './ImageThumb';
 import ImageUploader from './ImageUploader';
 import Button from './Button';
 
-export function ArrayInput({ id, value, onChange, placeholder }: { id: string; value: string[]; onChange: (val: string[]) => void; placeholder: string }) {
+export function ArrayInput({ id, value, onChange, placeholder, onPendingChange }: { id: string; value: string[]; onChange: (val: string[]) => void; placeholder: string; onPendingChange?: (pending: boolean) => void }) {
   const [newItem, setNewItem] = useState('');
 
   const handleAdd = () => {
@@ -14,6 +14,7 @@ export function ArrayInput({ id, value, onChange, placeholder }: { id: string; v
     if (!text) return;
     onChange([...value, text]);
     setNewItem('');
+    onPendingChange?.(false);
   };
 
   return (
@@ -24,7 +25,7 @@ export function ArrayInput({ id, value, onChange, placeholder }: { id: string; v
           type="text"
           className="input flex-1 min-w-0"
           value={newItem}
-          onChange={(e) => setNewItem(e.target.value)}
+          onChange={(e) => { setNewItem(e.target.value); onPendingChange?.(!!e.target.value.trim()); }}
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAdd(); } }}
           placeholder={placeholder}
         />
@@ -51,7 +52,7 @@ export type MediaItem = { src: string; alt: string; focus?: string; type?: 'imag
 const VIDEO_EXT = /\.(mp4|webm|mov)(\?.*)?$/i;
 
 /** Fotos da viagem. A primeira é a capa. */
-export function MediaInput({ value, onChange, inputId }: { value: MediaItem[]; onChange: (val: MediaItem[]) => void; inputId: string }) {
+export function MediaInput({ value, onChange, inputId, onPendingChange, onLinkPendingChange }: { value: MediaItem[]; onChange: (val: MediaItem[]) => void; inputId: string; onPendingChange?: (pending: boolean) => void; onLinkPendingChange?: (pending: boolean) => void }) {
   const { toast } = useToast();
   const [newSrc, setNewSrc] = useState('');
 
@@ -61,6 +62,7 @@ export function MediaInput({ value, onChange, inputId }: { value: MediaItem[]; o
     if (!isValidImageSrc(src)) { toast.error(IMAGE_SRC_MESSAGE); return; }
     onChange([...value, { src, alt: '', type: VIDEO_EXT.test(src) ? 'video' : 'image' }]);
     setNewSrc('');
+    onLinkPendingChange?.(false);
   };
 
   const update = (index: number, patch: Partial<MediaItem>) =>
@@ -68,7 +70,7 @@ export function MediaInput({ value, onChange, inputId }: { value: MediaItem[]; o
 
   return (
     <div className="space-y-3">
-      <ImageUploader idPrefix={`${inputId}-upload`} onAdd={(item) => onChange([...value, { ...item, type: 'image' }])} />
+      <ImageUploader idPrefix={`${inputId}-upload`} onPendingChange={onPendingChange} onAdd={(item) => onChange([...value, { ...item, type: 'image' }])} />
       <div className="flex gap-2">
         <input
           id={inputId}
@@ -77,7 +79,7 @@ export function MediaInput({ value, onChange, inputId }: { value: MediaItem[]; o
           placeholder="Cole o link da foto (ex.: assets/images/pasta/foto.jpg)"
           aria-label="Link da foto"
           value={newSrc}
-          onChange={(e) => setNewSrc(e.target.value)}
+          onChange={(e) => { setNewSrc(e.target.value); onLinkPendingChange?.(!!e.target.value.trim()); }}
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAdd(); } }}
         />
         <Button variant="primary" onClick={handleAdd} icon={<ImagePlus className="w-4 h-4" aria-hidden="true" />}>
@@ -129,7 +131,7 @@ export function MediaInput({ value, onChange, inputId }: { value: MediaItem[]; o
 export type Departure = { time: string; place: string; city: string; mapsUrl?: string | null; mapsQuery?: string | null; orderIndex: number };
 
 /** Lugares de onde o grupo sai, cada um com seu horário. */
-export function DeparturesInput({ value, onChange }: { value: Departure[]; onChange: (val: Departure[]) => void }) {
+export function DeparturesInput({ value, onChange, onPendingChange }: { value: Departure[]; onChange: (val: Departure[]) => void; onPendingChange?: (pending: boolean) => void }) {
   const [time, setTime] = useState('');
   const [place, setPlace] = useState('');
   const [city, setCity] = useState('');
@@ -141,6 +143,7 @@ export function DeparturesInput({ value, onChange }: { value: Departure[]; onCha
     if (!time.trim() || !place.trim() || !city.trim()) { setMissing(true); return; }
     onChange([...value, { time: time.trim(), place: place.trim(), city: city.trim(), mapsUrl: mapsUrl.trim() || undefined, mapsQuery: mapsQuery.trim() || undefined, orderIndex: value.length }]);
     setTime(''); setPlace(''); setCity(''); setMapsUrl(''); setMapsQuery(''); setMissing(false);
+    onPendingChange?.(false);
   };
 
   const onEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -149,7 +152,7 @@ export function DeparturesInput({ value, onChange }: { value: Departure[]; onCha
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2" onInput={(event) => onPendingChange?.(Array.from(event.currentTarget.querySelectorAll('input')).some((input) => !!input.value.trim()))}>
         <input type="text" className="input" placeholder="Horário (ex.: 06h00)" aria-label="Horário da saída" value={time} onChange={(e) => setTime(e.target.value)} onKeyDown={onEnter} />
         <input type="text" className="input" placeholder="Local (ex.: Shopping)" aria-label="Local da saída" value={place} onChange={(e) => setPlace(e.target.value)} onKeyDown={onEnter} />
         <input type="text" className="input" placeholder="Cidade" aria-label="Cidade da saída" value={city} onChange={(e) => setCity(e.target.value)} onKeyDown={onEnter} />

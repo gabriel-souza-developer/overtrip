@@ -28,10 +28,11 @@ export function checkImageFile(file: { type: string; size: number }): string {
  * Envia uma foto (arquivo ou colada) e só a entrega ao formulário depois que
  * o texto alternativo for preenchido.
  */
-export default function ImageUploader({ onAdd, idPrefix }: { onAdd: (item: { src: string; alt: string }) => void; idPrefix: string }) {
+export default function ImageUploader({ onAdd, onPendingChange, idPrefix }: { onAdd: (item: { src: string; alt: string }) => void; onPendingChange?: (pending: boolean) => void; idPrefix: string }) {
   const [state, setState] = useState<State>({ kind: 'idle' });
   const [alt, setAlt] = useState('');
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const abort = useRef<AbortController | null>(null);
   const altRef = useRef<HTMLInputElement>(null);
   const hintId = useId();
@@ -47,7 +48,9 @@ export default function ImageUploader({ onAdd, idPrefix }: { onAdd: (item: { src
   const send = async (file: File) => {
     const problem = checkImageFile(file);
     setError(problem);
+    setNotice('');
     if (problem) return;
+    onPendingChange?.(true);
     abort.current?.abort();
     const controller = new AbortController();
     abort.current = controller;
@@ -63,15 +66,17 @@ export default function ImageUploader({ onAdd, idPrefix }: { onAdd: (item: { src
       if (e instanceof DOMException && e.name === 'AbortError') return;
       dropPreview();
       setState({ kind: 'idle' });
+      onPendingChange?.(false);
       setError(e instanceof Error ? e.message : 'Não foi possível enviar a foto.');
     }
   };
 
-  const reset = () => { abort.current?.abort(); dropPreview(); setState({ kind: 'idle' }); setAlt(''); };
+  const reset = () => { abort.current?.abort(); dropPreview(); setState({ kind: 'idle' }); setAlt(''); onPendingChange?.(false); };
   const confirm = () => {
     if (state.kind !== 'ready' || !alt.trim()) return;
     onAdd({ src: state.asset.src, alt: alt.trim() });
     reset();
+    setNotice('Foto adicionada ao formulário. Salve para confirmar a alteração.');
   };
 
   const onPaste = (event: React.ClipboardEvent) => {
@@ -111,6 +116,7 @@ export default function ImageUploader({ onAdd, idPrefix }: { onAdd: (item: { src
         <div className="flex flex-wrap items-start gap-3">
           <img src={state.asset.src} alt="" className="w-20 h-20 object-cover rounded bg-surface-100" />
           <div className="flex-1 min-w-[12rem] space-y-1">
+            <p role="status" className="text-sm text-surface-700">Foto enviada. Descreva-a e clique em “Usar esta foto”.</p>
             <label htmlFor={altId} className="label">Descrição da foto <span className="text-red-700">(obrigatória)</span></label>
             <input id={altId} ref={altRef} type="text" className="input" value={alt} aria-required="true"
               onChange={(e) => setAlt(e.target.value)} placeholder="Ex.: Grupo atravessando o rio na trilha"
@@ -123,6 +129,7 @@ export default function ImageUploader({ onAdd, idPrefix }: { onAdd: (item: { src
           </div>
         </div>
       )}
+      {notice && <p role="status" className="text-sm text-surface-700">{notice}</p>}
       {error && <p className="field-error" role="alert">{error}</p>}
     </div>
   );

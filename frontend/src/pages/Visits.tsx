@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, CheckCircle2, MapPin, Pencil, Trash2 } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, MapPin, Pencil, Plus, Trash2 } from 'lucide-react';
 import { visitApi, Visit, Pagination as PaginationInfo } from '../api';
 import { formatDateBR, localInputToIso } from '../lib/dateInput';
 import { visitToEditForm, reviewAfterSave, VisitEditForm } from '../lib/visitForm';
@@ -31,6 +31,7 @@ export default function Visits() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [editing, setEditing] = useState<Visit | null>(null);
+  const [creating, setCreating] = useState(false);
   const [editForm, setEditForm] = useState<VisitEditForm | null>(null);
   const [toDelete, setToDelete] = useState<Visit | null>(null);
   const [saving, setSaving] = useState(false);
@@ -86,8 +87,22 @@ export default function Visits() {
     setLocationError('');
     setLocationNotice('');
     setSearchingLocation(false);
+    setCreating(false);
     setEditing(visit);
     setEditForm(visitToEditForm(visit));
+    setFormError('');
+  };
+
+  const openCreate = () => {
+    locationRequest.current?.abort();
+    setEditing(null);
+    setCreating(true);
+    setEditForm({ title: '', description: '', date: '', city: '', region: '', lat: null, lng: null, notes: '', tripId: '' });
+    setLocationQuery('');
+    setLocationResults([]);
+    setLocationError('');
+    setLocationNotice('');
+    setSearchingLocation(false);
     setFormError('');
   };
 
@@ -95,6 +110,7 @@ export default function Visits() {
     if (saving) return;
     locationRequest.current?.abort();
     setEditing(null);
+    setCreating(false);
     setEditForm(null);
   };
 
@@ -126,7 +142,7 @@ export default function Visits() {
   };
 
   const saveEdit = async (markReviewed: boolean) => {
-    if (!editing || !editForm) return;
+    if ((!editing && !creating) || !editForm) return;
     if (!editForm.title.trim() || !editForm.region.trim() || !editForm.city.trim()) {
       setFormError('Preencha o nome. Se necessário, confira cidade e estado em Informações adicionais.');
       return;
@@ -134,7 +150,7 @@ export default function Visits() {
     setSaving(true);
     setFormError('');
     try {
-      await visitApi.update(editing.id, {
+      const data = {
         title: editForm.title,
         description: editForm.description.trim() ? editForm.description : null,
         city: editForm.city,
@@ -142,11 +158,14 @@ export default function Visits() {
         lat: editForm.lat,
         lng: editForm.lng,
         notes: editForm.notes.trim() ? editForm.notes : null,
-        needsReview: reviewAfterSave(editing.needsReview, markReviewed),
-        date: localInputToIso(editForm.date, editing.date),
-      });
+        needsReview: reviewAfterSave(editing?.needsReview ?? true, markReviewed),
+        date: localInputToIso(editForm.date, editing?.date),
+      };
+      if (editing) await visitApi.update(editing.id, data);
+      else await visitApi.create(data);
       toast.success('Destino salvo.');
       setEditing(null);
+      setCreating(false);
       setEditForm(null);
       await loadVisits();
     } catch (err) {
@@ -202,7 +221,7 @@ export default function Visits() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Destinos visitados" description="Registre e revise os lugares que a OVERTRIP já visitou." />
+      <PageHeader title="Destinos visitados" description="Registre e revise os lugares que a OVERTRIP já visitou." actions={<Button variant="primary" icon={<Plus className="w-4 h-4" aria-hidden="true" />} onClick={openCreate}>Adicionar destino</Button>} />
 
       <FilterBar
         searchLabel="Buscar destinos"
@@ -295,16 +314,16 @@ export default function Visits() {
       </div>
 
       <Modal
-        open={!!editing}
+        open={!!editing || creating}
         onOpenChange={(open) => { if (!open) closeEdit(); }}
-        title="Editar destino"
+        title={creating ? 'Adicionar destino' : 'Editar destino'}
         description="Confira o nome e a localização do lugar visitado."
         widthClass="max-w-2xl"
         footer={
           <>
             <Button onClick={closeEdit} disabled={saving}>Cancelar</Button>
-            <Button variant={editing?.needsReview ? 'secondary' : 'primary'} loading={saving} loadingText="Salvando..." onClick={() => saveEdit(false)}>Salvar</Button>
-            {editing?.needsReview ? (
+            <Button variant={creating || editing?.needsReview ? 'secondary' : 'primary'} loading={saving} loadingText="Salvando..." onClick={() => saveEdit(false)}>Salvar</Button>
+            {creating || editing?.needsReview ? (
               <Button variant="primary" loading={saving} loadingText="Salvando..." onClick={() => saveEdit(true)}>Salvar e marcar como revisado</Button>
             ) : null}
           </>
@@ -313,6 +332,7 @@ export default function Visits() {
         {editForm && (
           <form id="visit-form" onSubmit={(e) => { e.preventDefault(); saveEdit(false); }} noValidate className="space-y-4">
             {formError && <div className="alert-error" role="alert">{formError}</div>}
+            {creating && <p className="hint">Para aparecer no mapa do site, confirme a localização e marque o destino como revisado ao salvar.</p>}
             <Field id="edit-title" label="Nome do destino" required>
               <input id="edit-title" className="input" value={editForm.title} onChange={(e) => patch({ title: e.target.value })} />
             </Field>

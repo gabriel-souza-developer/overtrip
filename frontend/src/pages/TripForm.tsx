@@ -77,6 +77,10 @@ export default function TripForm() {
   const isEditing = !!id;
   const [loading, setLoading] = useState(isEditing || !!templateId);
   const [saving, setSaving] = useState(false);
+  const [photoPending, setPhotoPending] = useState(false);
+  const [pendingItems, setPendingItems] = useState<Record<string, boolean>>({});
+  const setPendingItem = (field: string, pending: boolean) => setPendingItems(previous => previous[field] === pending ? previous : { ...previous, [field]: pending });
+  const hasPendingItems = Object.values(pendingItems).some(Boolean);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState<FormState>(emptyForm);
   const [leaveOpen, setLeaveOpen] = useState(false);
@@ -111,7 +115,7 @@ export default function TripForm() {
     toast.success('Campos preenchidos. Revise e clique em Salvar.');
   };
 
-  const dirty = JSON.stringify(formData) !== initialRef.current;
+  const dirty = JSON.stringify(formData) !== initialRef.current || hasPendingItems || photoPending;
 
   // Avisa antes de fechar a aba com alterações não salvas.
   useEffect(() => {
@@ -248,6 +252,8 @@ export default function TripForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (photoPending) { toast.error('Conclua ou descarte o envio da foto antes de salvar.'); return; }
+    if (hasPendingItems) { toast.error('Adicione ou apague os itens que ainda estão sendo preenchidos antes de salvar.'); return; }
     if (!validate()) return;
 
     setSaving(true);
@@ -396,6 +402,8 @@ export default function TripForm() {
             <MediaInput
               inputId="media-link"
               value={f.media}
+              onPendingChange={setPhotoPending}
+              onLinkPendingChange={(pending) => setPendingItem('foto', pending)}
               onChange={(val) => { setFormData(prev => ({ ...prev, media: val })); clearError('media'); }}
             />
             {errors.media && <p className="field-error" role="alert">{errors.media}</p>}
@@ -415,7 +423,7 @@ export default function TripForm() {
 
           <div>
             <span className="label">Embarque</span>
-            <p className="hint mb-3">Onde o grupo se encontra. Se ainda não sabe, marque "a confirmar".</p>
+            <p className="hint mb-3">Para um único embarque, preencha cidade e local. Se ainda não sabe, marque "a confirmar".</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field id="meetingCity" label="Cidade de embarque">
                 <input id="meetingCity" name="meetingCity" className="input" value={f.meetingCity} onChange={handleChange} placeholder="Ex.: Campina Grande" />
@@ -428,11 +436,12 @@ export default function TripForm() {
               <input id="meetingTBD" name="meetingTBD" type="checkbox" className="checkbox-input" checked={f.meetingTBD} onChange={(e) => { handleChange(e); clearError('departure'); }} />
               <span className="text-sm text-surface-700">Embarque ainda está a confirmar</span>
             </label>
+            {f.meetingTBD && <p className="hint">Enquanto estiver a confirmar, os pontos cadastrados não aparecerão no site.</p>}
             <details className="mt-3" open={f.departures.length > 0 || !!errors.departure || undefined}>
-              <summary className="cursor-pointer font-semibold text-sm">Adicionar mais pontos de embarque</summary>
+              <summary className="cursor-pointer font-semibold text-sm">Informar todos os pontos de embarque</summary>
               <div className="mt-3 space-y-2">
-                <p className="hint">Se adicionar pontos, informe horário, local e cidade de cada um para publicar.</p>
-                <DeparturesInput value={f.departures} onChange={(val) => setFormData(prev => ({ ...prev, departures: val }))} />
+                <p className="hint">Ao usar esta lista, somente os pontos abaixo aparecem no site. Inclua todos os embarques, inclusive o primeiro, com horário, local e cidade.</p>
+                <DeparturesInput value={f.departures} onPendingChange={(pending) => setPendingItem('embarque', pending)} onChange={(val) => setFormData(prev => ({ ...prev, departures: val }))} />
               </div>
             </details>
             {errors.departure && <p className="field-error" role="alert">{errors.departure}</p>}
@@ -498,19 +507,20 @@ export default function TripForm() {
             <ArrayInput
               id="includes-custom-input"
               value={customItems(f.includes)}
+              onPendingChange={(pending) => setPendingItem('inclui', pending)}
               onChange={(items) => setList('includes', mergeUnique(INCLUDE_PRESETS.filter(item => hasItem(f.includes, item)), items))}
               placeholder="Ex.: Banho de rio, almoço"
             />
           </Field>
 
           <Field id="itinerary-input" label="Roteiro">
-            <ArrayInput id="itinerary-input" value={f.itinerary} onChange={(val) => setList('itinerary', val)} placeholder="Ex.: 06h - Encontro, 07h - Saída" />
+            <ArrayInput id="itinerary-input" value={f.itinerary} onPendingChange={(pending) => setPendingItem('roteiro', pending)} onChange={(val) => setList('itinerary', val)} placeholder="Ex.: 06h - Encontro, 07h - Saída" />
           </Field>
           <Field id="route-notes-input" label="Observações do percurso">
-            <ArrayInput id="route-notes-input" value={f.routeNotes} onChange={(val) => setList('routeNotes', val)} placeholder="Ex.: Trilha com trechos íngremes" />
+            <ArrayInput id="route-notes-input" value={f.routeNotes} onPendingChange={(pending) => setPendingItem('percurso', pending)} onChange={(val) => setList('routeNotes', val)} placeholder="Ex.: Trilha com trechos íngremes" />
           </Field>
           <Field id="important-info-input" label="Informações importantes">
-            <ArrayInput id="important-info-input" value={f.importantInfo} onChange={(val) => setList('importantInfo', val)} placeholder="Ex.: Levar 2 litros de água" />
+            <ArrayInput id="important-info-input" value={f.importantInfo} onPendingChange={(pending) => setPendingItem('informações', pending)} onChange={(val) => setList('importantInfo', val)} placeholder="Ex.: Levar 2 litros de água" />
           </Field>
         <details className="form-section">
           <summary className="cursor-pointer font-semibold">Mais opções</summary>
@@ -557,12 +567,12 @@ export default function TripForm() {
 
         <div className="fixed bottom-0 inset-x-0 lg:left-64 z-20 bg-white/95 backdrop-blur border-t border-surface-200">
           <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-            <p className="hidden sm:block text-sm text-surface-600" aria-live="polite">
-              {dirty ? 'Você tem alterações não salvas.' : isEditing ? 'Nenhuma alteração.' : 'Será salva como rascunho.'}
+            <p className={`${photoPending || hasPendingItems ? '' : 'hidden sm:block'} text-sm text-surface-600`} aria-live="polite">
+              {photoPending ? 'Conclua ou descarte a foto antes de salvar.' : hasPendingItems ? 'Adicione ou apague os itens em preenchimento antes de salvar.' : dirty ? 'Você tem alterações não salvas.' : isEditing ? 'Nenhuma alteração.' : 'Será salva como rascunho.'}
             </p>
             <div className="flex gap-3 w-full sm:w-auto">
               <Button onClick={leave} disabled={saving} className="flex-1 sm:flex-none">Cancelar</Button>
-              <Button type="submit" variant="primary" loading={saving} loadingText="Salvando..." icon={<Save className="w-5 h-5" aria-hidden="true" />} className="flex-1 sm:flex-none">
+              <Button type="submit" variant="primary" disabled={photoPending} loading={saving} loadingText="Salvando..." icon={<Save className="w-5 h-5" aria-hidden="true" />} className="flex-1 sm:flex-none">
                 {isEditing ? 'Salvar alterações' : 'Salvar viagem'}
               </Button>
             </div>

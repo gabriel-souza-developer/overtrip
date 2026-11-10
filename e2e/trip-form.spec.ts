@@ -66,6 +66,41 @@ test('formulário não tem mais o atalho de destino visitado, e serviço padrão
   await expect(page.getByRole('checkbox', { name: 'Guia' })).toBeChecked();
 });
 
+test('lista de embarques informa que substitui o embarque único na prévia', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/trips/new');
+  await page.getByLabel('Cidade de embarque').fill('Pocinhos');
+  await page.getByLabel('Local de embarque').fill('Igreja');
+  const preview = page.getByRole('complementary', { name: 'Prévia do card no site' }).filter({ visible: true });
+  await expect(preview).toContainText('Pocinhos');
+  await page.getByText('Informar todos os pontos de embarque').click();
+  await expect(page.getByText('Ao usar esta lista, somente os pontos abaixo aparecem no site.', { exact: false })).toBeVisible();
+  await page.getByLabel('Horário da saída').fill('05h');
+  await page.getByLabel('Local da saída').fill('Rodoviária');
+  await page.getByLabel('Cidade da saída').fill('Campina Grande');
+  await page.getByRole('button', { name: 'Adicionar saída' }).click();
+  await expect(preview).toContainText('Campina Grande');
+  await expect(preview).not.toContainText('Pocinhos');
+  await page.getByLabel('Embarque ainda está a confirmar').check();
+  await expect(page.getByText('Enquanto estiver a confirmar, os pontos cadastrados não aparecerão no site.')).toBeVisible();
+});
+
+test('não salva nem descarta texto digitado antes de adicionar à lista', async ({ page }) => {
+  let writes = 0;
+  await page.route('**/api/trips', route => { if (route.request().method() !== 'GET') writes++; return route.fulfill({ json: {} }); });
+  await page.goto('/trips/new');
+  await page.locator('summary').filter({ hasText: 'Detalhes opcionais' }).click();
+  await page.locator('#itinerary-input').fill('Banho no rio');
+  await expect(page.getByText('Adicione ou apague os itens em preenchimento antes de salvar.')).toBeVisible();
+  await page.locator('#trip-form button[type="submit"]').click();
+  await expect(page.getByText('Adicione ou apague os itens que ainda estão sendo preenchidos antes de salvar.')).toBeVisible();
+  await expect(page.locator('#itinerary-input')).toHaveValue('Banho no rio');
+  expect(writes).toBe(0);
+  await page.locator('#itinerary-input').press('Enter');
+  await expect(page.locator('#itinerary-input')).toHaveValue('');
+  await expect(page.getByText('Adicione ou apague os itens em preenchimento antes de salvar.')).toHaveCount(0);
+});
+
 test('prévia acompanha o preenchimento sem salvar a viagem', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   let writes = 0;

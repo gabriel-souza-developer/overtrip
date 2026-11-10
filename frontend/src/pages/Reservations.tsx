@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { CalendarCheck, Plus } from 'lucide-react';
-import { tripApi, type Trip, type Pagination as PaginationInfo } from '../api';
+import { request, tripApi, type Trip, type Pagination as PaginationInfo } from '../api';
+import { leadsApi, type Lead } from '../api/leads';
 import { useAuth } from '../App';
 import { useToast } from '../hooks/useToast';
-import { translateApiError } from '../lib/formHelpers';
 import { reservationMoneyToCents } from '../lib/reservationMoney';
 import PageHeader from '../components/PageHeader';
 import Button from '../components/Button';
@@ -16,7 +16,7 @@ import Pagination from '../components/Pagination';
 type ReservationStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED';
 interface Installment { id: string; amountCents: number; dueDate: string | null; paidAt: string | null }
 interface Reservation {
-  id: string; tripId: string; customerName: string; customerPhone: string | null;
+  id: string; tripId: string; leadId: string | null; customerName: string; customerPhone: string | null;
   seats: number; totalCents: number; notes: string | null; status: ReservationStatus;
   trip: { id: string; title: string; startDateISO: string }; installments: Installment[];
 }
@@ -24,27 +24,25 @@ const labels: Record<ReservationStatus, string> = { PENDING: 'Pendente', CONFIRM
 const formatMoney = (cents: number) => (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
 async function reservationRequest<T>(path: string, method = 'GET', body?: unknown): Promise<T> {
-  const token = localStorage.getItem('auth_token');
-  const response = await fetch(`/api/reservations${path}`, {
-    method,
-    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-  });
-  if (!response.ok) {
-    const data = await response.json().catch(() => ({}));
-    throw new Error(translateApiError(data));
-  }
-  if (response.status === 204) return undefined as T;
-  return response.json();
+  return request<T>(`/reservations${path}`, { method, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
 }
 
-type FormState = { tripId: string; customerName: string; customerPhone: string; seats: string; total: string; notes: string };
-const emptyForm: FormState = { tripId: '', customerName: '', customerPhone: '', seats: '1', total: '', notes: '' };
+type FormState = { tripId: string; leadId: string; customerName: string; customerPhone: string; seats: string; total: string; notes: string };
+const emptyForm: FormState = { tripId: '', leadId: '', customerName: '', customerPhone: '', seats: '1', total: '', notes: '' };
 async function loadTrips(): Promise<Trip[]> {
   const first = await tripApi.list({ limit: 100, page: 1 });
   const result = [...first.data];
   for (let page = 2; page <= first.pagination.totalPages; page += 1) {
     const next = await tripApi.list({ limit: 100, page });
+    result.push(...next.data);
+  }
+  return result;
+}
+async function loadLeads(): Promise<Lead[]> {
+  const first = await leadsApi.list('', 1, 100);
+  const result = [...first.data];
+  for (let page = 2; page <= first.pagination.totalPages; page += 1) {
+    const next = await leadsApi.list('', page, 100);
     result.push(...next.data);
   }
   return result;
@@ -56,6 +54,7 @@ export default function Reservations() {
   const isAdmin = user?.role === 'admin';
   const [rows, setRows] = useState<Reservation[]>([]);
   const [trips, setTrips] = useState<Trip[]>([]);
+  const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
@@ -83,11 +82,12 @@ export default function Reservations() {
       if (statusFilter) query.set('status', statusFilter);
       query.set('page', String(page));
       query.set('limit', '20');
-      const [reservations, tripData] = await Promise.all([
+      const [reservations, tripData, leadData] = await Promise.all([
         reservationRequest<{ data: Reservation[]; pagination: PaginationInfo }>(`?${query}`),
         loadTrips(),
+        loadLeads(),
       ]);
-      setRows(reservations.data); setPagination(reservations.pagination); setTrips(tripData);
+      setRows(reservations.data); setPagination(reservations.pagination); setTrips(tripData); setLeads(leadData);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Não foi possível carregar as reservas.');
     } finally { setLoading(false); }
@@ -103,7 +103,7 @@ export default function Reservations() {
     }
     setSaving(true);
     try {
-      const fields = { customerName: form.customerName.trim(), customerPhone: form.customerPhone.trim() || null, seats, totalCents: cents, notes: form.notes.trim() || null };
+      const fields = { customerName: form.customerName.trim(), customerPhone: form.customerPhone.trim() || null, seats, totalCents: cents, notes: form.notes.trim() || null, leadId: form.leadId || null };
       if (editingId) await reservationRequest(`/${encodeURIComponent(editingId)}`, 'PATCH', fields);
       else await reservationRequest('', 'POST', { tripId: form.tripId, ...fields });
       setForm(emptyForm); setEditingId(null); setShowForm(false); toast.success(editingId ? 'Reserva atualizada.' : 'Reserva cadastrada como pendente.'); await load();
@@ -147,7 +147,8 @@ export default function Reservations() {
     {showForm && <form className="card p-5 sm:p-6 space-y-4" onSubmit={create} noValidate>
       <h2 className="text-lg font-semibold">{editingId ? 'Editar reserva' : 'Nova reserva'}</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Field id="res-trip" label="Viagem" required><select id="res-trip" className="input" value={form.tripId} onChange={e => setForm({ ...form, tripId: e.target.value })} disabled={!!editingId} required><option value="">Selecione</option>{trips.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}</select></Field>
+        <Field id="res-trip" label="Viagem" required><select id="res-trip" className="input" value={form.tripId} onChange={e => setForm({ ...form, tripId: e.target.value, leadId: '' })} disabled={!!editingId} required><option value="">Selecione</option>{trips.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}</select></Field>
+        <Field id="res-lead" label="Interessado vinculado" hint="Opcional: conecta esta reserva ao acompanhamento do interessado."><select id="res-lead" className="input" value={form.leadId} disabled={!form.tripId} onChange={e => setForm({ ...form, leadId: e.target.value })}><option value="">Sem interessado vinculado</option>{leads.filter(lead => !lead.tripId || lead.tripId === form.tripId).map(lead => <option key={lead.id} value={lead.id}>{lead.name}</option>)}</select></Field>
         <Field id="res-name" label="Nome do responsável" required><input id="res-name" className="input" value={form.customerName} maxLength={150} onChange={e => setForm({ ...form, customerName: e.target.value })} required /></Field>
         <Field id="res-phone" label="Telefone"><input id="res-phone" className="input" type="tel" autoComplete="tel" maxLength={40} value={form.customerPhone} onChange={e => setForm({ ...form, customerPhone: e.target.value })} /></Field>
         <Field id="res-seats" label="Quantidade de lugares" required><input id="res-seats" className="input" type="number" min="1" max="100" step="1" value={form.seats} onChange={e => setForm({ ...form, seats: e.target.value })} required /></Field>
@@ -163,7 +164,7 @@ export default function Reservations() {
     </div>
     {error && <ErrorState message={error} onRetry={() => void load()} />}
     {loading ? <p role="status" className="text-sm text-surface-600">Carregando reservas...</p> : !error && rows.length === 0 ? <EmptyState icon={<CalendarCheck />} title="Nenhuma reserva encontrada" text="Cadastre uma reserva ou ajuste os filtros." /> : <div className="space-y-4">{rows.map(row => <article className="card p-5 space-y-4" key={row.id}>
-      <div className="flex flex-wrap justify-between gap-4"><div><h2 className="font-semibold text-surface-900">{row.customerName}</h2><p className="text-sm text-surface-600">{row.trip.title} · {row.seats} {row.seats === 1 ? 'lugar' : 'lugares'} · {formatMoney(row.totalCents)}</p>{row.customerPhone && <p className="text-sm text-surface-600">{row.customerPhone}</p>}{row.notes && <p className="text-sm text-surface-600 mt-1 whitespace-pre-wrap">{row.notes}</p>}<Button small className="mt-3" disabled={saving} onClick={() => { setEditingId(row.id); setForm({ tripId: row.tripId, customerName: row.customerName, customerPhone: row.customerPhone || '', seats: String(row.seats), total: (row.totalCents / 100).toFixed(2).replace('.', ','), notes: row.notes || '' }); setFormError(''); setShowForm(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>Editar dados</Button></div><div><label className="label" htmlFor={`status-${row.id}`}>Situação</label><select id={`status-${row.id}`} className="input" value={row.status} disabled={busyId === row.id} onChange={e => void changeStatus(row.id, e.target.value as ReservationStatus)}>{Object.entries(labels).map(([key, value]) => <option key={key} value={key}>{value}</option>)}</select></div></div>
+      <div className="flex flex-wrap justify-between gap-4"><div><h2 className="font-semibold text-surface-900">{row.customerName}</h2><p className="text-sm text-surface-600">{row.trip.title} · {row.seats} {row.seats === 1 ? 'lugar' : 'lugares'} · {formatMoney(row.totalCents)}</p>{row.leadId && <p className="text-sm text-surface-600">Interessado: {leads.find(lead => lead.id === row.leadId)?.name || 'vinculado'}</p>}{row.customerPhone && <p className="text-sm text-surface-600">{row.customerPhone}</p>}{row.notes && <p className="text-sm text-surface-600 mt-1 whitespace-pre-wrap">{row.notes}</p>}<Button small className="mt-3" disabled={saving} onClick={() => { setEditingId(row.id); setForm({ tripId: row.tripId, leadId: row.leadId || '', customerName: row.customerName, customerPhone: row.customerPhone || '', seats: String(row.seats), total: (row.totalCents / 100).toFixed(2).replace('.', ','), notes: row.notes || '' }); setFormError(''); setShowForm(true); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>Editar dados</Button></div><div><label className="label" htmlFor={`status-${row.id}`}>Situação</label><select id={`status-${row.id}`} className="input" value={row.status} disabled={busyId === row.id} onChange={e => void changeStatus(row.id, e.target.value as ReservationStatus)}>{Object.entries(labels).map(([key, value]) => <option key={key} value={key}>{value}</option>)}</select></div></div>
       <div className="border-t border-surface-200 pt-4"><div className="flex flex-wrap justify-between items-center gap-2"><h3 className="font-semibold text-sm">Parcelas</h3><Button small onClick={() => { setInstallmentFor(installmentFor === row.id ? null : row.id); setAmount(''); setDueDate(''); setInstallmentError(''); }} disabled={busyId === row.id || row.status === 'CANCELLED'}>{installmentFor === row.id ? 'Fechar' : 'Adicionar parcela'}</Button></div>
         {row.installments.length === 0 ? <p className="text-sm text-surface-600 mt-2">Nenhuma parcela registrada.</p> : <ul className="space-y-2 mt-3">{row.installments.map(item => <li className="flex flex-wrap items-center justify-between gap-2 text-sm" key={item.id}><span>{formatMoney(item.amountCents)} · {item.dueDate ? `Vencimento: ${item.dueDate.slice(0, 10).split('-').reverse().join('/')}` : 'Sem vencimento'} · {item.paidAt ? 'Recebida' : 'Pendente'}</span><span className="flex gap-2"><Button small disabled={busyId === row.id || row.status === 'CANCELLED'} onClick={() => void setPaid(row.id, item.id, !item.paidAt)}>{item.paidAt ? 'Marcar pendente' : 'Registrar recebimento'}</Button>{!item.paidAt && <Button small variant="ghost" disabled={busyId === row.id || row.status === 'CANCELLED'} onClick={() => setPendingRemoval({ reservationId: row.id, installmentId: item.id })}>Excluir</Button>}</span></li>)}</ul>}
         {installmentFor === row.id && row.status !== 'CANCELLED' && <form className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4" onSubmit={e => void addInstallment(e, row.id)} noValidate><Field id={`amount-${row.id}`} label="Valor da parcela (R$)" required><input id={`amount-${row.id}`} className="input" inputMode="decimal" placeholder="0,00" value={amount} onChange={e => setAmount(e.target.value)} /></Field><Field id={`due-${row.id}`} label="Vencimento"><input id={`due-${row.id}`} className="input" type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} /></Field><div className="self-end"><Button type="submit" variant="primary" loading={busyId === row.id}>Salvar parcela</Button></div>{installmentError && <p role="alert" className="text-sm text-red-700 sm:col-span-3">{installmentError}</p>}</form>}

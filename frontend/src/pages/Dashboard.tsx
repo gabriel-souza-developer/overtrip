@@ -1,21 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, CheckCircle2, ChevronRight, Image as ImageIcon, MapPin, MapPinned, Pencil, Plane, Plus, Star, type LucideIcon } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ChevronRight, Image as ImageIcon, Pencil, Plane, Plus, type LucideIcon } from 'lucide-react';
 import { dashboardApi, DashboardStats } from '../api';
 import PageHeader from '../components/PageHeader';
 import ErrorState from '../components/ErrorState';
+import TripCalendar from '../components/TripCalendar';
 
 type Tone = 'primary' | 'success' | 'warning' | 'danger' | 'info';
 
 const statCards: { key: keyof DashboardStats; label: string; icon: LucideIcon; tone: Tone; to: string }[] = [
-  { key: 'tripsTotal', label: 'Próxima trip', icon: Plane, tone: 'primary', to: '/trips' },
-  { key: 'tripsPublished', label: 'No site', icon: CheckCircle2, tone: 'success', to: '/trips?status=OPEN' },
+  { key: 'tripsTotal', label: 'Viagens cadastradas', icon: Plane, tone: 'primary', to: '/trips' },
+  { key: 'tripsPublished', label: 'Inscrições abertas', icon: CheckCircle2, tone: 'success', to: '/trips?status=OPEN' },
   { key: 'tripsDraft', label: 'Rascunhos', icon: Pencil, tone: 'warning', to: '/trips?status=DRAFT' },
-  { key: 'visitsTotal', label: 'Destinos visitados', icon: MapPin, tone: 'info', to: '/visits' },
   { key: 'visitsNeedsReview', label: 'Destinos para revisar', icon: AlertTriangle, tone: 'danger', to: '/visits?needsReview=true' },
-  { key: 'visitsWithCoords', label: 'Destinos no mapa', icon: MapPinned, tone: 'success', to: '/visits?hasCoords=true' },
-  { key: 'galleryTotal', label: 'Memórias na galeria', icon: ImageIcon, tone: 'info', to: '/gallery' },
-  { key: 'galleryFeatured', label: 'Em destaque', icon: Star, tone: 'warning', to: '/gallery?isFeatured=true' },
 ];
 
 const toneClass: Record<Tone, string> = {
@@ -70,6 +67,8 @@ export default function Dashboard() {
           </Link>
         ))}
       </section>
+
+      <TripCalendar />
 
       <section className="card" aria-labelledby="acoes">
         <h2 id="acoes" className="text-lg font-semibold text-surface-900 px-5 py-4 border-b border-surface-200">O que você quer fazer?</h2>
