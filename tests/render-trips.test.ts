@@ -261,3 +261,24 @@ describe('viagem esgotada ou encerrada (T17)', () => {
     expect(buildTripSchema(open).offers.availability).toBe(full.availabilitySchema);
   });
 });
+
+describe('fotos enviadas pelo painel no site', () => {
+  const src = '/api/public/media/0123456789abcdef0123456789abcdef.jpg';
+  const srcset = [640, 960, 1280].map((w) => `/api/public/media/0123456789abcdef0123456789abcdef-w${w}.webp ${w}w`).join(', ');
+
+  it('card de viagem e galeria usam src e srcset WebP', () => {
+    const trip = normalizeTrip({ ...full, media: [{ src, alt: 'Grupo na trilha' }] });
+    expect(trip.media).toHaveLength(1);
+    expect(buildTripCardHTML(trip, 0)).toContain(`srcset="${srcset}"`);
+    const gallery = buildGalleryCardHTML({ title: 'T', date: 'd', description: 'x', images: [{ src, alt: 'Grupo' }] }, 0);
+    expect(gallery).toContain(`src="${src}"`);
+    expect(gallery).toContain(`srcset="${srcset}"`);
+  });
+
+  it('galeria antiga continua sem srcset e caminhos parecidos são recusados', () => {
+    expect(buildGalleryCardHTML({ title: 'T', date: 'd', description: 'x', images: [{ src: 'assets/images/a.jpg', alt: 'a' }] }, 0)).not.toContain('srcset');
+    for (const bad of ['/api/public/media/../x.jpg', '/api/public/media/0123.jpg', '/api/public/media/0123456789abcdef0123456789abcdef.svg']) {
+      expect(normalizeTrip({ ...full, media: [{ src: bad, alt: 'a' }] }).media).toHaveLength(0);
+    }
+  });
+});

@@ -113,7 +113,10 @@ const safeHttpUrl = (value) => {
   if (typeof value !== "string" || !/^https?:\/\//i.test(value) || /[\u0000-\u0020\u007f]/.test(value)) return "";
   try { const url = new URL(value); return ["http:", "https:"].includes(url.protocol) && !url.username && !url.password ? value : ""; } catch { return ""; }
 };
+// Fotos enviadas pelo painel (API). Mesma regra de src/validators/imageSrc.ts.
+const UPLOADED_MEDIA_SRC = /^\/api\/public\/media\/[0-9a-f]{32}\.(?:jpg|png)$/;
 const safeMediaUrl = (value) => {
+  if (typeof value === "string" && UPLOADED_MEDIA_SRC.test(value)) return value;
   if (typeof value !== "string" || /[\u0000-\u0020\u007f]/.test(value)) return "";
   if (/^(?:\/?assets\/)/i.test(value) && !value.startsWith('//')) return value;
   if (/^[a-z0-9_-]+\.(?:jpe?g|png|webp|gif)$/i.test(value)) return value;
@@ -785,6 +788,10 @@ const renderTrips = async () => {
    do 21st.dev, reescrito em HTML/CSS/JS puro.
    ========================================================================== */
 
+// srcset só nas fotos enviadas pelo painel, que sempre têm as versões WebP;
+// as fotos antigas da galeria nem sempre têm e continuam só com o src.
+const GALLERY_FEATURE_IMG_SIZES = "(min-width: 720px) 50vw, 100vw";
+const GALLERY_IMG_SIZES = "(min-width: 720px) 25vw, 50vw";
 const GALLERY_FIRST_BATCH = 5;
 const GALLERY_BATCH = 4;
 
@@ -809,7 +816,7 @@ const buildGalleryCardHTML = (entry, index, { reveal = false, delay = 0 } = {}) 
       aria-label="Ver fotos de ${escapeHtml(entry.title)}"
     >
       <div class="gallery-image">
-        ${safeMediaUrl(cover.src) ? `<img src="${escapeHtml(cover.src)}" alt="${escapeHtml(cover.alt)}" loading="lazy" decoding="async">` : ""}
+        ${safeMediaUrl(cover.src) ? `<img src="${escapeHtml(cover.src)}"${UPLOADED_MEDIA_SRC.test(cover.src) ? ` srcset="${escapeHtml(getHeroSrcset(cover.src))}" sizes="${isFeature ? GALLERY_FEATURE_IMG_SIZES : GALLERY_IMG_SIZES}"` : ""} alt="${escapeHtml(cover.alt)}" loading="lazy" decoding="async">` : ""}
         ${badge}
       </div>
       <div class="gallery-copy">
