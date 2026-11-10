@@ -1,5 +1,14 @@
 # Estado da produção na Oracle
 
+## Ajustes finais no resumo e nos campos de fotos (10 de novembro, 20:35 UTC)
+
+- Publicado somente o painel do commit `7ea5cee` (`fix(panel): simplifica resumo e campos de foto`). Pacote SHA-256 `5cd60b32b606101c35d754eca0479c0082b6a30353afa9783a860db6db7c6934`.
+- A cópia anterior do painel está em `/srv/overtrip/retorno-painel-7ea5cee-20261110-203526/admin`. API, banco, esquema e site público não foram alterados.
+- A página de início não repete mais o título “Seu resumo”. O primeiro indicador agora conta apenas viagens com data de hoje ou futura, excluindo concluídas e canceladas; elas continuam no histórico “Anteriores”. A contagem usa a listagem existente com `period=upcoming`.
+- Nos formulários de viagem e galeria, fotos aparecem pelo nome do arquivo (ou “Foto enviada”), em vez do caminho inteiro. “Alterar endereço da foto” abre o campo técnico quando necessário.
+- Verificação de produção: `/admin/`, entrada JS/CSS, chunks de início, formulário e galeria, `/health` e `/api/public/trips` responderam 200. Os chunks servidos contêm os textos novos e não contêm “Seu resumo”. Caddy e API ativos; `/admin/` envia `Cache-Control: no-cache, no-store, must-revalidate`.
+- Validação local: `npm run typecheck:frontend`, `npm run build:frontend` e `git diff --check` passaram. Não foram executados testes automatizados nesta etapa.
+
 ## Correção de cache do painel (10 de novembro, 20:24 UTC)
 
 - Após o operador informar que o painel ainda parecia antigo, confirmei que os novos chunks JavaScript da build `9f7e64b` estavam em produção e eram referenciados pelo bundle principal; não há service worker no painel.
