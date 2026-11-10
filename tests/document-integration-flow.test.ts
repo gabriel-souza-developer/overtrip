@@ -139,7 +139,7 @@ beforeAll(async () => {
     },
   });
   userId = user.id;
-  token = generateToken({ id: user.id, email: user.email, role: user.role });
+  token = generateToken(user);
 
   // Trip de teste
   const trip = await prisma.trip.create({

@@ -2,28 +2,37 @@ import React, { useEffect, useRef, useState } from 'react';
 import { brandUrl } from '../lib/basePath';
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import * as Menu from '@radix-ui/react-dropdown-menu';
-import { ChevronDown, Home, Image as ImageIcon, LogOut, MapPin, Menu as MenuIcon, Plane, Settings as SettingsIcon, User, X } from 'lucide-react';
+import { ChevronDown, Home, Image as ImageIcon, LogOut, MapPin, Menu as MenuIcon, Plane, Settings as SettingsIcon, User, UsersRound, X } from 'lucide-react';
 import { useAuth } from '../App';
+import { useToast } from '../hooks/useToast';
 
 const navItems = [
   { path: '/dashboard', label: 'Início', icon: Home },
   { path: '/trips', label: 'Próxima trip', icon: Plane },
   { path: '/visits', label: 'Destinos visitados', icon: MapPin },
+  { path: '/leads', label: 'Interessados', icon: UsersRound, adminOnly: true },
+  { path: '/reservations', label: 'Reservas', icon: Plane, adminOnly: true },
   { path: '/gallery', label: 'Galeria de memórias', icon: ImageIcon },
   { path: '/settings', label: 'Configurações', icon: SettingsIcon },
 ];
 
 export default function Layout() {
   const { user, logout } = useAuth();
+  const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch {
+      navigate('/login');
+      toast.error('Sessão removida deste navegador, mas não foi possível confirmar o encerramento no servidor.');
+    }
   };
 
   // Esc fecha o menu lateral no celular e devolve o foco ao botão que o abriu.
@@ -68,7 +77,7 @@ export default function Layout() {
           </div>
 
           <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-            {navItems.map(({ path, label, icon: Icon }) => (
+            {navItems.filter(item => !('adminOnly' in item) || user?.role === 'admin').map(({ path, label, icon: Icon }) => (
               <NavLink
                 key={path}
                 to={path}

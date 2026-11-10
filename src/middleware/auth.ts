@@ -8,6 +8,7 @@ export interface AuthRequest extends Request {
     id: string;
     email: string;
     role: string;
+    sessionVersion: Date;
   };
 }
 
@@ -20,32 +21,32 @@ export const authenticate = async (
     const authHeader = req.headers.authorization;
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      res.status(401).json({ error: 'Token de autenticação não fornecido' });
+      res.status(401).json({ error: 'Token de autenticação não fornecido', code: 'SESSION_INVALID' });
       return;
     }
 
     const token = authHeader.substring(7);
     
-    let decoded: { id: string; email: string; role: string };
+    let decoded: { id: string; email: string; role: string; sv?: number };
     try {
-      decoded = jwt.verify(token, config.jwtSecret) as { id: string; email: string; role: string };
+      decoded = jwt.verify(token, config.jwtSecret, { algorithms: ['HS256'] }) as typeof decoded;
     } catch (err) {
-      res.status(401).json({ error: 'Token inválido ou expirado' });
+      res.status(401).json({ error: 'Token inválido ou expirado', code: 'SESSION_INVALID' });
       return;
     }
 
     // Verify user still exists and is active
     const user = await prisma.user.findUnique({
       where: { id: decoded.id },
-      select: { id: true, email: true, role: true, passwordHash: false },
+      select: { id: true, email: true, role: true, updatedAt: true },
     });
 
-    if (!user) {
-      res.status(401).json({ error: 'Usuário não encontrado' });
+    if (!user || !Number.isSafeInteger(decoded.sv) || decoded.sv !== user.updatedAt.getTime()) {
+      res.status(401).json({ error: 'Sessão inválida ou encerrada. Entre novamente.', code: 'SESSION_INVALID' });
       return;
     }
 
-    req.user = user;
+    req.user = { id: user.id, email: user.email, role: user.role, sessionVersion: user.updatedAt };
     next();
   } catch (error) {
     console.error('Authentication error:', error);
@@ -69,17 +70,17 @@ export const authorize = (...roles: string[]) => {
   };
 };
 
-export const generateToken = (user: { id: string; email: string; role: string }): string => {
+export const generateToken = (user: { id: string; email: string; role: string; updatedAt: Date }): string => {
   return jwt.sign(
-    { id: user.id, email: user.email, role: user.role },
+    { id: user.id, email: user.email, role: user.role, sv: user.updatedAt.getTime() },
     config.jwtSecret,
-    { expiresIn: config.jwtExpiresIn }
+    { expiresIn: config.jwtExpiresIn, algorithm: 'HS256' }
   );
 };
 
 export const verifyToken = (token: string): { id: string; email: string; role: string } | null => {
   try {
-    return jwt.verify(token, config.jwtSecret) as { id: string; email: string; role: string };
+    return jwt.verify(token, config.jwtSecret, { algorithms: ['HS256'] }) as { id: string; email: string; role: string };
   } catch {
     return null;
   }

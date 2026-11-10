@@ -19,7 +19,7 @@ beforeAll(async () => {
     data: { email: `test:gallery-src-http:${Date.now()}@example.com`, passwordHash: 'unused', role: 'admin' },
   });
   userId = user.id;
-  token = generateToken({ id: user.id, email: user.email, role: user.role });
+  token = generateToken(user);
   const entry = await prisma.galleryEntry.create({
     data: {
       title: 'Gallery src test',

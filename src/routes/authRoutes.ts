@@ -11,6 +11,7 @@ router.post('/login', loginRateLimiter, asyncHandler(authController.login));
 
 // Protected routes
 router.get('/me', authenticate, asyncHandler(authController.me));
+router.post('/logout', authenticate, asyncHandler(authController.logout));
 router.post('/change-password', authenticate, asyncHandler(authController.changePassword));
 
 export default router;

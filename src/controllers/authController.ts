@@ -21,11 +21,7 @@ export const authController = {
       throw AppError.unauthorized('Credenciais inválidas');
     }
 
-    const token = generateToken({
-      id: user.id,
-      email: user.email,
-      role: user.role,
-    });
+    const token = generateToken(user);
 
     res.json({
       token,
@@ -78,11 +74,23 @@ export const authController = {
 
     const newPasswordHash = await bcrypt.hash(newPassword, 12);
     
-    await prisma.user.update({
-      where: { id: req.user.id },
-      data: { passwordHash: newPasswordHash },
+    const updated = await prisma.user.updateMany({
+      where: { id: req.user.id, updatedAt: req.user.sessionVersion },
+      data: { passwordHash: newPasswordHash, updatedAt: new Date(Math.max(Date.now(), user.updatedAt.getTime() + 1)) },
     });
+    if (updated.count !== 1) throw AppError.unauthorized('Sessão encerrada. Entre novamente.');
 
     res.json({ success: true, message: 'Senha alterada com sucesso' });
+  },
+
+  async logout(req: AuthRequest, res: Response) {
+    if (!req.user) throw AppError.unauthorized('Não autenticado');
+    // O contador persiste no próprio User; sair encerra todas as sessões da conta.
+    // A condição evita que uma requisição antiga revogue uma sessão mais recente.
+    await prisma.user.updateMany({
+      where: { id: req.user.id, updatedAt: req.user.sessionVersion },
+      data: { updatedAt: new Date(Math.max(Date.now(), req.user.sessionVersion.getTime() + 1)) },
+    });
+    res.status(204).end();
   },
 };

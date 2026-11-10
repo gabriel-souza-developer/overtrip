@@ -2,6 +2,10 @@ import { translateApiError } from '../lib/formHelpers';
 
 const API_BASE = '/api';
 
+export class ApiRequestError extends Error {
+  constructor(message: string, readonly status: number) { super(message); }
+}
+
 export interface KnowledgeEntry { question: string; answer: string }
 export interface KnowledgeVersion { version: number; entries: KnowledgeEntry[]; approvedById: string; approvedAt: string }
 export type KnowledgeVersionSummary = Omit<KnowledgeVersion, 'entries'>;
@@ -22,7 +26,10 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
-    throw new Error(translateApiError(error));
+    if (response.status === 401 && error.code === 'SESSION_INVALID' && token && token === localStorage.getItem('auth_token')) {
+      window.dispatchEvent(new Event('overtrip:session-ended'));
+    }
+    throw new ApiRequestError(translateApiError(error), response.status);
   }
 
   if (response.status === 204) return undefined as T;
@@ -41,6 +48,8 @@ export const authApi = {
   me: async () => {
     return request<{ id: string; email: string; name: string; role: string }>('/auth/me');
   },
+
+  logout: async () => request<void>('/auth/logout', { method: 'POST' }),
 
   changePassword: async (currentPassword: string, newPassword: string) => {
     return request('/auth/change-password', {

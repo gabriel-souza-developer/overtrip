@@ -39,7 +39,7 @@ beforeAll(async () => {
     },
   });
   userId = user.id;
-  token = generateToken({ id: user.id, email: user.email, role: user.role });
+  token = generateToken(user);
 
   const nonAdminUser = await prisma.user.create({
     data: {
@@ -49,7 +49,7 @@ beforeAll(async () => {
     },
   });
   nonAdminUserId = nonAdminUser.id;
-  nonAdminToken = generateToken({ id: nonAdminUser.id, email: nonAdminUser.email, role: nonAdminUser.role });
+  nonAdminToken = generateToken(nonAdminUser);
 
   const trip = await prisma.trip.create({
     data: {

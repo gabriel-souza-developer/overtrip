@@ -33,7 +33,7 @@ export function buildConfig(env: NodeJS.ProcessEnv) {
     port: parseInt(env.PORT || '3001', 10),
     nodeEnv,
     jwtSecret,
-    jwtExpiresIn: (env.JWT_EXPIRES_IN || '7d') as SignOptions['expiresIn'],
+    jwtExpiresIn: (env.JWT_EXPIRES_IN || '2h') as SignOptions['expiresIn'],
     corsOrigin: env.CORS_ORIGIN || 'http://localhost:3100',
   };
 }

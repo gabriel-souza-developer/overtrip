@@ -6,9 +6,11 @@ import Dashboard from './pages/Dashboard';
 import Trips from './pages/Trips';
 import TripForm from './pages/TripForm';
 import Visits from './pages/Visits';
+import Leads from './pages/Leads';
+import Reservations from './pages/Reservations';
 import Gallery from './pages/Gallery';
 import Settings from './pages/Settings';
-import { authApi } from './api';
+import { ApiRequestError, authApi } from './api';
 import { ToastProvider } from './hooks/useToast';
 
 interface User {
@@ -22,7 +24,7 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   loading: boolean;
 }
 
@@ -40,13 +42,26 @@ const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const clearSession = () => {
+      setToken(null);
+      setUser(null);
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_user');
+    };
+    window.addEventListener('overtrip:session-ended', clearSession);
+    return () => window.removeEventListener('overtrip:session-ended', clearSession);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
     const storedToken = localStorage.getItem('auth_token');
-    const storedUser = localStorage.getItem('auth_user');
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
-    }
-    setLoading(false);
+    if (!storedToken) { setLoading(false); return; }
+    authApi.me().then((currentUser) => {
+      if (active) { setToken(storedToken); setUser(currentUser); }
+    }).catch(() => {
+      if (active) { setToken(null); setUser(null); }
+    }).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -57,11 +72,19 @@ const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     localStorage.setItem('auth_user', JSON.stringify(newUser));
   };
 
-  const logout = () => {
-    setUser(null);
-    setToken(null);
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('auth_user');
+  const logout = async () => {
+    let error: unknown;
+    try {
+      await authApi.logout();
+    } catch (err) {
+      if (!(err instanceof ApiRequestError && err.status === 401)) error = err;
+    } finally {
+      setUser(null);
+      setToken(null);
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_user');
+    }
+    if (error) throw error;
   };
 
   return (
@@ -94,6 +117,8 @@ const AppRoutes = () => (
         <Route path="/trips/new" element={<TripForm />} />
         <Route path="/trips/:id/edit" element={<TripForm />} />
         <Route path="/visits" element={<Visits />} />
+        <Route path="/leads" element={<Leads />} />
+        <Route path="/reservations" element={<Reservations />} />
         <Route path="/gallery" element={<Gallery />} />
         <Route path="/settings" element={<Settings />} />
       </Route>

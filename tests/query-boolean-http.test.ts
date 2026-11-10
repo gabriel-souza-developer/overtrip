@@ -31,7 +31,7 @@ beforeAll(async () => {
     data: { email: `test:query-boolean:${Date.now()}@example.com`, passwordHash: 'unused', role: 'admin' },
   });
   userId = user.id;
-  token = generateToken({ id: user.id, email: user.email, role: user.role });
+  token = generateToken(user);
 
   const visit = (suffix: string, extra: object) => call('POST', '/api/visits', { title: `${TAG}-${suffix}`, city: 'C', region: 'PB', ...extra });
   expect((await visit('pendente-mapa', { needsReview: true, lat: -7, lng: -36 })).status).toBe(201);
