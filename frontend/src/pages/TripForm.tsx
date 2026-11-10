@@ -24,7 +24,7 @@ import PublicationReadinessPanel from '../components/PublicationReadinessPanel';
 import TripCardPreview from '../components/TripCardPreview';
 import TripProposalPreview from '../components/TripProposalPreview';
 import { applySuggestions, type DraftKey, type TripDraft } from '../lib/aiDraft';
-import { ArrayInput, DeparturesInput, MediaInput, VisitPlacePicker } from '../components/TripFormInputs';
+import { ArrayInput, DeparturesInput, MediaInput } from '../components/TripFormInputs';
 
 const intensityOptions = ['leve', 'moderado', 'intenso', 'extremo'] as const;
 
@@ -380,11 +380,6 @@ export default function TripForm() {
               />
             </Field>
           </div>
-          <VisitPlacePicker onSelect={(place) => {
-            setFormData(prev => ({ ...prev, city: place.city, region: place.region }));
-            clearError('city');
-            clearError('region');
-          }} />
 
           <Field id="startDateISO" label="Data de saída" required error={err('startDateISO')}>
             <input id="startDateISO" name="startDateISO" type="date" className={`input ${invalid('startDateISO')}`} value={f.startDateISO} onChange={handleChange} aria-invalid={!!errors.startDateISO} />
