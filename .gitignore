@@ -11,3 +11,6 @@ prisma/*.db-journal
 
 # Build output (gerado por npm run build e build:frontend)
 dist/
+
+# Fluxos n8n reais (IPs internos, IDs de grupo e credenciais); o repositório só tem as versões com marcadores.
+docs/local/
