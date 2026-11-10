@@ -2,6 +2,17 @@
 
 Registro atualizado em 10 de novembro de 2026 após publicação do pacote principal baseado no commit `5f4583f` e do painel `d503876`. O site está publicado na Oracle. A zona DNS continua na HostGator (`ns64.hostgator.com.br` e `ns65.hostgator.com.br`); mantenha a hospedagem anterior disponível até a migração estar consolidada.
 
+## FAQ público, fluxo de viagens e cache (10 de novembro, 13:28 UTC)
+
+- Publicado o commit `30b8ff2` na branch `feat/evolucao-painel-viagens`. Pacote SHA-256 `d8ef8fbefcb03e7cbe6dd325d20a66747b78c778679bafe9cc3a4352763a34fb`. Não contém banco, `.env`, dependências ou credenciais. Sem migrações: o FAQ público usa a tabela `Setting` existente.
+- Backup automático do banco executado com sucesso em `/var/backups/overtrip/overtrip-20261110-132750.db.gz`. Cópia para retorno do `dist`, site e painel em `/srv/overtrip/retorno-30b8ff2-20261110-132750`.
+- O painel agora separa FAQ público do conhecimento privado da assistente. Administradores podem editar, ordenar e pré-visualizar as perguntas que aparecem no site; a atualização do FAQ é versionada para evitar que uma edição concorrente sobrescreva outra. A rota pública expõe apenas as perguntas e respostas; a rota administrativa sem login retorna 401. Não houve alteração do fluxo privado do n8n.
+- A página atualiza o FAQ visível e o JSON-LD via JavaScript; a marcação estática do HTML continua sendo conteúdo de contingência. Buscadores sem execução de JavaScript podem não receber de imediato as edições feitas no painel.
+- O formulário de viagens foi reorganizado para priorizar os dados que aparecem no card e deixar modelos e recursos auxiliares em “Mais ações”. O período “Próximas” exclui status `COMPLETED` e `CANCELLED`; métricas do painel deixam explícito quando contam viagens realizadas.
+- As viagens públicas em produção são três, todas com status `completed` e datas entre 13 de setembro e 18 de outubro de 2026. O navegador real carregou a versão nova do filtro, exibiu zero cards e a mensagem de nenhuma expedição futura. Os módulos estáticos tinham cache de sete dias; os URLs versionados foram atualizados para forçar a busca do filtro novo em navegadores que ainda tinham a versão antiga.
+- Após publicar: `/`, `/admin/`, `/health`, `/api/public/faq` e o módulo versionado de renderização responderam 200; editor administrativo sem autenticação respondeu 401. FAQ público entregou cinco itens, sem metadados internos. API, Caddy e temporizador de backup ativos; navegador não registrou erros JavaScript.
+- Validação local: 658 testes passaram, 2 ignorados, 24 cenários Playwright passaram; build da API, checagem de tipos do painel e build do painel passaram. O teste de API do FAQ agora exige explicitamente `DATABASE_URL` terminando em `/prisma/test.db`.
+
 ## Painel de viagens e gráficos de saúde (10 de novembro, 10:16 UTC)
 
 - Publicado o commit `a754efb`, pacote SHA-256 `ca5b461687e6e7e493f0f0c52a8c14c3b8a6ba8e1d74d854137a6c86c3acfebd`. O pacote contém o código compilado, o painel e os arquivos do monitor; não contém banco local, arquivo `.env` nem credenciais. Cópia de retorno: `/srv/overtrip/retorno-a754efb-20261110-101644`.
