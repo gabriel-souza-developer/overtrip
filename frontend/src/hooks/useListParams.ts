@@ -18,7 +18,12 @@ export function useListParams() {
     setSearchParams(next);
   };
 
-  const clear = () => setSearchParams(new URLSearchParams());
+  /** Limpa busca e filtros. `keep` preserva chaves que não são filtro (ex.: a aba aberta). */
+  const clear = (keep: string[] = []) => {
+    const next = new URLSearchParams();
+    for (const key of keep) { const value = searchParams.get(key); if (value) next.set(key, value); }
+    setSearchParams(next);
+  };
 
   const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1);
 

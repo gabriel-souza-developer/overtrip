@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, ArrowRight, CheckCircle2, Image as ImageIcon, Pencil, Plane, Plus, type LucideIcon } from 'lucide-react';
+import { AlertTriangle, ArrowRight, CheckCircle2, Images, Pencil, Plane, Plus, type LucideIcon } from 'lucide-react';
 import { dashboardApi, DashboardStats } from '../api';
 import ErrorState from '../components/ErrorState';
 import TripCalendar from '../components/TripCalendar';
@@ -8,9 +8,10 @@ import { capitalizeFirst } from '../lib/tripCalendar';
 
 type Tone = 'primary' | 'success' | 'warning' | 'danger';
 const statsConfig: { key: keyof DashboardStats; label: string; icon: LucideIcon; tone: Tone; to: string; detail: string }[] = [
-  { key: 'tripsTotal', label: 'Viagens cadastradas', icon: Plane, tone: 'primary', to: '/trips', detail: 'Ver todas as viagens' },
-  { key: 'tripsPublished', label: 'Inscrições abertas', icon: CheckCircle2, tone: 'success', to: '/trips?status=OPEN', detail: 'Viagens disponíveis' },
-  { key: 'tripsDraft', label: 'Rascunhos', icon: Pencil, tone: 'warning', to: '/trips?status=DRAFT', detail: 'Continuar preparando' },
+  // Os totais contam todas as viagens, então os links abrem a lista completa (não só as próximas).
+  { key: 'tripsTotal', label: 'Viagens cadastradas', icon: Plane, tone: 'primary', to: '/trips?period=all', detail: 'Ver todas as viagens' },
+  { key: 'tripsPublished', label: 'Publicadas no site', icon: CheckCircle2, tone: 'success', to: '/trips?status=OPEN&period=all', detail: 'Viagens no site' },
+  { key: 'tripsDraft', label: 'Rascunhos', icon: Pencil, tone: 'warning', to: '/trips?status=DRAFT&period=all', detail: 'Continuar preparando' },
   { key: 'visitsNeedsReview', label: 'Destinos para revisar', icon: AlertTriangle, tone: 'danger', to: '/visits?needsReview=true', detail: 'Revisar destinos' },
 ];
 const toneClass: Record<Tone, string> = {
@@ -67,7 +68,7 @@ export default function Dashboard() {
           {[
             { to: '/trips/new', icon: Plus, text: 'Criar viagem', sub: 'Comece um novo rascunho' },
             { to: '/visits?needsReview=true', icon: AlertTriangle, text: 'Revisar destinos', sub: stats ? `${pending} ${pending === 1 ? 'destino para revisar' : 'destinos para revisar'}` : 'Confira os destinos pendentes' },
-            { to: '/gallery', icon: ImageIcon, text: 'Organizar galeria', sub: 'Fotos e memórias das viagens' },
+            { to: '/gallery', icon: Images, text: 'Organizar galeria', sub: 'Fotos e memórias das viagens' },
           ].map(({ to, icon: Icon, text, sub }) => <Link key={to} to={to} className="group flex items-center gap-3 rounded-xl border border-surface-200 p-4 transition hover:border-primary-300 hover:bg-primary-50/50"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-surface-100 text-surface-700"><Icon className="h-5 w-5" aria-hidden="true" /></span><span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-surface-900">{text}</span><span className="mt-0.5 block text-xs text-surface-600">{sub}</span></span><ArrowRight className="h-4 w-4 shrink-0 text-surface-400 group-hover:text-primary-500" aria-hidden="true" /></Link>)}
         </div>
       </section>

@@ -37,6 +37,7 @@ export function buildConfig(env: NodeJS.ProcessEnv) {
     corsOrigin: env.CORS_ORIGIN || 'http://localhost:3100',
     // Gravado pelo deploy/monitor-health.sh; lido pelo painel em /api/system/health.
     healthStatusFile: env.HEALTH_STATUS_FILE || '/var/lib/overtrip/health/status.json',
+    healthHistoryFile: env.HEALTH_HISTORY_FILE || '/var/lib/overtrip/health/history.jsonl',
   };
 }
 

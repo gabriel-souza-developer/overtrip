@@ -11,6 +11,7 @@ import { isoToLocalInput } from '../lib/dateInput';
 import { fieldsToSchedule, scheduleToFields, type StoredSchedule } from '../lib/tripSchedule';
 import { prepareTripTemplate } from '../lib/tripTemplate';
 import { customItems, hasItem, INCLUDE_PRESETS, mergeUnique, togglePreset } from '../lib/includesServices';
+import { customImportantInfo, FILTER_CATEGORY_OPTIONS, hasImportantInfoPreset, IMPORTANT_INFO_PRESETS, toggleImportantInfoPreset } from '../lib/tripFormOptions';
 import { fillMissingAlt, formatBRL, syncPriceDisplay } from '../lib/formHelpers';
 import { canChangeTripStatus } from '../lib/permissions';
 import { applyTripDefaults, countFilled, formatPriceInput, parsePriceInput, parseWholeNumber, publishProblems, TRIP_STATUS_LABELS, validateTripMinimum } from '../lib/panelHelpers';
@@ -320,8 +321,8 @@ export default function TripForm() {
       </div>
 
       {isEditing && <div className="card p-4 flex flex-wrap items-center justify-between gap-3">
-        <div><p className="font-semibold text-surface-900">Reutilizar esta viagem</p><p className="text-sm text-surface-600">Crie uma nova viagem como rascunho e escolha outra data. A original permanece salva.</p></div>
-        <Button onClick={() => { if (dirty) { toast.error('Salve as alterações antes de usar esta viagem como modelo.'); return; } navigate(`/trips/new?modelo=${encodeURIComponent(id!)}`); }}>Usar como modelo</Button>
+        <div><p className="font-semibold text-surface-900">Criar outra viagem com estes dados</p><p className="text-sm text-surface-600">Abra um novo rascunho com estas informações e escolha outra data. A viagem original permanece salva.</p></div>
+        <Button onClick={() => { if (dirty) { toast.error('Salve as alterações antes de reutilizar os dados desta viagem.'); return; } navigate(`/trips/new?modelo=${encodeURIComponent(id!)}`); }}>Reutilizar dados</Button>
       </div>}
       {templateId && <p className="alert-info" role="note">Os dados da viagem anterior foram copiados. Informe a nova data e revise os textos, horários, preços, embarques e fotos, que podem conter informações antigas. Ao salvar, será criado um novo rascunho; a viagem original não será alterada.</p>}
 
@@ -332,7 +333,7 @@ export default function TripForm() {
       </div>
 
       <div className="space-y-4">
-        {id && user?.role === 'admin' && <details className="card p-4"><summary className="cursor-pointer font-semibold text-surface-900">Usar documento PDF (opcional)</summary><div className="mt-4"><TripDocuments key={id} tripId={id} form={formData as Record<string, unknown>} defaults={defaultsRef.current} onApply={applyAiDraft} /></div></details>}
+        {id && user?.role === 'admin' && <details className="card p-4"><summary className="cursor-pointer font-semibold text-surface-900">Extrair sugestões com IA de um PDF (opcional)</summary><div className="mt-4"><TripDocuments key={id} tripId={id} form={formData as Record<string, unknown>} defaults={defaultsRef.current} onApply={applyAiDraft} /></div></details>}
         <AiDraftBlock form={formData as Record<string, unknown>} defaults={defaultsRef.current} onApply={applyAiDraft} />
       </div>
 
@@ -462,13 +463,17 @@ export default function TripForm() {
         {/* SEÇÃO 3: Detalhes para viajantes */}
         <FormSection title="Detalhes opcionais" summary="Horários, roteiro, o que inclui e outros detalhes" filled={countFilled([f.category, f.intensityClass !== 'moderado', f.spotsLeft, f.departureTime, f.endDateISO, f.returnTime, f.includes])}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field id="filterCategory" label="Categoria para o filtro" hint="Escolha um nome curto, como Trilha ou Praia. Se vazia, a viagem aparecerá apenas em Todas as categorias.">
-              <input id="filterCategory" name="filterCategory" className="input" value={f.filterCategory} onChange={handleChange} maxLength={80} placeholder="Ex.: Trilha" />
+            <Field id="filterCategory" label="Categoria da viagem" hint="Esta categoria aparece nos filtros do site. Se não escolher uma, a viagem ficará em Todas as categorias.">
+              <select id="filterCategory" name="filterCategory" className="select" value={f.filterCategory} onChange={handleChange}>
+                <option value="">Selecione uma categoria</option>
+                {f.filterCategory && !FILTER_CATEGORY_OPTIONS.some(option => option.toLocaleLowerCase('pt-BR') === f.filterCategory.trim().toLocaleLowerCase('pt-BR')) && <option value={f.filterCategory}>{f.filterCategory} (personalizada)</option>}
+                {FILTER_CATEGORY_OPTIONS.map(option => <option key={option} value={option}>{option}</option>)}
+              </select>
             </Field>
-            <Field id="category" label="Chamada sobre a foto" hint="Texto exibido no card. Não altera a categoria do filtro.">
+            <Field id="category" label="Texto de destaque no card" hint="Frase curta exibida acima do nome da viagem, como “Trilha, natureza e patrimônio”. Não altera a categoria dos filtros.">
               <input id="category" name="category" className="input" value={f.category} onChange={handleChange} placeholder="Ex.: Trilha, natureza e patrimônio" />
             </Field>
-            <Field id="intensityClass" label="Intensidade">
+            <Field id="intensityClass" label="Intensidade da atividade">
               <select id="intensityClass" name="intensityClass" className="select" value={f.intensityClass} onChange={handleChange}>
                 {intensityOptions.map(opt => <option key={opt} value={opt}>{opt.charAt(0).toUpperCase() + opt.slice(1)}</option>)}
               </select>
@@ -520,30 +525,37 @@ export default function TripForm() {
             <ArrayInput id="route-notes-input" value={f.routeNotes} onPendingChange={(pending) => setPendingItem('percurso', pending)} onChange={(val) => setList('routeNotes', val)} placeholder="Ex.: Trilha com trechos íngremes" />
           </Field>
           <Field id="important-info-input" label="Informações importantes">
-            <ArrayInput id="important-info-input" value={f.importantInfo} onPendingChange={(pending) => setPendingItem('informações', pending)} onChange={(val) => setList('importantInfo', val)} placeholder="Ex.: Levar 2 litros de água" />
+            <p className="hint mb-2">Marque apenas as orientações que valem para esta viagem. Você também pode adicionar uma informação própria.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3" role="group" aria-label="Orientações sugeridas">
+              {IMPORTANT_INFO_PRESETS.map(item => <label key={item} className="checkbox-label min-h-[40px] rounded-lg border border-surface-200 px-3">
+                <input type="checkbox" className="checkbox-input" checked={hasImportantInfoPreset(f.importantInfo, item)} onChange={() => setList('importantInfo', toggleImportantInfoPreset(f.importantInfo, item))} />
+                <span className="text-sm text-surface-800">{item}</span>
+              </label>)}
+            </div>
+            <ArrayInput id="important-info-input" value={customImportantInfo(f.importantInfo)} onPendingChange={(pending) => setPendingItem('informações', pending)} onChange={(items) => setList('importantInfo', mergeUnique(IMPORTANT_INFO_PRESETS.filter(item => hasImportantInfoPreset(f.importantInfo, item)), items))} placeholder="Ex.: O pagamento final vence 48 horas antes" />
           </Field>
         <details className="form-section">
-          <summary className="cursor-pointer font-semibold">Mais opções</summary>
+          <summary className="cursor-pointer font-semibold">Outros detalhes da viagem</summary>
           <div className="p-5 space-y-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field id="headlineDisplay" label="Título alternativo (opcional)" hint="Pode ser usado em outros canais. O card do site usa o nome da viagem.">
+            <Field id="headlineDisplay" label="Título para divulgação (opcional)" hint="Pode ser usado em outros canais. No site, o card usa o nome da viagem.">
               <input id="headlineDisplay" name="headlineDisplay" className="input" value={f.headlineDisplay} onChange={handleChange} />
             </Field>
-            <Field id="priceDisplay" label="Texto do preço" hint="Acompanha o Valor sozinho. Se você escrever um texto próprio, ele não muda mais.">
+            <Field id="priceDisplay" label="Texto alternativo do valor" hint="Se preenchido, aparece no lugar do valor numérico. Apague para voltar a acompanhar o campo Valor.">
               <input id="priceDisplay" name="priceDisplay" className="input" value={f.priceDisplay} onChange={handleChange} placeholder="R$ 109,99" disabled={f.free} />
             </Field>
-            <Field id="departureTolerance" label="Tolerância de espera por atrasados">
+            <Field id="departureTolerance" label="Tempo de tolerância no embarque">
               <input id="departureTolerance" name="departureTolerance" className="input" value={f.departureTolerance} onChange={handleChange} placeholder="30 minutos" />
             </Field>
           </div>
-          <Field id="scheduleInfo" label="Horário em texto livre" hint="Se preenchido, aparece no card no lugar de saída e volta.">
+          <Field id="scheduleInfo" label="Horário exibido no site" hint="Preencha só se quiser substituir os horários de saída e volta por um texto, como “05h às 17h”.">
             <input id="scheduleInfo" name="scheduleInfo" className="input" value={f.scheduleInfo} onChange={handleChange} placeholder="06h às 18h" />
           </Field>
           <label htmlFor="scheduleTBD" className="checkbox-label min-h-[32px]">
             <input id="scheduleTBD" name="scheduleTBD" type="checkbox" className="checkbox-input" checked={f.scheduleTBD} onChange={handleChange} />
             <span className="text-sm text-surface-700">Horário ainda não definido</span>
           </label>
-          <Field id="trailDistance" label="Distância da trilha">
+          <Field id="trailDistance" label="Distância do percurso">
             <input id="trailDistance" name="trailDistance" className="input" value={f.trailDistance} onChange={handleChange} placeholder="aproximadamente 6 km" />
           </Field>
           <Field id="supportPoint" label="Ponto de apoio">

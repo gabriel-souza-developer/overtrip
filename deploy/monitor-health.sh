@@ -9,12 +9,21 @@ fail() { printf 'ALERTA: %s\n' "$*"; record alert "$*"; status=1; }
 ok() { printf 'OK: %s\n' "$*"; record ok "$*"; }
 write_status() {
   [ -n "${HEALTH_STATUS_FILE:-}" ] || return 0
-  local tmp ok_json=true joined
+  local tmp ok_json=true joined line
   (( status == 0 )) || ok_json=false
   joined=$(IFS=,; printf '%s' "${checks[*]}")
+  line=$(printf '{"checkedAt":"%s","ok":%s,"checks":[%s]}' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$ok_json" "$joined")
   tmp=$(mktemp "${HEALTH_STATUS_FILE}.XXXXXX") || return 0
-  printf '{"checkedAt":"%s","ok":%s,"checks":[%s]}\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$ok_json" "$joined" > "$tmp" &&
+  printf '%s\n' "$line" > "$tmp" &&
     chmod 640 "$tmp" && mv -f "$tmp" "$HEALTH_STATUS_FILE" || rm -f "$tmp"
+  # Histórico limitado a 2.016 coletas (sete dias no intervalo de cinco minutos).
+  if [ -n "${HEALTH_HISTORY_FILE:-}" ]; then
+    local history_tmp
+    history_tmp=$(mktemp "${HEALTH_HISTORY_FILE}.XXXXXX") || return 0
+    { [ ! -f "$HEALTH_HISTORY_FILE" ] || cat "$HEALTH_HISTORY_FILE"; printf '%s\n' "$line"; } |
+      tail -n 2016 > "$history_tmp" && chmod 640 "$history_tmp" &&
+      mv -f "$history_tmp" "$HEALTH_HISTORY_FILE" || rm -f "$history_tmp"
+  fi
 }
 trap write_status EXIT
 

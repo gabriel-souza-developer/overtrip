@@ -33,6 +33,11 @@ export function tripsByDay(trips: CalendarTrip[]): Map<string, CalendarTrip[]> {
   return days;
 }
 
+/** Dia civil de hoje em America/Sao_Paulo ('AAAA-MM-DD'), como o site e a API decidem o que é "próxima". */
+export function saoPauloDateKey(now = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+}
+
 /** Retorna saídas de hoje em diante, sem viagens canceladas ou concluídas. */
 export function upcomingTrips(trips: CalendarTrip[], today: string): CalendarTrip[] {
   return trips.filter(trip => {

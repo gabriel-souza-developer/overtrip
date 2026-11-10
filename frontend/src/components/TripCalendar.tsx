@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, CalendarDays, ChevronLeft, ChevronRight, MapPin } from 'lucide-react';
 import { tripApi } from '../api';
-import { calendarDays, capitalizeFirst, monthKey, tripsByDay, upcomingTrips, tripDay, type CalendarTrip } from '../lib/tripCalendar';
+import { calendarDays, capitalizeFirst, monthKey, saoPauloDateKey, tripsByDay, upcomingTrips, tripDay, type CalendarTrip } from '../lib/tripCalendar';
 import { tripStatusLabel } from '../lib/panelHelpers';
 import ErrorState from './ErrorState';
 
@@ -39,7 +39,8 @@ export default function TripCalendar() {
   const days = useMemo(() => calendarDays(month.getFullYear(), month.getMonth()), [month]);
   const grouped = useMemo(() => tripsByDay(trips), [trips]);
   const chosen = grouped.get(selected) || [];
-  const upcoming = useMemo(() => upcomingTrips(trips, localDay(new Date())).slice(0, 4), [trips]);
+  // "Próxima" segue o dia de São Paulo (fuso da operação), não o do navegador.
+  const upcoming = useMemo(() => upcomingTrips(trips, saoPauloDateKey()).slice(0, 4), [trips]);
   const label = capitalizeFirst(new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' }).format(month));
   const selectedLabel = selected.split('-').reverse().join('/');
   const changeMonth = (delta: number) => {
@@ -51,13 +52,13 @@ export default function TripCalendar() {
     <section aria-labelledby="calendario-title" className="space-y-3">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div><h2 id="calendario-title" className="text-lg font-bold text-surface-900">Agenda de viagens</h2><p className="mt-1 text-sm text-surface-600">Acompanhe suas próximas saídas e datas importantes.</p></div>
-        <Link className="text-sm font-semibold text-primary-500 hover:underline" to="/trips">Ver todas as viagens <ArrowRight className="inline h-4 w-4" aria-hidden="true" /></Link>
+        <Link className="text-sm font-semibold text-primary-500 hover:underline" to="/trips?period=all">Ver todas as viagens <ArrowRight className="inline h-4 w-4" aria-hidden="true" /></Link>
       </div>
       {error && <ErrorState message={error} onRetry={() => setAttempt(n => n + 1)} />}
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,0.92fr)]" aria-busy={loading}>
         <div className="min-w-0 rounded-2xl border border-surface-200 bg-white p-5 shadow-sm sm:p-6">
           <div className="flex items-center justify-between gap-2"><div><h3 className="font-bold text-surface-900">Próximas viagens</h3><p className="mt-1 text-sm text-surface-600">Viagens a partir de hoje</p></div><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-50 text-primary-500"><CalendarDays className="h-5 w-5" aria-hidden="true" /></span></div>
-          {loading ? <p className="mt-6 text-sm text-surface-600" role="status">Carregando viagens…</p> : error ? <p className="mt-6 text-sm text-surface-600">Não foi possível carregar as viagens.</p> : upcoming.length === 0 ? <div className="mt-5 rounded-xl border border-dashed border-surface-300 p-5"><p className="text-sm font-medium text-surface-800">Nenhuma viagem futura cadastrada.</p><Link to="/trips/new" className="mt-2 inline-block text-sm font-semibold text-primary-500 hover:underline">Criar viagem</Link></div> : <ul className="mt-4 divide-y divide-surface-100">{upcoming.map(trip => {
+          {loading ? <p className="mt-6 text-sm text-surface-600" role="status">Carregando viagens…</p> : error ? <p className="mt-6 text-sm text-surface-600">Não foi possível carregar as viagens.</p> : upcoming.length === 0 ? <div className="mt-5 rounded-xl border border-dashed border-surface-300 p-5"><p className="text-sm font-medium text-surface-800">Nenhuma viagem futura cadastrada.</p><Link to="/trips/new" className="mt-2 inline-block text-sm font-semibold text-primary-500 hover:underline">Criar viagem</Link><Link to="/trips?period=past" className="ml-4 mt-2 inline-block text-sm font-semibold text-primary-500 hover:underline">Ver viagens anteriores</Link></div> : <ul className="mt-4 divide-y divide-surface-100">{upcoming.map(trip => {
             const day = tripDay(trip.startDateISO);
             const dateLabel = day.split('-').reverse().join('/');
             return <li key={trip.id}><Link to={`/trips/${trip.id}/edit`} className="group flex items-center gap-3 py-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary-500"><span className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-xl bg-primary-50 text-primary-500"><span className="text-lg font-bold leading-none">{Number(day.slice(-2))}</span><span className="mt-1 text-[10px] font-bold uppercase">{new Intl.DateTimeFormat('pt-BR', {month:'short'}).format(new Date(`${day}T12:00:00`)).replace('.', '')}</span></span><span className="min-w-0 flex-1"><span className="block truncate font-semibold text-surface-900">{trip.title}</span><span className="mt-1 flex flex-wrap items-center gap-x-1 text-xs text-surface-600"><MapPin className="h-3.5 w-3.5" aria-hidden="true" /> {[trip.city, trip.region].filter(Boolean).join(' - ')} <span aria-hidden="true">·</span> {dateLabel}</span></span><span className="hidden rounded-full bg-surface-100 px-2.5 py-1 text-xs font-semibold text-surface-700 sm:block">{tripStatusLabel(trip.status)}</span><ArrowRight className="h-4 w-4 shrink-0 text-surface-400 group-hover:text-primary-500" aria-hidden="true" /></Link></li>;

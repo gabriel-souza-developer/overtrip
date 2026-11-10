@@ -1,5 +1,5 @@
 import { translateApiError } from '../lib/formHelpers';
-import type { SystemHealth } from '../lib/systemHealth';
+import type { SystemHealth, SystemHealthHistoryPoint } from '../lib/systemHealth';
 
 const API_BASE = '/api';
 
@@ -224,6 +224,7 @@ export const dashboardApi = {
 
 export const systemApi = {
   health: () => request<SystemHealth>('/system/health'),
+  healthHistory: () => request<SystemHealthHistoryPoint[]>('/system/health/history'),
 };
 
 export const settingsApi = {

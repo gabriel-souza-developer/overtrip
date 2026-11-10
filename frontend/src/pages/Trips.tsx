@@ -29,6 +29,15 @@ const statusColors: Record<TripStatus, string> = {
 
 const formatDate = formatDateBR;
 
+// Abas da lista: o endereço guarda `period`; sem ele, mostram-se as próximas saídas.
+type Period = 'upcoming' | 'past' | 'all';
+const PERIODS: Array<{ value: Period; label: string; hint: string }> = [
+  { value: 'upcoming', label: 'Próximas', hint: 'Saída hoje ou depois' },
+  { value: 'past', label: 'Anteriores', hint: 'Já aconteceram' },
+  { value: 'all', label: 'Todas', hint: 'Lista completa' },
+];
+const readPeriod = (value: string): Period => (value === 'past' || value === 'all' ? value : 'upcoming');
+
 export default function Trips() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -47,13 +56,14 @@ export default function Trips() {
 
   const status = list.get('status');
   const search = list.get('search');
+  const period = readPeriod(list.get('period'));
   const { page } = list;
 
   const loadTrips = async () => {
     setLoading(true);
     setError('');
     try {
-      const data = await tripApi.list({ page, limit: 20, status: status || undefined, search: search || undefined } as Record<string, string | number>);
+      const data = await tripApi.list({ page, limit: 20, status: status || undefined, search: search || undefined, period: period === 'all' ? undefined : period } as Record<string, string | number>);
       setTrips(data.data);
       setPagination(data.pagination);
     } catch (err) {
@@ -65,7 +75,7 @@ export default function Trips() {
 
   useEffect(() => {
     loadTrips();
-  }, [page, status, search]);
+  }, [page, status, search, period]);
 
   const publish = async (trip: Trip) => {
     // Mesma regra do formulário: sem foto (ou sem valor) a viagem não vai para o site.
@@ -119,21 +129,43 @@ export default function Trips() {
   };
 
   const hasFilters = !!(search || status);
+  const emptyCopy = hasFilters
+    ? { title: 'Nenhuma viagem encontrada', text: 'Tente outra busca ou limpe os filtros.' }
+    : period === 'upcoming'
+      ? { title: 'Nenhuma próxima viagem', text: 'As viagens que já aconteceram ficam em “Anteriores”. Cadastre a próxima saída.' }
+      : period === 'past'
+        ? { title: 'Nenhuma viagem anterior', text: 'Quando uma saída passar da data, ela aparece aqui.' }
+        : { title: 'Você ainda não criou nenhuma viagem', text: 'Comece pelo básico: nome, local, data, valor e uma foto.' };
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Próxima trip"
+        title="Viagens"
         description="Crie, publique e organize as viagens do site"
         actions={<Link to="/trips/new" className="btn-primary"><Plus className="w-5 h-5" aria-hidden="true" /> Nova viagem</Link>}
       />
+
+      <div className="flex flex-wrap gap-2" role="group" aria-label="Período das viagens">
+        {PERIODS.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            aria-pressed={period === option.value}
+            title={option.hint}
+            onClick={() => list.setFilter('period', option.value === 'upcoming' ? '' : option.value)}
+            className={`min-h-[40px] rounded-full border px-4 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary-500 ${period === option.value ? 'border-primary-500 bg-primary-500 text-white' : 'border-surface-300 bg-white text-surface-800 hover:border-primary-300'}`}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
 
       <FilterBar
         searchLabel="Buscar viagens"
         searchPlaceholder="Buscar por nome, cidade ou categoria"
         searchValue={search}
         onSearch={(value) => list.setFilter('search', value)}
-        onClear={list.clear}
+        onClear={() => list.clear(['period'])}
         hasFilters={hasFilters}
       >
         <select className="select w-full lg:w-52" value={status} onChange={(e) => list.setFilter('status', e.target.value)} aria-label="Filtrar por situação">
@@ -152,11 +184,13 @@ export default function Trips() {
         ) : trips.length === 0 && !error ? (
           <EmptyState
             icon={<Plane className="w-6 h-6" />}
-            title={hasFilters ? 'Nenhuma viagem encontrada' : 'Você ainda não criou nenhuma viagem'}
-            text={hasFilters ? 'Tente outra busca ou limpe os filtros.' : 'Comece pelo básico: nome, local, data, valor e uma foto.'}
+            title={emptyCopy.title}
+            text={emptyCopy.text}
             action={hasFilters
-              ? <Button onClick={list.clear}>Limpar filtros</Button>
-              : <Link to="/trips/new" className="btn-primary"><Plus className="w-5 h-5" aria-hidden="true" /> Criar a primeira viagem</Link>}
+              ? <Button onClick={() => list.clear(['period'])}>Limpar filtros</Button>
+              : period === 'past'
+                ? <Button onClick={() => list.setFilter('period', '')}>Ver próximas viagens</Button>
+                : <Link to="/trips/new" className="btn-primary"><Plus className="w-5 h-5" aria-hidden="true" /> {period === 'upcoming' ? 'Cadastrar a próxima viagem' : 'Criar a primeira viagem'}</Link>}
           />
         ) : (
           <div className={`table-container ${loading ? 'opacity-60' : ''}`}>
@@ -165,7 +199,7 @@ export default function Trips() {
                 <tr>
                   <th scope="col">Viagem</th>
                   <th scope="col">Situação</th>
-                  <th scope="col" className="hidden md:table-cell">Saída</th>
+                  <th scope="col" className="hidden md:table-cell">{period === 'past' ? 'Foi em' : 'Saída'}</th>
                   <th scope="col" className="hidden lg:table-cell">Local</th>
                   <th scope="col"><span className="visually-hidden">Ações</span></th>
                 </tr>

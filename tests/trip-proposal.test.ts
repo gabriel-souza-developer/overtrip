@@ -5,6 +5,13 @@ import type { TripFormData } from '../frontend/src/api';
 const base: TripFormData = { title: 'Viagem de teste', city: 'Lucena', region: 'PB', startDateISO: '2026-11-29', category: '', description: '' };
 
 describe('prévia de proposta', () => {
+  it('usa nomes de contexto quando a agência ou o nome da viagem estão vazios', () => {
+    const p = buildTripProposal({ ...base, title: '' }, '   ');
+    expect(p.organizer).toBe('Agência ou organizador');
+    expect(p.title).toBe('Nova viagem');
+    expect(tripProposalText(p)).toContain('Nova viagem');
+  });
+
   it('não inventa valores, condições ou pagamento ausentes', () => {
     const p = buildTripProposal(base, 'OVERTRIP');
     const text = tripProposalText(p);

@@ -283,7 +283,7 @@ export default function Gallery() {
             icon={<Images className="w-6 h-6" />}
             title={hasFilters ? 'Nenhuma memória encontrada' : 'A galeria de memórias está vazia'}
             text={hasFilters ? 'Tente outra busca ou limpe os filtros.' : 'Uma memória precisa só de título, data e uma foto.'}
-            action={hasFilters ? <Button onClick={list.clear}>Limpar filtros</Button> : <Button variant="primary" icon={<Plus className="w-4 h-4" aria-hidden="true" />} onClick={openCreate}>Criar a primeira memória</Button>}
+            action={hasFilters ? <Button onClick={() => list.clear()}>Limpar filtros</Button> : <Button variant="primary" icon={<Plus className="w-4 h-4" aria-hidden="true" />} onClick={openCreate}>Criar a primeira memória</Button>}
           />
         ) : (
           <ul className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 ${loading ? 'opacity-60' : ''}`}>

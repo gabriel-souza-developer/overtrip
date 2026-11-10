@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { readSystemHealth } from '../src/services/systemHealth.js';
+import { readSystemHealth, readSystemHealthHistory } from '../src/services/systemHealth.js';
 
 const dir = mkdtempSync(join(tmpdir(), 'overtrip-health-'));
 const file = join(dir, 'status.json');
@@ -49,16 +49,38 @@ describe('leitura do status de saúde', () => {
   });
 });
 
+describe('histórico de saúde', () => {
+  it('retorna só pontos válidos, na ordem gravada, respeitando o limite', async () => {
+    writeFileSync(file, [
+      JSON.stringify({ checkedAt: '2026-11-10T11:55:00Z', ok: true, checks: [{ status: 'ok', message: 'caddy.service ativo' }] }),
+      '{linha inválida}',
+      JSON.stringify({ checkedAt: '2026-11-10T12:00:00Z', ok: false, checks: [{ status: 'alert', message: 'caddy.service inativo' }] }),
+    ].join('\n'));
+    const points = await readSystemHealthHistory(file, 1);
+    expect(points).toHaveLength(1);
+    expect(points[0].checkedAt).toBe('2026-11-10T12:00:00Z');
+    expect(points[0].ok).toBe(false);
+  });
+
+  it('retorna lista vazia quando o arquivo não existe', async () => {
+    expect(await readSystemHealthHistory(join(dir, 'history-ausente.jsonl'))).toEqual([]);
+  });
+});
+
 describe('script do monitor', () => {
   it('grava um status.json válido mesmo quando encerra antes do fim', () => {
     const out = join(dir, 'script.json');
+    const history = join(dir, 'history.jsonl');
     try {
-      execFileSync('bash', ['deploy/monitor-health.sh'], { env: { ...process.env, HEALTH_STATUS_FILE: out }, stdio: 'pipe', timeout: 60_000 });
+      execFileSync('bash', ['deploy/monitor-health.sh'], { env: { ...process.env, HEALTH_STATUS_FILE: out, HEALTH_HISTORY_FILE: history }, stdio: 'pipe', timeout: 60_000 });
     } catch { /* fora da VM as verificações falham; só o arquivo importa aqui */ }
     const parsed = JSON.parse(readFileSync(out, 'utf8'));
     expect(typeof parsed.ok).toBe('boolean');
     expect(Number.isNaN(Date.parse(parsed.checkedAt))).toBe(false);
     expect(parsed.checks.length).toBeGreaterThan(0);
+    const records = readFileSync(history, 'utf8').trim().split('\n').map((line) => JSON.parse(line));
+    expect(records).toHaveLength(1);
+    expect(records[0].checkedAt).toBe(parsed.checkedAt);
     for (const check of parsed.checks) expect(['ok', 'alert', 'metric']).toContain(check.status);
     return readSystemHealth(out).then((health) => expect(health.state).not.toBe('unavailable'));
   });
@@ -73,6 +95,7 @@ describe('rota /api/system/health', () => {
 
   beforeAll(async () => {
     process.env.HEALTH_STATUS_FILE = file;
+    process.env.HEALTH_HISTORY_FILE = file;
     const { default: app } = await import('../src/app.js');
     const { prisma } = await import('../src/lib/prisma.js');
     const { generateToken } = await import('../src/middleware/auth.js');
@@ -105,5 +128,13 @@ describe('rota /api/system/health', () => {
     expect(response.status).toBe(200);
     expect(response.headers.get('cache-control')).toBe('no-store');
     expect((await response.json()).state).toBe('ok');
+  });
+
+  it('entrega histórico apenas ao administrador e sem cache', async () => {
+    write({ checks: [{ status: 'metric', message: 'disco utilizado: 42%' }] }, new Date().toISOString());
+    const response = await fetch(`${base}/history`, { headers: { Authorization: `Bearer ${adminToken}` } });
+    expect(response.status).toBe(200);
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    expect(await response.json()).toMatchObject([{ ok: true, checks: [{ status: 'metric', message: 'disco utilizado: 42%' }] }]);
   });
 });

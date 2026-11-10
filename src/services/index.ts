@@ -15,6 +15,7 @@ import {
 import { normalizeForSearch, normalizeForSearchRegion, applySearchFilter, applyDirectFilter } from '../utils/searchUtils.js';
 import { publicationProblems } from './tripReadiness.js';
 import { settingsService } from './settingsService.js';
+import { tripPeriodWhere } from '../utils/tripPeriod.js';
 
 function parseJsonFields(data: any, jsonFields: string[]): any {
   const result = { ...data };
@@ -75,20 +76,21 @@ function assertReadyForPublication(data: PublicationData) {
 
 export const tripService = {
   async findAll(query: TripQueryInput) {
-    const { page = 1, limit = 20, status, search } = query;
+    const { page = 1, limit = 20, status, search, period } = query;
     const skip = (page - 1) * limit;
     
-    const where: Prisma.TripWhereInput = {};
-    
+    const clauses: Prisma.TripWhereInput[] = [];
+    if (period) clauses.push(tripPeriodWhere(period));
     if (status) {
-      where.status = status;
+      clauses.push({ status });
     }
     
     // Apply case/accent-insensitive search using normalized columns
     const searchClauses = applySearchFilter(search, ['titleSearch', 'citySearch', 'categorySearch']);
     if (searchClauses) {
-      where.OR = searchClauses;
+      clauses.push({ OR: searchClauses });
     }
+    const where: Prisma.TripWhereInput = clauses.length ? { AND: clauses } : {};
 
     const [trips, total] = await Promise.all([
       prisma.trip.findMany({
@@ -97,7 +99,8 @@ export const tripService = {
           departures: { orderBy: { orderIndex: 'asc' } },
           _count: { select: { visits: true, galleryEntries: true } },
         },
-        orderBy: { startDateISO: 'desc' },
+        // Próximas: a mais perto primeiro. Demais listas: a mais recente primeiro.
+        orderBy: { startDateISO: period === 'upcoming' ? 'asc' : 'desc' },
         skip,
         take: limit,
       }),

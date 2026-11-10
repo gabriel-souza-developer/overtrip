@@ -19,7 +19,7 @@ describe('TripForm: seções', () => {
   it('apresenta dados principais e uma seção de detalhes opcionais', () => {
     expect(titles).toEqual(['Detalhes opcionais']);
     expect(form).toContain('Dados da viagem');
-    expect(form).toContain('Mais opções');
+    expect(form).toContain('Outros detalhes da viagem');
   });
 
   it.each([
@@ -62,10 +62,12 @@ describe('countAdvancedFilled', () => {
 
 describe('nomes do painel', () => {
   it('menu e início usam os nomes novos', () => {
-    expect(layout).toContain("label: 'Próxima trip'");
+    // "Viagens" lista próximas e anteriores; "Próxima trip" chamava de próxima o que já aconteceu.
+    expect(layout).toContain("label: 'Viagens'");
+    expect(layout).not.toContain("label: 'Próxima trip'");
     expect(layout).toContain("label: 'Destinos visitados'");
     expect(layout).toContain("label: 'Galeria de memórias'");
-    expect(layout).not.toMatch(/label: '(Viagens|Visitas|Galeria)'/);
+    expect(layout).not.toMatch(/label: '(Visitas|Galeria)'/);
     expect(dashboard).toContain("label: 'Viagens cadastradas'");
     expect(dashboard).toContain("label: 'Destinos para revisar'");
     expect(dashboard).not.toMatch(/label: '(Viagens|Visitas)'/);

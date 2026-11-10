@@ -255,7 +255,7 @@ export default function Visits() {
             icon={<MapPin className="w-6 h-6" />}
             title={hasFilters ? 'Nenhum destino encontrado' : 'Ainda não há destinos visitados'}
             text={hasFilters ? 'Tente outra busca ou limpe os filtros.' : 'Os destinos aparecem aqui quando forem importados ou cadastrados.'}
-            action={hasFilters ? <Button onClick={list.clear}>Limpar filtros</Button> : undefined}
+            action={hasFilters ? <Button onClick={() => list.clear()}>Limpar filtros</Button> : undefined}
           />
         ) : (
           <div className={`table-container ${loading ? 'opacity-60' : ''}`}>

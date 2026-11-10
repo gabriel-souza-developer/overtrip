@@ -32,8 +32,8 @@ test('revisa a origem e aplica somente os campos escolhidos sem salvar', async (
     return route.fulfill({ json: {} });
   });
   await page.goto('/trips/trip-1/edit');
-  // O envio de PDF fica recolhido em "Usar documento PDF (opcional)".
-  await page.locator('summary').filter({ hasText: 'Usar documento PDF' }).click();
+  // A extração de sugestões com IA fica recolhida por padrão.
+  await page.locator('summary').filter({ hasText: 'Extrair sugestões com IA de um PDF' }).click();
   await page.getByRole('button', { name: 'Sugerir campos' }).click();
   await expect(page.getByText('roteiro.pdf, página 2: “Matureia”')).toBeVisible();
   const city = page.getByRole('checkbox', { name: /Cidade.*Matureia/ });

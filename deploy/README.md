@@ -111,8 +111,10 @@ sudo systemctl enable --now overtrip-health.timer
 sudo systemctl start overtrip-health.service; journalctl -u overtrip-health.service -n 20
 ```
 Falhas aparecem como `ALERTA:` no journal e deixam o serviço em estado `failed`
-(`systemctl --failed`). O último resultado aparece no painel em **Servidor** (só administradores),
-lido de `/var/lib/overtrip/health/status.json` (`HEALTH_STATUS_FILE` muda o caminho). Ainda não há envio de alerta para fora da máquina.
+(`systemctl --failed`). O último resultado aparece no painel em **Saúde do servidor** (só administradores),
+lido de `/var/lib/overtrip/health/status.json` (`HEALTH_STATUS_FILE` muda o caminho). O histórico das últimas
+2.016 coletas (até sete dias) fica em `/var/lib/overtrip/health/history.jsonl` (`HEALTH_HISTORY_FILE` muda o caminho)
+e alimenta os gráficos de disco, memória disponível e carga média por núcleo. Ainda não há envio de alerta para fora da máquina.
 
 ## 9. DNS
 1. **Um ou dois dias antes**, baixe o TTL dos registros do domínio para 300 segundos (5 min), no provedor atual.

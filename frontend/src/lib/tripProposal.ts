@@ -35,8 +35,8 @@ export function buildTripProposal(trip: TripFormData, organizer: string): TripPr
   const back = displayTime(trip.returnTime);
   const times = [departure && `Saída: ${departure}`, back && `Retorno: ${back}`].filter(Boolean).join(' · ');
   return {
-    organizer: text(organizer) || 'Organizador',
-    title: text(trip.title) || 'Viagem sem nome',
+    organizer: text(organizer) || 'Agência ou organizador',
+    title: text(trip.title) || 'Nova viagem',
     description: text(trip.description),
     destination: destination || null,
     date: date === '—' ? null : date,

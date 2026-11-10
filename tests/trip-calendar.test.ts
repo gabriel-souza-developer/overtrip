@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calendarDays, tripDay, tripsByDay, upcomingTrips } from '../frontend/src/lib/tripCalendar';
+import { calendarDays, saoPauloDateKey, tripDay, tripsByDay, upcomingTrips } from '../frontend/src/lib/tripCalendar';
 
 describe('calendário das viagens', () => {
   it('preserva o dia de data sem horário salva à meia-noite UTC', () => {
@@ -32,5 +32,9 @@ describe('calendário das viagens', () => {
       { ...base, id: 'concluida', title: 'Concluída', status: 'COMPLETED', startDateISO: '2026-11-12T00:00:00.000Z' },
     ];
     expect(upcomingTrips(trips, '2026-11-10').map(t => t.id)).toEqual(['hoje', 'futura']);
+  });
+  it('o "hoje" das próximas viagens é o dia de São Paulo, não o UTC', () => {
+    expect(saoPauloDateKey(new Date('2026-11-10T02:30:00Z'))).toBe('2026-11-09');
+    expect(saoPauloDateKey(new Date('2026-11-10T03:00:00Z'))).toBe('2026-11-10');
   });
 });

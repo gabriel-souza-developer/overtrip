@@ -12,7 +12,7 @@ describe('resumo do monitor no painel', () => {
     expect(healthSummary({ state: 'unavailable', ageMinutes: null }).tone).toBe('warning');
   });
 
-  it('o menu Servidor aparece só para administradores', () => {
+  it('o menu Saúde do servidor aparece só para administradores', () => {
     const layout = readFileSync('frontend/src/components/Layout.tsx', 'utf8');
     expect(layout).toMatch(/path: '\/system'.*adminOnly: true/);
   });

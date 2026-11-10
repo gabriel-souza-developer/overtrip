@@ -80,6 +80,8 @@ export const tripQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(20),
   search: z.string().optional(),
+  // Próximas (saída hoje ou depois, dia de São Paulo) ou anteriores. Sem o campo, todas.
+  period: z.enum(['upcoming', 'past']).optional(),
 });
 
 // Filtros de lista vêm como texto na URL ("true"/"false"). z.coerce.boolean() tratava "false" como true.

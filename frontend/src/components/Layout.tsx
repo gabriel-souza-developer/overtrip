@@ -2,19 +2,19 @@ import React, { useEffect, useRef, useState } from 'react';
 import { brandUrl } from '../lib/basePath';
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import * as Menu from '@radix-ui/react-dropdown-menu';
-import { Activity, ChevronDown, Home, Image as ImageIcon, LogOut, MapPin, Menu as MenuIcon, Plane, Settings as SettingsIcon, User, UsersRound, X } from 'lucide-react';
+import { Activity, ChevronDown, House, Images, LogOut, MapPinned, Menu as MenuIcon, Plane, Settings as SettingsIcon, Ticket, User, UsersRound, X } from 'lucide-react';
 import { useAuth } from '../App';
 import { useToast } from '../hooks/useToast';
 
 const navItems = [
-  { path: '/dashboard', label: 'Início', icon: Home },
-  { path: '/trips', label: 'Próxima trip', icon: Plane },
-  { path: '/visits', label: 'Destinos visitados', icon: MapPin },
+  { path: '/dashboard', label: 'Início', icon: House },
+  { path: '/trips', label: 'Viagens', icon: Plane },
+  { path: '/visits', label: 'Destinos visitados', icon: MapPinned },
   { path: '/leads', label: 'Interessados', icon: UsersRound, adminOnly: true },
-  { path: '/reservations', label: 'Reservas', icon: Plane, adminOnly: true },
-  { path: '/gallery', label: 'Galeria de memórias', icon: ImageIcon },
+  { path: '/reservations', label: 'Reservas', icon: Ticket, adminOnly: true },
+  { path: '/gallery', label: 'Galeria de memórias', icon: Images },
   { path: '/settings', label: 'Configurações', icon: SettingsIcon, adminOnly: true },
-  { path: '/system', label: 'Servidor', icon: Activity, adminOnly: true },
+  { path: '/system', label: 'Saúde do servidor', icon: Activity, adminOnly: true },
 ];
 
 export default function Layout() {
