@@ -12,6 +12,8 @@ Registro atualizado em 10 de novembro de 2026 após publicação do pacote princ
 - As viagens públicas em produção são três, todas com status `completed` e datas entre 13 de setembro e 18 de outubro de 2026. O navegador real carregou a versão nova do filtro, exibiu zero cards e a mensagem de nenhuma expedição futura. Os módulos estáticos tinham cache de sete dias; os URLs versionados foram atualizados para forçar a busca do filtro novo em navegadores que ainda tinham a versão antiga.
 - Após publicar: `/`, `/admin/`, `/health`, `/api/public/faq` e o módulo versionado de renderização responderam 200; editor administrativo sem autenticação respondeu 401. FAQ público entregou cinco itens, sem metadados internos. API, Caddy e temporizador de backup ativos; navegador não registrou erros JavaScript.
 - Validação local: 658 testes passaram, 2 ignorados, 24 cenários Playwright passaram; build da API, checagem de tipos do painel e build do painel passaram. O teste de API do FAQ agora exige explicitamente `DATABASE_URL` terminando em `/prisma/test.db`.
+- Limpeza solicitada após a publicação: removidas as nove cópias antigas de retorno de código, sete pacotes `.tar.gz`, quatro diretórios temporários de publicação, o checkout obsoleto `/home/ubuntu/overtrip-preparo` (542 MB, commit `96fdb59`, árvore limpa), a configuração candidata antiga em `/srv/overtrip/preview` e o diretório temporário de dependências. Mantidos o código ativo, os arquivos públicos ativos, o retorno mais recente acima, todos os backups em `/var/backups/overtrip` e a cópia externa em `/home/ubuntu/overtrip-backups`. Nenhum backup de banco foi apagado.
+- Depois da limpeza, API, Caddy, Tailscale e `overtrip-backup.timer` permaneceram ativos; site e API pública responderam 200. Restou apenas `/srv/overtrip/retorno-30b8ff2-20261110-132750` como retorno de código. O volume raiz passou de 13 GB para 11 GB usados, com 105 GB livres.
 
 ## Painel de viagens e gráficos de saúde (10 de novembro, 10:16 UTC)
 
@@ -63,9 +65,9 @@ Registro atualizado em 10 de novembro de 2026 após publicação do pacote princ
 - Recursos conferidos após a publicação: 104 GB livres no volume de 116 GB, cerca de 10 GB de memória disponível e load average `0.75, 0.27, 0.15`. API escuta em `127.0.0.1:3001`, Caddy em `10.0.0.143:80/443`; Ollama permanece em `*:11434` como antes.
 - Na release, Claude reportou 598 testes unitários aprovados e 11 migrações correspondentes ao schema. No HEAD completo, 612 testes, checagem de tipos, build e Playwright 12/12 passaram. As alterações foram enviadas à branch `feat/evolucao-painel-viagens` por avanço normal de `ab01a78` para `1065532`.
 
-## Preparado
+## Estado de preparo (registro histórico de 3 de novembro)
 
-- Código do commit `96fdb59` em `/srv/overtrip/app`, instalado por `git archive` e compilado. Essa cópia não tem `.git`; `git pull` nesse diretório não funciona. A instalação de preparo em `~/overtrip-preparo` tem Git.
+- Naquele preparo, o commit `96fdb59` foi instalado por `git archive` e compilado. O checkout antigo `~/overtrip-preparo` foi removido na limpeza de 10 de novembro; `/srv/overtrip/app` contém hoje a versão posterior descrita no registro desta publicação.
 - Banco SQLite em `/var/lib/overtrip/overtrip.db`, proprietário `overtrip` e modo 600. A cópia de origem permanece em `~/overtrip-backups/overtrip-local-20261103-054537.db`. O hash SHA-256 conferiu na transferência e instalação; `integrity_check` retornou `ok` e o Prisma não encontrou diferenças de esquema para `96fdb59`.
 - As dez migrações dessa versão constam como concluídas. A migração histórica `0_init` tem diferença de checksum já documentada em `README.md`; não alterar o histórico nem executar reset. O banco instalado já contém administrador.
 - Serviço `overtrip-api` ativo e habilitado, executado como `overtrip`, escutando apenas em `127.0.0.1:3001`. `/health` e `/api/public/trips` retornaram HTTP 200. O arquivo `/etc/overtrip/env` é privado; não registrar seu conteúdo ou segredos.
