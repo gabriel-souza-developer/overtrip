@@ -8,6 +8,7 @@ test('administrador edita e aprova uma versão de conhecimento', async ({ page }
   let sent: unknown;
   await page.route(/\/api\/(?!.*\.tsx?(?:\?|$))/, async route => {
     const path = new URL(route.request().url()).pathname;
+    if (path.endsWith('/auth/me')) return route.fulfill({ json: { id: 'admin', email: 'admin@example.test', name: 'Admin', role: 'admin' } });
     if (path.endsWith('/assistant-knowledge/versions')) return route.fulfill({ json: [] });
     if (path.endsWith('/assistant-knowledge')) {
       if (route.request().method() === 'POST') {

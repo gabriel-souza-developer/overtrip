@@ -11,6 +11,8 @@ test.beforeEach(async ({ page }) => {
     }));
   });
 
+  // O painel confirma a sessão ao abrir; sem isso a pessoa cai no login.
+  await page.route('**/api/auth/me', (route) => route.fulfill({ json: { id: 'playwright-admin', email: 'playwright@example.test', name: 'Playwright', role: 'admin' } }));
   await page.route('**/api/visits**', (route) => route.fulfill({
     contentType: 'application/json',
     body: JSON.stringify({
@@ -43,7 +45,7 @@ test('formulário T23 oferece campos únicos de data e horário', async ({ page 
   await expect(page.locator('input[type="time"]')).toHaveCount(2);
 
   await page.locator('#startDateISO').fill('2026-12-15');
-  await page.locator('summary').filter({ hasText: 'Detalhes para viajantes' }).click();
+  await page.locator('summary').filter({ hasText: 'Detalhes opcionais' }).click();
   await page.locator('#departureTime').fill('06:30');
   await page.locator('#endDateISO').fill('2026-12-16');
   await page.locator('#returnTime').fill('20:15');
@@ -54,16 +56,12 @@ test('formulário T23 oferece campos únicos de data e horário', async ({ page 
   await expect(page.locator('#returnTime')).toHaveValue('20:15');
 });
 
-test('destino visitado preenche cidade e estado, e serviço padrão pode ser marcado', async ({ page }) => {
+test('formulário não tem mais o atalho de destino visitado, e serviço padrão pode ser marcado', async ({ page }) => {
   await page.goto('/trips/new');
 
-  const destination = page.getByRole('combobox', { name: 'Destino já visitado (opcional)' });
-  await destination.fill('Pico do Jabre');
-  await page.getByRole('option', { name: /Pico do Jabre/ }).click();
-  await expect(page.locator('#city')).toHaveValue('Matureia');
-  await expect(page.locator('#region')).toHaveValue('PB');
+  await expect(page.locator('#visited-place-search')).toHaveCount(0);
 
-  await page.locator('summary').filter({ hasText: 'Detalhes para viajantes' }).click();
+  await page.locator('summary').filter({ hasText: 'Detalhes opcionais' }).click();
   await page.getByRole('checkbox', { name: 'Guia' }).check();
   await expect(page.getByRole('checkbox', { name: 'Guia' })).toBeChecked();
 });

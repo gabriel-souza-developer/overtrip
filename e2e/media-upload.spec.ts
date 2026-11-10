@@ -19,6 +19,7 @@ async function mockApi(page: Page, overrides: Record<string, Handler> = {}) {
     const url = new URL(route.request().url());
     const key = `${route.request().method()} ${url.pathname}`;
     if (overrides[key]) return overrides[key](route, url);
+    if (url.pathname === '/api/auth/me') return route.fulfill({ json: { id: 'u1', email: 'p@example.test', name: 'Playwright', role: 'editor' } });
     if (url.pathname.startsWith('/api/public/media/')) return route.fulfill({ contentType: 'image/jpeg', body: photo });
     if (key === 'POST /api/media') {
       uploads.push({ contentType: route.request().headers()['content-type'] ?? null, bytes: route.request().postDataBuffer()?.length ?? 0 });
@@ -43,7 +44,6 @@ test.beforeEach(async ({ page }) => {
 
 async function openTripPhotos(page: Page) {
   await page.goto('/trips/new');
-  await page.locator('summary').filter({ hasText: 'Preparar publicação' }).click();
   await expect(page.getByText('Enviar foto')).toBeVisible();
 }
 

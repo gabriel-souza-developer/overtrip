@@ -8,6 +8,7 @@ test('revisa a origem e aplica somente os campos escolhidos sem salvar', async (
   let writes = 0;
   await page.route(/\/api\/(?!.*\.tsx?(?:\?|$))/, async route => {
     const url = new URL(route.request().url());
+    if (url.pathname.endsWith('/auth/me')) return route.fulfill({ json: { id: 'admin', email: 'admin@example.test', name: 'Admin', role: 'admin' } });
     if (url.pathname.endsWith('/suggestions')) return route.fulfill({ json: {
       draft: { title: 'Novo título', city: 'Matureia' }, warnings: [],
       sources: {
@@ -31,6 +32,8 @@ test('revisa a origem e aplica somente os campos escolhidos sem salvar', async (
     return route.fulfill({ json: {} });
   });
   await page.goto('/trips/trip-1/edit');
+  // O envio de PDF fica recolhido em "Usar documento PDF (opcional)".
+  await page.locator('summary').filter({ hasText: 'Usar documento PDF' }).click();
   await page.getByRole('button', { name: 'Sugerir campos' }).click();
   await expect(page.getByText('roteiro.pdf, página 2: “Matureia”')).toBeVisible();
   const city = page.getByRole('checkbox', { name: /Cidade.*Matureia/ });
