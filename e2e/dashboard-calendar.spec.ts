@@ -11,12 +11,15 @@ test('calendário do painel mostra viagens de todas as páginas, navega por mês
     return route.fulfill({ json: { data: n === '2' ? [{ id: 'segunda', title: 'Viagem da segunda página', city: 'Lucena', region: 'PB', status: 'OPEN', startDateISO: '2026-11-29T00:00:00.000Z' }] : [{ id: 'primeira', title: 'Viagem de dezembro', city: 'Natal', region: 'RN', status: 'DRAFT', startDateISO: '2026-12-04T00:00:00.000Z' }], pagination: { page: Number(n), totalPages: 2, total: 2, limit: 100 } } });
   });
   await page.goto('/dashboard');
-  const calendar = page.getByRole('region', { name: 'Calendário de viagens' });
+  const calendar = page.getByRole('region', { name: 'Agenda de viagens' });
+  await expect(page.getByRole('heading', { name: 'Visão geral' })).toBeVisible();
+  await expect(calendar.getByRole('heading', { name: 'Próximas viagens' })).toBeVisible();
+  await expect(calendar.getByRole('link', { name: /Viagem da segunda página/ }).first()).toBeVisible();
   await expect(calendar.getByRole('button', { name: '29/11/2026, 1 viagem(ns)' })).toBeVisible();
   await calendar.getByRole('button', { name: '29/11/2026, 1 viagem(ns)' }).click();
-  await expect(calendar.getByRole('link', { name: /Viagem da segunda página/ })).toHaveAttribute('href', '/trips/segunda/edit');
+  await expect(calendar.getByRole('link', { name: /Viagem da segunda página/ }).last()).toHaveAttribute('href', '/trips/segunda/edit');
   await calendar.getByRole('button', { name: 'Próximo mês' }).click();
   await calendar.getByRole('button', { name: '04/12/2026, 1 viagem(ns)' }).click();
-  await expect(calendar.getByRole('link', { name: /Viagem de dezembro/ })).toBeVisible();
+  await expect(calendar.getByRole('link', { name: /Viagem de dezembro/ }).last()).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });

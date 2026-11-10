@@ -32,3 +32,11 @@ export function tripsByDay(trips: CalendarTrip[]): Map<string, CalendarTrip[]> {
   }
   return days;
 }
+
+/** Retorna saídas de hoje em diante, sem viagens canceladas ou concluídas. */
+export function upcomingTrips(trips: CalendarTrip[], today: string): CalendarTrip[] {
+  return trips.filter(trip => {
+    const day = tripDay(trip.startDateISO);
+    return day && day >= today && trip.status !== 'CANCELLED' && trip.status !== 'COMPLETED';
+  }).sort((a, b) => tripDay(a.startDateISO).localeCompare(tripDay(b.startDateISO)) || a.title.localeCompare(b.title, 'pt-BR'));
+}
