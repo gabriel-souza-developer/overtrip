@@ -5,6 +5,7 @@ import { isValidImageSrc, IMAGE_SRC_MESSAGE, isUploadedMediaSrc } from '../lib/i
 import ImageThumb from './ImageThumb';
 import ImageUploader from './ImageUploader';
 import Button from './Button';
+import { imageSourceLabel } from '../lib/assetUrl';
 
 export function ArrayInput({ id, value, onChange, placeholder, onPendingChange }: { id: string; value: string[]; onChange: (val: string[]) => void; placeholder: string; onPendingChange?: (pending: boolean) => void }) {
   const [newItem, setNewItem] = useState('');
@@ -55,6 +56,7 @@ const VIDEO_EXT = /\.(mp4|webm|mov)(\?.*)?$/i;
 export function MediaInput({ value, onChange, inputId, onPendingChange, onLinkPendingChange }: { value: MediaItem[]; onChange: (val: MediaItem[]) => void; inputId: string; onPendingChange?: (pending: boolean) => void; onLinkPendingChange?: (pending: boolean) => void }) {
   const { toast } = useToast();
   const [newSrc, setNewSrc] = useState('');
+  const [editingSrcIndex, setEditingSrcIndex] = useState<number | null>(null);
 
   const handleAdd = () => {
     const src = newSrc.trim();
@@ -76,8 +78,8 @@ export function MediaInput({ value, onChange, inputId, onPendingChange, onLinkPe
           id={inputId}
           type="text"
           className="input flex-1 min-w-0"
-          placeholder="Cole o link da foto (ex.: assets/images/pasta/foto.jpg)"
-          aria-label="Link da foto"
+          placeholder="Cole o endereço público da foto"
+          aria-label="Endereço público da foto"
           value={newSrc}
           onChange={(e) => { setNewSrc(e.target.value); onLinkPendingChange?.(!!e.target.value.trim()); }}
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAdd(); } }}
@@ -94,7 +96,12 @@ export function MediaInput({ value, onChange, inputId, onPendingChange, onLinkPe
             <li key={index} className="p-2 bg-surface-50 rounded-lg border border-surface-200">
               <div className="flex items-center gap-2">
                 <ImageThumb src={item.src} />
-                <input type="text" className="input flex-1 min-w-0" value={item.src} onChange={(e) => update(index, { src: e.target.value })} aria-label={`Link da foto ${index + 1}`} />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-surface-800">{imageSourceLabel(item.src)}</p>
+                  <button type="button" className="mt-1 text-xs font-semibold text-primary-600 hover:underline" aria-expanded={editingSrcIndex === index} onClick={() => setEditingSrcIndex(editingSrcIndex === index ? null : index)}>
+                    {editingSrcIndex === index ? 'Fechar endereço' : 'Alterar endereço da foto'}
+                  </button>
+                </div>
                 {index === 0 ? (
                   <span className="badge badge-info shrink-0">Capa</span>
                 ) : (
@@ -107,6 +114,7 @@ export function MediaInput({ value, onChange, inputId, onPendingChange, onLinkPe
                   <X className="w-4 h-4" aria-hidden="true" />
                 </button>
               </div>
+              {editingSrcIndex === index && <input type="text" className="input mt-2" value={item.src} onChange={(e) => update(index, { src: e.target.value })} aria-label={`Endereço da foto ${index + 1}`} />}
               {isUploadedMediaSrc(item.src) ? (
                 <div className="mt-1 ml-14 text-sm">
                   <label className="label" htmlFor={`${inputId}-alt-${index}`}>O que aparece nesta foto? <span className="text-red-700">(obrigatório)</span></label>

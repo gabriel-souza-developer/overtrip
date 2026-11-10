@@ -64,7 +64,8 @@ test('envia foto do computador, mostra prévia e exige texto alternativo', async
   await add.click();
   await expect(page.getByText('Foto adicionada ao formulário. Salve para confirmar a alteração.')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Salvar viagem' })).toBeEnabled();
-  await expect(page.getByLabel('Link da foto 1')).toHaveValue(SRC);
+  await page.getByRole('button', { name: 'Alterar endereço da foto' }).click();
+  await expect(page.getByLabel('Endereço da foto 1')).toHaveValue(SRC);
   await expect(page.getByLabel('O que aparece na foto 1? (obrigatório)')).toHaveValue('Grupo na beira da cachoeira');
   expect(uploads).toEqual([{ contentType: 'image/jpeg', bytes: photo.length }]);
 
@@ -126,7 +127,8 @@ test('galeria aceita foto enviada no lugar do link', async ({ page }) => {
   await page.getByLabel('O que aparece nesta foto? (obrigatório)').fill('Pôr do sol no mirante');
   await page.getByRole('button', { name: 'Usar esta foto' }).click();
   await expect(page.getByRole('button', { name: 'Criar memória' })).toBeEnabled();
-  await expect(page.getByLabel('Link da foto 1')).toHaveValue(SRC);
+  await page.getByRole('button', { name: 'Alterar endereço da foto' }).click();
+  await expect(page.getByLabel('Endereço da foto 1')).toHaveValue(SRC);
   await expect(page.getByLabel('O que aparece na foto 1? (obrigatório)')).toHaveValue('Pôr do sol no mirante');
   await page.screenshot({ path: `${SHOTS}/painel-upload-galeria.png` });
 });

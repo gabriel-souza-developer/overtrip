@@ -43,10 +43,12 @@ test('a lista abre nas próximas viagens e separa as anteriores', async ({ page 
   expect(requests.at(-1)).not.toContain('period=');
 });
 
-test('o resumo deixa claro que inclui viagens realizadas e abre a lista completa', async ({ page }) => {
+test('o resumo destaca próximas viagens e separa as concluídas', async ({ page }) => {
+  await page.route((url) => url.pathname === '/api/trips', (route) => route.fulfill({ json: { data: [], pagination: { page: 1, limit: 1, total: 0, totalPages: 0 } } }));
   await page.route((url) => url.pathname === '/api/dashboard/stats', (route) => route.fulfill({ json: { tripsTotal: 2, tripsPublished: 1, tripsDraft: 0, visitsTotal: 0, visitsNeedsReview: 0, visitsWithCoords: 0, galleryTotal: 0, galleryFeatured: 0 } }));
   await page.goto('/dashboard');
-  await expect(page.getByRole('link', { name: /Viagens cadastradas/ })).toHaveAttribute('href', '/trips?period=all');
-  await expect(page.getByText('Inclui as já realizadas')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Seu resumo' })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: /Próximas viagens/ })).toHaveAttribute('href', '/trips?period=upcoming');
+  await expect(page.getByText('Concluídas ficam em Anteriores')).toBeVisible();
   await expect(page.getByRole('link', { name: /Publicadas no site/ })).toHaveAttribute('href', '/trips?status=OPEN&period=all');
 });

@@ -75,8 +75,9 @@ describe('nomes do painel', () => {
     expect(layout).toContain("label: 'Destinos visitados'");
     expect(layout).toContain("label: 'Galeria de memórias'");
     expect(layout).not.toMatch(/label: '(Visitas|Galeria)'/);
-    expect(dashboard).toContain("label: 'Viagens cadastradas'");
-    expect(dashboard).toContain("detail: 'Inclui as já realizadas'");
+    expect(dashboard).toContain("label: 'Próximas viagens'");
+    expect(dashboard).toContain("detail: 'Concluídas ficam em Anteriores'");
+    expect(dashboard).not.toContain('Seu resumo');
     expect(dashboard).toContain("label: 'Destinos para revisar'");
     expect(dashboard).not.toMatch(/label: '(Viagens|Visitas)'/);
   });

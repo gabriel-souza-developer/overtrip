@@ -1,15 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AlertTriangle, ArrowRight, CheckCircle2, Images, Pencil, Plane, Plus, type LucideIcon } from 'lucide-react';
-import { dashboardApi, DashboardStats } from '../api';
+import { dashboardApi, DashboardStats, tripApi } from '../api';
 import ErrorState from '../components/ErrorState';
 import TripCalendar from '../components/TripCalendar';
 import { capitalizeFirst } from '../lib/tripCalendar';
 
 type Tone = 'primary' | 'success' | 'warning' | 'danger';
-const statsConfig: { key: keyof DashboardStats; label: string; icon: LucideIcon; tone: Tone; to: string; detail: string }[] = [
-  // Os totais contam todas as viagens, então os links abrem a lista completa (não só as próximas).
-  { key: 'tripsTotal', label: 'Viagens cadastradas', icon: Plane, tone: 'primary', to: '/trips?period=all', detail: 'Inclui as já realizadas' },
+const statsConfig: { key: keyof DashboardStats | 'tripsUpcoming'; label: string; icon: LucideIcon; tone: Tone; to: string; detail: string }[] = [
+  { key: 'tripsUpcoming', label: 'Próximas viagens', icon: Plane, tone: 'primary', to: '/trips?period=upcoming', detail: 'Concluídas ficam em Anteriores' },
   { key: 'tripsPublished', label: 'Publicadas no site', icon: CheckCircle2, tone: 'success', to: '/trips?status=OPEN&period=all', detail: 'Viagens no site' },
   { key: 'tripsDraft', label: 'Rascunhos', icon: Pencil, tone: 'warning', to: '/trips?status=DRAFT&period=all', detail: 'Continuar preparando' },
   { key: 'visitsNeedsReview', label: 'Destinos para revisar', icon: AlertTriangle, tone: 'danger', to: '/visits?needsReview=true', detail: 'Revisar destinos' },
@@ -21,12 +20,20 @@ const toneClass: Record<Tone, string> = {
 
 export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [upcomingTrips, setUpcomingTrips] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   const loadStats = async () => {
     setLoading(true); setError('');
-    try { setStats(await dashboardApi.stats()); }
+    try {
+      const [summary, upcoming] = await Promise.all([
+        dashboardApi.stats(),
+        tripApi.list({ period: 'upcoming', page: 1, limit: 1 }),
+      ]);
+      setStats(summary);
+      setUpcomingTrips(upcoming.pagination.total);
+    }
     catch (err) { setError(err instanceof Error ? err.message : 'Não foi possível carregar o resumo.'); }
     finally { setLoading(false); }
   };
@@ -46,15 +53,14 @@ export default function Dashboard() {
       </header>
 
       {error && <ErrorState message={error} onRetry={loadStats} />}
-      <section aria-labelledby="resumo-title">
-        <div className="mb-3"><h2 id="resumo-title" className="text-lg font-bold text-surface-900">Seu resumo</h2></div>
+      <section aria-label="Indicadores">
         <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
           {statsConfig.map(({ key, label, icon: Icon, tone, to, detail }) => (
-            <Link key={key} to={to} className="group rounded-2xl border border-surface-200 bg-white p-4 sm:p-5 shadow-sm transition hover:border-primary-300 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary-500" aria-label={`${label}: ${loading ? 'carregando' : stats ? stats[key] : 'indisponível'}. ${detail}`}>
+            <Link key={key} to={to} className="group rounded-2xl border border-surface-200 bg-white p-4 sm:p-5 shadow-sm transition hover:border-primary-300 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary-500" aria-label={`${label}: ${loading ? 'carregando' : key === 'tripsUpcoming' ? upcomingTrips ?? 'indisponível' : stats ? stats[key] : 'indisponível'}. ${detail}`}>
               <div className="flex items-start justify-between gap-2"><span className={`flex h-10 w-10 items-center justify-center rounded-xl ${toneClass[tone]}`}><Icon className="h-5 w-5" aria-hidden="true" /></span><ArrowRight className="h-4 w-4 text-surface-400 transition group-hover:translate-x-1" aria-hidden="true" /></div>
-              {loading ? <span className="loading-skeleton mt-4 block h-8 w-12" aria-hidden="true" /> : <span className="mt-4 block text-3xl font-bold tracking-tight text-surface-900 tabular-nums" aria-hidden="true">{stats ? stats[key] : '—'}</span>}
+              {loading ? <span className="loading-skeleton mt-4 block h-8 w-12" aria-hidden="true" /> : <span className="mt-4 block text-3xl font-bold tracking-tight text-surface-900 tabular-nums" aria-hidden="true">{key === 'tripsUpcoming' ? upcomingTrips ?? '—' : stats ? stats[key] : '—'}</span>}
               <span className="mt-1 block text-sm font-medium text-surface-600" aria-hidden="true">{label}</span>
-              <span className="mt-2 block text-xs leading-snug text-surface-500" aria-hidden="true">{detail}</span>
+              {detail && <span className="mt-2 block text-xs leading-snug text-surface-500" aria-hidden="true">{detail}</span>}
             </Link>
           ))}
         </div>

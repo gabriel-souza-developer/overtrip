@@ -3,7 +3,7 @@ import { ArrowDown, ArrowUp, ImagePlus, Images, ListOrdered, Pencil, Plus, Star,
 import { galleryApi, tripApi, visitApi, GalleryEntry, Trip, Visit, Pagination as PaginationInfo } from '../api';
 import { useToast } from '../hooks/useToast';
 import { useListParams } from '../hooks/useListParams';
-import { resolveAssetSrc } from '../lib/assetUrl';
+import { imageSourceLabel, resolveAssetSrc } from '../lib/assetUrl';
 import { isValidImageSrc, IMAGE_SRC_MESSAGE, hasRequiredAlt, isUploadedMediaSrc, UPLOADED_ALT_MESSAGE } from '../lib/imageSrc';
 import ImageUploader from '../components/ImageUploader';
 import { formatDateBR, isoToLocalInput, localInputToIso } from '../lib/dateInput';
@@ -60,6 +60,7 @@ export default function Gallery() {
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
   const [photoPending, setPhotoPending] = useState(false);
+  const [editingImageIndex, setEditingImageIndex] = useState<number | null>(null);
   const [reordering, setReordering] = useState(false);
   const [savingOrder, setSavingOrder] = useState(false);
   const [toDelete, setToDelete] = useState<GalleryEntry | null>(null);
@@ -104,6 +105,7 @@ export default function Gallery() {
 
   const openCreate = () => {
     setEditingEntry(null);
+    setEditingImageIndex(null);
     setForm(blankForm(pagination.total));
     setFormError('');
     setFormOpen(true);
@@ -111,6 +113,7 @@ export default function Gallery() {
 
   const openEdit = (entry: GalleryEntry) => {
     setEditingEntry(entry);
+    setEditingImageIndex(null);
     setForm({
       title: entry.title,
       date: isoToLocalInput(entry.date),
@@ -368,12 +371,18 @@ export default function Gallery() {
             }} />
             {photoPending && <p className="hint" role="status">Conclua ou descarte a foto antes de salvar.</p>}
             {form.images.map((img, idx) => (
-              <div key={idx} className="flex items-center gap-2">
+              <div key={idx} className="flex flex-wrap items-center gap-2">
                 <ImageThumb src={img.src} className="w-10 h-10" />
-                <input type="text" className="input flex-1 min-w-0" value={img.src} onChange={(e) => setImage(idx, { src: e.target.value })} placeholder="Link da foto" aria-label={`Link da foto ${idx + 1}`} />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-surface-800">{imageSourceLabel(img.src)}</p>
+                  <button type="button" className="mt-1 text-xs font-semibold text-primary-600 hover:underline" aria-expanded={editingImageIndex === idx} onClick={() => setEditingImageIndex(editingImageIndex === idx ? null : idx)}>
+                    {editingImageIndex === idx ? 'Fechar endereço' : 'Alterar endereço da foto'}
+                  </button>
+                </div>
                 <button type="button" className="btn-icon text-red-700 hover:bg-red-50" onClick={() => patch({ images: form.images.filter((_, i) => i !== idx) })} disabled={form.images.length <= 1} aria-label={`Remover foto ${idx + 1}`}>
                   <X className="w-4 h-4" aria-hidden="true" />
                 </button>
+                {editingImageIndex === idx && <input type="text" className="input basis-full" value={img.src} onChange={(e) => setImage(idx, { src: e.target.value })} placeholder="Cole o endereço público da foto" aria-label={`Endereço da foto ${idx + 1}`} />}
               </div>
             ))}
             <Button small icon={<ImagePlus className="w-4 h-4" aria-hidden="true" />} onClick={() => patch({ images: [...form.images, { src: '', alt: '' }] })}>Adicionar outra foto</Button>
