@@ -4,7 +4,8 @@ import { galleryApi, tripApi, visitApi, GalleryEntry, Trip, Visit, Pagination as
 import { useToast } from '../hooks/useToast';
 import { useListParams } from '../hooks/useListParams';
 import { resolveAssetSrc } from '../lib/assetUrl';
-import { isValidImageSrc, IMAGE_SRC_MESSAGE } from '../lib/imageSrc';
+import { isValidImageSrc, IMAGE_SRC_MESSAGE, hasRequiredAlt, isUploadedMediaSrc, UPLOADED_ALT_MESSAGE } from '../lib/imageSrc';
+import ImageUploader from '../components/ImageUploader';
 import { formatDateBR, isoToLocalInput, localInputToIso } from '../lib/dateInput';
 import { fillMissingAlt } from '../lib/formHelpers';
 import { countFilled, formatDateDisplay, moveItem, reorderPositions } from '../lib/panelHelpers';
@@ -140,6 +141,7 @@ export default function Gallery() {
     const filled = form.images.filter((img) => img.src.trim());
     if (filled.length === 0) return 'Adicione pelo menos uma foto (cole o link dela).';
     if (filled.some((img) => !isValidImageSrc(img.src.trim()))) return IMAGE_SRC_MESSAGE;
+    if (!filled.every(hasRequiredAlt)) return UPLOADED_ALT_MESSAGE;
     return '';
   };
 
@@ -356,7 +358,11 @@ export default function Gallery() {
 
           <fieldset className="space-y-2">
             <legend className="label">Fotos <span className="text-red-700" aria-hidden="true">*</span></legend>
-            <p className="hint">Cole o link de cada foto. A primeira é a capa.</p>
+            <p className="hint">Envie a foto ou cole o link de cada uma. A primeira é a capa.</p>
+            <ImageUploader idPrefix="g-upload" onAdd={(item) => {
+              const empty = form.images.findIndex((img) => !img.src.trim());
+              patch({ images: empty >= 0 ? form.images.map((img, i) => (i === empty ? item : img)) : [...form.images, item] });
+            }} />
             {form.images.map((img, idx) => (
               <div key={idx} className="flex items-center gap-2">
                 <ImageThumb src={img.src} className="w-10 h-10" />
@@ -381,7 +387,7 @@ export default function Gallery() {
               <p className="hint mb-2">Ajuda quem usa leitor de tela. Se ficar vazia, usamos o título.</p>
               <div className="space-y-2">
                 {form.images.map((img, idx) => img.src.trim() ? (
-                  <input key={idx} type="text" className="input" value={img.alt} onChange={(e) => setImage(idx, { alt: e.target.value })} placeholder={`Descrição da foto ${idx + 1}`} aria-label={`Descrição da foto ${idx + 1} (opcional)`} />
+                  <input key={idx} type="text" className="input" value={img.alt} onChange={(e) => setImage(idx, { alt: e.target.value })} placeholder={`Descrição da foto ${idx + 1}`} aria-required={isUploadedMediaSrc(img.src.trim())} aria-label={`Descrição da foto ${idx + 1} (${isUploadedMediaSrc(img.src.trim()) ? 'obrigatória' : 'opcional'})`} />
                 ) : null)}
               </div>
             </div>

@@ -6,7 +6,7 @@ import { useToast } from '../hooks/useToast';
 import { useAuth } from '../App';
 import { CityAutocomplete, UfSelect } from '../components/LocationFields';
 import { nextCityOnRegionChange } from '../lib/locationCombobox';
-import { isValidImageSrc, IMAGE_SRC_MESSAGE } from '../lib/imageSrc';
+import { isValidImageSrc, IMAGE_SRC_MESSAGE, hasRequiredAlt, UPLOADED_ALT_MESSAGE } from '../lib/imageSrc';
 import { isoToLocalInput } from '../lib/dateInput';
 import { fieldsToSchedule, scheduleToFields, type StoredSchedule } from '../lib/tripSchedule';
 import { prepareTripTemplate } from '../lib/tripTemplate';
@@ -231,6 +231,7 @@ export default function TripForm() {
   const validate = () => {
     const newErrors = validateTripMinimum(formData);
     if (formData.media.some(m => !isValidImageSrc(m.src))) newErrors.media = IMAGE_SRC_MESSAGE;
+    else if (!formData.media.every(hasRequiredAlt)) newErrors.media = UPLOADED_ALT_MESSAGE;
     if (priceText.trim() && parsePriceInput(priceText) === null && !formData.free) newErrors.priceValue = 'Não entendi o valor. Use números, como 109,99 ou 1.250,00.';
     setErrors(newErrors);
     const keys = Object.keys(newErrors);

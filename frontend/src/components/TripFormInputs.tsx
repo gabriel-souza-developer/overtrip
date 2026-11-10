@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { ImagePlus, Plus, Star, X } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
-import { isValidImageSrc, IMAGE_SRC_MESSAGE } from '../lib/imageSrc';
+import { isValidImageSrc, IMAGE_SRC_MESSAGE, isUploadedMediaSrc } from '../lib/imageSrc';
 import ImageThumb from './ImageThumb';
+import ImageUploader from './ImageUploader';
 import Button from './Button';
 
 export function ArrayInput({ id, value, onChange, placeholder }: { id: string; value: string[]; onChange: (val: string[]) => void; placeholder: string }) {
@@ -67,6 +68,7 @@ export function MediaInput({ value, onChange, inputId }: { value: MediaItem[]; o
 
   return (
     <div className="space-y-3">
+      <ImageUploader idPrefix={`${inputId}-upload`} onAdd={(item) => onChange([...value, { ...item, type: 'image' }])} />
       <div className="flex gap-2">
         <input
           id={inputId}
@@ -103,6 +105,11 @@ export function MediaInput({ value, onChange, inputId }: { value: MediaItem[]; o
                   <X className="w-4 h-4" aria-hidden="true" />
                 </button>
               </div>
+              {isUploadedMediaSrc(item.src) ? (
+                <div className="mt-1 ml-14 text-sm">
+                  <input type="text" className={`input ${item.alt.trim() ? '' : 'border-red-500'}`} value={item.alt} aria-required="true" aria-invalid={!item.alt.trim()} onChange={(e) => update(index, { alt: e.target.value })} placeholder="Descreva o que aparece na foto" aria-label={`Descrição da foto ${index + 1} (obrigatória)`} />
+                </div>
+              ) : (
               <details className="mt-1 ml-14 text-sm">
                 <summary className="cursor-pointer text-surface-600 py-1">Descrição da foto (opcional)</summary>
                 <input type="text" className="input mt-1" value={item.alt} onChange={(e) => update(index, { alt: e.target.value })} placeholder="Se ficar vazia, usamos o nome da viagem" aria-label={`Descrição da foto ${index + 1} (opcional)`} />
@@ -110,6 +117,7 @@ export function MediaInput({ value, onChange, inputId }: { value: MediaItem[]; o
                   <input type="text" className="input mt-1" value={item.focus} onChange={(e) => update(index, { focus: e.target.value })} placeholder="Parte da foto em destaque" aria-label={`Parte da foto ${index + 1} em destaque`} />
                 )}
               </details>
+              )}
             </li>
           ))}
         </ul>

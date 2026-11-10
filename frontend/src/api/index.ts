@@ -120,6 +120,47 @@ export const documentApi = {
   },
 };
 
+export interface UploadedMedia {
+  id: string; src: string; mimeType: string; width: number; height: number; sizeBytes: number;
+  variants: { width: number; src: string }[];
+}
+
+export const MEDIA_ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
+export const MEDIA_MAX_BYTES = 15 * 1024 * 1024;
+
+/** Mensagem clara para cada recusa do envio de imagem. */
+export function mediaUploadErrorMessage(status: number, serverMessage?: string): string {
+  if (status === 401) return 'Sua sessão expirou. Entre de novo para enviar fotos.';
+  if (status === 403) return 'Seu perfil não pode enviar fotos.';
+  if (status === 413) return serverMessage || 'A imagem é grande demais (até 15 MiB e 8000 px de lado).';
+  if (status === 415) return 'Formato não aceito. Envie uma foto JPEG, PNG ou WebP.';
+  if (status === 429) return serverMessage || 'Muitos envios em sequência. Aguarde um minuto.';
+  if (status === 0) return 'Sem conexão com o servidor. Confira a internet e tente de novo.';
+  return serverMessage || 'Não foi possível enviar a foto. Tente novamente.';
+}
+
+export const mediaApi = {
+  /** XMLHttpRequest para acompanhar o progresso do envio (fetch não informa). */
+  upload: (file: Blob, onProgress?: (fraction: number) => void, signal?: AbortSignal) => new Promise<UploadedMedia>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${API_BASE}/media`);
+    const token = localStorage.getItem('auth_token');
+    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+    xhr.upload.onprogress = (event) => { if (event.lengthComputable) onProgress?.(event.loaded / event.total); };
+    xhr.onload = () => {
+      let body: { error?: string } & Partial<UploadedMedia> = {};
+      try { body = JSON.parse(xhr.responseText); } catch { /* corpo vazio ou não JSON */ }
+      if (xhr.status >= 200 && xhr.status < 300) resolve(body as UploadedMedia);
+      else reject(new Error(mediaUploadErrorMessage(xhr.status, body.error)));
+    };
+    xhr.onerror = () => reject(new Error(mediaUploadErrorMessage(0)));
+    xhr.onabort = () => reject(new DOMException('Envio cancelado', 'AbortError'));
+    signal?.addEventListener('abort', () => xhr.abort(), { once: true });
+    xhr.send(file);
+  }),
+};
+
 export const aiApi = {
   status: () => request<{ enabled: boolean }>('/ai/status'),
 
