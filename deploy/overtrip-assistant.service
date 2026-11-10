@@ -1,0 +1,26 @@
+[Unit]
+Description=Serviço privado do Assistente OVERTRIP (somente leitura, para o n8n)
+After=network.target overtrip-api.service
+
+[Service]
+Type=simple
+User=overtrip
+WorkingDirectory=/srv/overtrip/app
+# DATABASE_URL vem do ambiente da API; a credencial do serviço fica em arquivo próprio (modo 600, root).
+EnvironmentFile=/etc/overtrip/env
+EnvironmentFile=/etc/overtrip/assistant.env
+Environment=NODE_ENV=production
+Environment=ASSISTANT_SERVICE_PORT=3010
+Environment=ASSISTANT_KNOWLEDGE_FILE=/srv/overtrip/app/knowledge.json
+# Escuta só em 127.0.0.1:3010; o acesso do n8n é pelo `tailscale serve` (tailnet only), nunca pelo Caddy.
+ExecStart=/usr/bin/node dist/assistantPrivateServer.js
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/overtrip
+
+[Install]
+WantedBy=multi-user.target
