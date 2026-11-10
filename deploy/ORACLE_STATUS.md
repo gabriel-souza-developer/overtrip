@@ -1,6 +1,16 @@
-# Estado da preparação na Oracle
+# Estado da produção na Oracle
 
-Registro atualizado em 9 de novembro de 2026, com base nas saídas da VM, consultas públicas e confirmação do operador. O site está publicado na Oracle. A zona DNS continua na HostGator (`ns64.hostgator.com.br` e `ns65.hostgator.com.br`); a hospedagem anterior deve ser mantida até a migração estar consolidada.
+Registro atualizado em 10 de novembro de 2026 após publicação do pacote baseado no commit `1065532`. O site está publicado na Oracle. A zona DNS continua na HostGator (`ns64.hostgator.com.br` e `ns65.hostgator.com.br`); mantenha a hospedagem anterior disponível até a migração estar consolidada.
+
+## Publicação de 10 de novembro de 2026
+
+- Pacote validado: SHA-256 `9bd61647fdfebbe8744da6b03240e33b78b4e57ff91c75ee920a11e3f7941f78`; o mesmo hash foi conferido na VM antes da instalação.
+- Cópia para retorno: `/srv/overtrip/retorno-20261110-052649` (inclui código anterior, `node_modules`, configuração dos serviços e arquivos públicos anteriores). A publicação fez backup consistente do banco antes da alteração.
+- Aplicada a migração aditiva `20261110120000_media_assets`; 11 migrações foram reconhecidas e `prisma migrate status` confirmou o schema atualizado. O pacote instalou a API/painel, filtro de categoria, formulário revisado e suporte a fotos WebP enviadas pelo painel. CRM/reservas e prévia de proposta continuam fora deste pacote.
+- `/health`, `/api/public/trips`, `/`, `/admin/`, `/blog/`, `/riders/`, `/js/page.js` e `/js/tripFilters.js` retornaram HTTP 200. Sem autenticação, `/api/system/health`, `POST /api/media` e `POST /api/auth/logout` retornaram 401; mídia inexistente e `/.git/config`, `/trips.json`, `/knowledge.json` retornaram 404.
+- Backup de banco e fotos executado; o monitor gravou `status: ok`. `overtrip-api`, `caddy`, `tailscaled`, `overtrip-health.timer` e `overtrip-backup.timer` estão ativos. `overtrip-assistant` segue inativo; a publicação não alterou o Tailscale Serve.
+- Recursos conferidos após a publicação: 104 GB livres no volume de 116 GB, cerca de 10 GB de memória disponível e load average `0.75, 0.27, 0.15`. API escuta em `127.0.0.1:3001`, Caddy em `10.0.0.143:80/443`; Ollama permanece em `*:11434` como antes.
+- Na release, Claude reportou 598 testes unitários aprovados e 11 migrações correspondentes ao schema. No HEAD completo, 612 testes, checagem de tipos, build e Playwright 12/12 passaram. As alterações foram enviadas à branch `feat/evolucao-painel-viagens` por avanço normal de `ab01a78` para `1065532`.
 
 ## Preparado
 
