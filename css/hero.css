@@ -238,7 +238,7 @@
   display: flex;
   align-items: center;
   color: var(--ink);
-  font-family: "Inter Tight", sans-serif;
+  font-family: "Inter Tight", "Inter Tight Fallback", sans-serif;
   font-size: 1.45rem;
   font-weight: 800;
   letter-spacing: -0.03em;
@@ -327,7 +327,7 @@
   border-radius: 999px;
   background: rgba(212, 91, 45, 0.14);
   color: var(--ink);
-  font-family: "Inter Tight", sans-serif;
+  font-family: "Inter Tight", "Inter Tight Fallback", sans-serif;
   font-size: 0.68rem;
   font-weight: 700;
   white-space: nowrap;
@@ -336,7 +336,7 @@
 .hero-trip-title {
   margin: 0;
   color: var(--ink);
-  font-family: "Inter Tight", sans-serif;
+  font-family: "Inter Tight", "Inter Tight Fallback", sans-serif;
   font-size: 1rem;
   font-weight: 800;
   letter-spacing: -0.02em;
@@ -406,7 +406,7 @@
 
 .hero-trip-price strong {
   color: var(--rust);
-  font-family: "Inter Tight", sans-serif;
+  font-family: "Inter Tight", "Inter Tight Fallback", sans-serif;
   font-size: 1.2rem;
   font-weight: 800;
   line-height: 1.1;

@@ -106,7 +106,7 @@
 }
 
 .stat-item strong {
-  font-family: "Inter Tight", sans-serif;
+  font-family: "Inter Tight", "Inter Tight Fallback", sans-serif;
   font-size: clamp(2rem, 4vw, 2.6rem);
   font-weight: 800;
   line-height: 1;
@@ -169,7 +169,7 @@
   position: absolute;
   top: -0.3rem;
   left: 0;
-  font-family: "Inter Tight", sans-serif;
+  font-family: "Inter Tight", "Inter Tight Fallback", sans-serif;
   font-weight: 700;
   font-size: 0.85rem;
   letter-spacing: 0.08em;
@@ -189,7 +189,7 @@
 
 .timeline-copy h3 {
   margin: 0 0 0.5rem;
-  font-family: "Inter Tight", sans-serif;
+  font-family: "Inter Tight", "Inter Tight Fallback", sans-serif;
   font-size: 1.05rem;
   font-weight: 700;
 }
@@ -342,7 +342,7 @@
   display: inline-block;
   margin-left: 0.45rem;
   color: var(--rust);
-  font-family: "Inter", sans-serif;
+  font-family: "Inter", "Inter Fallback", sans-serif;
   font-size: 0.58rem;
   font-style: normal;
   font-weight: 800;
@@ -440,7 +440,7 @@
   }
 
   .universe-panel-rail strong {
-    font-family: "Inter Tight", sans-serif;
+    font-family: "Inter Tight", "Inter Tight Fallback", sans-serif;
     font-size: 1.2rem;
     font-weight: 800;
     letter-spacing: -0.01em;
@@ -514,7 +514,7 @@
 /* Número vazado: preenche de laranja quando a linha recebe hover/foco. */
 .how-num {
   color: transparent;
-  font-family: "Inter Tight", sans-serif;
+  font-family: "Inter Tight", "Inter Tight Fallback", sans-serif;
   font-size: clamp(3.75rem, 16vw, 7rem);
   font-weight: 800;
   letter-spacing: -0.05em;
@@ -730,7 +730,7 @@
   background: rgba(17, 17, 17, 0.6);
   backdrop-filter: blur(6px);
   color: var(--bone);
-  font-family: "Inter Tight", sans-serif;
+  font-family: "Inter Tight", "Inter Tight Fallback", sans-serif;
   font-size: 0.66rem;
   font-weight: 700;
   letter-spacing: 0.05em;
@@ -755,7 +755,7 @@
 
 .gallery-copy h3 {
   margin: 0;
-  font-family: "Inter Tight", sans-serif;
+  font-family: "Inter Tight", "Inter Tight Fallback", sans-serif;
   font-size: 1rem;
   font-weight: 800;
   letter-spacing: -0.02em;
@@ -989,7 +989,7 @@
   padding: 0.5rem 0.85rem;
   border-radius: var(--radius-lg);
   background: rgba(17, 17, 17, 0.05);
-  font-family: "Inter Tight", sans-serif;
+  font-family: "Inter Tight", "Inter Tight Fallback", sans-serif;
   font-weight: 600;
   word-break: break-all;
 }
@@ -1115,7 +1115,7 @@
 
 .lightbox-title {
   margin: 0;
-  font-family: "Inter Tight", sans-serif;
+  font-family: "Inter Tight", "Inter Tight Fallback", sans-serif;
   font-size: 1.3rem;
   font-weight: 800;
 }
@@ -1161,12 +1161,12 @@
 
 .visited-map .leaflet-popup-content-wrapper {
   border-radius: var(--radius-lg);
-  font-family: "Inter", sans-serif;
+  font-family: "Inter", "Inter Fallback", sans-serif;
 }
 
 .visited-map .leaflet-popup-content h3 {
   margin: 0 0 0.25rem;
-  font-family: "Inter Tight", sans-serif;
+  font-family: "Inter Tight", "Inter Tight Fallback", sans-serif;
   font-size: 0.95rem;
   font-weight: 800;
 }
@@ -1209,7 +1209,7 @@
   height: 30px;
   background: var(--ink);
   color: var(--bone);
-  font-family: "Inter Tight", sans-serif;
+  font-family: "Inter Tight", "Inter Tight Fallback", sans-serif;
   font-size: 0.6rem;
   font-weight: 800;
   letter-spacing: 0.02em;
@@ -1241,7 +1241,7 @@
 
 .map-sidebar-kicker {
   margin: 0;
-  font-family: "Inter Tight", sans-serif;
+  font-family: "Inter Tight", "Inter Tight Fallback", sans-serif;
   font-size: 0.66rem;
   font-weight: 700;
   letter-spacing: 0.2em;
@@ -1255,7 +1255,7 @@
   border-radius: 999px;
   background: rgba(212, 91, 45, 0.12);
   color: var(--rust);
-  font-family: "Inter Tight", sans-serif;
+  font-family: "Inter Tight", "Inter Tight Fallback", sans-serif;
   font-size: 0.68rem;
   font-weight: 800;
   white-space: nowrap;
@@ -1365,7 +1365,7 @@
 .map-destination-title {
   display: block;
   margin: 0;
-  font-family: "Inter Tight", sans-serif;
+  font-family: "Inter Tight", "Inter Tight Fallback", sans-serif;
   font-size: 0.84rem;
   font-weight: 700;
   line-height: 1.25;
@@ -1429,7 +1429,7 @@
 }
 
 .rating-bar strong {
-  font-family: "Inter Tight", sans-serif;
+  font-family: "Inter Tight", "Inter Tight Fallback", sans-serif;
   font-size: 1.1rem;
   font-weight: 800;
 }
@@ -1596,7 +1596,7 @@
 }
 
 .voice-tab-number {
-  font-family: "Inter Tight", sans-serif;
+  font-family: "Inter Tight", "Inter Tight Fallback", sans-serif;
   font-size: 0.85rem;
   font-weight: 700;
 }
@@ -1654,7 +1654,7 @@
 }
 
 .faq-item summary span {
-  font-family: "Inter Tight", sans-serif;
+  font-family: "Inter Tight", "Inter Tight Fallback", sans-serif;
   font-size: 0.82rem;
   font-weight: 700;
   letter-spacing: 0.22em;
@@ -1662,14 +1662,14 @@
 }
 
 .faq-item summary strong {
-  font-family: "Inter Tight", sans-serif;
+  font-family: "Inter Tight", "Inter Tight Fallback", sans-serif;
   font-size: 0.96rem;
   line-height: 1.12;
 }
 
 .faq-item summary::after {
   content: "+";
-  font-family: "Inter Tight", sans-serif;
+  font-family: "Inter Tight", "Inter Tight Fallback", sans-serif;
   font-size: 1.5rem;
   color: var(--text-soft);
   transition: transform 220ms ease;

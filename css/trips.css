@@ -46,7 +46,7 @@
 .status-pill-date {
   margin-top: 0.18rem;
   color: var(--ink);
-  font-family: "Inter Tight", sans-serif;
+  font-family: "Inter Tight", "Inter Tight Fallback", sans-serif;
   font-size: 1.12rem;
   font-weight: 800;
   line-height: 1;
@@ -83,7 +83,7 @@
   border-radius: 999px;
   background: var(--bone);
   color: var(--ink);
-  font-family: "Inter", sans-serif;
+  font-family: "Inter", "Inter Fallback", sans-serif;
   font-size: 0.84rem;
 }
 
@@ -141,7 +141,7 @@
   border: 1px solid rgba(17, 17, 17, 0.18);
   background: transparent;
   color: var(--text-soft);
-  font-family: "Inter Tight", sans-serif;
+  font-family: "Inter Tight", "Inter Tight Fallback", sans-serif;
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.14em;
@@ -226,7 +226,7 @@
   z-index: 1;
   padding: 0.28rem 0.55rem;
   border-radius: 999px;
-  font-family: "Inter Tight", sans-serif;
+  font-family: "Inter Tight", "Inter Tight Fallback", sans-serif;
   font-size: 0.52rem;
   font-weight: 800;
   letter-spacing: 0.06em;
@@ -290,7 +290,7 @@
 .trip-body h3 {
   margin: 0;
   color: var(--ink);
-  font-family: "Inter Tight", sans-serif;
+  font-family: "Inter Tight", "Inter Tight Fallback", sans-serif;
   font-size: 1.3rem;
   font-weight: 800;
   letter-spacing: -0.02em;
@@ -317,7 +317,7 @@
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  font-family: "Inter Tight", sans-serif;
+  font-family: "Inter Tight", "Inter Tight Fallback", sans-serif;
   font-size: 0.84rem;
   font-weight: 600;
   letter-spacing: -0.01em;
@@ -368,7 +368,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  font-family: "Inter", sans-serif;
+  font-family: "Inter", "Inter Fallback", sans-serif;
   letter-spacing: normal;
   min-width: 0;
   flex: 1;
@@ -449,7 +449,7 @@
   list-style: none;
   cursor: pointer;
   color: var(--rust);
-  font-family: "Inter Tight", sans-serif;
+  font-family: "Inter Tight", "Inter Tight Fallback", sans-serif;
   font-size: 0.78rem;
   font-weight: 700;
 }
@@ -569,7 +569,7 @@
 }
 
 .trip-price-unit {
-  font-family: "Inter", sans-serif;
+  font-family: "Inter", "Inter Fallback", sans-serif;
   font-size: 0.62rem;
   font-weight: 600;
   letter-spacing: 0.04em;
@@ -578,7 +578,7 @@
 }
 
 .trip-price-value {
-  font-family: "Inter Tight", sans-serif;
+  font-family: "Inter Tight", "Inter Tight Fallback", sans-serif;
   font-size: 1.4rem;
   font-weight: 800;
   line-height: 1.1;
@@ -608,7 +608,7 @@ button.trip-media {
   margin: 0;
   padding: 0.3rem 0.7rem;
   border-radius: 999px;
-  font-family: "Inter Tight", sans-serif;
+  font-family: "Inter Tight", "Inter Tight Fallback", sans-serif;
   font-size: 0.7rem;
   font-weight: 800;
   letter-spacing: 0.06em;
