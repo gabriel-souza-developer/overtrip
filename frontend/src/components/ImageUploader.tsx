@@ -116,12 +116,12 @@ export default function ImageUploader({ onAdd, onPendingChange, idPrefix }: { on
         <div className="flex flex-wrap items-start gap-3">
           <img src={state.asset.src} alt="" className="w-20 h-20 object-cover rounded bg-surface-100" />
           <div className="flex-1 min-w-[12rem] space-y-1">
-            <p role="status" className="text-sm text-surface-700">Foto enviada. Descreva-a e clique em “Usar esta foto”.</p>
-            <label htmlFor={altId} className="label">Descrição da foto <span className="text-red-700">(obrigatória)</span></label>
+            <p role="status" className="text-sm text-surface-700">Foto enviada. Conte o que aparece nela e clique em “Usar esta foto”.</p>
+            <label htmlFor={altId} className="label">O que aparece nesta foto? <span className="text-red-700">(obrigatório)</span></label>
             <input id={altId} ref={altRef} type="text" className="input" value={alt} aria-required="true"
               onChange={(e) => setAlt(e.target.value)} placeholder="Ex.: Grupo atravessando o rio na trilha"
               onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); confirm(); } }} />
-            <p className="hint">Descreva o que aparece: ajuda quem usa leitor de tela e o Google.</p>
+            <p className="hint">Esse texto ajuda pessoas que usam leitor de tela a entender a imagem.</p>
             <div className="flex gap-2">
               <Button small variant="primary" disabled={!alt.trim()} onClick={confirm}>Usar esta foto</Button>
               <Button small onClick={reset}>Descartar</Button>

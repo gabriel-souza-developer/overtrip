@@ -326,6 +326,13 @@ export default function TripForm() {
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(300px,380px)] xl:items-start">
       <form id="trip-form" onSubmit={handleSubmit} noValidate className="space-y-4 min-w-0">
+        {user?.role === 'admin' && <details className="card p-4">
+          <summary className="cursor-pointer font-semibold text-surface-900">Sugerir preenchimento com PDF e IA (opcional)</summary>
+          <p className="hint mt-2">Envie o roteiro em PDF. A IA sugere informações e você escolhe o que aplicar.</p>
+          {id
+            ? <div className="mt-4"><TripDocuments key={id} tripId={id} form={formData as Record<string, unknown>} defaults={defaultsRef.current} onApply={applyAiDraft} /></div>
+            : <p className="mt-3 rounded-lg bg-surface-50 p-3 text-sm text-surface-700" role="note">Salve a viagem como rascunho primeiro. Depois, você poderá anexar o PDF aqui.</p>}
+        </details>}
         {errorKeys.length > 0 && (
           <div ref={summaryRef} className="alert-error" role="alert">
             <p className="font-semibold">Falta pouco para salvar:</p>
@@ -552,7 +559,6 @@ export default function TripForm() {
         </div>
         </fieldset>
 
-        {id && user?.role === 'admin' && <details className="card p-4"><summary className="cursor-pointer text-sm font-medium text-surface-600">Sugerir dados a partir de um documento (IA · opcional)</summary><div className="mt-4"><TripDocuments key={id} tripId={id} form={formData as Record<string, unknown>} defaults={defaultsRef.current} onApply={applyAiDraft} /></div></details>}
         <AiDraftBlock form={formData as Record<string, unknown>} defaults={defaultsRef.current} onApply={applyAiDraft} />
 
         <details className="xl:hidden card p-4"><summary className="cursor-pointer font-semibold text-surface-900">Ver prévia da viagem</summary><div className="mt-4"><TripCardPreview trip={f} /></div></details>

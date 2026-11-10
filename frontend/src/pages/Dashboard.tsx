@@ -9,7 +9,7 @@ import { capitalizeFirst } from '../lib/tripCalendar';
 type Tone = 'primary' | 'success' | 'warning' | 'danger';
 const statsConfig: { key: keyof DashboardStats; label: string; icon: LucideIcon; tone: Tone; to: string; detail: string }[] = [
   // Os totais contam todas as viagens, então os links abrem a lista completa (não só as próximas).
-  { key: 'tripsTotal', label: 'Total de viagens', icon: Plane, tone: 'primary', to: '/trips?period=all', detail: 'Inclui viagens já realizadas' },
+  { key: 'tripsTotal', label: 'Viagens cadastradas', icon: Plane, tone: 'primary', to: '/trips?period=all', detail: 'Inclui as já realizadas' },
   { key: 'tripsPublished', label: 'Publicadas no site', icon: CheckCircle2, tone: 'success', to: '/trips?status=OPEN&period=all', detail: 'Viagens no site' },
   { key: 'tripsDraft', label: 'Rascunhos', icon: Pencil, tone: 'warning', to: '/trips?status=DRAFT&period=all', detail: 'Continuar preparando' },
   { key: 'visitsNeedsReview', label: 'Destinos para revisar', icon: AlertTriangle, tone: 'danger', to: '/visits?needsReview=true', detail: 'Revisar destinos' },
@@ -47,14 +47,14 @@ export default function Dashboard() {
 
       {error && <ErrorState message={error} onRetry={loadStats} />}
       <section aria-labelledby="resumo-title">
-        <div className="mb-3 flex items-baseline justify-between gap-3"><h2 id="resumo-title" className="text-lg font-bold text-surface-900">Seu resumo</h2><span className="text-xs text-surface-500">Dados atuais</span></div>
+        <div className="mb-3"><h2 id="resumo-title" className="text-lg font-bold text-surface-900">Seu resumo</h2></div>
         <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
           {statsConfig.map(({ key, label, icon: Icon, tone, to, detail }) => (
             <Link key={key} to={to} className="group rounded-2xl border border-surface-200 bg-white p-4 sm:p-5 shadow-sm transition hover:border-primary-300 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary-500" aria-label={`${label}: ${loading ? 'carregando' : stats ? stats[key] : 'indisponível'}. ${detail}`}>
               <div className="flex items-start justify-between gap-2"><span className={`flex h-10 w-10 items-center justify-center rounded-xl ${toneClass[tone]}`}><Icon className="h-5 w-5" aria-hidden="true" /></span><ArrowRight className="h-4 w-4 text-surface-400 transition group-hover:translate-x-1" aria-hidden="true" /></div>
               {loading ? <span className="loading-skeleton mt-4 block h-8 w-12" aria-hidden="true" /> : <span className="mt-4 block text-3xl font-bold tracking-tight text-surface-900 tabular-nums" aria-hidden="true">{stats ? stats[key] : '—'}</span>}
               <span className="mt-1 block text-sm font-medium text-surface-600" aria-hidden="true">{label}</span>
-              <span className="mt-3 hidden text-xs text-surface-500 sm:block" aria-hidden="true">{detail}</span>
+              <span className="mt-2 block text-xs leading-snug text-surface-500" aria-hidden="true">{detail}</span>
             </Link>
           ))}
         </div>

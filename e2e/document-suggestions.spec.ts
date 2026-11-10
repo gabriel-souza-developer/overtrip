@@ -33,7 +33,7 @@ test('revisa a origem e aplica somente os campos escolhidos sem salvar', async (
   });
   await page.goto('/trips/trip-1/edit');
   // A extração de sugestões com IA fica recolhida por padrão.
-  await page.locator('summary').filter({ hasText: 'Sugerir dados a partir de um documento (IA' }).click();
+  await page.locator('summary').filter({ hasText: 'Sugerir preenchimento com PDF e IA (opcional)' }).click();
   await page.getByRole('button', { name: 'Sugerir campos' }).click();
   await expect(page.getByText('roteiro.pdf, página 2: “Matureia”')).toBeVisible();
   const city = page.getByRole('checkbox', { name: /Cidade.*Matureia/ });

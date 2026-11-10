@@ -387,11 +387,11 @@ export default function Gallery() {
               <input id="g-dateDisplay" className="input" value={form.dateDisplay} onChange={(e) => patch({ dateDisplay: e.target.value })} placeholder="Ex.: 15 de janeiro de 2026" />
             </Field>
             <div className="form-group !mb-0">
-              <p className="label">Descrição das fotos (opcional)</p>
-              <p className="hint mb-2">Ajuda quem usa leitor de tela. Se ficar vazia, usamos o título.</p>
+              <p className="label">O que aparece em cada foto? <span className="font-normal text-surface-500">(opcional)</span></p>
+              <p className="hint mb-2">Ajuda pessoas que usam leitor de tela. Se ficar em branco, usamos o título da memória.</p>
               <div className="space-y-2">
                 {form.images.map((img, idx) => img.src.trim() ? (
-                  <input key={idx} type="text" className="input" value={img.alt} onChange={(e) => setImage(idx, { alt: e.target.value })} placeholder={`Descrição da foto ${idx + 1}`} aria-required={isUploadedMediaSrc(img.src.trim())} aria-label={`Descrição da foto ${idx + 1} (${isUploadedMediaSrc(img.src.trim()) ? 'obrigatória' : 'opcional'})`} />
+                  <input key={idx} type="text" className="input" value={img.alt} onChange={(e) => setImage(idx, { alt: e.target.value })} placeholder="Ex.: Grupo atravessando o rio na trilha" aria-required={isUploadedMediaSrc(img.src.trim())} aria-label={`O que aparece na foto ${idx + 1}? (${isUploadedMediaSrc(img.src.trim()) ? 'obrigatório' : 'opcional'})`} />
                 ) : null)}
               </div>
             </div>

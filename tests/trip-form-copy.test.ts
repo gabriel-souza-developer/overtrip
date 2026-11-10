@@ -26,7 +26,7 @@ describe('textos do cadastro e da prévia da viagem', () => {
     expect(form).not.toContain('Um cadastro para sua viagem');
     expect(form).not.toContain('As ferramentas de IA e documentos');
     expect(form).toContain('Mais ações');
-    expect(form).toContain('Sugerir dados a partir de um documento (IA · opcional)');
+    expect(form).toContain('Sugerir preenchimento com PDF e IA (opcional)');
   });
 
   it('descreve horários e opções com linguagem de viagem', () => {

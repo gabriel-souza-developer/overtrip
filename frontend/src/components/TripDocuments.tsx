@@ -34,8 +34,8 @@ export default function TripDocuments({ tripId, form, defaults, onApply }: Props
     finally { setBusy(false); }
   };
   return <section className="card p-5 space-y-3" aria-labelledby="documents-title">
-    <h2 id="documents-title" className="text-lg font-semibold">Documentos privados</h2>
-    <p className="hint">PDFs de até 10 MiB, até cinco por viagem. São excluídos após 30 dias. Atualize a lista para acompanhar a extração.</p>
+    <h2 id="documents-title" className="text-lg font-semibold">PDFs do roteiro</h2>
+    <p className="hint">Envie até cinco arquivos PDF, com no máximo 10 MiB cada. Eles são removidos após 30 dias.</p>
     <p className="alert-info" role="note">Ao pedir sugestões, o texto do PDF será enviado ao provedor de IA configurado. No plano gratuito do Google, ele pode ser usado para melhorar seus produtos. Não envie dados pessoais de clientes.</p>
     {error && <p className="text-red-700" role="alert">{error}</p>}
     <label htmlFor="trip-document" className="block">Adicionar PDF</label>

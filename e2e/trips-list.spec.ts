@@ -43,10 +43,10 @@ test('a lista abre nas próximas viagens e separa as anteriores', async ({ page 
   expect(requests.at(-1)).not.toContain('period=');
 });
 
-test('o total do início deixa claro que inclui viagens realizadas e abre a lista completa', async ({ page }) => {
+test('o resumo deixa claro que inclui viagens realizadas e abre a lista completa', async ({ page }) => {
   await page.route((url) => url.pathname === '/api/dashboard/stats', (route) => route.fulfill({ json: { tripsTotal: 2, tripsPublished: 1, tripsDraft: 0, visitsTotal: 0, visitsNeedsReview: 0, visitsWithCoords: 0, galleryTotal: 0, galleryFeatured: 0 } }));
   await page.goto('/dashboard');
-  await expect(page.getByRole('link', { name: /Total de viagens/ })).toHaveAttribute('href', '/trips?period=all');
-  await expect(page.getByText('Inclui viagens já realizadas')).toBeVisible();
+  await expect(page.getByRole('link', { name: /Viagens cadastradas/ })).toHaveAttribute('href', '/trips?period=all');
+  await expect(page.getByText('Inclui as já realizadas')).toBeVisible();
   await expect(page.getByRole('link', { name: /Publicadas no site/ })).toHaveAttribute('href', '/trips?status=OPEN&period=all');
 });

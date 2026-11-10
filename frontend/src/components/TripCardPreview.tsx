@@ -1,4 +1,4 @@
-import { CalendarDays, Clock3, MapPin } from 'lucide-react';
+import { CalendarDays, CircleCheck, Clock3, MapPin, ShieldCheck } from 'lucide-react';
 import React, { useState } from 'react';
 import { formatDateBR } from '../lib/dateInput';
 import { formatBRL } from '../lib/formHelpers';
@@ -39,6 +39,7 @@ function PreviewCover({ src, alt }: { src: string; alt: string }) {
 }
 
 export default function TripCardPreview({ trip }: { trip: PreviewTrip }) {
+  const [includesOpen, setIncludesOpen] = useState(false);
   const cover = trip.media.find(item => item.type !== 'video') ?? trip.media[0];
   const title = trip.title.trim() || 'Nome da viagem';
   const intensity = ({ leve: 'leve', moderado: 'moderada', intenso: 'intensa', extremo: 'extrema' } as Record<string, string>)[trip.intensityClass?.trim().toLowerCase() || ''] || trip.intensityClass?.trim();
@@ -52,10 +53,10 @@ export default function TripCardPreview({ trip }: { trip: PreviewTrip }) {
   return (
     <aside className="rounded-xl border border-surface-200 bg-surface-50 p-4" aria-label="Prévia do card no site">
       <div className="mb-3 flex items-baseline justify-between gap-3">
-        <div><h3 className="font-semibold text-surface-900">Prévia do card</h3><p className="text-sm text-surface-600">Atualizada enquanto você preenche. A aparência pode variar no site.</p></div>
+        <div><h3 className="font-semibold text-surface-900">Prévia do card</h3><p className="text-sm text-surface-600">Acompanhe como os dados aparecem no site.</p></div>
         <span className="badge badge-info">{tripStatusLabel(trip.status || 'DRAFT')}</span>
       </div>
-      <article className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-surface-200">
+      <article className="site-card-preview overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-surface-200">
         <div className="aspect-[16/9] bg-surface-200 relative">
           {cover ? <PreviewCover key={cover.src} src={cover.src} alt={cover.alt || title} /> : <div className="flex h-full items-center justify-center text-sm text-surface-600">A capa aparecerá aqui</div>}
           {intensity && <span className="absolute right-3 bottom-3 rounded-full bg-surface-900/90 px-3 py-1 text-xs font-semibold text-white">Nível: {intensity}</span>}
@@ -69,19 +70,19 @@ export default function TripCardPreview({ trip }: { trip: PreviewTrip }) {
             <p className="flex gap-2"><Clock3 className="h-4 w-4 shrink-0 text-primary-500" aria-hidden="true" />{schedule}</p>
             <div className="flex gap-2"><MapPin className="h-4 w-4 shrink-0 text-primary-500" aria-hidden="true" /><div>{!trip.meetingTBD && trip.departures?.length ? <ul className="space-y-1">{trip.departures.map((point, index) => <li key={index}>{[point.time, point.place, point.city].filter(Boolean).join(' · ') || 'Ponto não informado'}</li>)}</ul> : departure}</div></div>
           </div>
-          <details className="rounded-lg border border-surface-200 p-3 text-sm">
-            <summary className="cursor-pointer font-semibold">Ver roteiro &amp; o que inclui</summary>
-            <div className="mt-2 space-y-2">
-              {!!trip.includes?.length && <><p className="font-medium">O que inclui</p><ul className="list-disc pl-5">{trip.includes.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}</ul></>}
-              {trip.includesHighlight && <p>{trip.includesHighlight}</p>}
-              {!!trip.itinerary?.length && <><p className="font-medium">Roteiro</p><ol className="list-decimal pl-5">{trip.itinerary.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}</ol></>}
-              {(trip.trailDistance || trip.supportPoint || trip.supportPointInfo || !!trip.routeNotes?.length) && <><p className="font-medium">Sobre o percurso</p><ul className="list-disc pl-5">
+          <details className="trip-includes-toggle" onToggle={event => setIncludesOpen(event.currentTarget.open)}>
+            <summary><span className="trip-includes-toggle-label">{includesOpen ? 'Ocultar detalhes' : 'Ver roteiro & o que inclui'}</span></summary>
+            <div className="trip-includes-body">
+              {!!trip.includes?.length && <><p className="trip-includes-heading">O que inclui</p><ul className="trip-includes">{trip.includes.map((item, index) => <li key={`${item}-${index}`}><span className="trip-includes-icon"><CircleCheck aria-hidden="true" /></span><span>{item}</span></li>)}</ul></>}
+              {trip.includesHighlight && <div className="trip-includes-highlight"><span className="trip-includes-highlight-icon"><ShieldCheck aria-hidden="true" /></span><span>{trip.includesHighlight}</span></div>}
+              {!!trip.itinerary?.length && <div className="trip-details-section"><p className="trip-includes-heading">Roteiro</p><ol className="trip-details-list trip-details-list--ordered">{trip.itinerary.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}</ol></div>}
+              {(trip.trailDistance || trip.supportPoint || trip.supportPointInfo || !!trip.routeNotes?.length) && <div className="trip-details-section"><p className="trip-includes-heading">Sobre o percurso</p><ul className="trip-details-list">
                 {trip.trailDistance && <li>Percurso: {trip.trailDistance}</li>}
-                {trip.supportPoint && <li>Ponto de apoio: {trip.supportPoint}{trip.supportPointInfo && ` (${trip.supportPointInfo})`}</li>}
+                {trip.supportPoint && <li>Ponto de apoio: {trip.supportPoint}{trip.supportPointInfo && <> <span className="trip-details-note">({trip.supportPointInfo})</span></>}</li>}
                 {!trip.supportPoint && trip.supportPointInfo && <li>{trip.supportPointInfo}</li>}
                 {trip.routeNotes?.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}
-              </ul></>}
-              {!!trip.importantInfo?.length && <><p className="font-medium">Informações importantes</p><ul className="list-disc pl-5">{trip.importantInfo.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}</ul></>}
+              </ul></div>}
+              {!!trip.importantInfo?.length && <div className="trip-details-section"><p className="trip-includes-heading">Informações importantes</p><ul className="trip-details-list">{trip.importantInfo.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}</ul></div>}
             </div>
           </details>
           <div className="flex items-center justify-between gap-3 border-t border-surface-200 pt-3">

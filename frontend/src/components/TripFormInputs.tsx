@@ -109,16 +109,19 @@ export function MediaInput({ value, onChange, inputId, onPendingChange, onLinkPe
               </div>
               {isUploadedMediaSrc(item.src) ? (
                 <div className="mt-1 ml-14 text-sm">
-                  <input type="text" className={`input ${item.alt.trim() ? '' : 'border-red-500'}`} value={item.alt} aria-required="true" aria-invalid={!item.alt.trim()} onChange={(e) => update(index, { alt: e.target.value })} placeholder="Descreva o que aparece na foto" aria-label={`Descrição da foto ${index + 1} (obrigatória)`} />
+                  <label className="label" htmlFor={`${inputId}-alt-${index}`}>O que aparece nesta foto? <span className="text-red-700">(obrigatório)</span></label>
+                  <input id={`${inputId}-alt-${index}`} type="text" className={`input ${item.alt.trim() ? '' : 'border-red-500'}`} value={item.alt} aria-required="true" aria-invalid={!item.alt.trim()} onChange={(e) => update(index, { alt: e.target.value })} placeholder="Ex.: Grupo atravessando o rio na trilha" aria-label={`O que aparece na foto ${index + 1}? (obrigatório)`} />
+                  <p className="hint mt-1">Ajuda pessoas que usam leitor de tela a entender a imagem.</p>
                 </div>
               ) : (
-              <details className="mt-1 ml-14 text-sm">
-                <summary className="cursor-pointer text-surface-600 py-1">Descrição da foto (opcional)</summary>
-                <input type="text" className="input mt-1" value={item.alt} onChange={(e) => update(index, { alt: e.target.value })} placeholder="Se ficar vazia, usamos o nome da viagem" aria-label={`Descrição da foto ${index + 1} (opcional)`} />
+              <div className="mt-2 ml-14 text-sm">
+                <label className="label" htmlFor={`${inputId}-alt-${index}`}>O que aparece nesta foto? <span className="font-normal text-surface-500">(opcional)</span></label>
+                <input id={`${inputId}-alt-${index}`} type="text" className="input" value={item.alt} onChange={(e) => update(index, { alt: e.target.value })} placeholder="Ex.: Rio cercado por árvores" aria-label={`O que aparece na foto ${index + 1}? (opcional)`} />
+                <p className="hint mt-1">Se deixar em branco, o site usa o nome da viagem para descrever a imagem.</p>
                 {item.focus !== undefined && (
-                  <input type="text" className="input mt-1" value={item.focus} onChange={(e) => update(index, { focus: e.target.value })} placeholder="Parte da foto em destaque" aria-label={`Parte da foto ${index + 1} em destaque`} />
+                  <input type="text" className="input mt-2" value={item.focus} onChange={(e) => update(index, { focus: e.target.value })} placeholder="Parte da foto em destaque" aria-label={`Parte da foto ${index + 1} em destaque`} />
                 )}
-              </details>
+              </div>
               )}
             </li>
           ))}
