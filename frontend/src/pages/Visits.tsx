@@ -273,7 +273,7 @@ export default function Visits() {
                 {visits.map((visit) => (
                   <tr key={visit.id}>
                     <td className="max-w-[16rem]">
-                      <button type="button" className="font-medium text-surface-900 hover:text-primary-700 hover:underline text-left" onClick={() => openEdit(visit)}>{visit.title}</button>
+                      <button type="button" className="font-medium text-surface-900 hover:text-primary-500 hover:underline text-left" onClick={() => openEdit(visit)}>{visit.title}</button>
                       <p className="text-xs text-surface-600 mt-0.5">{visit.city}/{visit.region}<span className="md:hidden"> · {formatDate(visit.date)}</span></p>
                     </td>
                     <td className="hidden md:table-cell text-surface-700 whitespace-nowrap">{formatDate(visit.date)}</td>
@@ -349,13 +349,13 @@ export default function Visits() {
                   <p>{result.label}</p>
                   <p className="text-surface-600">{result.lat}, {result.lng}</p>
                   <div className="flex flex-wrap items-center gap-3">
-                    <a className="text-primary-700 underline" href={locationMapUrl(result.lat, result.lng)} target="_blank" rel="noopener noreferrer">Abrir no mapa</a>
+                    <a className="text-primary-500 underline" href={locationMapUrl(result.lat, result.lng)} target="_blank" rel="noopener noreferrer">Abrir no mapa</a>
                     <Button small onClick={() => { patch({ lat: result.lat, lng: result.lng, ...(result.city && result.region ? { city: result.city, region: result.region } : {}) }); setLocationNotice(result.city && result.region ? `Cidade e estado preenchidos: ${result.city}/${result.region}.` : 'A pesquisa não identificou cidade e estado com segurança. Confira os dados em Informações adicionais.'); setLocationResults([]); }}>Usar esta localização</Button>
                   </div>
                 </li>)}
               </ul>}
               {locationNotice && <p className="text-sm text-surface-700" role="status">{locationNotice}</p>}
-              {editForm.lat !== null && editForm.lng !== null && <a className="text-primary-700 underline text-sm" href={locationMapUrl(editForm.lat, editForm.lng)} target="_blank" rel="noopener noreferrer">Ver localização atual no mapa</a>}
+              {editForm.lat !== null && editForm.lng !== null && <a className="text-primary-500 underline text-sm" href={locationMapUrl(editForm.lat, editForm.lng)} target="_blank" rel="noopener noreferrer">Ver localização atual no mapa</a>}
               <p className="text-xs text-surface-600">Busca por Photon; dados © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="underline">colaboradores do OpenStreetMap</a>.</p>
             </FormSection>
             <FormSection title="Informações adicionais" summary="Data, cidade, estado e coordenadas manuais">

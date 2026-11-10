@@ -107,7 +107,7 @@ export default function ImageUploader({ onAdd, onPendingChange, idPrefix }: { on
           <img src={state.preview} alt="" className="w-16 h-16 object-cover rounded bg-surface-100" />
           <div className="flex-1 space-y-1">
             <label htmlFor={`${idPrefix}-progress`} className="text-sm">Enviando foto… {Math.round(state.progress * 100)}%</label>
-            <progress id={`${idPrefix}-progress`} className="w-full accent-primary-600" max={1} value={state.progress} />
+            <progress id={`${idPrefix}-progress`} className="w-full accent-primary-500" max={1} value={state.progress} />
           </div>
           <Button small onClick={reset}>Cancelar</Button>
         </div>

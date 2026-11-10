@@ -25,7 +25,7 @@ export default function ConfirmDialog({
         <Dialog.Overlay className="dialog-overlay" />
         <Dialog.Content className="dialog-content max-w-md p-6">
           <div className="flex gap-4">
-            <div className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${danger ? 'bg-red-100 text-red-700' : 'bg-primary-100 text-primary-700'}`}>
+            <div className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${danger ? 'bg-red-100 text-red-700' : 'bg-primary-100 text-primary-500'}`}>
               <AlertTriangle className="w-5 h-5" aria-hidden="true" />
             </div>
             <div>

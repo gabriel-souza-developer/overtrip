@@ -106,7 +106,7 @@ export default function Settings() {
 
       <form className="card p-5 sm:p-6 space-y-5" onSubmit={savePresentation} noValidate>
         <div className="flex gap-3">
-          <span className="w-10 h-10 rounded-xl bg-primary-100 text-primary-700 flex items-center justify-center shrink-0">
+          <span className="w-10 h-10 rounded-xl bg-primary-100 text-primary-500 flex items-center justify-center shrink-0">
             <Palette className="w-5 h-5" aria-hidden="true" />
           </span>
           <div>

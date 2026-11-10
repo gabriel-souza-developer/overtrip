@@ -101,7 +101,7 @@ export default function Layout() {
                 to={path}
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors ${
-                    isActive ? 'bg-primary-50 text-primary-700' : 'text-surface-600 hover:bg-surface-100 hover:text-surface-900'
+                    isActive ? 'bg-primary-50 text-primary-500' : 'text-surface-600 hover:bg-surface-100 hover:text-surface-900'
                   }`
                 }
                 onClick={() => setSidebarOpen(false)}
@@ -115,7 +115,7 @@ export default function Layout() {
           <div className="p-3 border-t border-surface-200">
             <div className="flex items-center gap-3 px-3 py-2">
               <div className="w-9 h-9 rounded-full bg-primary-100 flex items-center justify-center shrink-0">
-                <User className="w-5 h-5 text-primary-700" aria-hidden="true" />
+                <User className="w-5 h-5 text-primary-500" aria-hidden="true" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-surface-900 truncate">{user?.name}</p>
@@ -146,7 +146,7 @@ export default function Layout() {
             <Menu.Root>
               <Menu.Trigger className="flex items-center gap-2 px-2 py-1.5 min-h-[44px] rounded-lg text-surface-700 hover:bg-surface-100" aria-label="Minha conta">
                 <span className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center">
-                  <User className="w-5 h-5 text-primary-700" aria-hidden="true" />
+                  <User className="w-5 h-5 text-primary-500" aria-hidden="true" />
                 </span>
                 <span className="hidden sm:block text-sm font-medium">{user?.name}</span>
                 <ChevronDown className="w-4 h-4 hidden sm:block" aria-hidden="true" />

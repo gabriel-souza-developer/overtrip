@@ -178,7 +178,7 @@ export default function Trips() {
                   return (
                     <tr key={trip.id}>
                       <td className="max-w-[16rem]">
-                        <Link to={`/trips/${trip.id}/edit`} className="font-medium text-surface-900 hover:text-primary-700 hover:underline">{trip.title}</Link>
+                        <Link to={`/trips/${trip.id}/edit`} className="font-medium text-surface-900 hover:text-primary-500 hover:underline">{trip.title}</Link>
                         <p className="md:hidden text-xs text-surface-600 mt-0.5">{formatDate(trip.startDateISO)} · {trip.city}/{trip.region}</p>
                       </td>
                       <td><span className={statusColors[trip.status]}>{tripStatusLabel(trip.status)}</span></td>

@@ -26,7 +26,7 @@ type PreviewTrip = {
 
 const buttonClass: Record<string, string> = {
   'button-dark': 'bg-surface-900 text-white',
-  'button-rust': 'bg-primary-600 text-white',
+  'button-rust': 'bg-primary-500 text-white',
   'button-light': 'bg-white text-surface-900 border border-surface-300',
   'button-outline': 'border border-surface-700 text-surface-900',
 };
@@ -56,13 +56,13 @@ export default function TripCardPreview({ trip }: { trip: PreviewTrip }) {
           {intensity && <span className="absolute right-3 bottom-3 rounded-full bg-surface-900/90 px-3 py-1 text-xs font-semibold text-white">Nível: {intensity}</span>}
         </div>
         <div className="space-y-3 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-primary-700">{trip.category.trim() || 'Viagem'}</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-primary-500">{trip.category.trim() || 'Viagem'}</p>
           <h4 className="text-lg font-semibold text-surface-900">{title}</h4>
           <p className="line-clamp-2 text-sm text-surface-700">{trip.description.trim() || 'O resumo da experiência aparecerá aqui.'}</p>
           <div className="space-y-2 text-sm text-surface-700">
-            <p className="flex gap-2"><CalendarDays className="h-4 w-4 shrink-0 text-primary-700" aria-hidden="true" />{formatDateBR(trip.startDateISO)}</p>
-            <p className="flex gap-2"><Clock3 className="h-4 w-4 shrink-0 text-primary-700" aria-hidden="true" />{schedule}</p>
-            <div className="flex gap-2"><MapPin className="h-4 w-4 shrink-0 text-primary-700" aria-hidden="true" /><div>{!trip.meetingTBD && trip.departures?.length ? <ul className="space-y-1">{trip.departures.map((point, index) => <li key={index}>{[point.time, point.place, point.city].filter(Boolean).join(' · ') || 'Ponto não informado'}</li>)}</ul> : departure}</div></div>
+            <p className="flex gap-2"><CalendarDays className="h-4 w-4 shrink-0 text-primary-500" aria-hidden="true" />{formatDateBR(trip.startDateISO)}</p>
+            <p className="flex gap-2"><Clock3 className="h-4 w-4 shrink-0 text-primary-500" aria-hidden="true" />{schedule}</p>
+            <div className="flex gap-2"><MapPin className="h-4 w-4 shrink-0 text-primary-500" aria-hidden="true" /><div>{!trip.meetingTBD && trip.departures?.length ? <ul className="space-y-1">{trip.departures.map((point, index) => <li key={index}>{[point.time, point.place, point.city].filter(Boolean).join(' · ') || 'Ponto não informado'}</li>)}</ul> : departure}</div></div>
           </div>
           <details className="rounded-lg border border-surface-200 p-3 text-sm">
             <summary className="cursor-pointer font-semibold">Ver roteiro &amp; o que inclui</summary>

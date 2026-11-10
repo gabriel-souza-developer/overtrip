@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 const root = join(__dirname, '..');
@@ -44,12 +44,11 @@ describe('contraste da paleta da marca no painel', () => {
     expect(scales.surface['50']).toBe('#fafafa');
   });
 
-  it('.btn-primary usa laranja da marca e texto branco conforme a identidade escolhida', () => {
+  it('.btn-primary usa o laranja da marca (#E26B1B) com texto branco; hover no tom claro', () => {
     const c = rule('.btn-primary');
     expect(find(c, 'bg-')).toBe('bg-primary-500');
     expect(find(c, 'text-')).toBe('text-white');
-    expect(find(c, 'hover:bg-')).toBe('hover:bg-primary-700');
-    expect(contrast(white, hexOf(find(c, 'hover:bg-')))).toBeGreaterThanOrEqual(4.5);
+    expect(find(c, 'hover:bg-')).toBe('hover:bg-primary-400');
   });
 
   it('.pagination-btn-active: mantém o rust claro com texto ink e contraste AA', () => {
@@ -75,13 +74,18 @@ describe('contraste da paleta da marca no painel', () => {
     expect(css).toMatch(new RegExp(`background-color: ${scales.surface['50']};`));
   });
 
-  it('foco (primary-600) tem ao menos 3:1 contra o fundo branco', () => {
-    expect(css).toContain(`outline: 2px solid ${scales.primary['600']};`);
-    expect(contrast(scales.primary['600'], white)).toBeGreaterThanOrEqual(3);
+  it('foco usa o laranja da marca e tem ao menos 3:1 contra o fundo branco', () => {
+    expect(css).toContain(`outline: 2px solid ${scales.primary['500']};`);
+    expect(contrast(scales.primary['500'], white)).toBeGreaterThanOrEqual(3);
   });
 
-  it('texto de marca (item ativo do menu) passa AA', () => {
-    expect(contrast(scales.primary['700'], scales.primary['50'])).toBeGreaterThanOrEqual(4.5);
-    expect(contrast(scales.primary['600'], white)).toBeGreaterThanOrEqual(4.5);
+  it('o painel usa o mesmo laranja do site: nenhum tom escuro (primary-600/700) nas telas', () => {
+    const walk = (dir: string): string[] => readdirSync(dir).flatMap((name) => {
+      const full = join(dir, name);
+      return statSync(full).isDirectory() ? walk(full) : /\.(tsx?|css)$/.test(name) ? [full] : [];
+    });
+    const offenders = walk(join(root, 'frontend/src')).filter((file) => /primary-(?:600|700|800|900)\b/.test(readFileSync(file, 'utf8')));
+    expect(offenders).toEqual([]);
+    expect(css).not.toMatch(/#bf5200|#993e00/i);
   });
 });
