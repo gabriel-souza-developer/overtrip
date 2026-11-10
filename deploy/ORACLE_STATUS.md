@@ -2,6 +2,16 @@
 
 Registro atualizado em 10 de novembro de 2026 após publicação do pacote principal baseado no commit `5f4583f` e do painel `d503876`. O site está publicado na Oracle. A zona DNS continua na HostGator (`ns64.hostgator.com.br` e `ns65.hostgator.com.br`); mantenha a hospedagem anterior disponível até a migração estar consolidada.
 
+## Painel de viagens e gráficos de saúde (10 de novembro, 10:16 UTC)
+
+- Publicado o commit `a754efb`, pacote SHA-256 `ca5b461687e6e7e493f0f0c52a8c14c3b8a6ba8e1d74d854137a6c86c3acfebd`. O pacote contém o código compilado, o painel e os arquivos do monitor; não contém banco local, arquivo `.env` nem credenciais. Cópia de retorno: `/srv/overtrip/retorno-a754efb-20261110-101644`.
+- Backup consistente do banco conferido antes da troca: `/var/backups/overtrip/overtrip-20261110-101428.db.gz`; `gzip -t` passou. Nenhuma migração ou alteração no banco de viagens foi necessária.
+- A lista do painel agora abre em **Próximas**, separa **Anteriores** e **Todas** e preserva filtros de busca e situação. O filtro de data usa o dia civil de São Paulo; foi corrigida a composição da consulta para que a busca não anulasse o período. A prévia de proposta mantém a correção de horários já existente e usa termos mais claros.
+- O cadastro tem categorias predefinidas (incluindo Trilha e Experiência) e opções selecionáveis para informações importantes, sem marcar orientações automaticamente. O recurso de PDF agora informa que extrai sugestões com IA. O menu/títulos foram alinhados e a tela **Saúde do servidor** ganhou gráficos de disco usado, memória disponível e carga por núcleo.
+- O monitor grava o histórico em `/var/lib/overtrip/health/history.jsonl`, limitado a 2.016 coletas (sete dias, intervalo de cinco minutos). A leitura fica restrita a administradores. Na instalação, uma coleta durante a inicialização da API gerou um alerta transitório; a execução seguinte concluiu com `Result=success` e atualizou o estado corrente para saudável.
+- Verificação após a publicação: `/`, `/admin/`, `/health` e `/api/public/trips` responderam HTTP 200; `/api/system/health` e `/api/system/health/history` sem autenticação responderam 401. API, Caddy, Tailscale e temporizador do monitor estão ativos. O histórico já contém duas coletas.
+- Validação local: 651 testes passaram e 2 foram ignorados; 23 testes de navegador passaram; checagem de tipos, build do servidor, build do painel e `bash -n` do monitor passaram. A publicação não reiniciou a VM.
+
 ## Painel com o laranja do site (10 de novembro, 08:53 UTC)
 
 - Publicado só o painel do commit `629b1b6`, compilado a partir de `git archive`, pacote SHA-256 `6f21680fba58d4c4566ccda9b5469ca8a4ffe720ced9d77c12290c4fd3dcfc4b`. API, site, banco, dependências e serviços não mudaram. Retorno em `/srv/overtrip/retorno-painel-20261110-085313`.
