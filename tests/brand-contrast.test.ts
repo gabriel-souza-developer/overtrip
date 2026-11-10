@@ -44,11 +44,13 @@ describe('contraste da paleta da marca no painel', () => {
     expect(scales.surface['50']).toBe('#fafafa');
   });
 
-  it('.btn-primary: usa o laranja principal com texto branco', () => {
+  it('.btn-primary: laranja escuro (#BF5200) com texto branco, em repouso e no hover, passa AA', () => {
     const c = rule('.btn-primary');
-    expect(find(c, 'bg-')).toBe('bg-primary-500');
+    expect(find(c, 'bg-')).toBe('bg-primary-600');
     expect(find(c, 'text-')).toBe('text-white');
-    expect(find(c, 'hover:bg-')).toBe('hover:bg-primary-400');
+    expect(find(c, 'hover:bg-')).toBe('hover:bg-primary-700');
+    expect(contrast(white, hexOf(find(c, 'bg-')))).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(white, hexOf(find(c, 'hover:bg-')))).toBeGreaterThanOrEqual(4.5);
   });
 
   it('.pagination-btn-active: mantém o rust claro com texto ink e contraste AA', () => {

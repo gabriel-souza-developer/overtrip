@@ -54,7 +54,7 @@
   left: 0.75rem;
   padding: 0.28rem 0.65rem;
   border-radius: 999px;
-  background: var(--rust);
+  background: var(--rust-strong);
   color: var(--bone);
   font-size: 0.62rem;
   font-weight: 800;
@@ -68,7 +68,7 @@
 
 .blog-card-date {
   margin: 0 0 0.5rem;
-  color: var(--rust);
+  color: var(--rust-strong);
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -110,7 +110,7 @@
 
 .post-back:hover,
 .post-back:focus-visible {
-  color: var(--rust);
+  color: var(--rust-strong);
 }
 
 .post-share {
@@ -185,7 +185,7 @@
 }
 
 .post-body a {
-  color: var(--rust);
+  color: var(--rust-strong);
   text-decoration: underline;
   text-underline-offset: 2px;
 }

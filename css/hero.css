@@ -247,12 +247,12 @@
 
 .hero-proof-star {
   margin-right: 0.3rem;
-  color: var(--rust);
+  color: var(--rust-strong);
   font-size: 1.05rem;
 }
 
 .hero-proof-plus {
-  color: var(--rust);
+  color: var(--rust-strong);
 }
 
 .hero-proof li > span {
@@ -405,7 +405,7 @@
 }
 
 .hero-trip-price strong {
-  color: var(--rust);
+  color: var(--rust-strong);
   font-family: "Inter Tight", sans-serif;
   font-size: 1.2rem;
   font-weight: 800;

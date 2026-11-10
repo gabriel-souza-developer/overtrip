@@ -7,6 +7,11 @@
   --ink: oklch(0.16 0 0);
   --moss: oklch(0.34 0.025 155);
   --rust: oklch(0.66 0.17 48);
+  /* O laranja da marca (rust) é para fundos e detalhes, e para texto sobre o preto.
+     Texto laranja em fundo claro, ou botão laranja com texto claro: rust-strong
+     (WCAG AA sobre bone e paper). Texto laranja sobre o verde-musgo: rust-light. */
+  --rust-strong: #ad4a00;
+  --rust-light: #fa8746;
   --line: rgba(17, 17, 17, 0.1);
   --line-light: rgba(245, 243, 239, 0.16);
   --text-soft: oklch(0.45 0 0);
@@ -94,7 +99,7 @@ h1 em,
 h2 em {
   font-style: italic;
   font-weight: 500;
-  color: var(--rust);
+  color: var(--rust-strong);
 }
 
 h2 {
@@ -151,7 +156,7 @@ h2 {
 }
 
 .button-rust {
-  background: var(--rust);
+  background: var(--rust-strong);
   color: var(--bone);
 }
 

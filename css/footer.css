@@ -22,7 +22,7 @@
 }
 
 .footer-brand-dot {
-  color: var(--rust);
+  color: var(--rust-strong);
 }
 
 .footer-brand .section-kicker {
@@ -71,7 +71,7 @@
 
 .site-footer a:hover,
 .site-footer a:focus-visible {
-  color: var(--rust);
+  color: var(--rust-strong);
 }
 
 .icon-whatsapp,
@@ -154,7 +154,7 @@
 
 .footer-credit-link:hover,
 .footer-credit-link:focus-visible {
-  color: var(--rust);
+  color: var(--rust-strong);
 }
 
 .icon-github {
