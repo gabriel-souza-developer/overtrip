@@ -99,6 +99,19 @@ no Caddyfile. Mantenha `.env`, exports de workflows e outros arquivos privados
 fora da pasta publicada e sem permissão de leitura para o grupo `caddy`.
 Se o código não estiver em `/srv/overtrip/app`, ajuste os caminhos no `Caddyfile` e nos `.service`.
 
+Verificação de saúde a cada 5 minutos (serviços, disco, memória, backup recente, HTTPS e certificados).
+Roda como `overtrip`, sem root, e não lê banco nem credenciais:
+```
+sudo install -m 755 -o root -g root deploy/monitor-health.sh /usr/local/libexec/overtrip-health.sh
+sudo cp deploy/overtrip-health.service deploy/overtrip-health.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo -u overtrip ls /var/backups/overtrip >/dev/null && echo "overtrip lê os backups"
+sudo systemctl enable --now overtrip-health.timer
+sudo systemctl start overtrip-health.service; journalctl -u overtrip-health.service -n 20
+```
+Falhas aparecem como `ALERTA:` no journal e deixam o serviço em estado `failed`
+(`systemctl --failed`). Ainda não há envio de alerta para fora da máquina.
+
 ## 9. DNS
 1. **Um ou dois dias antes**, baixe o TTL dos registros do domínio para 300 segundos (5 min), no provedor atual.
 2. Na hora de virar: aponte `overtrip.com.br` e `www` (registro A) para o IP da máquina Oracle.

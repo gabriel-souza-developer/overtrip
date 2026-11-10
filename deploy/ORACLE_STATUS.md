@@ -12,7 +12,7 @@ Registro atualizado em 9 de novembro de 2026, com base nas saídas da VM, consul
 - Backup recente transferido para o computador em `~/backups-overtrip/oracle-pre-publicacao.db.gz`; gzip e SHA-256 conferidos com a cópia na Oracle. Restauração em diretório temporário retornou `integrity_check: ok`. Manter a cópia externa e repetir após alterações relevantes.
 - Em 9 de novembro, o candidato foi ajustado para servir o site de `/srv/overtrip-public` e o painel de `/srv/overtrip-public/admin`. O endereço privado atual da interface `enp0s6` é `10.0.0.143`.
 - `caddy.service` foi desmascarado, habilitado e iniciado em 9 de novembro. A saída de `systemctl status` confirmou `active (running)`; `ss` confirmou listeners em `10.0.0.143:80` e `10.0.0.143:443`. Tailscale continuou escutando em `100.99.26.96:443`; não houve conflito observado.
-- O firewall local permite TCP 80/443 em execução. O operador atualizou `/etc/iptables/rules.v4`, mantendo SSH 22 e a rejeição final; `iptables-restore --test` validou a sintaxe e uma cópia anterior foi preservada. O carregamento após reinício ainda não foi verificado.
+- O firewall local permite TCP 80/443. O operador atualizou `/etc/iptables/rules.v4`, mantendo SSH 22 e a rejeição final; `iptables-restore --test` validou a sintaxe e uma cópia anterior foi preservada. Após o reinício de 9 de novembro, `iptables -S INPUT` confirmou que as regras persistiram.
 - O registro A principal aponta para `136.248.78.185`; `www` é CNAME para `overtrip.com.br`. O valor anterior do A era `192.185.213.226`. Os demais registros, inclusive os de e-mail, devem ser preservados.
 - Em 9 de novembro, o Caddy obteve certificados Let's Encrypt para os dois nomes. Em teste externo direcionado à Oracle, `/`, `/admin/`, `/health` e `/api/public/trips` responderam HTTPS 200; `/.git/config`, `/trips.json` e `/knowledge.json` responderam 404. `www` redirecionou para o domínio principal. O operador confirmou site e painel funcionando.
 - Arquivos públicos copiados para `/srv/overtrip-public`, dono `root:root`, diretórios 755 e arquivos 644. Inclui site e painel; não inclui `trips.json` ou `knowledge.json`. `caddy` consegue ler site/painel e não consegue ler banco nem `/etc/overtrip/env`.
@@ -22,21 +22,21 @@ Registro atualizado em 9 de novembro de 2026, com base nas saídas da VM, consul
 ## Próximos passos
 
 1. Acompanhar a propagação DNS e o funcionamento público; manter a HostGator disponível para retorno. Se necessário, reverter o A principal ao valor anterior, preservando os demais registros.
-2. Planejar reinício para aplicar atualização pendente; depois confirmar SSH, firewall persistido, Tailscale, Caddy, API e temporizador de backup.
-3. Confirmar que a VCN/NSG não permite acesso indevido às portas 111 e 11434 e avaliar os serviços correspondentes.
+2. Confirmar a versão do kernel em execução e reavaliar atualizações pendentes; um reinício foi realizado e os serviços foram conferidos, mas não há confirmação da versão efetivamente carregada.
+3. Avaliar se `rpcbind` e Ollama são necessários e limitar suas interfaces se apropriado.
 4. Não instalar cegamente o `deploy/Caddyfile` versionado: ele é um modelo genérico antigo, aponta para `/srv/overtrip/app` e lista `/trips.json` e `/knowledge.json`, diferindo da configuração privada preparada na VM.
 5. Preparar armazenamento, scanner e backup dos PDFs antes de habilitar o processamento de documentos.
-6. A VM informou atualização de kernel pendente. Planejar reinício e verificar serviços e backups após ele; nenhum reinício foi feito nesta sessão.
+6. Confirmar periodicamente a execução e a restauração dos backups; não foi criado backup adicional antes do reinício por decisão do operador.
 7. Verificar e remover o acesso SSH temporário de transferência quando não for mais necessário, preservando as demais chaves autorizadas.
 8. A branch local `feat/evolucao-painel-viagens` contém trabalho de interessados, reservas e propostas, ainda não implantado na VM. Definir e testar o procedimento de atualização antes de instalá-lo; `/srv/overtrip/app` veio de `git archive` e não aceita `git pull`.
 
 ## Auditoria de segurança (9 de novembro de 2026)
 
 - Confirmados: API, Caddy, Tailscale e temporizador de backup ativos; ambiente da API com modo 600; banco e backups com modo 700; arquivos públicos root:root e modo 755; nenhum banco, chave, `.env`, `trips.json` ou `knowledge.json` encontrado sob `/srv/overtrip-public`; nenhum arquivo público gravável por todos; Caddy consegue ler as páginas do site e do painel; configuração Caddy valida.
-- O firewall local usa `iptables-nft`; TCP 80/443 foi liberado em execução e salvo no arquivo persistente validado. O alcance externo e o HTTPS foram confirmados; verificar persistência após reinício em janela planejada.
-- `rpcbind` escuta em todas as interfaces na porta 111 e Ollama em todas as interfaces na 11434. A saída local não prova exposição externa; confirmar que VCN/NSG não permitem essas portas e avaliar se os serviços são necessários antes de desativar ou limitar.
+- Após reinício, API, Caddy, Tailscale e temporizador de backup voltaram ativos; SSH foi usado para conferir a VM. As regras IPv4 de SSH/HTTP/HTTPS persistiram, a API escutava em loopback e o Tailscale preservou sua escuta própria. Teste externo direcionado à Oracle confirmou HTTPS 200 para site, painel e API; caminhos privados retornaram 404 e `www` redirecionou para o domínio principal.
+- `rpcbind` escutava em todas as interfaces na porta 111 e Ollama na 11434 na auditoria anterior. A tela compartilhada não mostrava grupos de segurança de rede no compartimento filtrado; o operador informou não ter liberado essas portas. A cadeia IPv4 local as rejeita para conexões novas externas. Isso não constitui verificação exaustiva de outras sub-redes, compartimentos ou IPv6; avaliar necessidade dos serviços antes de desativar ou limitar.
 - SSH: autenticação por senha desativada, chave pública habilitada e login root apenas por chave; encaminhamento TCP e X11 estão habilitados e devem ser restringidos se não forem necessários. Há tentativas automatizadas inválidas registradas, sem sucesso observado; logins válidos por chave vieram do IP administrativo informado na saída.
-- Há reinicialização pendente e atualizações disponíveis. Planejar atualização/reinício e validar SSH, Caddy, API, Tailscale e backup após a janela.
+- Antes do reinício havia aviso de reinicialização e atualizações disponíveis. O temporizador voltou ativo e mostrou próximo disparo, mas não foi executado um backup ou teste de restauração adicional nessa etapa; verificar novamente atualizações e kernel carregado.
 - `caddy-api` permanece mascarado/inativo, conforme esperado; a API do Caddy não está exposta por esse serviço.
 - Os testes de rota local usados anteriormente consultaram `127.0.0.1`, mas o Caddy só está vinculado a `10.0.0.143`; portanto, os resultados HTTP 000 desses testes não indicam falha do site.
 - O site tenta carregar `/trips.json` como alternativa quando a API falha (`js/data.js`), mas esse caminho está bloqueado na Oracle. Assim, não há alternativa de viagens funcional durante uma indisponibilidade da API. Avaliar um snapshot público sanitizado antes de mudar essa política; não expor o arquivo privado existente.

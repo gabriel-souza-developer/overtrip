@@ -1,0 +1,14 @@
+[Unit]
+Description=Verificação de saúde da aplicação OVERTRIP
+After=network-online.target
+
+[Service]
+Type=oneshot
+# Sem root: precisa apenas listar /var/backups/overtrip (dono overtrip) e consultar serviços.
+User=overtrip
+Group=overtrip
+ExecStart=/usr/local/libexec/overtrip-health.sh
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
