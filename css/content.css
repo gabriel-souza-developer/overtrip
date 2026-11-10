@@ -97,7 +97,7 @@
   margin-bottom: 0.25rem;
   border-radius: 50%;
   background: rgba(212, 91, 45, 0.16);
-  color: var(--rust-strong);
+  color: var(--rust);
 }
 
 .stat-icon svg {
@@ -110,7 +110,7 @@
   font-size: clamp(2rem, 4vw, 2.6rem);
   font-weight: 800;
   line-height: 1;
-  color: var(--rust-strong);
+  color: var(--rust);
 }
 
 .stat-item span {
@@ -173,7 +173,7 @@
   font-weight: 700;
   font-size: 0.85rem;
   letter-spacing: 0.08em;
-  color: var(--rust-strong);
+  color: var(--rust);
 }
 
 .timeline-dot {
@@ -341,7 +341,7 @@
 .universe-panel h3 small {
   display: inline-block;
   margin-left: 0.45rem;
-  color: var(--rust-light);
+  color: var(--rust);
   font-family: "Inter", sans-serif;
   font-size: 0.58rem;
   font-style: normal;
@@ -525,8 +525,8 @@
 
 .how-step:hover .how-num,
 .how-step:focus-within .how-num {
-  color: var(--rust-strong);
-  -webkit-text-stroke-color: var(--rust-strong);
+  color: var(--rust);
+  -webkit-text-stroke-color: var(--rust);
 }
 
 .how-label {
@@ -582,7 +582,7 @@
 
 .how-note a:hover,
 .how-note a:focus-visible {
-  color: var(--rust-strong);
+  color: var(--rust);
 }
 
 @media (min-width: 980px) {
@@ -635,7 +635,7 @@
 
 .arrow-mark,
 .arrow-mark.accent {
-  color: var(--rust-strong);
+  color: var(--rust);
 }
 
 .dash-mark,
@@ -1179,7 +1179,7 @@
 
 .visited-map .popup-dates {
   margin-top: 0.35rem !important;
-  color: var(--rust-strong) !important;
+  color: var(--rust) !important;
   font-weight: 600;
 }
 
@@ -1254,7 +1254,7 @@
   padding: 0.3rem 0.7rem;
   border-radius: 999px;
   background: rgba(212, 91, 45, 0.12);
-  color: var(--rust-strong);
+  color: var(--rust);
   font-family: "Inter Tight", sans-serif;
   font-size: 0.68rem;
   font-weight: 800;
@@ -1399,7 +1399,7 @@
 }
 
 .map-destination.is-active .map-destination-action {
-  color: var(--rust-strong);
+  color: var(--rust);
 }
 
 .map-sidebar-footnote {
@@ -1423,7 +1423,7 @@
 }
 
 .rating-stars {
-  color: var(--rust-strong);
+  color: var(--rust);
   font-size: 0.95rem;
   letter-spacing: 0.15em;
 }
@@ -1529,7 +1529,7 @@
   display: block;
   height: 0.55em;
   margin-bottom: 0.2em;
-  color: var(--rust-strong);
+  color: var(--rust);
   font-size: 2.2em;
   line-height: 1;
 }
@@ -1602,7 +1602,7 @@
 }
 
 .voice-tab[aria-selected="true"] .voice-tab-number {
-  color: var(--rust-strong);
+  color: var(--rust);
 }
 
 .voice-tab-text {

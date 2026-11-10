@@ -328,7 +328,7 @@
   display: inline-flex;
   width: 1.05rem;
   height: 1.05rem;
-  color: var(--rust-strong);
+  color: var(--rust);
 }
 
 .trip-meta-icon--muted {
@@ -350,8 +350,8 @@
 
 .trip-map-link:hover,
 .trip-map-link:focus-visible {
-  color: var(--rust-strong);
-  text-decoration-color: var(--rust-strong);
+  color: var(--rust);
+  text-decoration-color: var(--rust);
 }
 
 /* Embarque em mais de um ponto (campo `departures` do trips.json): cada ponto
@@ -408,7 +408,7 @@
   display: block;
   min-width: 0;
   padding: 0;
-  color: var(--rust-strong);
+  color: var(--rust);
   font-size: 0.76rem;
   font-weight: 700;
   line-height: 1.55;
@@ -448,7 +448,7 @@
   gap: 0.4rem;
   list-style: none;
   cursor: pointer;
-  color: var(--rust-strong);
+  color: var(--rust);
   font-family: "Inter Tight", sans-serif;
   font-size: 0.78rem;
   font-weight: 700;
@@ -582,7 +582,7 @@
   font-size: 1.4rem;
   font-weight: 800;
   line-height: 1.1;
-  color: var(--rust-strong);
+  color: var(--rust);
 }
 
 /* A mídia do card é um botão nativo: remove apenas a aparência padrão. */

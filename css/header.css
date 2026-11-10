@@ -194,7 +194,7 @@
 
 .site-nav .nav-list > li > .nav-blog {
   justify-content: center;
-  background: var(--rust-strong);
+  background: var(--rust);
   color: var(--bone);
   text-align: center;
 }
