@@ -38,13 +38,27 @@ export class AppError extends Error {
   }
 }
 
+const isUnexpectedError = (err: Error): boolean =>
+  !(err instanceof AppError) &&
+  !(err instanceof ZodError) &&
+  !err.name.startsWith('PrismaClient') &&
+  (err as Error & { type?: unknown }).type === undefined;
+
 export const errorHandler = (
   err: Error,
   req: Request,
   res: Response,
   _next: NextFunction
 ): void => {
-  console.error('Error:', err);
+  // Erros de validação e do Prisma podem conter dados pessoais da requisição.
+  // Registre apenas metadados mínimos, sem corpo, parâmetros ou valores.
+  console.error('Erro ao processar requisição', {
+    name: err instanceof Prisma.PrismaClientKnownRequestError ? 'PrismaClientKnownRequestError' : err instanceof ZodError ? 'ZodError' : err instanceof AppError ? 'AppError' : 'Error',
+    code: err instanceof Prisma.PrismaClientKnownRequestError ? err.code : err instanceof AppError ? err.code : undefined,
+    // Só erros inesperados levam stack. Prisma (argumentos da consulta) e
+    // body-parser (trecho do corpo) ficam de fora porque a mensagem pode ter dados pessoais.
+    stack: isUnexpectedError(err) ? err.stack : undefined,
+  });
 
   if (err instanceof ZodError) {
     res.status(400).json({
