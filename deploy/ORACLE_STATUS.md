@@ -1,6 +1,12 @@
 # Estado da produção na Oracle
 
-Registro atualizado em 10 de novembro de 2026 após publicação do pacote baseado no commit `5f4583f`. O site está publicado na Oracle. A zona DNS continua na HostGator (`ns64.hostgator.com.br` e `ns65.hostgator.com.br`); mantenha a hospedagem anterior disponível até a migração estar consolidada.
+Registro atualizado em 10 de novembro de 2026 após publicação do pacote principal baseado no commit `5f4583f` e do painel `d503876`. O site está publicado na Oracle. A zona DNS continua na HostGator (`ns64.hostgator.com.br` e `ns65.hostgator.com.br`); mantenha a hospedagem anterior disponível até a migração estar consolidada.
+
+## Atualização visual do painel
+
+- Publicado o painel do commit `d503876`, compilado a partir de `git archive`, SHA-256 `a55fc1064f802dae8727eaaa97cbc1b7a5c502e95d5a6edbd7195644484d3d9d`. A versão anterior está em `/srv/overtrip/retorno-painel-20261110-073749`.
+- A tela inicial destaca indicadores existentes, próximas viagens e calendário. Somente os arquivos do painel foram atualizados; API, banco e serviços permaneceram ativos. Site, painel, saúde e API pública responderam HTTP 200; monitor `ok`.
+- Checagem de tipos, compilação, 12 testes focados e cenário de navegador para calendário passaram. O primeiro ensaio de navegador usou servidor anterior ainda ativo e falhou; repetido com servidor próprio, passou.
 
 ## Painel, CRM e reservas em 10 de novembro
 
