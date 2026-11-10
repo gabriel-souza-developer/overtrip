@@ -167,7 +167,9 @@ export default function Layout() {
         </header>
 
         <main id="conteudo" ref={mainRef} tabIndex={-1} className="p-4 sm:p-6 lg:p-8 max-w-7xl outline-none">
-          <Outlet />
+          <React.Suspense fallback={<div className="flex justify-center py-16" role="status" aria-label="Carregando"><div className="spinner w-8 h-8" /></div>}>
+            <Outlet />
+          </React.Suspense>
         </main>
       </div>
     </div>

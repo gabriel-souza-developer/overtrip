@@ -2,17 +2,19 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import Layout from './components/Layout';
 import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import Trips from './pages/Trips';
-import TripForm from './pages/TripForm';
-import Visits from './pages/Visits';
-import Leads from './pages/Leads';
-import Reservations from './pages/Reservations';
-import SystemHealthPage from './pages/SystemHealth';
-import Gallery from './pages/Gallery';
-import Settings from './pages/Settings';
 import { ApiRequestError, authApi } from './api';
 import { ToastProvider } from './hooks/useToast';
+
+// Cada página vira um arquivo separado: o painel só baixa o código da tela aberta.
+const Dashboard = React.lazy(() => import('./pages/Dashboard'));
+const Trips = React.lazy(() => import('./pages/Trips'));
+const TripForm = React.lazy(() => import('./pages/TripForm'));
+const Visits = React.lazy(() => import('./pages/Visits'));
+const Leads = React.lazy(() => import('./pages/Leads'));
+const Reservations = React.lazy(() => import('./pages/Reservations'));
+const SystemHealthPage = React.lazy(() => import('./pages/SystemHealth'));
+const Gallery = React.lazy(() => import('./pages/Gallery'));
+const Settings = React.lazy(() => import('./pages/Settings'));
 
 interface User {
   id: string;
