@@ -245,9 +245,15 @@ export const tripService = {
     const counts = await prisma.trip.findUnique({
       where: { id },
       select: {
-        _count: { select: { visits: true, galleryEntries: true } },
+        _count: { select: { visits: true, galleryEntries: true, reservations: true, leads: true } },
       },
     });
+
+    if (counts && (counts._count.reservations > 0 || counts._count.leads > 0)) {
+      throw AppError.conflict('Não é possível excluir viagem com reservas ou interessados associados.', {
+        reservations: counts._count.reservations, leads: counts._count.leads,
+      });
+    }
 
     if (counts && (counts._count.visits > 0 || counts._count.galleryEntries > 0)) {
       throw AppError.badRequest(
@@ -256,7 +262,14 @@ export const tripService = {
       );
     }
 
-    await prisma.trip.delete({ where: { id } });
+    try {
+      await prisma.trip.delete({ where: { id } });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
+        throw AppError.conflict('Não é possível excluir viagem com registros associados.');
+      }
+      throw error;
+    }
     return { success: true };
   },
 
@@ -497,8 +510,6 @@ export const visitService = {
       where: { id: visitId },
       data: { 
         tripId,
-        // Ligar a uma viagem conta como revisão; desligar NÃO devolve o destino para a fila de revisão.
-        ...(tripId ? { needsReview: false } : {}),
         titleSearch: currentVisit ? normalizeForSearch(currentVisit.title) : undefined,
         citySearch: currentVisit ? normalizeForSearch(currentVisit.city) : undefined,
         regionSearch: currentVisit ? normalizeForSearchRegion(currentVisit.region) : undefined,

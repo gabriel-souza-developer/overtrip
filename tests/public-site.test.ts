@@ -32,7 +32,7 @@ beforeAll(async () => {
   baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   const admin = await prisma.user.create({ data: { email: `${TAG}@example.com`, passwordHash: 'test', role: 'admin' } });
   adminId = admin.id;
-  adminToken = generateToken({ id: admin.id, email: admin.email, role: admin.role });
+  adminToken = generateToken(admin);
   await gal('old', '2000-01-10');
   await gal('new', '2000-06-10');
   await gal('feat', '1999-03-05', { isFeatured: true });
@@ -181,9 +181,10 @@ describe('revisão de destinos', () => {
       await visitService.associateWithTrip(ids.ok, trip.id);
       await visitService.associateWithTrip(ids.ok, null);
       expect((await prisma.visit.findUnique({ where: { id: ids.ok } }))!.needsReview).toBe(false);
-      // ligar marca como revisado
+      // Vincular não marca automaticamente como revisado.
       await visitService.associateWithTrip(ids.pending, trip.id);
-      expect((await prisma.visit.findUnique({ where: { id: ids.pending } }))!.needsReview).toBe(false);
+      expect((await prisma.visit.findUnique({ where: { id: ids.pending } }))!.needsReview).toBe(true);
+      expect((await get('/api/public/destinations')).mine.map((d) => d.title)).not.toContain(`${TAG} pending`);
     } finally {
       await prisma.visit.updateMany({ where: { tripId: trip.id }, data: { tripId: null } });
       await prisma.trip.delete({ where: { id: trip.id } });

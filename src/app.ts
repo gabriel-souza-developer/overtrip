@@ -13,6 +13,8 @@ import settingsRoutes from './routes/settingsRoutes.js';
 import assistantKnowledgeRoutes from './routes/assistantKnowledgeRoutes.js';
 
 import documentRoutes from './routes/documentRoutes.js';
+import leadRoutes from './routes/leadRoutes.js';
+import reservationRoutes from './routes/reservationRoutes.js';
 
 const app = express();
 
@@ -38,6 +40,8 @@ app.get('/health', (_req, res) => {
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/trips', tripRoutes);
+app.use('/api/leads', leadRoutes);
+app.use('/api/reservations', reservationRoutes);
 app.use('/api/visits', visitRoutes);
 app.use('/api/gallery', galleryRoutes);
 app.use('/api/dashboard', dashboardRoutes);

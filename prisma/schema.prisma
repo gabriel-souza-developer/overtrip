@@ -91,6 +91,8 @@ model Trip {
   documents         TripDocument[]
   visits            Visit[]
   galleryEntries    GalleryEntry[]
+  reservations      Reservation[]
+  leads             Lead[]
   
   @@index([status])
   @@index([startDateISO])
@@ -98,6 +100,40 @@ model Trip {
   @@index([titleSearch])
   @@index([citySearch])
   @@index([categorySearch])
+}
+
+// Reservas são registros internos; não alteram vagas nem processam pagamentos.
+model Reservation {
+  id            String   @id @default(cuid())
+  tripId        String
+  trip          Trip     @relation(fields: [tripId], references: [id], onDelete: Restrict)
+  leadId        String?
+  lead          Lead?    @relation(fields: [leadId], references: [id], onDelete: Restrict)
+  customerName  String
+  customerPhone String?
+  seats         Int      @default(1)
+  status        String   @default("PENDING")
+  totalCents    Int
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  installments  ReservationInstallment[]
+
+  @@index([tripId, status])
+  @@index([leadId])
+}
+
+model ReservationInstallment {
+  id            String   @id @default(cuid())
+  reservationId String
+  reservation   Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  amountCents   Int
+  dueDate       DateTime?
+  paidAt        DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([reservationId])
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -375,4 +411,36 @@ model ImportSnapshot {
   createdAt     DateTime @default(now())
   
   @@index([createdAt])
+}
+
+// CRM interno: informações de interessados não são expostas no catálogo público.
+model Lead {
+  id             String      @id @default(cuid())
+  name           String
+  phone          String?
+  email          String?
+  stage          String      @default("NEW")
+  tripId         String?
+  trip           Trip?       @relation(fields: [tripId], references: [id], onDelete: Restrict)
+  responsible    String?
+  nextFollowUpAt DateTime?
+  notes          String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  events         LeadEvent[]
+  reservations   Reservation[]
+
+  @@index([stage])
+  @@index([tripId])
+  @@index([nextFollowUpAt])
+}
+
+model LeadEvent {
+  id        String   @id @default(cuid())
+  leadId    String
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([leadId, createdAt])
 }
