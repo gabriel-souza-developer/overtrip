@@ -186,3 +186,60 @@ No n8n:
 A entrada da reserva vem de `reservation.depositPercentage` no `knowledge.json` (50%).
 A FAQ aprovada no painel substitui a do arquivo quando existir uma versão aprovada.
 Para voltar: reative a v34 (que depende do `/trips.json`, indisponível na Oracle).
+
+## Fotos enviadas pelo painel (imagens em disco)
+O painel envia fotos para `POST /api/media`. A API reprocessa cada uma (gira
+pelo EXIF, remove EXIF/GPS, gera WebP 640/960/1280) e grava os arquivos em
+`UPLOADS_DIR`. O banco guarda só os metadados (tabela `MediaAsset`). O site e o
+painel leem as fotos em `/api/public/media/<nome>`, servidas pela própria API
+com cache longo (`immutable`), já que cada nome é aleatório e o arquivo nunca muda.
+
+**O que muda na VM, passo a passo (nesta ordem):**
+1. **Dependência nova (`sharp`).** Trocar só o `dist/` não basta desta vez: rode
+   `npm ci` em `/srv/overtrip/app` (ele baixa a versão do sharp para ARM64 que já
+   está no `package-lock.json`; não precisa de compilador). Confira com
+   `sudo -u overtrip node -e "require('sharp')" && echo sharp ok`.
+2. **Backup antes da migração:** `sudo systemctl start overtrip-backup.service`.
+3. **Migração nova** (`20261110120000_media_assets`, só cria a tabela `MediaAsset`):
+   `set -a; . /etc/overtrip/env; set +a; npx prisma generate && npx prisma migrate deploy`.
+4. **Diretório das imagens** (fora de `/srv/overtrip-public` e do repositório):
+   ```
+   sudo install -d -o overtrip -g overtrip -m 750 /var/lib/overtrip/uploads
+   sudo install -d -o overtrip -g overtrip -m 700 /var/backups/overtrip/uploads
+   ```
+   Se quiser outro lugar, defina `UPLOADS_DIR=/caminho/absoluto` em `/etc/overtrip/env`
+   (padrão em produção: `/var/lib/overtrip/uploads`). A API recusa uma pasta dentro do
+   repositório ou de `/srv/overtrip-public`.
+5. **systemd:** nada muda no `overtrip-api.service`: `ReadWritePaths=/var/lib/overtrip`
+   já cobre `/var/lib/overtrip/uploads`. Só se escolher um `UPLOADS_DIR` fora de
+   `/var/lib/overtrip`, acrescente-o ao `ReadWritePaths` e rode `sudo systemctl daemon-reload`.
+6. **Caddy:** nada muda, desde que a configuração real da VM já encaminhe `/api/*`
+   para a API (o site já depende disso para `/api/public/trips`). O Caddy não precisa
+   ler a pasta de imagens; ela continua só do usuário `overtrip`. Confira depois com
+   `curl -I https://overtrip.com.br/api/public/media/00000000000000000000000000000000.jpg` (deve dar 404 em JSON, vindo da API).
+7. **Backup das imagens:** copie o `overtrip-backup.service` novo (ele ganhou uma
+   segunda linha `ExecStart` com `deploy/backup-uploads.sh`) e recarregue:
+   ```
+   sudo cp deploy/overtrip-backup.service /etc/systemd/system/
+   sudo systemctl daemon-reload
+   sudo systemctl start overtrip-backup.service && ls /var/backups/overtrip/uploads
+   ```
+   A cópia é incremental e nunca apaga no destino (as fotos não mudam depois de
+   gravadas). Ela fica na mesma VM, como o backup do banco: para sobreviver à perda
+   da máquina, copie `/var/backups/overtrip` para fora dela.
+8. Reinicie a API (`sudo systemctl restart overtrip-api`), entre em `/admin`, envie
+   uma foto numa viagem em rascunho e confira que ela aparece na prévia.
+
+**Restaurar as imagens:** pare a API e copie de volta o que faltar, sem sobrescrever:
+```
+sudo systemctl stop overtrip-api
+sudo -u overtrip sh -c 'cp -n --preserve=timestamps /var/backups/overtrip/uploads/* /var/lib/overtrip/uploads/'
+sudo systemctl start overtrip-api
+```
+Restaure o banco e as imagens juntos. Como o backup das imagens só acrescenta,
+um banco mais antigo sempre encontra as fotos que referencia.
+
+**Limites:** JPEG, PNG ou WebP (verificados pelos bytes), até 15 MiB e 8000 px de
+lado (40 MP); 20 envios por minuto por IP; perfis `admin` e `editor`. Fotos com
+transparência ficam PNG; as demais viram JPEG. Fotos descartadas ou removidas de
+uma viagem continuam no disco (ainda não há limpeza automática).
