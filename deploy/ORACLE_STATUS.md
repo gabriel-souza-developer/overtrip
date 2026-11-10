@@ -1,6 +1,13 @@
 # Estado da produção na Oracle
 
-Registro atualizado em 10 de novembro de 2026 após publicação do pacote baseado no commit `1065532`. O site está publicado na Oracle. A zona DNS continua na HostGator (`ns64.hostgator.com.br` e `ns65.hostgator.com.br`); mantenha a hospedagem anterior disponível até a migração estar consolidada.
+Registro atualizado em 10 de novembro de 2026 após publicação do pacote baseado no commit `90ee0af`. O site está publicado na Oracle. A zona DNS continua na HostGator (`ns64.hostgator.com.br` e `ns65.hostgator.com.br`); mantenha a hospedagem anterior disponível até a migração estar consolidada.
+
+## Correções de viagens de 10 de novembro
+
+- Publicado pacote de SHA-256 `94860ab51765750a21889ed0d0d935132b0a41e5dd66150057ee19c99cab4b62`, baseado em `90ee0af` com CRM/reservas ainda excluídos. A cópia para retorno está em `/srv/overtrip/retorno-20261110-070847`; foi feito backup do banco e fotos.
+- Aplicada a migração aditiva `20261110140000_trip_filter_category`. A chamada da foto foi preservada e a nova categoria do filtro precisa ser preenchida no painel. As três viagens públicas existentes estavam sem classificação após a publicação.
+- Publicadas correções de prévia e conteúdo incluído, fotos dos cards, apresentação de dois embarques no celular e cor do botão principal no painel. Site, painel, API, monitor e timers responderam normalmente; caminhos privados conferidos retornaram 404.
+- Validações: build e tipos; 84 testes focados na versão compatível com a produção; 40 testes de renderização/filtro; 12 cenários de navegador; conferência de larguras móveis e controles de animação. A suíte geral apontou um teste desatualizado sobre o campo antigo, ajustado e aprovado na execução focada.
 
 ## Publicação de 10 de novembro de 2026
 
