@@ -4,6 +4,7 @@ import { AlertTriangle, ArrowRight, CheckCircle2, Image as ImageIcon, Pencil, Pl
 import { dashboardApi, DashboardStats } from '../api';
 import ErrorState from '../components/ErrorState';
 import TripCalendar from '../components/TripCalendar';
+import { capitalizeFirst } from '../lib/tripCalendar';
 
 type Tone = 'primary' | 'success' | 'warning' | 'danger';
 const statsConfig: { key: keyof DashboardStats; label: string; icon: LucideIcon; tone: Tone; to: string; detail: string }[] = [
@@ -13,7 +14,7 @@ const statsConfig: { key: keyof DashboardStats; label: string; icon: LucideIcon;
   { key: 'visitsNeedsReview', label: 'Destinos para revisar', icon: AlertTriangle, tone: 'danger', to: '/visits?needsReview=true', detail: 'Revisar destinos' },
 ];
 const toneClass: Record<Tone, string> = {
-  primary: 'bg-primary-50 text-primary-700', success: 'bg-emerald-50 text-emerald-700',
+  primary: 'bg-primary-50 text-primary-500', success: 'bg-emerald-50 text-emerald-700',
   warning: 'bg-amber-50 text-amber-700', danger: 'bg-rose-50 text-rose-700',
 };
 
@@ -30,15 +31,15 @@ export default function Dashboard() {
   };
   useEffect(() => { void loadStats(); }, []);
   const pending = stats?.visitsNeedsReview ?? 0;
-  const today = new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
+  const today = capitalizeFirst(new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date()));
 
   return (
     <div className="space-y-7 pb-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary-700">Painel OVERTRIP</p>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary-500">Painel OVERTRIP</p>
           <h1 className="mt-1 text-3xl font-bold tracking-tight text-surface-900">Visão geral</h1>
-          <p className="mt-1 text-sm text-surface-600 capitalize">{today} · Acompanhe suas viagens e próximos passos</p>
+          <p className="mt-1 text-sm text-surface-600">{today} · Acompanhe suas viagens e próximos passos</p>
         </div>
         <Link to="/trips/new" className="btn-primary"><Plus className="h-4 w-4" aria-hidden="true" /> Nova viagem</Link>
       </header>
@@ -48,7 +49,7 @@ export default function Dashboard() {
         <div className="mb-3 flex items-baseline justify-between gap-3"><h2 id="resumo-title" className="text-lg font-bold text-surface-900">Seu resumo</h2><span className="text-xs text-surface-500">Dados atuais</span></div>
         <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
           {statsConfig.map(({ key, label, icon: Icon, tone, to, detail }) => (
-            <Link key={key} to={to} className="group rounded-2xl border border-surface-200 bg-white p-4 sm:p-5 shadow-sm transition hover:border-primary-300 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary-600" aria-label={`${label}: ${loading ? 'carregando' : stats ? stats[key] : 'indisponível'}. ${detail}`}>
+            <Link key={key} to={to} className="group rounded-2xl border border-surface-200 bg-white p-4 sm:p-5 shadow-sm transition hover:border-primary-300 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary-500" aria-label={`${label}: ${loading ? 'carregando' : stats ? stats[key] : 'indisponível'}. ${detail}`}>
               <div className="flex items-start justify-between gap-2"><span className={`flex h-10 w-10 items-center justify-center rounded-xl ${toneClass[tone]}`}><Icon className="h-5 w-5" aria-hidden="true" /></span><ArrowRight className="h-4 w-4 text-surface-400 transition group-hover:translate-x-1" aria-hidden="true" /></div>
               {loading ? <span className="loading-skeleton mt-4 block h-8 w-12" aria-hidden="true" /> : <span className="mt-4 block text-3xl font-bold tracking-tight text-surface-900 tabular-nums" aria-hidden="true">{stats ? stats[key] : '—'}</span>}
               <span className="mt-1 block text-sm font-medium text-surface-600" aria-hidden="true">{label}</span>
@@ -67,7 +68,7 @@ export default function Dashboard() {
             { to: '/trips/new', icon: Plus, text: 'Criar viagem', sub: 'Comece um novo rascunho' },
             { to: '/visits?needsReview=true', icon: AlertTriangle, text: 'Revisar destinos', sub: stats ? `${pending} ${pending === 1 ? 'destino para revisar' : 'destinos para revisar'}` : 'Confira os destinos pendentes' },
             { to: '/gallery', icon: ImageIcon, text: 'Organizar galeria', sub: 'Fotos e memórias das viagens' },
-          ].map(({ to, icon: Icon, text, sub }) => <Link key={to} to={to} className="group flex items-center gap-3 rounded-xl border border-surface-200 p-4 transition hover:border-primary-300 hover:bg-primary-50/50"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-surface-100 text-surface-700"><Icon className="h-5 w-5" aria-hidden="true" /></span><span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-surface-900">{text}</span><span className="mt-0.5 block text-xs text-surface-600">{sub}</span></span><ArrowRight className="h-4 w-4 shrink-0 text-surface-400 group-hover:text-primary-700" aria-hidden="true" /></Link>)}
+          ].map(({ to, icon: Icon, text, sub }) => <Link key={to} to={to} className="group flex items-center gap-3 rounded-xl border border-surface-200 p-4 transition hover:border-primary-300 hover:bg-primary-50/50"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-surface-100 text-surface-700"><Icon className="h-5 w-5" aria-hidden="true" /></span><span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-surface-900">{text}</span><span className="mt-0.5 block text-xs text-surface-600">{sub}</span></span><ArrowRight className="h-4 w-4 shrink-0 text-surface-400 group-hover:text-primary-500" aria-hidden="true" /></Link>)}
         </div>
       </section>
     </div>

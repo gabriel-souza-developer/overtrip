@@ -40,3 +40,6 @@ export function upcomingTrips(trips: CalendarTrip[], today: string): CalendarTri
     return day && day >= today && trip.status !== 'CANCELLED' && trip.status !== 'COMPLETED';
   }).sort((a, b) => tripDay(a.startDateISO).localeCompare(tripDay(b.startDateISO)) || a.title.localeCompare(b.title, 'pt-BR'));
 }
+
+/** "terça-feira, 10 de novembro" -> "Terça-feira, 10 de novembro" (só a primeira letra, como no português). */
+export const capitalizeFirst = (text: string): string => text ? text.charAt(0).toLocaleUpperCase('pt-BR') + text.slice(1) : text;
