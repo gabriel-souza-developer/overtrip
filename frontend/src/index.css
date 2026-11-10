@@ -20,6 +20,11 @@ body {
   outline-offset: 2px;
 }
 
+/* O <main> recebe foco por script ao trocar de página; o contorno ali só confunde. */
+main[tabindex="-1"]:focus-visible {
+  outline: none;
+}
+
 input, select, textarea {
   font-family: inherit;
   font-size: 1rem;

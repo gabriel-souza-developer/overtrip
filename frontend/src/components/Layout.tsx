@@ -13,7 +13,7 @@ const navItems = [
   { path: '/leads', label: 'Interessados', icon: UsersRound, adminOnly: true },
   { path: '/reservations', label: 'Reservas', icon: Plane, adminOnly: true },
   { path: '/gallery', label: 'Galeria de memórias', icon: ImageIcon },
-  { path: '/settings', label: 'Configurações', icon: SettingsIcon },
+  { path: '/settings', label: 'Configurações', icon: SettingsIcon, adminOnly: true },
   { path: '/system', label: 'Servidor', icon: Activity, adminOnly: true },
 ];
 
@@ -23,6 +23,22 @@ export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const asideRef = useRef<HTMLElement>(null);
+  const [isDesktop, setIsDesktop] = useState(() => window.matchMedia('(min-width: 1024px)').matches);
+
+  useEffect(() => {
+    const query = window.matchMedia('(min-width: 1024px)');
+    const update = () => setIsDesktop(query.matches);
+    query.addEventListener('change', update);
+    return () => query.removeEventListener('change', update);
+  }, []);
+
+  // No celular o menu fechado fica fora da tela; `inert` o tira do Tab e do leitor de tela.
+  useEffect(() => {
+    asideRef.current?.toggleAttribute('inert', !isDesktop && !sidebarOpen);
+    // Ao abrir no celular, o foco entra no menu (o botão Fechar é o primeiro item).
+    if (!isDesktop && sidebarOpen) asideRef.current?.querySelector<HTMLElement>('button, a[href]')?.focus();
+  }, [isDesktop, sidebarOpen]);
   const mainRef = useRef<HTMLElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -66,6 +82,7 @@ export default function Layout() {
       )}
 
       <aside
+        ref={asideRef}
         className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-surface-200 transform transition-transform duration-200 lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
         aria-label="Menu principal"
       >

@@ -101,6 +101,12 @@ const ProtectedRoute: React.FC = () => {
   return user ? <Outlet /> : <Navigate to="/login" replace />;
 };
 
+// O backend já recusa (403); aqui evitamos mostrar telas que só dariam erro.
+const AdminRoute = () => {
+  const { user } = useAuth();
+  return user?.role === 'admin' ? <Outlet /> : <Navigate to="/dashboard" replace />;
+};
+
 const LoadingScreen = () => (
   <div className="min-h-screen flex items-center justify-center">
     <div className="spinner w-8 h-8"></div>
@@ -118,11 +124,13 @@ const AppRoutes = () => (
         <Route path="/trips/new" element={<TripForm />} />
         <Route path="/trips/:id/edit" element={<TripForm />} />
         <Route path="/visits" element={<Visits />} />
-        <Route path="/leads" element={<Leads />} />
-        <Route path="/reservations" element={<Reservations />} />
         <Route path="/gallery" element={<Gallery />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="/system" element={<SystemHealthPage />} />
+        <Route element={<AdminRoute />}>
+          <Route path="/leads" element={<Leads />} />
+          <Route path="/reservations" element={<Reservations />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/system" element={<SystemHealthPage />} />
+        </Route>
       </Route>
     </Route>
     <Route path="*" element={<Navigate to="/dashboard" replace />} />

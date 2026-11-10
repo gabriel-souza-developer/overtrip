@@ -59,7 +59,7 @@ export default function Login() {
                 className="input"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@overtrip.com.br"
+                placeholder="seu@email.com"
                 required
                 autoComplete="email"
                 disabled={loading}
