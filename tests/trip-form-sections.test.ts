@@ -16,21 +16,20 @@ const empty = {
 describe('TripForm: seções', () => {
   const titles = [...form.matchAll(/<FormSection title="([^"]+)"/g)].map((m) => m[1]);
 
-  it('tem 3 seções recolhíveis: Preparar publicação, Detalhes para viajantes e Ajustes avançados', () => {
-    expect(titles).toEqual(['Preparar publicação', 'Detalhes para viajantes', 'Ajustes avançados']);
-    // Preparar publicação abre por padrão ao editar
-    expect(form).toMatch(/FormSection[^>]*defaultOpen={isEditing}/);
+  it('apresenta dados principais e uma seção de detalhes opcionais', () => {
+    expect(titles).toEqual(['Detalhes opcionais']);
+    expect(form).toContain('Dados da viagem');
+    expect(form).toContain('Mais opções');
   });
 
   it.each([
-    ['Preparar publicação', ['id="description"', 'id="priceValue"', 'MediaInput', 'id="meetingCity"', 'id="meetingPoint"', 'id="meetingTBD"', 'PublicationReadinessPanel']],
-    ['Detalhes para viajantes', ['id="category"', 'id="intensityClass"', 'id="spotsLeft"', 'id="departureTime"', 'id="endDateISO"', 'id="returnTime"', 'id="includes-custom-input"', 'id="itinerary-input"']],
-    ['Ajustes avançados', ['id="headlineDisplay"', 'id="priceDisplay"', 'id="departureTolerance"', 'id="meetingMapsQuery"', 'id="supportPoint"', 'DeparturesInput']],
-  ])('seção %s contém os campos esperados', (title, fields) => {
-    const start = form.indexOf(`<FormSection title="${title}`);
-    const end = form.indexOf('</FormSection>', start);
+    ['Dados da viagem', '<fieldset className="card p-5 space-y-5">', '</fieldset>', ['id="description"', 'id="priceValue"', 'MediaInput', 'id="meetingCity"', 'id="meetingPoint"', 'id="meetingTBD"', 'PublicationReadinessPanel', 'DeparturesInput']],
+    ['Detalhes opcionais', '<FormSection title="Detalhes opcionais"', '</FormSection>', ['id="category"', 'id="intensityClass"', 'id="spotsLeft"', 'id="departureTime"', 'id="endDateISO"', 'id="returnTime"', 'id="includes-custom-input"', 'id="itinerary-input"', 'id="headlineDisplay"', 'id="priceDisplay"', 'id="departureTolerance"', 'id="meetingMapsQuery"', 'id="supportPoint"']],
+  ])('seção %s contém os campos esperados', (_title, opening, closing, fields) => {
+    const start = form.indexOf(opening as string);
+    const end = form.indexOf(closing as string, start);
     const block = form.slice(start, end);
-    for (const f of fields) expect(block).toContain(f);
+    for (const f of fields as string[]) expect(block).toContain(f);
   });
 
   it('todos os campos que existiam continuam no formulário (nenhum valor some)', () => {

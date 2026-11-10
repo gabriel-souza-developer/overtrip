@@ -8,7 +8,7 @@ export function fillMissingAlt<T extends { alt: string }>(items: T[], fallback: 
 
 const FIELD_LABELS: Record<string, string> = {
   title: 'Título',
-  headlineDisplay: 'Título do card',
+  headlineDisplay: 'Título alternativo',
   category: 'Categoria',
   description: 'Descrição',
   city: 'Cidade',

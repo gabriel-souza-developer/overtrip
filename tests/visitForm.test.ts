@@ -41,6 +41,12 @@ describe('visitToEditForm', () => {
     expect(visitToEditForm({ ...visit }).tripId).toBe('t1');
     expect(visitToEditForm({ ...visit, tripId: null }).tripId).toBe('');
   });
+
+  it('remove apenas a mensagem conhecida de importação, preservando as notas da equipe', () => {
+    const marker = 'Importado de VISITED_PLACES hardcoded (js/map.js). Trip correspondente NÃO associada automaticamente. Revisar manualmente.';
+    expect(visitToEditForm({ ...visit, notes: `${marker}\nLevar equipamentos.` }).notes).toBe('Levar equipamentos.');
+    expect(visitToEditForm({ ...visit, notes: 'Revisar manualmente os valores.' }).notes).toBe('Revisar manualmente os valores.');
+  });
 });
 
 describe('reviewAfterSave', () => {

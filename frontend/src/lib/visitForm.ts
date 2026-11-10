@@ -1,6 +1,15 @@
 import type { Visit } from '../api';
 import { isoToLocalInput } from './dateInput';
 
+const IMPORT_NOTES = [
+  'Importado de VISITED_PLACES hardcoded (js/map.js). Trip correspondente NÃO associada automaticamente. Revisar manualmente.',
+  'Importado de GALLERY hardcoded (js/data.js). Memória órfã - trip não encontrada em trips.json. Coordenadas não disponíveis. Revisar manualmente.',
+];
+
+export function cleanImportedNotes(notes: string | null): string {
+  return IMPORT_NOTES.reduce((value, marker) => value.replaceAll(marker, ''), notes || '').trim();
+}
+
 export interface VisitEditForm {
   title: string;
   description: string;
@@ -23,7 +32,7 @@ export function visitToEditForm(visit: Visit): VisitEditForm {
     region: visit.region,
     lat: visit.lat,
     lng: visit.lng,
-    notes: visit.notes || '',
+    notes: cleanImportedNotes(visit.notes),
     tripId: visit.tripId || '',
   };
 }

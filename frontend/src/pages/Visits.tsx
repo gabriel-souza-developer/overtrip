@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import { AlertTriangle, CheckCircle2, Link2, Link2Off, MapPin, Pencil, Trash2 } from 'lucide-react';
-import { visitApi, tripApi, Visit, Trip, Pagination as PaginationInfo } from '../api';
+import React, { useEffect, useRef, useState } from 'react';
+import { AlertTriangle, CheckCircle2, MapPin, Pencil, Trash2 } from 'lucide-react';
+import { visitApi, Visit, Pagination as PaginationInfo } from '../api';
 import { formatDateBR, localInputToIso } from '../lib/dateInput';
 import { visitToEditForm, reviewAfterSave, VisitEditForm } from '../lib/visitForm';
-import { tripStatusLabel, countFilled } from '../lib/panelHelpers';
+import { locationMapUrl, LocationResult, parseLocationResults } from '../lib/locationSearch';
+import { countFilled } from '../lib/panelHelpers';
 import { useToast } from '../hooks/useToast';
 import { useListParams } from '../hooks/useListParams';
 import { CityAutocomplete, UfSelect } from '../components/LocationFields';
@@ -20,26 +21,29 @@ import Button from '../components/Button';
 import Field from '../components/Field';
 import FormSection from '../components/FormSection';
 
-type TripOption = Pick<Trip, 'id' | 'title' | 'status'>;
-
 const formatDate = formatDateBR;
 
 export default function Visits() {
   const list = useListParams();
   const { toast } = useToast();
   const [visits, setVisits] = useState<Visit[]>([]);
-  const [trips, setTrips] = useState<TripOption[]>([]);
   const [pagination, setPagination] = useState<PaginationInfo>({ page: 1, limit: 20, total: 0, totalPages: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [editing, setEditing] = useState<Visit | null>(null);
   const [editForm, setEditForm] = useState<VisitEditForm | null>(null);
-  const [associating, setAssociating] = useState<Visit | null>(null);
-  const [associateTripId, setAssociateTripId] = useState('');
   const [toDelete, setToDelete] = useState<Visit | null>(null);
   const [saving, setSaving] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [formError, setFormError] = useState('');
+  const [locationQuery, setLocationQuery] = useState('');
+  const [locationResults, setLocationResults] = useState<LocationResult[]>([]);
+  const [locationError, setLocationError] = useState('');
+  const [locationNotice, setLocationNotice] = useState('');
+  const [searchingLocation, setSearchingLocation] = useState(false);
+  const locationRequest = useRef<AbortController | null>(null);
+
+  useEffect(() => () => locationRequest.current?.abort(), []);
 
   const { page } = list;
   const needsReview = list.get('needsReview');
@@ -75,12 +79,13 @@ export default function Visits() {
     loadVisits();
   }, [page, needsReview, hasCoords, tripId, city, region, search]);
 
-  // Todas as viagens (não só as que já têm visita), para poder associar qualquer uma.
-  useEffect(() => {
-    tripApi.list({ limit: 100 }).then((d) => setTrips(d.data)).catch(() => { /* a lista de viagens é um apoio */ });
-  }, []);
-
   const openEdit = (visit: Visit) => {
+    locationRequest.current?.abort();
+    setLocationQuery([visit.title, visit.city, visit.region, 'Brasil'].filter(Boolean).join(', '));
+    setLocationResults([]);
+    setLocationError('');
+    setLocationNotice('');
+    setSearchingLocation(false);
     setEditing(visit);
     setEditForm(visitToEditForm(visit));
     setFormError('');
@@ -88,16 +93,42 @@ export default function Visits() {
 
   const closeEdit = () => {
     if (saving) return;
+    locationRequest.current?.abort();
     setEditing(null);
     setEditForm(null);
   };
 
   const patch = (changes: Partial<VisitEditForm>) => setEditForm((prev) => (prev ? { ...prev, ...changes } : prev));
 
+  const searchLocation = async () => {
+    const query = locationQuery.trim();
+    if (query.length < 3) { setLocationError('Digite pelo menos três caracteres.'); return; }
+    locationRequest.current?.abort();
+    const controller = new AbortController();
+    locationRequest.current = controller;
+    setSearchingLocation(true);
+    setLocationError('');
+    setLocationResults([]);
+    try {
+      const url = new URL('https://photon.komoot.io/api/');
+      url.search = new URLSearchParams({ q: query, limit: '5' }).toString();
+      const response = await fetch(url.toString(), { signal: controller.signal });
+      if (!response.ok) throw new Error('Serviço de pesquisa indisponível. Tente novamente.');
+      const results = parseLocationResults(await response.json());
+      if (controller.signal.aborted) return;
+      setLocationResults(results);
+      if (!results.length) setLocationError('Nenhum local encontrado. Experimente outro nome ou inclua a cidade.');
+    } catch (err) {
+      if (!controller.signal.aborted) setLocationError('Não foi possível pesquisar agora. Tente novamente ou informe as coordenadas manualmente.');
+    } finally {
+      if (!controller.signal.aborted) setSearchingLocation(false);
+    }
+  };
+
   const saveEdit = async (markReviewed: boolean) => {
     if (!editing || !editForm) return;
     if (!editForm.title.trim() || !editForm.region.trim() || !editForm.city.trim()) {
-      setFormError('Preencha o nome, o estado e a cidade.');
+      setFormError('Preencha o nome. Se necessário, confira cidade e estado em Informações adicionais.');
       return;
     }
     setSaving(true);
@@ -113,8 +144,6 @@ export default function Visits() {
         notes: editForm.notes.trim() ? editForm.notes : null,
         needsReview: reviewAfterSave(editing.needsReview, markReviewed),
         date: localInputToIso(editForm.date, editing.date),
-        // A API só aceita um código de viagem ou nada; texto vazio vira "nada".
-        tripId: editForm.tripId || null,
       });
       toast.success('Destino salvo.');
       setEditing(null);
@@ -153,26 +182,6 @@ export default function Visits() {
     }
   };
 
-  const openAssociate = (visit: Visit) => {
-    setAssociating(visit);
-    setAssociateTripId(visit.tripId || '');
-  };
-
-  const saveAssociation = async () => {
-    if (!associating) return;
-    setSaving(true);
-    try {
-      await visitApi.associate(associating.id, associateTripId || null);
-      toast.success(associateTripId ? 'Destino ligado à viagem.' : 'Destino desligado da viagem.');
-      setAssociating(null);
-      await loadVisits();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Não foi possível ligar o destino à viagem.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const remove = async () => {
     if (!toDelete) return;
     setBusyId(toDelete.id);
@@ -193,7 +202,7 @@ export default function Visits() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Destinos visitados" description="Lugares visitados. Confira os dados e ligue cada destino à viagem certa." />
+      <PageHeader title="Destinos visitados" description="Registre e revise os lugares que a OVERTRIP já visitou." />
 
       <FilterBar
         searchLabel="Buscar destinos"
@@ -238,7 +247,6 @@ export default function Visits() {
                   <th scope="col" className="hidden md:table-cell">Data</th>
                   <th scope="col" className="hidden xl:table-cell">Mapa</th>
                   <th scope="col">Revisão</th>
-                  <th scope="col" className="hidden lg:table-cell">Viagem</th>
                   <th scope="col"><span className="visually-hidden">Ações</span></th>
                 </tr>
               </thead>
@@ -260,9 +268,6 @@ export default function Visits() {
                         ? <span className="badge badge-warning gap-1"><AlertTriangle className="w-3 h-3" aria-hidden="true" />Revisar</span>
                         : <span className="badge badge-success gap-1"><CheckCircle2 className="w-3 h-3" aria-hidden="true" />Revisado</span>}
                     </td>
-                    <td className="hidden lg:table-cell text-surface-700">
-                      {visit.trip ? <>{visit.trip.title} <span className="text-surface-600">({tripStatusLabel(visit.trip.status)})</span></> : <span className="text-surface-600">Sem viagem</span>}
-                    </td>
                     <td>
                       <div className="flex items-center justify-end gap-1">
                         {visit.needsReview ? (
@@ -275,7 +280,6 @@ export default function Visits() {
                           items={[
                             { key: 'edit', label: 'Editar', icon: <Pencil className="w-4 h-4" aria-hidden="true" />, onSelect: () => openEdit(visit) },
                             ...(visit.needsReview ? [] : [{ key: 'unreview', label: 'Voltar para revisão', icon: <AlertTriangle className="w-4 h-4" aria-hidden="true" />, onSelect: () => sendBackToReview(visit) }]),
-                            { key: 'link', label: visit.tripId ? 'Trocar a viagem' : 'Ligar a uma viagem', icon: visit.tripId ? <Link2Off className="w-4 h-4" aria-hidden="true" /> : <Link2 className="w-4 h-4" aria-hidden="true" />, onSelect: () => openAssociate(visit) },
                             { key: 'delete', label: 'Excluir', danger: true, icon: <Trash2 className="w-4 h-4" aria-hidden="true" />, onSelect: () => setToDelete(visit) },
                           ]}
                         />
@@ -294,7 +298,7 @@ export default function Visits() {
         open={!!editing}
         onOpenChange={(open) => { if (!open) closeEdit(); }}
         title="Editar destino"
-        description="O básico fica aqui; o resto está nas seções abaixo."
+        description="Confira o nome e a localização do lugar visitado."
         widthClass="max-w-2xl"
         footer={
           <>
@@ -307,37 +311,45 @@ export default function Visits() {
         }
       >
         {editForm && (
-          <form id="visit-form" onSubmit={(e) => { e.preventDefault(); saveEdit(!!editing?.needsReview); }} noValidate className="space-y-4">
+          <form id="visit-form" onSubmit={(e) => { e.preventDefault(); saveEdit(false); }} noValidate className="space-y-4">
             {formError && <div className="alert-error" role="alert">{formError}</div>}
             <Field id="edit-title" label="Nome do destino" required>
               <input id="edit-title" className="input" value={editForm.title} onChange={(e) => patch({ title: e.target.value })} />
             </Field>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Field id="edit-region" label="Estado" required>
-                <UfSelect
-                  id="edit-region"
-                  name="region"
-                  value={editForm.region}
-                  onChange={(val, previousIsKnownUf) => setEditForm((prev) => prev && ({ ...prev, region: val, city: nextCityOnRegionChange(prev.city, prev.region, val, previousIsKnownUf) }))}
-                />
+            <FormSection title="Localização no mapa" summary="Pesquise e confirme o lugar" defaultOpen>
+              <Field id="location-search" label="Pesquisar localização" hint="Confira o resultado no mapa antes de usar as coordenadas.">
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input id="location-search" className="input" value={locationQuery} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); if (!searchingLocation) void searchLocation(); } }} onChange={(e) => { locationRequest.current?.abort(); setSearchingLocation(false); setLocationQuery(e.target.value); setLocationResults([]); setLocationError(''); }} />
+                  <Button loading={searchingLocation} loadingText="Pesquisando..." onClick={searchLocation}>Pesquisar</Button>
+                </div>
               </Field>
-              <Field id="edit-city" label="Cidade" required>
-                <CityAutocomplete id="edit-city" name="city" value={editForm.city} uf={editForm.region} onChange={(val) => patch({ city: val })} />
-              </Field>
-              <Field id="edit-date" label="Data">
-                <input id="edit-date" type="datetime-local" className="input" value={editForm.date} onChange={(e) => patch({ date: e.target.value })} />
-              </Field>
-              <Field id="edit-tripId" label="Viagem">
-                <select id="edit-tripId" className="select" value={editForm.tripId} onChange={(e) => patch({ tripId: e.target.value })}>
-                  <option value="">Sem viagem</option>
-                  {trips.map((t) => <option key={t.id} value={t.id}>{t.title} ({tripStatusLabel(t.status)})</option>)}
-                  {editForm.tripId && !trips.some((t) => t.id === editForm.tripId) && editing?.trip && (
-                    <option value={editForm.tripId}>{editing.trip.title} ({tripStatusLabel(editing.trip.status)})</option>
-                  )}
-                </select>
-              </Field>
-            </div>
-            <FormSection title="Posição no mapa" summary="Latitude e longitude" filled={countFilled([editForm.lat, editForm.lng])}>
+              {locationError && <p className="text-sm text-red-700" role="alert">{locationError}</p>}
+              {locationResults.length > 0 && <ul className="space-y-3" aria-label="Resultados da pesquisa">
+                {locationResults.map((result, index) => <li key={`${result.lat}-${result.lng}-${index}`} className="rounded border border-surface-200 p-3 text-sm space-y-2">
+                  <p>{result.label}</p>
+                  <p className="text-surface-600">{result.lat}, {result.lng}</p>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <a className="text-primary-700 underline" href={locationMapUrl(result.lat, result.lng)} target="_blank" rel="noopener noreferrer">Abrir no mapa</a>
+                    <Button small onClick={() => { patch({ lat: result.lat, lng: result.lng, ...(result.city && result.region ? { city: result.city, region: result.region } : {}) }); setLocationNotice(result.city && result.region ? `Cidade e estado preenchidos: ${result.city}/${result.region}.` : 'A pesquisa não identificou cidade e estado com segurança. Confira os dados em Informações adicionais.'); setLocationResults([]); }}>Usar esta localização</Button>
+                  </div>
+                </li>)}
+              </ul>}
+              {locationNotice && <p className="text-sm text-surface-700" role="status">{locationNotice}</p>}
+              {editForm.lat !== null && editForm.lng !== null && <a className="text-primary-700 underline text-sm" href={locationMapUrl(editForm.lat, editForm.lng)} target="_blank" rel="noopener noreferrer">Ver localização atual no mapa</a>}
+              <p className="text-xs text-surface-600">Busca por Photon; dados © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="underline">colaboradores do OpenStreetMap</a>.</p>
+            </FormSection>
+            <FormSection title="Informações adicionais" summary="Data, cidade, estado e coordenadas manuais">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field id="edit-region" label="Estado" required>
+                  <UfSelect id="edit-region" name="region" value={editForm.region} onChange={(val, previousIsKnownUf) => setEditForm((prev) => prev && ({ ...prev, region: val, city: nextCityOnRegionChange(prev.city, prev.region, val, previousIsKnownUf) }))} />
+                </Field>
+                <Field id="edit-city" label="Cidade" required>
+                  <CityAutocomplete id="edit-city" name="city" value={editForm.city} uf={editForm.region} onChange={(val) => patch({ city: val })} />
+                </Field>
+                <Field id="edit-date" label="Data da visita">
+                  <input id="edit-date" type="datetime-local" className="input" value={editForm.date} onChange={(e) => patch({ date: e.target.value })} />
+                </Field>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field id="edit-lat" label="Latitude">
                   <input id="edit-lat" type="number" inputMode="decimal" step="any" min="-90" max="90" className="input" value={editForm.lat ?? ''} onChange={(e) => patch({ lat: e.target.value ? parseFloat(e.target.value) : null })} />
@@ -359,26 +371,6 @@ export default function Visits() {
             </FormSection>
           </form>
         )}
-      </Modal>
-
-      <Modal
-        open={!!associating}
-        onOpenChange={(open) => { if (!open && !saving) setAssociating(null); }}
-        title="Ligar a uma viagem"
-        description={associating ? `Destino: ${associating.title}` : undefined}
-        footer={
-          <>
-            <Button onClick={() => setAssociating(null)} disabled={saving}>Cancelar</Button>
-            <Button variant="primary" loading={saving} loadingText="Salvando..." onClick={saveAssociation}>Salvar</Button>
-          </>
-        }
-      >
-        <Field id="associate-trip" label="Viagem" hint="Escolha “Sem viagem” para desfazer a ligação.">
-          <select id="associate-trip" className="select" value={associateTripId} onChange={(e) => setAssociateTripId(e.target.value)}>
-            <option value="">Sem viagem</option>
-            {trips.map((t) => <option key={t.id} value={t.id}>{t.title} ({tripStatusLabel(t.status)})</option>)}
-          </select>
-        </Field>
       </Modal>
 
       <ConfirmDialog

@@ -1,5 +1,5 @@
 import { CalendarDays, Clock3, MapPin } from 'lucide-react';
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { formatDateBR } from '../lib/dateInput';
 import { formatBRL } from '../lib/formHelpers';
 import { resolveAssetSrc } from '../lib/assetUrl';
@@ -12,6 +12,9 @@ type PreviewTrip = {
   meetingPoint: string; meetingTBD: boolean; media: Array<{ src: string; alt: string; type?: string }>;
   buttonLabel: string; buttonClass: string;
   status: string;
+  intensityClass?: string;
+  includes?: string[];
+  includesHighlight?: string;
   departures?: Array<{ time: string; place: string; city: string }>;
 };
 
@@ -29,7 +32,8 @@ function PreviewCover({ src, alt }: { src: string; alt: string }) {
 
 export default function TripCardPreview({ trip }: { trip: PreviewTrip }) {
   const cover = trip.media.find(item => item.type !== 'video') ?? trip.media[0];
-  const title = trip.headlineDisplay.trim() || trip.title.trim() || 'Nome da viagem';
+  const title = trip.title.trim() || 'Nome da viagem';
+  const intensity = ({ leve: 'leve', moderado: 'moderada', intenso: 'intensa', extremo: 'extrema' } as Record<string, string>)[trip.intensityClass?.trim().toLowerCase() || ''] || trip.intensityClass?.trim();
   const schedule = trip.scheduleInfo.trim() || [trip.departureTime, trip.returnTime].filter(Boolean).join(' às ') || (trip.scheduleTBD ? 'Horário a confirmar' : 'Horário não informado');
   const departure = trip.meetingTBD ? 'Embarque a confirmar' : [trip.meetingCity, trip.meetingPoint].filter(Boolean).join(' · ') || 'Embarque não informado';
   const price = trip.free ? 'Gratuito' : trip.priceDisplay.trim() || (trip.priceValue ? formatBRL(trip.priceValue) : 'Consulte');
@@ -41,8 +45,9 @@ export default function TripCardPreview({ trip }: { trip: PreviewTrip }) {
         <span className="badge badge-info">{{ DRAFT: 'Rascunho', REVIEW: 'Em revisão', OPEN: 'Publicada', SOLD_OUT: 'Esgotada', CLOSED: 'Encerrada', COMPLETED: 'Realizada', CANCELLED: 'Cancelada' }[trip.status] || 'Rascunho'}</span>
       </div>
       <article className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-surface-200">
-        <div className="aspect-[16/9] bg-surface-200">
+        <div className="aspect-[16/9] bg-surface-200 relative">
           {cover ? <PreviewCover key={cover.src} src={cover.src} alt={cover.alt || title} /> : <div className="flex h-full items-center justify-center text-sm text-surface-600">A capa aparecerá aqui</div>}
+          {intensity && <span className="absolute right-3 bottom-3 rounded-full bg-surface-900/90 px-3 py-1 text-xs font-semibold text-white">Nível: {intensity}</span>}
         </div>
         <div className="space-y-3 p-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-primary-700">{trip.category.trim() || 'Viagem'}</p>
@@ -53,6 +58,14 @@ export default function TripCardPreview({ trip }: { trip: PreviewTrip }) {
             <p className="flex gap-2"><Clock3 className="h-4 w-4 shrink-0 text-primary-700" aria-hidden="true" />{schedule}</p>
             <div className="flex gap-2"><MapPin className="h-4 w-4 shrink-0 text-primary-700" aria-hidden="true" /><div>{!trip.meetingTBD && trip.departures?.length ? <ul className="space-y-1">{trip.departures.map((point, index) => <li key={index}>{[point.time, point.place, point.city].filter(Boolean).join(' · ') || 'Ponto não informado'}</li>)}</ul> : departure}</div></div>
           </div>
+          <details className="rounded-lg border border-surface-200 p-3 text-sm">
+            <summary className="cursor-pointer font-semibold">Ver roteiro &amp; o que inclui</summary>
+            <div className="mt-2 space-y-2">
+              <p className="font-medium">O que você vai viver</p>
+              {trip.includes?.length ? <ul className="list-disc pl-5">{trip.includes.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}</ul> : <p className="text-surface-600">Nenhum item informado.</p>}
+              {trip.includesHighlight && <p>{trip.includesHighlight}</p>}
+            </div>
+          </details>
           <div className="flex items-center justify-between gap-3 border-t border-surface-200 pt-3">
             <div><p className="text-lg font-bold text-surface-900">{price}</p>{!trip.free && <p className="text-xs text-surface-600">{trip.priceUnit || 'por pessoa'}</p>}</div>
             <span className={`rounded-lg px-3 py-2 text-sm font-semibold ${buttonClass[trip.buttonClass] || buttonClass['button-dark']}`}>{trip.buttonLabel || 'Quero viajar'}</span>

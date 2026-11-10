@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Save } from 'lucide-react';
 import { tripApi, settingsApi, TripFormData } from '../api';
 import { useToast } from '../hooks/useToast';
@@ -9,10 +9,11 @@ import { nextCityOnRegionChange } from '../lib/locationCombobox';
 import { isValidImageSrc, IMAGE_SRC_MESSAGE } from '../lib/imageSrc';
 import { isoToLocalInput } from '../lib/dateInput';
 import { fieldsToSchedule, scheduleToFields, type StoredSchedule } from '../lib/tripSchedule';
+import { prepareTripTemplate } from '../lib/tripTemplate';
 import { customItems, hasItem, INCLUDE_PRESETS, mergeUnique, togglePreset } from '../lib/includesServices';
 import { fillMissingAlt, formatBRL, syncPriceDisplay } from '../lib/formHelpers';
 import { canChangeTripStatus } from '../lib/permissions';
-import { applyTripDefaults, countAdvancedFilled, countFilled, formatPriceInput, parsePriceInput, parseWholeNumber, publishProblems, TRIP_STATUS_LABELS, validateTripMinimum } from '../lib/panelHelpers';
+import { applyTripDefaults, countFilled, formatPriceInput, parsePriceInput, parseWholeNumber, publishProblems, TRIP_STATUS_LABELS, validateTripMinimum } from '../lib/panelHelpers';
 import Button from '../components/Button';
 import Field from '../components/Field';
 import FormSection from '../components/FormSection';
@@ -21,6 +22,7 @@ import AiDraftBlock from '../components/AiDraftBlock';
 import TripDocuments from '../components/TripDocuments';
 import PublicationReadinessPanel from '../components/PublicationReadinessPanel';
 import TripCardPreview from '../components/TripCardPreview';
+import TripProposalPreview from '../components/TripProposalPreview';
 import { applySuggestions, type DraftKey, type TripDraft } from '../lib/aiDraft';
 import { ArrayInput, DeparturesInput, MediaInput, VisitPlacePicker } from '../components/TripFormInputs';
 
@@ -66,12 +68,14 @@ const emptyForm = (): FormState => ({
 
 export default function TripForm() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
+  const templateId = !id ? searchParams.get('modelo') : null;
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
   const canEditStatus = canChangeTripStatus(user?.role);
   const isEditing = !!id;
-  const [loading, setLoading] = useState(isEditing);
+  const [loading, setLoading] = useState(isEditing || !!templateId);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState<FormState>(emptyForm);
@@ -117,9 +121,9 @@ export default function TripForm() {
     return () => window.removeEventListener('beforeunload', warn);
   }, [dirty]);
 
-  const loadTrip = async () => {
+  const loadTrip = async (sourceId: string, useAsTemplate: boolean) => {
     try {
-      const trip = await tripApi.get(id!);
+      const trip = await tripApi.get(sourceId);
       const schedule = scheduleToFields({ startDateISO: trip.startDateISO, departureTime: trip.departureTime, endDateISO: trip.endDateISO, returnTime: trip.returnTime });
       const loaded: FormState = {
         title: trip.title,
@@ -169,10 +173,11 @@ export default function TripForm() {
           orderIndex: d.orderIndex,
         })) || [],
       };
-      initialRef.current = JSON.stringify(loaded);
-      originalSchedule.current = { startDateISO: trip.startDateISO, departureTime: trip.departureTime, endDateISO: trip.endDateISO, returnTime: trip.returnTime };
-      setPriceText(formatPriceInput(loaded.priceValue));
-      setFormData(loaded);
+      const next = useAsTemplate ? prepareTripTemplate(loaded) : loaded;
+      initialRef.current = useAsTemplate ? JSON.stringify(emptyForm()) : JSON.stringify(next);
+      originalSchedule.current = useAsTemplate ? { startDateISO: null, departureTime: null, endDateISO: null, returnTime: null } : { startDateISO: trip.startDateISO, departureTime: trip.departureTime, endDateISO: trip.endDateISO, returnTime: trip.returnTime };
+      setPriceText(formatPriceInput(next.priceValue));
+      setFormData(next);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Não foi possível abrir a viagem.');
       navigate('/trips');
@@ -182,7 +187,10 @@ export default function TripForm() {
   };
 
   useEffect(() => {
-    if (isEditing) loadTrip();
+    if (id || templateId) {
+      setLoading(true);
+      void loadTrip(id || templateId!, !id);
+    }
     else {
       settingsApi.getTripPresentation()
         .then((defaults) => {
@@ -192,7 +200,7 @@ export default function TripForm() {
         .catch(() => undefined)
         .finally(() => setLoading(false));
     }
-  }, [id]);
+  }, [id, templateId]);
 
   const clearError = (name: string) => setErrors(prev => (prev[name] ? { ...prev, [name]: '' } : prev));
 
@@ -256,6 +264,7 @@ export default function TripForm() {
         ...schedule,
         startDateISO: schedule.startDateISO!,
         includedServices: [],
+        ...(templateId ? { status: 'DRAFT' as const } : {}),
       };
       if (isEditing) {
         await tripApi.update(id!, payload);
@@ -297,13 +306,27 @@ export default function TripForm() {
           <ArrowLeft className="w-5 h-5" aria-hidden="true" />
         </button>
         <div>
-          <h1 className="page-title">{isEditing ? 'Editar viagem' : 'Nova viagem'}</h1>
-          <p className="page-description">{isEditing ? 'Mude o que precisar e salve.' : 'Preencha o básico. O resto é opcional e pode ficar para depois.'}</p>
+          <h1 className="page-title">{isEditing ? 'Editar viagem' : templateId ? 'Nova viagem a partir de modelo' : 'Nova viagem'}</h1>
+          <p className="page-description">{isEditing ? 'Edite os dados da viagem e salve as alterações.' : 'Comece pelos dados básicos. Você pode salvar e completar a publicação depois.'}</p>
         </div>
       </div>
 
-      {id && user?.role === 'admin' && <TripDocuments key={id} tripId={id} form={formData as Record<string, unknown>} defaults={defaultsRef.current} onApply={applyAiDraft} />}
-      <AiDraftBlock form={formData as Record<string, unknown>} defaults={defaultsRef.current} onApply={applyAiDraft} />
+      {isEditing && <div className="card p-4 flex flex-wrap items-center justify-between gap-3">
+        <div><p className="font-semibold text-surface-900">Reutilizar esta viagem</p><p className="text-sm text-surface-600">Crie uma nova viagem como rascunho e escolha outra data. A original permanece salva.</p></div>
+        <Button onClick={() => { if (dirty) { toast.error('Salve as alterações antes de usar esta viagem como modelo.'); return; } navigate(`/trips/new?modelo=${encodeURIComponent(id!)}`); }}>Usar como modelo</Button>
+      </div>}
+      {templateId && <p className="alert-info" role="note">Os dados da viagem anterior foram copiados. Informe a nova data e revise os textos, horários, preços, embarques e fotos, que podem conter informações antigas. Ao salvar, será criado um novo rascunho; a viagem original não será alterada.</p>}
+
+      <div className="card p-4 text-sm text-surface-700">
+        <p className="font-semibold text-surface-900">Um cadastro para sua viagem</p>
+        <p className="mt-1">Preencha o que já souber e salve como rascunho. Para publicar, complete os itens indicados abaixo.</p>
+        <p className="mt-1">As ferramentas de IA e documentos, quando disponíveis, são opcionais e ajudam a preencher este cadastro.</p>
+      </div>
+
+      <div className="space-y-4">
+        {id && user?.role === 'admin' && <details className="card p-4"><summary className="cursor-pointer font-semibold text-surface-900">Usar documento PDF (opcional)</summary><div className="mt-4"><TripDocuments key={id} tripId={id} form={formData as Record<string, unknown>} defaults={defaultsRef.current} onApply={applyAiDraft} /></div></details>}
+        <AiDraftBlock form={formData as Record<string, unknown>} defaults={defaultsRef.current} onApply={applyAiDraft} />
+      </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(300px,380px)] xl:items-start">
       <details className="xl:hidden card p-4"><summary className="cursor-pointer font-semibold text-surface-900">Ver prévia da viagem</summary><div className="mt-4"><TripCardPreview trip={f} /></div></details>
@@ -323,11 +346,11 @@ export default function TripForm() {
           </div>
         )}
 
-        {/* SEÇÃO 1: Criar rascunho */}
+        {/* Um formulário principal para salvar e preparar a publicação. */}
         <fieldset className="card p-5 space-y-5">
-          <legend className="sr-only">Criar rascunho</legend>
-          <h2 className="text-lg font-semibold text-surface-900">Criar rascunho</h2>
-          <p className="text-sm text-surface-600">O mínimo para salvar: nome, destino e data de saída.</p>
+          <legend className="sr-only">Dados da viagem</legend>
+          <h2 className="text-lg font-semibold text-surface-900">Dados da viagem</h2>
+          <p className="text-sm text-surface-600">Para salvar um rascunho, informe nome, destino e data. Os demais dados desta seção são necessários para publicar.</p>
 
           <Field id="title" label="Nome da viagem" required error={err('title')}>
             <input id="title" name="title" className={`input ${invalid('title')}`} value={f.title} onChange={handleChange} aria-invalid={!!errors.title} aria-describedby={errors.title ? 'title-error' : undefined} placeholder="Ex.: Trilha do Pico do Jabre" autoComplete="off" />
@@ -366,13 +389,7 @@ export default function TripForm() {
           <Field id="startDateISO" label="Data de saída" required error={err('startDateISO')}>
             <input id="startDateISO" name="startDateISO" type="date" className={`input ${invalid('startDateISO')}`} value={f.startDateISO} onChange={handleChange} aria-invalid={!!errors.startDateISO} />
           </Field>
-        </fieldset>
-
-        {/* SEÇÃO 2: Preparar publicação */}
-        <FormSection title="Preparar publicação" summary="Campos obrigatórios para aparecer no site" filled={countFilled([f.description, f.priceValue, f.media, f.meetingCity || f.meetingPoint || f.meetingTBD])} defaultOpen={isEditing}>
-          <PublicationReadinessPanel problems={publicationPending} />
-
-          <Field id="description" label="Resumo da experiência" required error={err('description')} hint="Descreva o que os viajantes vão viver.">
+          <Field id="description" label="Resumo da experiência" required={f.status === 'OPEN'} error={err('description')} hint="Necessário para publicar. Descreva o que os viajantes vão viver.">
             <textarea id="description" name="description" className={`input ${invalid('description')}`} value={f.description} onChange={handleChange} rows={4} aria-invalid={!!errors.description} placeholder="Conte o que torna essa viagem especial..." />
           </Field>
 
@@ -389,7 +406,7 @@ export default function TripForm() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <Field id="priceValue" label="Valor (R$)" required={!f.free} error={err('priceValue')} hint={f.free ? 'Viagem gratuita: sem valor.' : 'Ex.: 109,99 ou 1.250,00'}>
+              <Field id="priceValue" label="Valor (R$)" required={f.status === 'OPEN' && !f.free} error={err('priceValue')} hint={f.free ? 'Viagem gratuita: sem valor.' : 'Necessário para publicar. Ex.: 109,99 ou 1.250,00'}>
                 <input id="priceValue" name="priceValue" type="text" inputMode="decimal" className={`input ${invalid('priceValue')}`} value={priceText} onChange={handlePriceChange} placeholder="109,99" disabled={f.free} aria-invalid={!!errors.priceValue} autoComplete="off" />
               </Field>
               <label htmlFor="free" className="checkbox-label mt-2 min-h-[32px]">
@@ -414,10 +431,18 @@ export default function TripForm() {
               <input id="meetingTBD" name="meetingTBD" type="checkbox" className="checkbox-input" checked={f.meetingTBD} onChange={(e) => { handleChange(e); clearError('departure'); }} />
               <span className="text-sm text-surface-700">Embarque ainda está a confirmar</span>
             </label>
+            <details className="mt-3" open={f.departures.length > 0 || !!errors.departure || undefined}>
+              <summary className="cursor-pointer font-semibold text-sm">Adicionar mais pontos de embarque</summary>
+              <div className="mt-3 space-y-2">
+                <p className="hint">Se adicionar pontos, informe horário, local e cidade de cada um para publicar.</p>
+                <DeparturesInput value={f.departures} onChange={(val) => setFormData(prev => ({ ...prev, departures: val }))} />
+              </div>
+            </details>
             {errors.departure && <p className="field-error" role="alert">{errors.departure}</p>}
           </div>
 
-          {canEditStatus && (
+          <PublicationReadinessPanel problems={publicationPending} />
+          {canEditStatus && !templateId && (
             <div>
               <Field id="status" label="Situação" hint={'“Publicada” aparece no site; “Rascunho” fica só aqui.'}>
                 <select id="status" name="status" className="select" value={f.status} onChange={handleChange}>
@@ -426,12 +451,10 @@ export default function TripForm() {
               </Field>
             </div>
           )}
-        </FormSection>
-
-        <p className="text-sm text-surface-600 px-1">Os detalhes abaixo melhoram a experiência dos viajantes, mas são opcionais. O que você preencher fica salvo mesmo quando a seção está fechada.</p>
+        </fieldset>
 
         {/* SEÇÃO 3: Detalhes para viajantes */}
-        <FormSection title="Detalhes para viajantes" summary="Categoria, intensidade, vagas, horários e o que inclui" filled={countFilled([f.category, f.intensityClass !== 'moderado', f.spotsLeft, f.departureTime, f.endDateISO, f.returnTime, f.includes])}>
+        <FormSection title="Detalhes opcionais" summary="Horários, roteiro, o que inclui e outros detalhes" filled={countFilled([f.category, f.intensityClass !== 'moderado', f.spotsLeft, f.departureTime, f.endDateISO, f.returnTime, f.includes])}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field id="category" label="Categoria" hint={'Se ficar vazia, usamos “Viagem”.'}>
               <input id="category" name="category" className="input" value={f.category} onChange={handleChange} placeholder="Ex.: Trilha, Praia, Aventura" />
@@ -489,12 +512,11 @@ export default function TripForm() {
           <Field id="important-info-input" label="Informações importantes">
             <ArrayInput id="important-info-input" value={f.importantInfo} onChange={(val) => setList('importantInfo', val)} placeholder="Ex.: Levar 2 litros de água" />
           </Field>
-        </FormSection>
-
-        {/* SEÇÃO 4: Ajustes avançados */}
-        <FormSection title="Ajustes avançados" summary="Exceções e personalizações opcionais" filled={countAdvancedFilled(f)}>
+        <details className="form-section">
+          <summary className="cursor-pointer font-semibold">Mais opções</summary>
+          <div className="p-5 space-y-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field id="headlineDisplay" label="Título do card" hint="Opcional: uma versão menor do nome.">
+            <Field id="headlineDisplay" label="Título alternativo (opcional)" hint="Pode ser usado em outros canais. O card do site usa o nome da viagem.">
               <input id="headlineDisplay" name="headlineDisplay" className="input" value={f.headlineDisplay} onChange={handleChange} />
             </Field>
             <Field id="priceDisplay" label="Texto do preço" hint="Acompanha o Valor sozinho. Se você escrever um texto próprio, ele não muda mais.">
@@ -529,11 +551,8 @@ export default function TripForm() {
           <Field id="meetingMapsQuery" label="Endereço para o mapa (Google Maps)" hint="Se preenchido, o local no card vira um link que abre o Google Maps.">
             <input id="meetingMapsQuery" name="meetingMapsQuery" className="input" value={f.meetingMapsQuery} onChange={handleChange} placeholder="Rua Exemplo, 123 - Bairro, Cidade/UF" />
           </Field>
-          <div>
-            <p className="label">Saídas de mais de um lugar</p>
-            <p className="hint mb-2">Use quando o grupo sai de mais de um lugar. Cada ponto aparece no card com seu horário.</p>
-            <DeparturesInput value={f.departures} onChange={(val) => setFormData(prev => ({ ...prev, departures: val }))} />
           </div>
+        </details>
         </FormSection>
 
         <div className="fixed bottom-0 inset-x-0 lg:left-64 z-20 bg-white/95 backdrop-blur border-t border-surface-200">
@@ -551,6 +570,10 @@ export default function TripForm() {
         </div>
       </form>
       <div className="hidden xl:block xl:sticky xl:top-6"><TripCardPreview trip={f} /></div>
+      </div>
+
+      <div className="space-y-4">
+        {id && <TripProposalPreview trip={formData} dirty={dirty} />}
       </div>
 
       <ConfirmDialog

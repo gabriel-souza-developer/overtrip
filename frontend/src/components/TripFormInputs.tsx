@@ -52,7 +52,7 @@ export function VisitPlacePicker({ onSelect }: { onSelect: (place: VisitPlace) =
 
   return (
     <div className="space-y-2">
-      <label htmlFor="visited-place-search" className="label">Destino já visitado (opcional)</label>
+      <label htmlFor="visited-place-search" className="label">Reutilizar cidade e estado de um lugar visitado (opcional)</label>
       <input
         id="visited-place-search"
         className="input"
@@ -88,7 +88,7 @@ export function VisitPlacePicker({ onSelect }: { onSelect: (place: VisitPlace) =
         </ul>
       )}
       <p className="hint">
-        {failed ? 'Não foi possível carregar os destinos anteriores.' : 'Ao escolher, preenche cidade e estado. O nome do roteiro continua sendo informado acima.'}
+        {failed ? 'Não foi possível carregar os destinos anteriores. Preencha cidade e estado acima.' : 'Atalho para preencher cidade e estado; não cria vínculo nem altera o lugar já visitado.'}
       </p>
     </div>
   );

@@ -76,11 +76,12 @@ export default function AiDraftBlock({ form, defaults, onApply }: Props) {
   const allChecked = rows.length > 0 && rows.every(r => checked.has(r.key));
 
   return (
-    <section className="card p-5 space-y-3" aria-labelledby="ai-title">
-      <div className="flex items-center gap-2">
+    <details className="card p-5">
+      <summary className="flex items-center gap-2 cursor-pointer">
         <Sparkles className="w-5 h-5 text-surface-700" aria-hidden="true" />
-        <h2 id="ai-title" className="text-lg font-semibold text-surface-900">Preencher com IA</h2>
-      </div>
+        <span className="text-lg font-semibold text-surface-900">Ajudar a preencher com IA (opcional)</span>
+      </summary>
+      <div className="space-y-3 mt-4">
       <p className="hint">Cole a conversa ou o roteiro. A IA sugere os campos; nada é salvo até você clicar em Salvar. O que não estiver no texto fica vazio.</p>
       <p className="alert-info" role="note">Não cole dados pessoais de clientes, como nome, telefone ou CPF. No plano gratuito, o texto enviado pode ser usado pelo Google para melhorar seus produtos.</p>
       <label htmlFor="ai-text" className="sr-only">Texto da viagem</label>
@@ -120,6 +121,7 @@ export default function AiDraftBlock({ form, defaults, onApply }: Props) {
           <Button variant="primary" onClick={apply} disabled={checked.size === 0}>Usar selecionados ({checked.size})</Button>
         </div>
       )}
-    </section>
+      </div>
+    </details>
   );
 }

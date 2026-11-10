@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, MapPin, Pencil, Plane, Plus, Trash2 } from 'lucide-react';
+import { CopyPlus, Eye, EyeOff, MapPin, Pencil, Plane, Plus, Trash2 } from 'lucide-react';
 import { tripApi, Trip, TripStatus, Pagination as PaginationInfo } from '../api';
 import { useToast } from '../hooks/useToast';
 import { useListParams } from '../hooks/useListParams';
@@ -205,6 +205,7 @@ export default function Trips() {
                             label={`Mais opções de ${trip.title}`}
                             items={[
                               { key: 'edit', label: 'Editar', icon: <Pencil className="w-4 h-4" aria-hidden="true" />, onSelect: () => { navigate(`/trips/${trip.id}/edit`); } },
+                              { key: 'reuse', label: 'Usar como modelo', icon: <CopyPlus className="w-4 h-4" aria-hidden="true" />, onSelect: () => { navigate(`/trips/new?modelo=${encodeURIComponent(trip.id)}`); } },
                               { key: 'delete', label: 'Excluir', danger: true, icon: <Trash2 className="w-4 h-4" aria-hidden="true" />, onSelect: () => setToDelete(trip) },
                             ]}
                           />

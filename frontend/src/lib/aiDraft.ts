@@ -5,7 +5,7 @@ export type TripDraft = Partial<Record<DraftKey, DraftValue>>;
 
 export const DRAFT_LABELS = {
   title: 'Nome da viagem',
-  headlineDisplay: 'Título do card',
+  headlineDisplay: 'Título alternativo',
   category: 'Categoria',
   description: 'Descrição',
   region: 'Estado',
