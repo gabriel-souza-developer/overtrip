@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
-"""Gera o fluxo n8n v35 do Assistente WhatsApp a partir da v34.
+"""Gera o fluxo n8n v35 do Assistente WhatsApp, pronto para importar, a partir da v34 real.
 
 A v35 muda só a origem dos dados: viagens e base de conhecimento passam a vir do
-serviço privado da Oracle (contrato /n8n/v2), pela tailnet, com credencial de
-cabeçalho guardada no n8n. Estado, avisos e IA ficam iguais à v34.
+serviço privado da Oracle (contrato /n8n/v2), pela tailnet, com a credencial de
+cabeçalho "OVERTRIP Serviço Privado" do n8n. Endereços do WAHA, webhook, grupo
+da equipe e credenciais ficam exatamente como na v34 real.
 
-Arquivos:
-- docs/local/OVERTRIP Assistente WhatsApp v34.json  real, fora do git (opcional)
-- docs/local/IMPORTAR NO N8N - OVERTRIP Assistente WhatsApp v35.json  real, para importar no n8n
-- docs/OVERTRIP Assistente WhatsApp v34 (modelo).json e v35 (modelo).json  com marcadores, no git (NÃO importar)
-
-Sem a v34 real, o script trabalha só com as versões com marcadores.
+Entrada: docs/local/OVERTRIP Assistente WhatsApp v34.json (exportado do n8n)
+Saída:   docs/local/IMPORTAR NO N8N - OVERTRIP Assistente WhatsApp v35.json
+docs/local/ fica fora do git porque contém endereços internos e IDs da conta.
 Uso: python3 -I scripts/build-assistant-v35.py
 """
 import copy
@@ -21,18 +19,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 LOCAL = ROOT / "docs" / "local"
 NAME = "OVERTRIP Assistente WhatsApp {}.json"
-# No git ficam só modelos com marcadores; o nome do arquivo e do fluxo avisam para não importar.
-MODEL_NAME = "OVERTRIP Assistente WhatsApp {} (modelo).json"
 IMPORT_NAME = "IMPORTAR NO N8N - OVERTRIP Assistente WhatsApp v35.json"
-MODEL_FLOW_SUFFIX = " — MODELO (não importar)"
 
-# Marcadores no lugar de dados da rede e da conta (ver deploy/README.md).
-TAILNET_HOST = "__TAILNET_HOST__"
-RULES = [
-    (re.compile(r"\b(?:10|127|192\.168|172\.(?:1[6-9]|2\d|3[01]))(?:\.\d{1,3}){1,3}\b"), "__WAHA_HOST__"),
-    (re.compile(r"\b[a-z0-9-]+\.tail[0-9a-f]+\.ts\.net\b"), TAILNET_HOST),
-    (re.compile(r"\b\d{12,}@g\.us\b"), "__TEAM_GROUP_ID__@g.us"),
-]
 CREDENTIAL_NAME = "OVERTRIP Serviço Privado"
 GROUP_TRIPS_CODE = """// Com alwaysOutputData, uma lista vazia chega como um item vazio; ele não é viagem.
 return [
@@ -44,39 +32,12 @@ return [
 ];"""
 
 
-def _scrub(value):
-    if isinstance(value, str):
-        for pattern, placeholder in RULES:
-            value = pattern.sub(placeholder, value)
-        return value
-    if isinstance(value, list):
-        return [_scrub(item) for item in value]
-    if isinstance(value, dict):
-        return {key: _scrub(item) for key, item in value.items()}
-    return value
-
-
-def sanitize(flow: dict) -> dict:
-    """Remove o que identifica a rede, a conta n8n e o endereço do webhook."""
-    flow = _scrub(copy.deepcopy(flow))
-    if not flow["name"].endswith(MODEL_FLOW_SUFFIX):
-        flow["name"] += MODEL_FLOW_SUFFIX
-    flow.get("meta", {}).pop("instanceId", None)
-    for key in ("id", "versionId"):
-        flow.pop(key, None)
-    for node in flow["nodes"]:
-        node.pop("webhookId", None)
-        if node["type"].endswith(".webhook"):
-            node["parameters"]["path"] = "__WEBHOOK_PATH__"
-        for credential in (node.get("credentials") or {}).values():
-            credential.pop("id", None)
-    return flow
-
-
 def tailnet_host(flow: dict) -> str:
     """O host da VM na tailnet é o mesmo que o fluxo já usa para o Qwen."""
     match = re.search(r"https://([a-z0-9-]+\.tail[0-9a-f]+\.ts\.net)", json.dumps(flow))
-    return match.group(1) if match else TAILNET_HOST
+    if not match:
+        raise SystemExit("não achei o host da VM na tailnet (nó do Qwen) na v34; nada foi gerado")
+    return match.group(1)
 
 
 def to_v35(v34: dict) -> dict:
@@ -118,12 +79,10 @@ def write(path: Path, flow: dict) -> None:
 
 def main() -> None:
     real_v34 = LOCAL / NAME.format("v34")
-    if real_v34.exists():
-        v34 = json.loads(real_v34.read_text(encoding="utf-8"))
-        write(LOCAL / IMPORT_NAME, to_v35(v34))
-        write(ROOT / "docs" / MODEL_NAME.format("v34"), sanitize(v34))
-    v34_public = json.loads((ROOT / "docs" / MODEL_NAME.format("v34")).read_text(encoding="utf-8"))
-    write(ROOT / "docs" / MODEL_NAME.format("v35"), sanitize(to_v35(v34_public)))
+    if not real_v34.exists():
+        raise SystemExit(f"falta o fluxo real da v34 em {real_v34.relative_to(ROOT)} (exporte do n8n)")
+    v34 = json.loads(real_v34.read_text(encoding="utf-8"))
+    write(LOCAL / IMPORT_NAME, to_v35(v34))
 
 
 if __name__ == "__main__":
