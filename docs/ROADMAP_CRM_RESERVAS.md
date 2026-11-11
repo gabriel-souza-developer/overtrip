@@ -12,7 +12,7 @@ VM Oracle.
 
 ## Fases
 
-### Fase 1 — fila de retornos (em andamento)
+### Fase 1 — fila de retornos (implementada localmente em 11/11/2026)
 
 - Filtro operacional para retornos vencidos ou previstos para hoje, combinável
   com etapa e paginação.
@@ -25,6 +25,11 @@ VM Oracle.
 **Aceite:** somente administradores acessam CRM; filtros e paginação não
 misturam registros; os limites do dia são estáveis no fuso de São Paulo; o
 restante do CRM e das reservas mantém o comportamento atual.
+
+Validação local: teste da API verifica retorno vencido, retorno de hoje,
+exclusão de data futura, combinação com etapa e rejeição de filtro inválido.
+Typecheck e builds da API e do painel passaram. A mudança ainda não foi
+publicada na Oracle.
 
 ### Fase 2 — origem do interessado e conversão
 

@@ -25,19 +25,56 @@ const updateInput = leadInput.partial();
 const filters = z.object({
   stage: stage.optional(),
   tripId: z.string().trim().min(1).max(100).optional(),
+  followUp: z.enum(['due']).optional(),
   page: z.coerce.number().int().min(1).max(100000).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
 }).strict();
 const include = { trip: { select: { id: true, title: true } } } as const;
+const businessTimeZone = 'America/Sao_Paulo';
+
+function zonedMidnightUtc(year: number, month: number, day: number): Date {
+  const targetAsUtc = Date.UTC(year, month - 1, day);
+  let instant = targetAsUtc;
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: businessTimeZone,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
+  });
+  // Resolve the UTC instant that corresponds to midnight in the business zone.
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const parts = Object.fromEntries(formatter.formatToParts(new Date(instant)).map(part => [part.type, part.value]));
+    const renderedAsUtc = Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day), Number(parts.hour), Number(parts.minute), Number(parts.second));
+    const offset = renderedAsUtc - instant;
+    const adjusted = targetAsUtc - offset;
+    if (adjusted === instant) break;
+    instant = adjusted;
+  }
+  return new Date(instant);
+}
+
+function startOfTomorrowInBusinessZone(now = new Date()): Date {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: businessTimeZone, year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(now);
+  const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  return zonedMidnightUtc(Number(values.year), Number(values.month), Number(values.day) + 1);
+}
 const clean = <T extends Record<string, unknown>>(data: T) => Object.fromEntries(
   Object.entries(data).map(([k, v]) => [k, v === '' ? null : v])
 );
 
 router.get('/', asyncHandler(async (req: Request, res: Response) => {
-  const { page, limit, stage: currentStage, tripId } = filters.parse(req.query);
-  const where = { ...(currentStage ? { stage: currentStage } : {}), ...(tripId ? { tripId } : {}) };
+  const { page, limit, stage: currentStage, tripId, followUp } = filters.parse(req.query);
+  const where = {
+    ...(currentStage ? { stage: currentStage } : {}),
+    ...(tripId ? { tripId } : {}),
+    ...(followUp === 'due' ? { nextFollowUpAt: { not: null, lt: startOfTomorrowInBusinessZone() } } : {}),
+  };
+  const orderBy = followUp === 'due'
+    ? [{ nextFollowUpAt: 'asc' as const }, { updatedAt: 'desc' as const }, { id: 'asc' as const }]
+    : [{ updatedAt: 'desc' as const }, { id: 'asc' as const }];
   const [data, total] = await prisma.$transaction([
-    prisma.lead.findMany({ where, include, orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }], skip: (page - 1) * limit, take: limit }),
+    prisma.lead.findMany({ where, include, orderBy, skip: (page - 1) * limit, take: limit }),
     prisma.lead.count({ where }),
   ]);
   res.json({ data, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } });

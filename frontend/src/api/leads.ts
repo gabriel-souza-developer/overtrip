@@ -10,7 +10,7 @@ export interface Lead {
 export type LeadInput = Pick<Lead, 'name' | 'phone' | 'email' | 'stage' | 'tripId' | 'responsible' | 'nextFollowUpAt' | 'notes'>;
 const leadRequest = <T>(path: string, options: RequestInit = {}) => request<T>(`/leads${path}`, options);
 export const leadsApi = {
-  list: (stage: string, page: number, limit = 20) => leadRequest<{ data: Lead[]; pagination: { page: number; totalPages: number; total: number } }>(`?${new URLSearchParams({ page: String(page), limit: String(limit), ...(stage ? { stage } : {}) })}`),
+  list: (stage: string, page: number, limit = 20, followUp = '') => leadRequest<{ data: Lead[]; pagination: { page: number; totalPages: number; total: number } }>(`?${new URLSearchParams({ page: String(page), limit: String(limit), ...(stage ? { stage } : {}), ...(followUp ? { followUp } : {}) })}`),
   get: (id: string) => leadRequest<Lead>(`/${encodeURIComponent(id)}`),
   create: (data: LeadInput) => leadRequest<Lead>('', { method: 'POST', body: JSON.stringify(data) }),
   update: (id: string, data: LeadInput) => leadRequest<Lead>(`/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(data) }),

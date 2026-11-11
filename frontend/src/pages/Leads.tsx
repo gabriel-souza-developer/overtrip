@@ -12,22 +12,27 @@ const STAGES: Record<LeadStage, string> = { NEW: 'Novo', CONTACTED: 'Contato rea
 const empty = (): LeadInput => ({ name: '', phone: '', email: '', stage: 'NEW', tripId: '', responsible: '', nextFollowUpAt: null, notes: '' });
 const dateInput = (v: string | null) => v ? v.slice(0, 10) : '';
 const dateLabel = (v: string) => new Date(v).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+const businessDateKey = (v: Date) => {
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(v);
+  const date = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  return `${date.year}-${date.month}-${date.day}`;
+};
 
 export default function Leads() {
   const { user } = useAuth();
   const [items, setItems] = useState<Lead[]>([]); const [trips, setTrips] = useState<Pick<Trip, 'id' | 'title'>[]>([]);
   const [tripLoading, setTripLoading] = useState(false); const [tripError, setTripError] = useState('');
-  const [stage, setStage] = useState(''); const [page, setPage] = useState(1); const [pages, setPages] = useState(1);
+  const [stage, setStage] = useState(''); const [followUp, setFollowUp] = useState(''); const [page, setPage] = useState(1); const [pages, setPages] = useState(1);
   const [loading, setLoading] = useState(false); const [error, setError] = useState('');
   const [editing, setEditing] = useState<Lead | null>(null); const [open, setOpen] = useState(false); const [form, setForm] = useState<LeadInput>(empty());
   const [pendingRemoval, setPendingRemoval] = useState<Lead | null>(null);
   const [busy, setBusy] = useState(false); const [formError, setFormError] = useState(''); const [detail, setDetail] = useState<Lead | null>(null); const [eventBody, setEventBody] = useState('');
   const load = useCallback(async () => {
     setLoading(true); setError('');
-    try { const data = await leadsApi.list(stage, page); setItems(data.data); setPages(Math.max(1, data.pagination.totalPages)); }
+    try { const data = await leadsApi.list(stage, page, 20, followUp); setItems(data.data); setPages(Math.max(1, data.pagination.totalPages)); }
     catch (err) { setError(err instanceof Error ? err.message : 'Erro ao carregar interessados.'); }
     finally { setLoading(false); }
-  }, [stage, page]);
+  }, [stage, followUp, page]);
   const loadTrips = useCallback(async () => {
     setTripLoading(true); setTripError('');
     try {
@@ -61,9 +66,9 @@ export default function Leads() {
   const remove = async () => { if (!pendingRemoval || busy) return; setBusy(true); try { await leadsApi.remove(pendingRemoval.id); setPendingRemoval(null); if (items.length === 1 && page > 1) setPage(page - 1); else await load(); } catch (err) { setPendingRemoval(null); setError(err instanceof Error ? err.message : 'Erro ao excluir.'); } finally { setBusy(false); } };
   return <div className="space-y-6">
     <PageHeader title="Interessados" description="Organize contatos e acompanhe a próxima ação de cada viagem." actions={<Button variant="primary" icon={<Plus className="w-4 h-4" />} onClick={() => edit()}>Novo interessado</Button>} />
-    <div className="card p-4 flex flex-wrap items-center gap-3"><label htmlFor="lead-stage" className="text-sm font-medium">Etapa</label><select id="lead-stage" className="input max-w-xs" value={stage} onChange={e => { setStage(e.target.value); setPage(1); }}><option value="">Todas as etapas</option>{Object.entries(STAGES).map(([v, l]) => <option value={v} key={v}>{l}</option>)}</select></div>
+    <div className="card p-4 flex flex-wrap items-center gap-3"><label htmlFor="lead-stage" className="text-sm font-medium">Etapa</label><select id="lead-stage" className="input max-w-xs" value={stage} onChange={e => { setStage(e.target.value); setPage(1); }}><option value="">Todas as etapas</option>{Object.entries(STAGES).map(([v, l]) => <option value={v} key={v}>{l}</option>)}</select><label htmlFor="lead-follow-up" className="text-sm font-medium">Próximo contato</label><select id="lead-follow-up" className="input max-w-xs" value={followUp} onChange={e => { setFollowUp(e.target.value); setPage(1); }}><option value="">Todos os contatos</option><option value="due">Vencidos e para hoje</option></select></div>
     {error && <p role="alert" className="text-red-700 text-sm">{error}</p>}
-    {loading ? <p>Carregando interessados...</p> : items.length === 0 ? <div className="card p-10 text-center text-surface-600"><UsersRound className="w-8 h-8 mx-auto mb-3" />Nenhum interessado encontrado.</div> : <div className="grid gap-3">{items.map(item => <article key={item.id} className="card p-4 sm:p-5 flex flex-wrap gap-3 items-start justify-between"><div className="space-y-1 min-w-0"><h2 className="font-semibold text-surface-900 break-words">{item.name}</h2><p className="text-sm text-surface-600">{STAGES[item.stage]} · {item.trip?.title || 'Sem viagem associada'}</p><p className="text-sm text-surface-600">{item.responsible ? `Responsável: ${item.responsible}` : 'Responsável não informado'}{item.nextFollowUpAt ? ` · Retorno: ${dateLabel(item.nextFollowUpAt)}` : ''}</p></div><div className="flex flex-wrap gap-2"><Button small onClick={() => openDetail(item.id)}>Histórico</Button><Button small onClick={() => edit(item)}>Editar</Button><Button small variant="danger" onClick={() => setPendingRemoval(item)}>Excluir</Button></div></article>)}</div>}
+    {loading ? <p>Carregando interessados...</p> : items.length === 0 ? <div className="card p-10 text-center text-surface-600"><UsersRound className="w-8 h-8 mx-auto mb-3" />{followUp ? 'Nenhum retorno vencido ou previsto para hoje.' : 'Nenhum interessado encontrado.'}</div> : <div className="grid gap-3">{items.map(item => { const followUpKey = item.nextFollowUpAt ? item.nextFollowUpAt.slice(0, 10) : ''; const todayKey = businessDateKey(new Date()); const overdue = !!followUpKey && followUpKey < todayKey; const dueToday = !!followUpKey && followUpKey === todayKey; return <article key={item.id} className="card p-4 sm:p-5 flex flex-wrap gap-3 items-start justify-between"><div className="space-y-1 min-w-0"><h2 className="font-semibold text-surface-900 break-words">{item.name}</h2><p className="text-sm text-surface-600">{STAGES[item.stage]} · {item.trip?.title || 'Sem viagem associada'}</p><p className="text-sm text-surface-600">{item.responsible ? `Responsável: ${item.responsible}` : 'Responsável não informado'}{item.nextFollowUpAt ? ` · Retorno: ${dateLabel(item.nextFollowUpAt)}` : ''}</p>{overdue && <p className="text-sm font-medium text-red-700">Retorno vencido</p>}{dueToday && <p className="text-sm font-medium text-amber-700">Retorno previsto para hoje</p>}</div><div className="flex flex-wrap gap-2"><Button small onClick={() => openDetail(item.id)}>Histórico</Button><Button small onClick={() => edit(item)}>Editar</Button><Button small variant="danger" onClick={() => setPendingRemoval(item)}>Excluir</Button></div></article>; })}</div>}
     {pages > 1 && <div className="flex items-center gap-3"><Button small disabled={page <= 1} onClick={() => setPage(page - 1)}>Anterior</Button><span className="text-sm">Página {page} de {pages}</span><Button small disabled={page >= pages} onClick={() => setPage(page + 1)}>Próxima</Button></div>}
     <Modal open={!!pendingRemoval} onOpenChange={v => { if (!v && !busy) setPendingRemoval(null); }} title="Excluir interessado" description="Esta ação também exclui todo o histórico de contatos." footer={<><Button disabled={busy} onClick={() => setPendingRemoval(null)}>Cancelar</Button><Button variant="danger" loading={busy} onClick={() => void remove()}>Excluir</Button></>}>
       <p>Excluir {pendingRemoval?.name}?</p>
