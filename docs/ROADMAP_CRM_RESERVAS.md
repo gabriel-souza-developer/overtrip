@@ -31,18 +31,32 @@ exclusão de data futura, combinação com etapa e rejeição de filtro inválid
 Typecheck e builds da API e do painel passaram. A mudança ainda não foi
 publicada na Oracle.
 
-### Fase 2 — origem do interessado e conversão
+### Fase 2 — atendimento conectado (próxima)
 
-- Adicionar origem/canal controlado (por exemplo: WhatsApp, Instagram, site,
-  indicação e outros) com opção “não informado”.
-- Mostrar contagem por origem e etapa com filtros coerentes, sem enviar dados
-  pessoais a analytics públicos.
-- Definir se “Convertido” significa reserva criada ou reserva confirmada antes
-  de automatizar a mudança de etapa.
-- Exige migração aditiva, preenchimento seguro dos registros antigos e revisão
-  das telas e rotas.
+Antes de desenvolver outra caixa de entrada, comparar a adoção de uma solução
+de WhatsApp já integrada ao CRM com a integração do canal ao painel OVERTRIP.
+Não manter duas caixas de entrada nem dois cadastros independentes para a
+mesma conversa.
 
-### Fase 3 — fluxo claro de reserva
+Se a operação continuar no painel, o mínimo funcional será:
+
+- Receber mensagens novas do canal por integração oficial e criar ou localizar
+  automaticamente o contato/conversa, com deduplicação por identificador do
+  provedor e telefone normalizado.
+- Mostrar uma fila única de conversas novas e sem resposta; ligar a conversa ao
+  interessado e à viagem quando houver evidência suficiente.
+- Atribuir automaticamente um responsável quando houver mais de um atendente;
+  destacar mensagens sem resposta e avisar o responsável após o prazo definido.
+- Permitir responder pelo próprio painel e guardar a mensagem no histórico. A
+  confirmação de envio deve vir do provedor, não apenas do clique.
+- Não exigir cadastro manual, anotação duplicada ou seleção da origem quando
+  ela já for identificável pelo canal.
+
+**Não incluir nesta fase:** respostas autônomas de IA, campanhas em massa,
+funil customizável, relatório de origem, múltiplos canais não usados, cobrança
+ou automação de vagas. Só entram após demonstrarem reduzir uma tarefa real.
+
+### Fase 3 — consistência entre atendimento e reserva
 
 - Definir estados e seus significados com a operação (consulta, aguardando
   sinal, confirmada, cancelada), sem inferir pagamentos.
@@ -53,14 +67,15 @@ publicada na Oracle.
 - Não descontar vagas automaticamente até haver regra aprovada para expiração,
   cancelamento, estorno e concorrência de reservas.
 
-### Fase 4 — comunicação assistida
+### Fase 4 — automação de atendimento, somente se necessária
 
-- Preparar mensagens e lembretes que a equipe revisa e envia; começar sem
-  disparos automáticos.
-- Só conectar WhatsApp/e-mail depois de verificar credenciais, consentimento,
-  opt-out, limites e impacto no fluxo já usado pela operação.
-- Registrar quem iniciou a comunicação e o resultado sem copiar dados
-  desnecessários para logs.
+- Se a caixa de entrada não resolver sozinha, automatizar primeiro triagem e
+  lembretes simples, com encaminhamento humano visível e controle de falhas.
+- Qualquer resposta automática precisa de base aprovada, transferência clara
+  para uma pessoa, respeito à janela de atendimento e modelos aprovados quando
+  exigidos pelo provedor.
+- Integrar apenas com o canal escolhido na Fase 2; não criar outro fluxo
+  paralelo no n8n e no painel.
 
 ### Fase 5 — indicadores e melhoria contínua
 
@@ -74,16 +89,14 @@ publicada na Oracle.
 ## Ordem de execução
 
 1. Fase 1: fila de retornos, sem mudança de banco.
-2. Validar o fluxo com os testes de API existentes e revisão de bordas de data.
-3. Fase 2: origem e métricas, com migração compatível.
-4. Fase 3: alinhar estados e associações antes de qualquer automação financeira
-   ou de capacidade.
-5. Fases 4 e 5: só após validar os fluxos anteriores e aprovar integração e
-   definições operacionais.
+2. Fase 2: escolher entre solução pronta e painel próprio; testar primeiro com
+   conversas reais sem disparos em massa e medir se nenhum contato se perde.
+3. Fase 3: alinhar estados de reserva depois que a conversa chega ao CRM.
+4. Fases 4 e 5: avaliar só após validar as anteriores e demonstrar necessidade.
 
 ## Fora do escopo automático
 
 Este plano não autoriza publicação na Oracle, ativação de serviços externos,
 mensagens a clientes, processamento de pagamentos, baixa automática de vagas
-ou alteração de dados reais. Cada uma dessas ações exige uma etapa de validação
-e autorização próprias.
+ou alteração de dados reais. O fluxo da Fase 2 depende de selecionar e
+configurar um provedor de mensagens antes de qualquer implementação conectada.
