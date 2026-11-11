@@ -8,6 +8,17 @@
 > registro de 10 de novembro, mas os fluxos e limites descritos nessa entrada
 > não significam que o estado atual da instância foi novamente verificado.
 
+## Publicação de autenticação segura e correção da API pública (11 de novembro, 08:33 UTC)
+
+- Publicado o commit `e430d78` (`fix(auth): usa cookie segura e remove fallback de viagens`) da branch `feat/evolucao-painel-viagens`. Pacote SHA-256 `6d15c22bf08495e6ca2b02f8aca234f9658d5d0be5a2d6875f5804e1cf8a93b9`; o commit foi enviado ao `origin` antes da publicação.
+- API, painel administrativo e arquivos públicos foram instalados juntos. A API e o Caddy foram confirmados ativos. Nenhuma migração de banco ou mudança no Caddyfile foi aplicada.
+- Backup SQLite íntegro: `/var/backups/overtrip/overtrip-20261111-083356.db.gz`. Cópia de retorno da versão anterior: `/srv/overtrip/retorno-e430d78-20261111-083356`.
+- Verificação após publicação: `/`, `/admin/`, `/health` e `/api/public/trips` responderam HTTPS 200; `/api/auth/me` sem cookie respondeu 401; `/trips.json` respondeu 404. A verificação local em `127.0.0.1:3001/health` retornou `status: ok`.
+- O frontend agora usa cookie de sessão HttpOnly; a resposta de login não expõe o JWT no JSON. A API também não tenta carregar viagens de um arquivo legado público quando falha a consulta principal.
+- Uma primeira tentativa foi revertida automaticamente porque o teste de saúde ocorreu antes de a API abrir a porta. A segunda tentativa aguardou a prontidão dos serviços e passou nos testes; o diretório de retorno e o backup foram preservados.
+- A validação da suíte no código publicado consta no registro de preparação: 661 testes passaram, 2 foram ignorados, e 5 cenários Playwright direcionados passaram. O login com credencial real não foi exercitado em produção.
+- Content-Security-Policy continua pendente. O Caddyfile histórico do repositório não foi instalado; qualquer política deve ser preparada usando a configuração efetiva da Oracle.
+
 ## Teste de restauração isolada do backup (11 de novembro)
 
 - O backup mais recente encontrado foi `/var/backups/overtrip/overtrip-20261111-033004.db.gz` (36.937 bytes).
@@ -15,12 +26,12 @@
 - `PRAGMA integrity_check` retornou `ok`; `PRAGMA foreign_key_check` não encontrou violações; o banco restaurado contém 20 tabelas de aplicação.
 - A cópia temporária foi removida ao fim da verificação. Este teste confirma a legibilidade e integridade do backup local; não confirma uma cópia fora da VM nem uma recuperação completa da aplicação.
 - Leitura por SSH do `/etc/caddy/Caddyfile`: API é encaminhada para `127.0.0.1:3001`, a lista pública não inclui `/trips.json` nem `/knowledge.json`, e o restante retorna 404. O arquivo define `nosniff`, `Referrer-Policy`, `X-Frame-Options`, `Permissions-Policy` e HSTS; não define Content-Security-Policy. Isso é leitura do arquivo em disco, não uma nova validação de Caddy nem teste de invasão.
-- A alteração local que remove a tentativa pública de fallback para `/trips.json` ainda não foi publicada. A produção permanece na versão anterior até uma publicação autorizada.
+- Naquele registro, a alteração local que remove a tentativa pública de fallback ainda não havia sido publicada; a publicação consta na seção acima.
 
 ## Correções locais após revisão de segurança (11 de novembro)
 
 - Migração do painel de `localStorage` para cookie de sessão `HttpOnly`, `SameSite=Lax` e `Secure` em produção. Login deixa de devolver o JWT no JSON; `/auth/me` valida a sessão no carregamento. Uploads e downloads protegidos usam o cookie. Operações de escrita autenticadas por cookie exigem `Origin` igual a `CORS_ORIGIN`; clientes que usam explicitamente `Authorization: Bearer` continuam compatíveis.
-- Essas alterações estão apenas no repositório local: não foram publicadas nem validadas contra a API ativa. Antes de publicar, revisar o `CORS_ORIGIN` de produção e exercitar login, expiração, logout, troca de senha, upload de mídia e download de PDF.
+- O registro de preparo foi escrito antes da publicação do commit `e430d78`; a situação de produção correspondente consta na seção de publicação acima. Expiração, logout, troca de senha, upload de mídia e download de PDF passaram pelos testes locais; login com credencial real não foi feito na VM.
 - Content-Security-Policy continua pendente. O Caddyfile versionado é histórico e a política deve ser ajustada primeiro em modo `Report-Only`, com teste dos scripts inline do site e dos recursos externos do painel, usando a configuração realmente instalada na Oracle.
 - A expansão multiempresa está adiada; [ESCOPO_SAAS_MULTITENANT.md](../docs/ESCOPO_SAAS_MULTITENANT.md) permanece somente como proposta futura.
 
