@@ -6,7 +6,7 @@ import { resolve } from 'node:path';
 import { PrismaClient } from '@prisma/client';
 import app from '../src/app.js';
 import { toSiteDate } from '../src/services/publicTrips.js';
-import { fetchTripsWithFallback } from '../js/data.js';
+import { fetchPublicTrips } from '../js/data.js';
 
 const prisma = new PrismaClient();
 const TAG = `public-trips-test:${Date.now()}`;
@@ -239,15 +239,14 @@ describe('contrato com trips.json', () => {
   });
 });
 
-describe('fetchTripsWithFallback (queda para /trips.json)', () => {
+describe('fetchPublicTrips (API pública como fonte única)', () => {
   const jsonRes = (body: unknown, init: Partial<Response> = {}) =>
     ({ ok: true, status: 200, statusText: 'OK', json: async () => body, ...init }) as Response;
 
-  it('usa a API quando responde um array, inclusive vazio', async () => {
+  it('aceita array vazio como resposta válida e consulta apenas a API', async () => {
     const calls: string[] = [];
-    const warn = () => { throw new Error('não deveria avisar'); };
     const fetchFn = async (url: string) => { calls.push(url); return jsonRes([]); };
-    expect(await fetchTripsWithFallback(fetchFn as any, { warn })).toEqual([]);
+    expect(await fetchPublicTrips(fetchFn as any)).toEqual([]);
     expect(calls).toEqual(['/api/public/trips']);
   });
 
@@ -256,22 +255,20 @@ describe('fetchTripsWithFallback (queda para /trips.json)', () => {
     ['HTTP 500', async () => jsonRes([], { ok: false, status: 500, statusText: 'x' })],
     ['HTML', async () => ({ ok: true, status: 200, statusText: 'OK', json: async () => { throw new SyntaxError('<'); } }) as unknown as Response],
     ['objeto', async () => jsonRes({ a: 1 })],
-  ])('cai para /trips.json em %s e avisa', async (_n, apiBehavior) => {
-    const warnings: string[] = [];
-    const fetchFn = async (url: string) => (url === '/api/public/trips' ? apiBehavior() : jsonRes([{ title: 'fallback' }]));
-    const out = await fetchTripsWithFallback(fetchFn as any, { warn: (m: string) => warnings.push(m) });
-    expect(out).toEqual([{ title: 'fallback' }]);
-    expect(warnings).toHaveLength(1);
+  ])('propaga %s sem consultar arquivo legado', async (_name, apiBehavior) => {
+    const calls: string[] = [];
+    const fetchFn = async (url: string) => { calls.push(url); return apiBehavior(); };
+    await expect(fetchPublicTrips(fetchFn as any)).rejects.toThrow();
+    expect(calls).toEqual(['/api/public/trips']);
   });
 
-  it('cai para /trips.json quando estoura o tempo limite', async () => {
-    const warnings: string[] = [];
-    const fetchFn = (url: string, opts: { signal?: AbortSignal }) =>
-      url === '/api/public/trips'
-        ? new Promise((_r, reject) => opts.signal?.addEventListener('abort', () => reject(new Error('aborted'))))
-        : Promise.resolve(jsonRes([{ title: 'fallback' }]));
-    const out = await fetchTripsWithFallback(fetchFn as any, { timeoutMs: 20, warn: (m: string) => warnings.push(m) });
-    expect(out).toEqual([{ title: 'fallback' }]);
-    expect(warnings).toHaveLength(1);
+  it('interrompe a consulta após o tempo limite sem tentar outro endereço', async () => {
+    const calls: string[] = [];
+    const fetchFn = (url: string, opts: { signal?: AbortSignal }) => {
+      calls.push(url);
+      return new Promise((_resolve, reject) => opts.signal?.addEventListener('abort', () => reject(new Error('aborted'))));
+    };
+    await expect(fetchPublicTrips(fetchFn as any, { timeoutMs: 20 })).rejects.toThrow();
+    expect(calls).toEqual(['/api/public/trips']);
   });
 });

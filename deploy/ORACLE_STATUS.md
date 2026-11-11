@@ -1,12 +1,28 @@
 # Estado da produção na Oracle
 
 > Este arquivo é um diário de alterações e verificações, não um monitor em
-> tempo real. O registro mais recente abaixo é de 10 de novembro de 2026; não
+> tempo real. O registro mais recente abaixo é de 11 de novembro de 2026; não
 > confirma que serviços, DNS, dados ou configurações continuam iguais hoje.
 > Para mudanças operacionais, obtenha evidência nova diretamente da VM e
 > preserve os limites de privacidade. CRM/reservas foram publicados segundo o
 > registro de 10 de novembro, mas os fluxos e limites descritos nessa entrada
 > não significam que o estado atual da instância foi novamente verificado.
+
+## Teste de restauração isolada do backup (11 de novembro)
+
+- O backup mais recente encontrado foi `/var/backups/overtrip/overtrip-20261111-033004.db.gz` (36.937 bytes).
+- O gzip foi validado e o banco foi extraído em um diretório temporário novo sob `/tmp`, sem parar serviços nem acessar o banco ativo para escrita.
+- `PRAGMA integrity_check` retornou `ok`; `PRAGMA foreign_key_check` não encontrou violações; o banco restaurado contém 20 tabelas de aplicação.
+- A cópia temporária foi removida ao fim da verificação. Este teste confirma a legibilidade e integridade do backup local; não confirma uma cópia fora da VM nem uma recuperação completa da aplicação.
+- Leitura por SSH do `/etc/caddy/Caddyfile`: API é encaminhada para `127.0.0.1:3001`, a lista pública não inclui `/trips.json` nem `/knowledge.json`, e o restante retorna 404. O arquivo define `nosniff`, `Referrer-Policy`, `X-Frame-Options`, `Permissions-Policy` e HSTS; não define Content-Security-Policy. Isso é leitura do arquivo em disco, não uma nova validação de Caddy nem teste de invasão.
+- A alteração local que remove a tentativa pública de fallback para `/trips.json` ainda não foi publicada. A produção permanece na versão anterior até uma publicação autorizada.
+
+## Correções locais após revisão de segurança (11 de novembro)
+
+- Migração do painel de `localStorage` para cookie de sessão `HttpOnly`, `SameSite=Lax` e `Secure` em produção. Login deixa de devolver o JWT no JSON; `/auth/me` valida a sessão no carregamento. Uploads e downloads protegidos usam o cookie. Operações de escrita autenticadas por cookie exigem `Origin` igual a `CORS_ORIGIN`; clientes que usam explicitamente `Authorization: Bearer` continuam compatíveis.
+- Essas alterações estão apenas no repositório local: não foram publicadas nem validadas contra a API ativa. Antes de publicar, revisar o `CORS_ORIGIN` de produção e exercitar login, expiração, logout, troca de senha, upload de mídia e download de PDF.
+- Content-Security-Policy continua pendente. O Caddyfile versionado é histórico e a política deve ser ajustada primeiro em modo `Report-Only`, com teste dos scripts inline do site e dos recursos externos do painel, usando a configuração realmente instalada na Oracle.
+- A expansão multiempresa está adiada; [ESCOPO_SAAS_MULTITENANT.md](../docs/ESCOPO_SAAS_MULTITENANT.md) permanece somente como proposta futura.
 
 ## Ajustes finais no resumo e nos campos de fotos (10 de novembro, 20:35 UTC)
 
@@ -124,9 +140,9 @@ Registro atualizado em 10 de novembro de 2026 após publicação do pacote princ
 1. Acompanhar a propagação DNS e o funcionamento público; manter a HostGator disponível para retorno. Se necessário, reverter o A principal ao valor anterior, preservando os demais registros.
 2. Confirmar a versão do kernel em execução e reavaliar atualizações pendentes; um reinício foi realizado e os serviços foram conferidos, mas não há confirmação da versão efetivamente carregada.
 3. Avaliar se `rpcbind` e Ollama são necessários e limitar suas interfaces se apropriado.
-4. Não instalar cegamente o `deploy/Caddyfile` versionado: ele é um modelo genérico antigo, aponta para `/srv/overtrip/app` e lista `/trips.json` e `/knowledge.json`, diferindo da configuração privada preparada na VM.
+4. Não instalar cegamente o `deploy/Caddyfile` versionado: ele é um modelo histórico genérico e não preserva os binds específicos usados para coexistir com o Tailscale na configuração da VM.
 5. Preparar armazenamento, scanner e backup dos PDFs antes de habilitar o processamento de documentos.
-6. Confirmar periodicamente a execução e a restauração dos backups; não foi criado backup adicional antes do reinício por decisão do operador.
+6. Repetir periodicamente o teste de restauração e preparar uma cópia fora da VM. O backup local de 11 de novembro passou por integridade SQLite e verificação de chaves estrangeiras em diretório temporário.
 7. Verificar e remover o acesso SSH temporário de transferência quando não for mais necessário, preservando as demais chaves autorizadas.
 8. Validar o uso de CRM e reservas com o operador; definir como controlar vagas e formalizar retenção e cópia externa segura dos dados. `/srv/overtrip/app` veio de `git archive` e não aceita `git pull`.
 

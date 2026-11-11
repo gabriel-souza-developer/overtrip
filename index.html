@@ -9,9 +9,9 @@
   <meta name="author" content="OVERTRIP">
 
   <!-- Começa a baixar as trips já aqui, sem esperar o JS da página. Lê de
-       /api/public/trips (3 s de limite) e, se falhar, cai para /trips.json;
-       js/data.js reaproveita o array entregue por esta promessa. Assim que
-       ele chega, já pede a foto de capa da próxima trip (mesma regra e mesmo
+       /api/public/trips (3 s de limite); js/data.js reaproveita o array
+       entregue por esta promessa. Assim que ele chega, já pede a foto de
+       capa da próxima viagem (mesma regra e mesmo
        srcset do hero em js/render.js, pra o navegador reaproveitar o download). -->
   <script>
     (function () {
@@ -28,10 +28,9 @@
       var timer = setTimeout(function () { controller.abort(); }, 3000);
       window.__tripsRequest = read("/api/public/trips", controller.signal)
         .catch(function (error) {
-          console.warn("[OVERTRIP] API de trips indisponível (" + (error && error.message || error) + "); usando /trips.json.");
-          return read("/trips.json");
+          console.warn("[OVERTRIP] API de viagens indisponível (" + (error && error.message || error) + ").");
+          return null;
         })
-        .catch(function () { return null; })
         .then(function (data) { clearTimeout(timer); return data; });
       window.__tripsRequest.then(function (trips) {
         if (!trips) { return; }

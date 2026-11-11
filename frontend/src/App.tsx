@@ -25,7 +25,6 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  token: string | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   loading: boolean;
@@ -41,13 +40,12 @@ export const useAuth = () => {
 
 const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const clearSession = () => {
-      setToken(null);
       setUser(null);
+      // Remove tokens saved by older panel versions.
       localStorage.removeItem('auth_token');
       localStorage.removeItem('auth_user');
     };
@@ -57,22 +55,19 @@ const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
 
   useEffect(() => {
     let active = true;
-    const storedToken = localStorage.getItem('auth_token');
-    if (!storedToken) { setLoading(false); return; }
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('auth_user');
     authApi.me().then((currentUser) => {
-      if (active) { setToken(storedToken); setUser(currentUser); }
+      if (active) setUser(currentUser);
     }).catch(() => {
-      if (active) { setToken(null); setUser(null); }
+      if (active) setUser(null);
     }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, []);
 
   const login = async (email: string, password: string) => {
-    const { token: newToken, user: newUser } = await authApi.login(email, password);
-    setToken(newToken);
+    const newUser = await authApi.login(email, password);
     setUser(newUser);
-    localStorage.setItem('auth_token', newToken);
-    localStorage.setItem('auth_user', JSON.stringify(newUser));
   };
 
   const logout = async () => {
@@ -83,7 +78,6 @@ const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
       if (!(err instanceof ApiRequestError && err.status === 401)) error = err;
     } finally {
       setUser(null);
-      setToken(null);
       localStorage.removeItem('auth_token');
       localStorage.removeItem('auth_user');
     }
@@ -91,7 +85,7 @@ const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

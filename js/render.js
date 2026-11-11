@@ -100,7 +100,7 @@ const PIX_BUTTON_ICON = `
 /* ==========================================================================
    EMBARQUE: um ou mais pontos de partida
    Trips com um ponto só usam meetingInfo / meetingCity + meetingPoint.
-   Trips com mais de um ponto declaram `departures` no trips.json:
+   Viagens com mais de um ponto declaram `departures` na projeção da API:
    [{ time, place, city, mapsUrl | mapsQuery }], na ordem em que o ônibus passa.
    ========================================================================== */
 
@@ -430,7 +430,7 @@ const bindTripIncludesToggles = () => {
 /* ==========================================================================
    HERO: CARD "PRÓXIMA TRIP"
    Usa a mesma regra da seção de trips: a trip com data de hoje em diante
-   mais próxima, vinda de /trips.json. Sem trip futura, o hero fica como era.
+   mais próxima, vinda da API pública. Sem viagem futura, o hero fica como era.
    ========================================================================== */
 
 // Trip que ainda não aconteceu: data de hoje em diante e sem status de
@@ -560,7 +560,7 @@ const showHeroTripPhoto = (hero, trip) => {
     img.decoding = "async";
     img.setAttribute("aria-hidden", "true");
     // Enquadramento da foto dentro da caixa (campo opcional "focus" no
-    // trips.json, ex: "50% 80%" = mostra mais a parte de baixo da foto).
+    // dado da viagem, ex: "50% 80%" = mostra mais a parte de baixo da foto).
     if (item.focus) {
       img.style.objectPosition = item.focus;
     }

@@ -22,8 +22,10 @@ Os detalhes, custos, dependências e prioridade dessas possibilidades dependem d
 ## Objetivo
 
 Uma viagem é um único registro operacional no banco. Site, painel e Agente
-OVERTRIP usam projeções desse registro; `trips.json` é somente fallback do
-site, nunca fonte para atendimento ou operação.
+OVERTRIP usam projeções desse registro; o site público lê viagens de
+`/api/public/trips` e não depende de `trips.json`. Arquivos JSON antigos podem
+ser formatos de compatibilidade de integrações privadas, não fontes de edição
+ou publicação do site.
 
 ## Estado atual (novembro de 2026)
 

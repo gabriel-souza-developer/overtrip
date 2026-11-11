@@ -13,22 +13,20 @@ export type KnowledgeVersionSummary = Omit<KnowledgeVersion, 'entries'>;
 export interface PublicFaqState { version: number; entries: KnowledgeEntry[]; updatedAt: string | null }
 
 export async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const token = localStorage.getItem('auth_token');
-  
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
-    ...(token && { Authorization: `Bearer ${token}` }),
     ...options.headers,
   };
 
   const response = await fetch(`${API_BASE}${endpoint}`, {
     ...options,
+    credentials: 'same-origin',
     headers,
   });
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
-    if (response.status === 401 && error.code === 'SESSION_INVALID' && token && token === localStorage.getItem('auth_token')) {
+    if (response.status === 401 && error.code === 'SESSION_INVALID') {
       window.dispatchEvent(new Event('overtrip:session-ended'));
     }
     throw new ApiRequestError(translateApiError(error), response.status);
@@ -40,11 +38,11 @@ export async function request<T>(endpoint: string, options: RequestInit = {}): P
 
 export const authApi = {
   login: async (email: string, password: string) => {
-    const data = await request<{ token: string; user: { id: string; email: string; name: string; role: string } }>(
+    const data = await request<{ user: { id: string; email: string; name: string; role: string } }>(
       '/auth/login',
       { method: 'POST', body: JSON.stringify({ email, password }) }
     );
-    return data;
+    return data.user;
   },
 
   me: async () => {
@@ -119,8 +117,7 @@ export const documentApi = {
   remove: (tripId: string, id: string) => request<void>(documentUrl(tripId, id), { method: 'DELETE' }),
   suggestions: (tripId: string, id: string) => request<DocumentSuggestions>(`${documentUrl(tripId, id)}/suggestions`, { method: 'POST' }),
   download: async (tripId: string, doc: TripDocument) => {
-    const token = localStorage.getItem('auth_token');
-    const response = await fetch(`${API_BASE}${documentUrl(tripId, doc.id)}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+    const response = await fetch(`${API_BASE}${documentUrl(tripId, doc.id)}`, { credentials: 'same-origin' });
     if (!response.ok) throw new Error('Não foi possível baixar o documento.');
     const url = URL.createObjectURL(await response.blob());
     const link = document.createElement('a'); link.href = url; link.download = doc.originalFilename; link.click();
@@ -152,8 +149,7 @@ export const mediaApi = {
   upload: (file: Blob, onProgress?: (fraction: number) => void, signal?: AbortSignal) => new Promise<UploadedMedia>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('POST', `${API_BASE}/media`);
-    const token = localStorage.getItem('auth_token');
-    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    xhr.withCredentials = true;
     xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
     xhr.upload.onprogress = (event) => { if (event.lengthComputable) onProgress?.(event.loaded / event.total); };
     xhr.onload = () => {

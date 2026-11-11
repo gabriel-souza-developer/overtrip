@@ -14,7 +14,7 @@ type Handler = (route: Route, url: URL) => Promise<unknown> | unknown;
 
 /** Simula só a API: o filtro pelo início do caminho não captura /src/api/index.ts do Vite. */
 async function mockApi(page: Page, overrides: Record<string, Handler> = {}) {
-  const uploads: { contentType: string | null; bytes: number }[] = [];
+  const uploads: { contentType: string | null; bytes: number; cookie: string | null }[] = [];
   await page.route((url) => url.pathname.startsWith('/api/'), async (route) => {
     const url = new URL(route.request().url());
     const key = `${route.request().method()} ${url.pathname}`;
@@ -22,7 +22,11 @@ async function mockApi(page: Page, overrides: Record<string, Handler> = {}) {
     if (url.pathname === '/api/auth/me') return route.fulfill({ json: { id: 'u1', email: 'p@example.test', name: 'Playwright', role: 'editor' } });
     if (url.pathname.startsWith('/api/public/media/')) return route.fulfill({ contentType: 'image/jpeg', body: photo });
     if (key === 'POST /api/media') {
-      uploads.push({ contentType: route.request().headers()['content-type'] ?? null, bytes: route.request().postDataBuffer()?.length ?? 0 });
+      uploads.push({
+        contentType: route.request().headers()['content-type'] ?? null,
+        bytes: route.request().postDataBuffer()?.length ?? 0,
+        cookie: route.request().headers().cookie ?? null,
+      });
       return route.fulfill({ status: 201, json: {
         id: 'm1', src: SRC, mimeType: 'image/jpeg', width: 320, height: 200, sizeBytes: photo.length,
         variants: [640, 960, 1280].map((w) => ({ width: w, src: SRC.replace('.jpg', `-w${w}.webp`) })),
@@ -36,15 +40,18 @@ async function mockApi(page: Page, overrides: Record<string, Handler> = {}) {
 }
 
 test.beforeEach(async ({ page }) => {
+  await page.context().addCookies([{
+    name: 'overtrip_session', value: 'playwright-cookie-session', url: 'http://127.0.0.1:4300', httpOnly: true, sameSite: 'Lax',
+  }]);
   await page.addInitScript(() => {
-    localStorage.setItem('auth_token', 'playwright-test-token');
-    localStorage.setItem('auth_user', JSON.stringify({ id: 'u1', email: 'p@example.test', name: 'Playwright', role: 'editor' }));
+    localStorage.setItem('auth_token', 'legacy-token-must-be-removed');
   });
 });
 
 async function openTripPhotos(page: Page) {
   await page.goto('/trips/new');
   await expect(page.getByText('Enviar foto')).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem('auth_token'))).toBeNull();
 }
 
 test('envia foto do computador, mostra prévia e exige texto alternativo', async ({ page }) => {
@@ -67,7 +74,9 @@ test('envia foto do computador, mostra prévia e exige texto alternativo', async
   await page.getByRole('button', { name: 'Alterar endereço da foto' }).click();
   await expect(page.getByLabel('Endereço da foto 1')).toHaveValue(SRC);
   await expect(page.getByLabel('O que aparece na foto 1? (obrigatório)')).toHaveValue('Grupo na beira da cachoeira');
-  expect(uploads).toEqual([{ contentType: 'image/jpeg', bytes: photo.length }]);
+  expect(uploads).toEqual([{
+    contentType: 'image/jpeg', bytes: photo.length, cookie: 'overtrip_session=playwright-cookie-session',
+  }]);
 
   // Apagar a descrição de uma foto enviada impede salvar, com mensagem clara.
   await page.getByLabel('O que aparece na foto 1? (obrigatório)').fill('');

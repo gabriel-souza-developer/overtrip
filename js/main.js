@@ -26,7 +26,7 @@ const init = async () => {
   setupTestimonialTabs();
   setupMarquee();
 
-  // As trips agora vêm de /trips.json. É necessário aguardar a renderização
+  // As viagens vêm da API pública. É necessário aguardar a renderização
   // antes de configurar recursos que consultam os cards já existentes no DOM.
   // O hero vem primeiro: assim que o JSON chega o card aparece e a foto da
   // trip já começa a baixar, sem esperar a montagem da grade de trips.

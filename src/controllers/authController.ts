@@ -4,6 +4,18 @@ import bcrypt from 'bcryptjs';
 import { loginSchema, changePasswordSchema } from '../validators/index.js';
 import { generateToken, AuthRequest } from '../middleware/auth.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { config } from '../config.js';
+
+const sessionCookieName = () => config.nodeEnv === 'production'
+  ? '__Host-overtrip_session'
+  : 'overtrip_session';
+
+const sessionCookieOptions = () => ({
+  httpOnly: true,
+  secure: config.nodeEnv === 'production',
+  sameSite: 'lax' as const,
+  path: '/',
+});
 
 export const authController = {
   async login(req: Request, res: Response) {
@@ -23,8 +35,10 @@ export const authController = {
 
     const token = generateToken(user);
 
+    res.set('Cache-Control', 'no-store');
+    res.cookie(sessionCookieName(), token, sessionCookieOptions());
+
     res.json({
-      token,
       user: {
         id: user.id,
         email: user.email,
@@ -80,17 +94,21 @@ export const authController = {
     });
     if (updated.count !== 1) throw AppError.unauthorized('Sessão encerrada. Entre novamente.');
 
+    res.clearCookie(sessionCookieName(), sessionCookieOptions());
+
     res.json({ success: true, message: 'Senha alterada com sucesso' });
   },
 
   async logout(req: AuthRequest, res: Response) {
-    if (!req.user) throw AppError.unauthorized('Não autenticado');
     // O contador persiste no próprio User; sair encerra todas as sessões da conta.
     // A condição evita que uma requisição antiga revogue uma sessão mais recente.
-    await prisma.user.updateMany({
-      where: { id: req.user.id, updatedAt: req.user.sessionVersion },
-      data: { updatedAt: new Date(Math.max(Date.now(), req.user.sessionVersion.getTime() + 1)) },
-    });
+    if (req.user) {
+      await prisma.user.updateMany({
+        where: { id: req.user.id, updatedAt: req.user.sessionVersion },
+        data: { updatedAt: new Date(Math.max(Date.now(), req.user.sessionVersion.getTime() + 1)) },
+      });
+    }
+    res.clearCookie(sessionCookieName(), sessionCookieOptions());
     res.status(204).end();
   },
 };

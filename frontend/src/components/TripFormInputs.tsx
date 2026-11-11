@@ -98,7 +98,7 @@ export function MediaInput({ value, onChange, inputId, onPendingChange, onLinkPe
                 <ImageThumb src={item.src} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-surface-800">{imageSourceLabel(item.src)}</p>
-                  <button type="button" className="mt-1 text-xs font-semibold text-primary-600 hover:underline" aria-expanded={editingSrcIndex === index} onClick={() => setEditingSrcIndex(editingSrcIndex === index ? null : index)}>
+                  <button type="button" className="mt-1 text-xs font-semibold text-surface-700 hover:underline" aria-expanded={editingSrcIndex === index} onClick={() => setEditingSrcIndex(editingSrcIndex === index ? null : index)}>
                     {editingSrcIndex === index ? 'Fechar endereço' : 'Alterar endereço da foto'}
                   </button>
                 </div>

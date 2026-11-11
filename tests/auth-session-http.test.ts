@@ -11,11 +11,21 @@ let server: Server;
 let base: string;
 const email = `session-${Date.now()}@example.test`;
 const pass = 'senha-teste-123';
-const auth = (token: string) => ({ Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' });
+const auth = (token: string) => ({ Cookie: token, Origin: config.corsOrigin, 'Content-Type': 'application/json' });
+const bearer = (token: string) => ({ Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' });
 async function login(password = pass): Promise<string> {
   const response = await fetch(`${base}/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
   expect(response.status).toBe(200);
-  return (await response.json() as { token: string }).token;
+  const setCookie = response.headers.get('set-cookie') || '';
+  const cookie = setCookie.split(';', 1)[0];
+  const cookieName = config.nodeEnv === 'production' ? '__Host-overtrip_session' : 'overtrip_session';
+  expect(cookie).toMatch(new RegExp(`^${cookieName}=`));
+  expect(setCookie).toMatch(/; Path=\//i);
+  expect(setCookie).toMatch(/; HttpOnly/i);
+  expect(setCookie).toMatch(/; SameSite=Lax/i);
+  if (config.nodeEnv === 'production') expect(setCookie).toMatch(/; Secure/i);
+  expect(await response.json()).not.toHaveProperty('token');
+  return cookie!;
 }
 
 beforeAll(async () => {
@@ -30,13 +40,28 @@ afterAll(async () => {
 });
 
 describe('revogação persistente de sessões', () => {
+  it('recusa alteração autenticada por cookie quando a origem não é confiável', async () => {
+    const session = await login();
+    const crossOrigin = await fetch(`${base}/change-password`, {
+      method: 'POST',
+      headers: { Cookie: session, Origin: 'https://origem-nao-confiavel.example', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ currentPassword: pass, newPassword: 'senha-nova-456' }),
+    });
+    expect(crossOrigin.status).toBe(403);
+    expect((await fetch(`${base}/me`, { headers: auth(session) })).status).toBe(200);
+  });
+
   it('encerra todas as sessões da conta no logout e permite um novo login', async () => {
     const a = await login();
     const b = await login();
     expect((await fetch(`${base}/me`, { headers: auth(a) })).status).toBe(200);
-    expect((await fetch(`${base}/logout`, { method: 'POST', headers: auth(a) })).status).toBe(204);
+    const logout = await fetch(`${base}/logout`, { method: 'POST', headers: auth(a) });
+    expect(logout.status).toBe(204);
+    expect(logout.headers.get('set-cookie')).toMatch(/Expires=Thu, 01 Jan 1970/i);
     expect((await fetch(`${base}/me`, { headers: auth(a) })).status).toBe(401);
     expect((await fetch(`${base}/me`, { headers: auth(b) })).status).toBe(401);
+    const repeatedLogout = await fetch(`${base}/logout`, { method: 'POST' });
+    expect(repeatedLogout.status).toBe(204);
     const c = await login();
     expect((await fetch(`${base}/me`, { headers: auth(c) })).status).toBe(200);
   });
@@ -49,7 +74,7 @@ describe('revogação persistente de sessões', () => {
     expect((await fetch(`${base}/me`, { headers: auth(old) })).status).toBe(200);
     const user = await prisma.user.findUniqueOrThrow({ where: { email } });
     const legacy = jwt.sign({ id: user.id, email: user.email, role: user.role }, config.jwtSecret, { expiresIn: '1h' });
-    expect((await fetch(`${base}/me`, { headers: auth(legacy) })).status).toBe(401);
+    expect((await fetch(`${base}/me`, { headers: bearer(legacy) })).status).toBe(401);
     const changed = await fetch(`${base}/change-password`, { method: 'POST', headers: auth(old), body: JSON.stringify({ currentPassword: pass, newPassword: 'senha-nova-456' }) });
     expect(changed.status).toBe(200);
     expect((await fetch(`${base}/me`, { headers: auth(old) })).status).toBe(401);

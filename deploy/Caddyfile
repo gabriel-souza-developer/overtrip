@@ -39,7 +39,7 @@ overtrip.com.br {
 	redir /admin /admin/ permanent
 
 	# Site público: SÓ o que está nesta lista (o repositório não é exposto)
-	@publico path / /index.html /trips.json /knowledge.json /robots.txt /sitemap.xml /site.webmanifest /css/* /js/* /assets/* /blog/* /riders/*
+	@publico path / /index.html /robots.txt /sitemap.xml /site.webmanifest /css/* /js/* /assets/* /blog/* /riders/*
 	handle @publico {
 		root * /srv/overtrip/app
 		@estatico path /assets/* /css/* /js/*

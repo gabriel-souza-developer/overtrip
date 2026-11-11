@@ -375,7 +375,7 @@ export default function Gallery() {
                 <ImageThumb src={img.src} className="w-10 h-10" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-surface-800">{imageSourceLabel(img.src)}</p>
-                  <button type="button" className="mt-1 text-xs font-semibold text-primary-600 hover:underline" aria-expanded={editingImageIndex === idx} onClick={() => setEditingImageIndex(editingImageIndex === idx ? null : idx)}>
+                  <button type="button" className="mt-1 text-xs font-semibold text-surface-700 hover:underline" aria-expanded={editingImageIndex === idx} onClick={() => setEditingImageIndex(editingImageIndex === idx ? null : idx)}>
                     {editingImageIndex === idx ? 'Fechar endereço' : 'Alterar endereço da foto'}
                   </button>
                 </div>

@@ -2,7 +2,6 @@ const TRIPS = [];
 let tripsLoadError = null;
 
 const TRIPS_API_URL = "/api/public/trips";
-const TRIPS_FALLBACK_URL = "/trips.json";
 const TRIPS_API_TIMEOUT_MS = 3000;
 
 // Lê um endereço e devolve um array de trips; qualquer outra coisa (erro de
@@ -23,17 +22,14 @@ const requestTripsArray = async (fetchFn, url, signal) => {
   return payload;
 };
 
-// Lê da API (com tempo limite); se falhar, cai para /trips.json e avisa no
-// console. Array vazio da API é resposta válida (nada publicado).
-const fetchTripsWithFallback = async (fetchFn, { timeoutMs = TRIPS_API_TIMEOUT_MS, warn = console.warn } = {}) => {
+// A API pública é a única fonte de viagens. Array vazio é resposta válida
+// (nenhuma viagem publicada); falha fica disponível para a mensagem de erro.
+const fetchPublicTrips = async (fetchFn, { timeoutMs = TRIPS_API_TIMEOUT_MS } = {}) => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     return await requestTripsArray(fetchFn, TRIPS_API_URL, controller.signal);
-  } catch (error) {
-    warn(`[OVERTRIP] API de trips indisponível (${error?.message || error}); usando ${TRIPS_FALLBACK_URL}.`);
-    return requestTripsArray(fetchFn, TRIPS_FALLBACK_URL);
   } finally {
     clearTimeout(timer);
   }
@@ -45,12 +41,21 @@ const loadTrips = async () => {
   }
 
   try {
-    // A home já dispara a requisição no <head> (ver index.html) e entrega o
-    // array pronto; aqui só reaproveita. Nas demais páginas, ou se ela
-    // falhou, busca normalmente (API e, se preciso, /trips.json).
-    const early = window.__tripsRequest ? await window.__tripsRequest : null;
+    // A home já dispara a requisição no <head> (ver index.html). Reaproveita
+    // também a falha: repetir a mesma consulta só aumenta a espera e a carga.
+    const earlyRequest = window.__tripsRequest;
     window.__tripsRequest = null;
-    const payload = Array.isArray(early) ? early : await fetchTripsWithFallback(fetch.bind(globalThis));
+    let payload;
+    if (earlyRequest) {
+      const early = await earlyRequest;
+      if (!Array.isArray(early)) {
+        tripsLoadError = new Error("Não foi possível carregar as viagens pela consulta antecipada.");
+        return TRIPS;
+      }
+      payload = early;
+    } else {
+      payload = await fetchPublicTrips(fetch.bind(globalThis));
+    }
 
     TRIPS.splice(0, TRIPS.length, ...payload);
     tripsLoadError = null;
@@ -181,4 +186,4 @@ const TESTIMONIALS = [
   },
 ];
 
-export { TRIPS, GALLERY, TESTIMONIALS, loadTrips, getTripsLoadError, fetchTripsWithFallback };
+export { TRIPS, GALLERY, TESTIMONIALS, loadTrips, getTripsLoadError, fetchPublicTrips };

@@ -1,5 +1,12 @@
 # OVERTRIP v6 — Arquitetura do Site Público
 
+> **Referência histórica, não fonte operacional atual.** Este documento ainda
+> contém diagramas e exemplos anteriores à adoção da API de viagens, do painel
+> e da publicação na Oracle. Para a orientação vigente, consulte `CLAUDE.md`,
+> o código em `src/`, `frontend/` e `js/`, e o inventário em
+> `deploy/ORACLE_STATUS.md`. A lista pública de viagens vem de
+> `/api/public/trips`; o site não deve depender de `/trips.json`.
+
 Este documento cobre só o site público. O painel administrativo (`frontend/`), a API (`src/`) e o banco (`prisma/`) estão descritos em `CLAUDE.md`, que resume a arquitetura do produto.
 
 ## Visão Geral

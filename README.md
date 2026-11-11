@@ -46,51 +46,56 @@ Seções na ordem em que aparecem, numeradas nos comentários do HTML e do CSS (
 
 ## Tecnologia
 
-**Stack do site público:** HTML, CSS e JavaScript puro. O site em si não tem
-build step; o painel e a API têm build próprio, descrito em `package.json`.
+O site público usa HTML, CSS e JavaScript modular; o painel usa React/Vite e a
+API usa Node.js/Express/Prisma. O site é servido como arquivos estáticos e
+consome viagens da API. Os comandos de desenvolvimento e build estão no
+`package.json`.
 
 - **Mapa:** [Leaflet](https://leafletjs.com/) via CDN (unpkg, sem SRI — ver observação abaixo) + tiles públicas da OpenStreetMap (sem chave de API).
 - **Pagamento:** Pix via BR Code (padrão Bacen), com QR code **pré-gerado como imagem estática** (`assets/images/pix-qr-overtrip.png`) — o payload é sempre o mesmo (chave, nome e cidade fixos), então gerar o QR dinamicamente a cada abertura do modal só deixava mais lento.
 - **SEO:** Schema.org (`TravelAgency`, `FAQPage`, `Event` por trip), meta tags completas (Open Graph, Twitter Card).
 - **Analytics:** hooks já implementados (`pushAnalyticsEvent` em `script.js`, dispara em cliques de WhatsApp e Pix) — funcionam com GTM (`dataLayer`) ou GA4 (`gtag`), o que estiver instalado. **Pendente:** nenhum dos dois está instalado ainda (ver [Pendências](#pendências)).
 
-## Arquivos
+## Estrutura atual
 
-```
-index.html      Marcação e conteúdo estático (SEO, schema.org, meta tags)
-styles.css      Todo o CSS, mobile-first, seções numeradas 1–19
-script.js       Dados (trips/galeria/depoimentos), renderização, Pix, comportamento geral
-map.js          Dados do mapa (lugares visitados + hubs) e inicialização do Leaflet
-README.md       Este arquivo
-```
-
-`script.js` e `map.js` são arquivos separados de propósito (preferência de organização do projeto) e seguem o mesmo padrão de comentários em blocos nomeados que o CSS.
+- `index.html`, `css/` e `js/`: site público.
+- `frontend/`: painel administrativo.
+- `src/`: API e serviços de backend.
+- `prisma/`: esquema e migrações do banco.
+- `deploy/`: serviços e documentação operacional da Oracle.
 
 ### Dados legados e conteúdo estático
 
-Galeria e depoimentos estáticos ainda vivem em arrays no topo do `script.js` (`GALLERY`, `TESTIMONIALS`). A listagem pública de viagens é carregada pela API; `TRIPS` e o arquivo `trips.json` são compatibilidade legada/fallback, não a fonte operacional do painel, CRM ou reservas. Confira `js/data.js` e a documentação de arquitetura antes de editar esses dados.
+Parte da galeria e dos depoimentos ainda é conteúdo estático em `js/data.js`.
+As viagens são mantidas no painel e entregues ao site por
+`/api/public/trips`. O site não lê `trips.json`; não cadastre nem publique
+viagens editando esse arquivo. Formatos JSON antigos podem existir para
+compatibilidade com integrações privadas, que têm documentação própria.
 
 O mesmo vale para o mapa: `VISITED_PLACES` e `OVERTRIP_HUBS`, no `map.js`, alimentam tanto os pins quanto a lista lateral "Destinos & roteiros".
 
-**Pra adicionar uma nova expedição:** adicionar um objeto no array `TRIPS` (`script.js`). Todos os campos são obrigatórios — não inventar vagas, coordenadas ou datas; confirmar com o time antes de publicar.
+**Para cadastrar uma expedição:** use o painel administrativo em `/admin`.
+Revise a prévia e os itens de publicação antes de publicar no site.
 
 ## Rodando localmente
 
-Não tem build step. Basta servir os arquivos estáticos:
+Para iniciar API, painel e site público juntos:
 
 ```bash
-npx serve .
-# ou
-python3 -m http.server 8000
+npm run dev:local
 ```
 
-Abrir `http://localhost:<porta>/`.
+O script informa as portas locais no terminal. Consulte `package.json` para
+iniciar cada parte ou compilar API e painel separadamente.
 
-## Deploy
+## Publicação
 
-Subir os quatro arquivos (`index.html`, `styles.css`, `script.js`, `map.js`) junto com a pasta `assets/` (imagens + `pix-qr-overtrip.png`) pra raiz do domínio. Não há etapa de build/compilação.
-
-⚠️ **Sempre subir os quatro arquivos juntos.** Como não há controle de versão automatizado nesse fluxo, atualizar só um arquivo por vez já causou desencontros (ex: `script.js` antigo sobrescrevendo uma correção que só existia numa versão mais nova).
+O produto está hospedado na Oracle e usa site público, painel, API e banco
+SQLite. `deploy/README.md` é um roteiro histórico de instalação, não um
+procedimento para atualizar a máquina atual. Consulte
+[`deploy/ORACLE_STATUS.md`](deploy/ORACLE_STATUS.md) e valide o estado da VM
+antes de qualquer publicação; o inventário é um diário e pode ficar
+desatualizado.
 
 ## Pendências
 

@@ -10,6 +10,11 @@ não cobram, não confirmam pagamento com banco e não reduzem vagas. O inventá
 registra publicação do CRM em 10/11; isso não substitui uma verificação atual da
 VM Oracle.
 
+**Decisão atual:** atendimento conectado e evolução do CRM ficam adiados. Não
+contratar serviço pago nem iniciar outra caixa de entrada neste ciclo. O foco
+volta ao fluxo essencial de viagens e à confiabilidade do site e dos dados;
+retomar este plano quando a operação comprovar essa necessidade.
+
 ## Fases
 
 ### Fase 1 — fila de retornos (implementada localmente em 11/11/2026)
@@ -31,12 +36,12 @@ exclusão de data futura, combinação com etapa e rejeição de filtro inválid
 Typecheck e builds da API e do painel passaram. A mudança ainda não foi
 publicada na Oracle.
 
-### Fase 2 — atendimento conectado (próxima)
+### Fase 2 — atendimento conectado (adiada)
 
-Antes de desenvolver outra caixa de entrada, comparar a adoção de uma solução
-de WhatsApp já integrada ao CRM com a integração do canal ao painel OVERTRIP.
-Não manter duas caixas de entrada nem dois cadastros independentes para a
-mesma conversa.
+Quando a fase for retomada, decidir entre uma solução gratuita/auto-hospedada e
+a integração do canal ao painel OVERTRIP antes de implementar. Evitar duas
+caixas de entrada ou cadastros independentes para a mesma conversa. Não há
+contratação ou integração aprovada neste ciclo.
 
 Se a operação continuar no painel, o mínimo funcional será:
 
@@ -89,8 +94,8 @@ ou automação de vagas. Só entram após demonstrarem reduzir uma tarefa real.
 ## Ordem de execução
 
 1. Fase 1: fila de retornos, sem mudança de banco.
-2. Fase 2: escolher entre solução pronta e painel próprio; testar primeiro com
-   conversas reais sem disparos em massa e medir se nenhum contato se perde.
+2. Fase 2: adiada; só retomar quando a equipe decidir que o atendimento atual
+   causa perda recorrente de contatos e houver uma opção sem custo pago aceita.
 3. Fase 3: alinhar estados de reserva depois que a conversa chega ao CRM.
 4. Fases 4 e 5: avaliar só após validar as anteriores e demonstrar necessidade.
 

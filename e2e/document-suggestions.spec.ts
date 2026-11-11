@@ -1,14 +1,27 @@
 import { expect, test } from '@playwright/test';
 
 test('revisa a origem e aplica somente os campos escolhidos sem salvar', async ({ page }) => {
+  await page.context().addCookies([{
+    name: 'overtrip_session', value: 'playwright-cookie-session', url: 'http://127.0.0.1:4300', httpOnly: true, sameSite: 'Lax',
+  }]);
   await page.addInitScript(() => {
-    localStorage.setItem('auth_token', 'test-token');
-    localStorage.setItem('auth_user', JSON.stringify({ id: 'admin', email: 'admin@example.test', name: 'Admin', role: 'admin' }));
+    localStorage.setItem('auth_token', 'legacy-token-must-be-removed');
   });
   let writes = 0;
+  let meCookie: string | undefined;
+  let meRequests = 0;
+  let downloadCookie: string | undefined;
   await page.route(/\/api\/(?!.*\.tsx?(?:\?|$))/, async route => {
     const url = new URL(route.request().url());
-    if (url.pathname.endsWith('/auth/me')) return route.fulfill({ json: { id: 'admin', email: 'admin@example.test', name: 'Admin', role: 'admin' } });
+    if (url.pathname.endsWith('/auth/me')) {
+      meRequests++;
+      meCookie = route.request().headers().cookie;
+      return route.fulfill({ json: { id: 'admin', email: 'admin@example.test', name: 'Admin', role: 'admin' } });
+    }
+    if (url.pathname.endsWith('/documents/doc-1') && route.request().method() === 'GET') {
+      downloadCookie = route.request().headers().cookie;
+      return route.fulfill({ contentType: 'application/pdf', body: '%PDF-1.4 teste' });
+    }
     if (url.pathname.endsWith('/suggestions')) return route.fulfill({ json: {
       draft: { title: 'Novo título', city: 'Matureia' }, warnings: [],
       sources: {
@@ -32,6 +45,8 @@ test('revisa a origem e aplica somente os campos escolhidos sem salvar', async (
     return route.fulfill({ json: {} });
   });
   await page.goto('/trips/trip-1/edit');
+  await expect.poll(() => meCookie).toBe('overtrip_session=playwright-cookie-session');
+  expect(await page.evaluate(() => localStorage.getItem('auth_token'))).toBeNull();
   // A extração de sugestões com IA fica recolhida por padrão.
   await page.locator('summary').filter({ hasText: 'Sugerir preenchimento com PDF e IA (opcional)' }).click();
   await page.getByRole('button', { name: 'Sugerir campos' }).click();
@@ -45,4 +60,13 @@ test('revisa a origem e aplica somente os campos escolhidos sem salvar', async (
   await expect(page.locator('#city')).toHaveValue('Matureia');
   await expect(page.locator('#title')).toHaveValue('Título atual');
   expect(writes).toBe(0);
+
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Baixar' }).click();
+  await download;
+  expect(downloadCookie).toBe('overtrip_session=playwright-cookie-session');
+
+  await page.reload();
+  await expect.poll(() => meRequests).toBe(2);
+  expect(meCookie).toBe('overtrip_session=playwright-cookie-session');
 });
