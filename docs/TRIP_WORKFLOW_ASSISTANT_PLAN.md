@@ -1,11 +1,17 @@
 # Viagens, IA e Agente OVERTRIP — plano de evolução
 
+> **Atualização de escopo (11/11/2026):** CRM e reservas já existem no código e
+> o inventário registra sua publicação em produção em 10/11. Este documento
+> conserva decisões de arquitetura e histórico das fases originais. A evolução
+> operacional do CRM segue agora [`ROADMAP_CRM_RESERVAS.md`](ROADMAP_CRM_RESERVAS.md).
+> O estado atual da VM e dos fluxos externos precisa ser confirmado diretamente
+> antes de qualquer operação.
+
 ## Ideias futuras a avaliar — referência ViajaHUB
 
 Referência consultada em 03/11/2026: [ViajaHUB](https://www.viajahub.tur.br/). As ideias abaixo são hipóteses para descoberta e priorização após o MVP atual; não são recursos prontos nem alteram as fases já definidas.
 
-- **Atendimento e CRM:** vincular interessados às viagens, com histórico, responsável e próximos contatos; avaliar como integrar o fluxo de WhatsApp existente.
-- **Reservas e disponibilidade:** avaliar solicitações de reserva vinculadas à viagem, vagas e dados dos participantes, com regras claras de confirmação.
+- **Evolução do CRM e das reservas:** os registros e telas base existem; avaliar aprimoramentos conforme o roadmap dedicado, sem pressupor cobrança ou controle automático de vagas.
 - **Financeiro por reserva:** estudar parcelas, registro de recebimentos e avisos; considerar a premissa de sinal de 50% já discutida, sujeita à validação comercial e operacional.
 - **Propostas e documentos:** investigar propostas com marca própria, compartilhamento e revisão humana, respeitando o adiamento atual de PDF/OCR.
 - **Catálogo por operação:** explorar personalização de marca e catálogo; antes de oferecer a múltiplas empresas, definir isolamento de dados, permissões e implantação.
@@ -27,9 +33,10 @@ site, nunca fonte para atendimento ou operação.
   candidatos e avisos; não publica nem altera status.
 - O status legado (`DRAFT`, `OPEN`, `SOLD_OUT`, `CLOSED`, `COMPLETED`,
   `CANCELLED`) ainda mistura publicação, venda e operação.
-- O WhatsApp hoje é apenas um número configurável; não existe integração de
-  bot nem credencial de canal. O fluxo de PDFs está implementado, mas ainda
-  depende de preparação e validação no ambiente antes da ativação.
+- Há código e referências a fluxos de atendimento/WhatsApp separados, mas este
+  documento não comprova qual automação ou credencial está ativa hoje. Consulte
+  o inventário com evidências atuais antes de alterar qualquer integração. O
+  fluxo de PDFs depende de preparação e validação no ambiente antes da ativação.
 
 ## Decisões de arquitetura
 
@@ -75,7 +82,7 @@ configurações globais.
 
 ## Fases de implementação
 
-### Fase 1 — fundação segura (em implementação nesta branch)
+### Fase 1 — fundação segura (implementada no fluxo de viagens)
 
 - Centralizar regras de prontidão no backend e refletir os avisos no painel.
 - Registrar embarque “a confirmar” explicitamente.
@@ -83,7 +90,7 @@ configurações globais.
   HTTP e sem integrar WhatsApp.
 - Cobrir as regras com testes.
 
-### Fase 2 — experiência do formulário
+### Fase 2 — experiência do formulário (implementada; histórico abaixo)
 
 - Transformar a primeira tela em criação de rascunho + painel de pendências.
 - Mover preço, capa, resumo e embarque para bloco “Preparar publicação”.

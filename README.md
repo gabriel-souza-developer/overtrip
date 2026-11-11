@@ -1,6 +1,14 @@
 # OVERTRIP — No Destination
 
-Landing page da OVERTRIP, uma marca de experiências, turismo e comunidade que nasceu de viagens entre amigos saindo de Campina Grande e Pocinhos - PB.
+Site público da OVERTRIP, uma marca de experiências, turismo e comunidade que nasceu de viagens entre amigos saindo de Campina Grande e Pocinhos - PB.
+
+> Este README descreve principalmente o site público. O repositório também
+> contém a API, o painel administrativo e o CRM/reservas. Para arquitetura e
+> desenvolvimento, consulte [`ARCHITECTURE.md`](ARCHITECTURE.md) e
+> [`CLAUDE.md`](CLAUDE.md); para implantação e evidências da Oracle, consulte
+> [`deploy/ORACLE_STATUS.md`](deploy/ORACLE_STATUS.md). A publicação atual usa
+> a API como fonte operacional das viagens; os arrays abaixo são referências
+> legadas do site e não devem ser usados para atualizar viagens de produção.
 
 > **Move Different. No Destination.**
 > O destino é só um detalhe — o que importa é o que acontece no caminho.
@@ -38,7 +46,8 @@ Seções na ordem em que aparecem, numeradas nos comentários do HTML e do CSS (
 
 ## Tecnologia
 
-**Stack:** HTML, CSS e JavaScript puro — sem framework, sem build step.
+**Stack do site público:** HTML, CSS e JavaScript puro. O site em si não tem
+build step; o painel e a API têm build próprio, descrito em `package.json`.
 
 - **Mapa:** [Leaflet](https://leafletjs.com/) via CDN (unpkg, sem SRI — ver observação abaixo) + tiles públicas da OpenStreetMap (sem chave de API).
 - **Pagamento:** Pix via BR Code (padrão Bacen), com QR code **pré-gerado como imagem estática** (`assets/images/pix-qr-overtrip.png`) — o payload é sempre o mesmo (chave, nome e cidade fixos), então gerar o QR dinamicamente a cada abertura do modal só deixava mais lento.
@@ -57,9 +66,9 @@ README.md       Este arquivo
 
 `script.js` e `map.js` são arquivos separados de propósito (preferência de organização do projeto) e seguem o mesmo padrão de comentários em blocos nomeados que o CSS.
 
-### Fonte única de dados
+### Dados legados e conteúdo estático
 
-Trips, galeria e depoimentos vivem em arrays no topo do `script.js` (`TRIPS`, `GALLERY`, `TESTIMONIALS`) e são renderizados em runtime — inclusive o schema.org `Event` de cada trip é gerado a partir do mesmo array `TRIPS`, então data, preço e descrição nunca divergem entre o que a pessoa vê e o que o Google lê.
+Galeria e depoimentos estáticos ainda vivem em arrays no topo do `script.js` (`GALLERY`, `TESTIMONIALS`). A listagem pública de viagens é carregada pela API; `TRIPS` e o arquivo `trips.json` são compatibilidade legada/fallback, não a fonte operacional do painel, CRM ou reservas. Confira `js/data.js` e a documentação de arquitetura antes de editar esses dados.
 
 O mesmo vale para o mapa: `VISITED_PLACES` e `OVERTRIP_HUBS`, no `map.js`, alimentam tanto os pins quanto a lista lateral "Destinos & roteiros".
 

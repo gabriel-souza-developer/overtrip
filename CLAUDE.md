@@ -1,17 +1,25 @@
-# Regras do Projeto OVERTRIP (SaaS de Gestão de Viagens)
+# OVERTRIP — orientações para agentes de código
 
-## Diretrizes de Desenvolvimento
-- **Foco no MVP:** Nada novo entra no escopo antes de o primeiro marco ser concluído. O MVP é: login, CRUD de viagens, publicação e testes.
-- **Segurança em primeiro lugar:** O PostgreSQL não fica exposto à internet. Credenciais nunca no código. O JSON público só tem o que é autorizado.
-- **Validação:** Toda alteração exige teste. O Playwright é usado para validar a interface.
-- **Orquestração:** Um agente altera arquivos por vez. O planejamento é feito no OpenCode + Maestria.
-- **Git:** Commits pequenos. Sempre teste antes de avançar. Nenhum agente publica em produção.
+## Estado e arquitetura
 
-## Arquitetura e Stack (Hipótese Inicial)
-- Next.js com TypeScript, PostgreSQL, Prisma, Tailwind CSS, Docker Compose.
-- A opção A (PostgreSQL gera o JSON público para o site estático) é a preferência inicial, a ser validada na auditoria.
+- Este repositório reúne o site público estático, a API Node/Express, o painel React/Vite e o banco SQLite gerenciado por Prisma. Consulte `ARCHITECTURE.md`, `docs/TRIP_WORKFLOW_ASSISTANT_PLAN.md` e `deploy/ORACLE_STATUS.md` antes de alterar fluxos ou publicar.
+- A viagem no SQLite/Prisma é a fonte operacional. `/api/public/trips` é a projeção pública; `trips.json` é conteúdo legado/fallback e não deve ser tratado como fonte do CRM ou das reservas.
+- CRM e reservas existem no código e têm rotas administrativas. Reservas e parcelas são registros manuais: não processam pagamentos nem reduzem vagas automaticamente.
+- A Oracle já recebeu versões do produto. `deploy/README.md` é um roteiro histórico; nunca copie seus comandos de firewall, restauração ou publicação sem conferir as instruções atuais em `deploy/ORACLE_STATUS.md`.
 
-## Dados
-- O `trips.json` é a fonte atual. A Fase 0 criará um script para validar e gerar os dados derivados (galeria, mapa).
-- Campos derivados (datas, preços) devem ser calculados a partir de `startDateISO`.
+## Regras de implementação
 
+- Preserve privacidade: não exponha dados de clientes, notas, documentos ou segredos nas rotas públicas, logs, arquivos do site ou prompts.
+- Mudanças no banco precisam de migração Prisma aditiva, compatibilidade com dados existentes e avaliação do procedimento de retorno. Não rode migrações na produção sem autorização e plano de publicação.
+- Prefira mudanças pequenas e coerentes com os fluxos existentes. Não introduza integrações pagas ou externas sem necessidade e autorização explícita.
+- Valide alterações com checagens proporcionais ao risco; execute testes quando solicitados ou necessários para demonstrar o comportamento alterado. Não afirme validação de produção sem evidência da VM.
+- Use agentes em tarefas independentes quando isso trouxer revisão útil; delegue escopos claros e revise as entregas antes de integrá-las. O agente principal mantém a decisão final.
+- Commits devem descrever a mudança. Push, publicação e alteração de infraestrutura só ocorrem quando o usuário solicitar.
+
+## Stack real
+
+- API: Node.js, TypeScript, Express e Prisma.
+- Painel: React, TypeScript e Vite.
+- Persistência: SQLite na Oracle, fora do repositório, com migrações Prisma.
+- Site público: HTML, CSS e JavaScript, consumindo a projeção pública da API.
+- Proxy e TLS em produção: Caddy; acesso administrativo também usa Tailscale.

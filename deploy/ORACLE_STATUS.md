@@ -1,5 +1,13 @@
 # Estado da produção na Oracle
 
+> Este arquivo é um diário de alterações e verificações, não um monitor em
+> tempo real. O registro mais recente abaixo é de 10 de novembro de 2026; não
+> confirma que serviços, DNS, dados ou configurações continuam iguais hoje.
+> Para mudanças operacionais, obtenha evidência nova diretamente da VM e
+> preserve os limites de privacidade. CRM/reservas foram publicados segundo o
+> registro de 10 de novembro, mas os fluxos e limites descritos nessa entrada
+> não significam que o estado atual da instância foi novamente verificado.
+
 ## Ajustes finais no resumo e nos campos de fotos (10 de novembro, 20:35 UTC)
 
 - Publicado somente o painel do commit `7ea5cee` (`fix(panel): simplifica resumo e campos de foto`). Pacote SHA-256 `5cd60b32b606101c35d754eca0479c0082b6a30353afa9783a860db6db7c6934`.

@@ -10,8 +10,11 @@
 > A restauração SQLite abaixo também precisa de procedimento revisado e backup
 > consistente antes de sua execução.
 
-Tudo na mesma máquina e no mesmo domínio: site em `overtrip.com.br/`, painel em `/admin`, API em `/api`. O banco (SQLite) fica **fora** do repositório, com backup diário.
-Nada aqui foi publicado ainda. Cada passo abaixo é feito por você, na ordem.
+O produto já está publicado na Oracle. Este documento é um roteiro histórico de
+bootstrap, não o procedimento para a VM existente. O produto usa site em
+`overtrip.com.br/`, painel em `/admin`, API em `/api` e SQLite fora do
+repositório. Consulte `ORACLE_STATUS.md` e valide o estado da VM antes de
+qualquer ação. Não execute este roteiro em sequência numa instância existente.
 
 **Migração histórica:** `0_init` teve texto de aviso do Prisma removido do fim
 do SQL. Isso muda seu checksum. Em bancos que já registraram essa migração,
