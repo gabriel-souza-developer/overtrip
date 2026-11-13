@@ -3,7 +3,13 @@ export interface HealthCheck { status: 'ok' | 'alert' | 'metric'; message: strin
 export interface SystemHealth { state: HealthState; checkedAt: string | null; ageMinutes: number | null; checks: HealthCheck[] }
 export interface SystemHealthHistoryPoint { checkedAt: string; ok: boolean; checks: HealthCheck[] }
 
-export interface HealthChartPoint { checkedAt: string; diskUsed: number | null; memoryAvailable: number | null; loadPerCore: number | null }
+export interface HealthChartPoint {
+  checkedAt: string;
+  diskUsed: number | null;
+  memoryAvailable: number | null;
+  loadAverage: number | null;
+  cpuCount: number | null;
+}
 
 /** Agrupa coletas densas em intervalos para o gráfico continuar legível e leve. */
 export function aggregateHealthPoints(points: HealthChartPoint[], intervalMs: number): HealthChartPoint[] {
@@ -21,33 +27,34 @@ export function aggregateHealthPoints(points: HealthChartPoint[], intervalMs: nu
       return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
     };
     const timestamps = entries.map((entry) => Date.parse(entry.checkedAt));
-    const loadValues = entries.map((entry) => entry.loadPerCore).filter((value): value is number => value !== null);
+    const loadValues = entries.map((entry) => entry.loadAverage).filter((value): value is number => value !== null);
+    const cpuCount = [...entries].reverse().find((entry) => entry.cpuCount !== null)?.cpuCount ?? null;
     return {
       checkedAt: new Date(timestamps.reduce((sum, timestamp) => sum + timestamp, 0) / timestamps.length).toISOString(),
       diskUsed: average('diskUsed'),
       memoryAvailable: average('memoryAvailable'),
-      loadPerCore: loadValues.length ? Math.max(...loadValues) : null,
+      loadAverage: loadValues.length ? Math.max(...loadValues) : null,
+      cpuCount,
     };
   });
 }
 
-/** Converte as métricas textuais do monitor para percentuais que o gráfico pode desenhar. */
+/** Lê as métricas textuais do monitor preservando as unidades originais. */
 export function healthChartPoints(history: SystemHealthHistoryPoint[]): HealthChartPoint[] {
   return history.map(({ checkedAt, checks }) => {
     let diskUsed: number | null = null;
     let memoryAvailable: number | null = null;
-    let load: number | null = null;
-    let cpus: number | null = null;
+    let loadAverage: number | null = null;
+    let cpuCount: number | null = null;
     for (const check of checks) {
       const disk = check.message.match(/^disco utilizado: (\d+)%/i);
       const memory = check.message.match(/^memória disponível: (\d+)%/i);
       const cpuLoad = check.message.match(/carga 1 minuto=([\d.]+); CPUs=(\d+)/i);
       if (disk) diskUsed = Number(disk[1]);
       if (memory) memoryAvailable = Number(memory[1]);
-      if (cpuLoad) { load = Number(cpuLoad[1]); cpus = Number(cpuLoad[2]); }
+      if (cpuLoad) { loadAverage = Number(cpuLoad[1]); cpuCount = Number(cpuLoad[2]); }
     }
-    const loadPerCore = load !== null && cpus ? Math.min(100, load / cpus * 100) : null;
-    return { checkedAt, diskUsed, memoryAvailable, loadPerCore };
+    return { checkedAt, diskUsed, memoryAvailable, loadAverage, cpuCount };
   });
 }
 
