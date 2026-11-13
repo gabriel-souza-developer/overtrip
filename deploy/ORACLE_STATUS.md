@@ -1,12 +1,19 @@
 # Estado da produção na Oracle
 
 > Este arquivo é um diário de alterações e verificações, não um monitor em
-> tempo real. O registro mais recente abaixo é de 11 de novembro de 2026; não
+> tempo real. O registro mais recente abaixo é de 13 de novembro de 2026; não
 > confirma que serviços, DNS, dados ou configurações continuam iguais hoje.
 > Para mudanças operacionais, obtenha evidência nova diretamente da VM e
 > preserve os limites de privacidade. CRM/reservas foram publicados segundo o
 > registro de 10 de novembro, mas os fluxos e limites descritos nessa entrada
 > não significam que o estado atual da instância foi novamente verificado.
+
+## Histórico compacto da saúde do servidor (13 de novembro, 06:23 UTC)
+
+- Publicado o commit `81e164d` (`feat(panel): simplifica histórico da saúde do servidor`), somente com os arquivos estáticos do painel. Pacote SHA-256 `5f8f83377fb03f8973e62430fff89cca83e0b891d5dc19aac9ec060ff6490033`.
+- O gráfico agora permite escolher 24 horas ou 7 dias, agrega disco e memória por intervalo, preserva o pico da carga por núcleo e mostra o horário médio real das coletas. As métricas atuais aparecem em cartões compactos e o gráfico se adapta à largura móvel.
+- A versão anterior do painel está preservada em `/srv/overtrip/retorno-healthui-20261113-062332/admin`. Como a publicação alterou somente arquivos estáticos, não foi necessário backup nem alteração do banco ou da API.
+- Após publicar, `/admin/` respondeu HTTP 200, o bundle `SystemHealth-ColgdgT4.js` entregue continha os rótulos de 24 horas e 7 dias, e API e Caddy permaneceram ativos. Antes da publicação passaram 5 testes focados, a checagem de tipos e a build do frontend.
 
 ## Publicação de autenticação segura e correção da API pública (11 de novembro, 08:33 UTC)
 
