@@ -17,6 +17,7 @@ import leadRoutes from './routes/leadRoutes.js';
 import reservationRoutes from './routes/reservationRoutes.js';
 import systemRoutes from './routes/systemRoutes.js';
 import mediaRoutes from './routes/mediaRoutes.js';
+import cspReportRoutes from './routes/cspReportRoutes.js';
 
 const app = express();
 
@@ -30,6 +31,8 @@ app.use(cors({
   origin: config.corsOrigin,
   credentials: true,
 }));
+// Relatórios de CSP precisam do parser bruto e ficam antes do JSON geral.
+app.use('/api/csp-report', cspReportRoutes);
 app.use('/api/trips/:tripId/documents', documentRoutes);
 // Envio de imagens: corpo bruto, montado antes do express.json.
 app.use('/api/media', mediaRoutes);
