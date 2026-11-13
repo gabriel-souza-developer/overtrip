@@ -1,17 +1,17 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Activity, AlertTriangle, CheckCircle2, RefreshCw } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { AlertTriangle, CheckCircle2, RefreshCw } from 'lucide-react';
 import PageHeader from '../components/PageHeader';
 import Button from '../components/Button';
 import { systemApi } from '../api';
-import { healthChartPoints, healthSummary, type HealthChartPoint, type SystemHealth, type SystemHealthHistoryPoint } from '../lib/systemHealth';
+import { aggregateHealthPoints, healthChartPoints, healthSummary, type HealthChartPoint, type SystemHealth, type SystemHealthHistoryPoint } from '../lib/systemHealth';
 
 const chartSeries = [
   { key: 'diskUsed', label: 'Disco usado', color: '#e26b1b' },
   { key: 'memoryAvailable', label: 'Memória disponível', color: '#167a52' },
-  { key: 'loadPerCore', label: 'Carga média por núcleo', color: '#3659a2' },
+  { key: 'loadPerCore', label: 'Pico de carga por núcleo', color: '#3659a2' },
 ] as const;
 
-function HistoryChart({ points }: { points: HealthChartPoint[] }) {
+function HistoryChart({ points, totalPoints, range, onRangeChange }: { points: HealthChartPoint[]; totalPoints: number; range: 'day' | 'week'; onRangeChange: (range: 'day' | 'week') => void }) {
   const width = 720;
   const left = 42;
   const right = 700;
@@ -25,18 +25,24 @@ function HistoryChart({ points }: { points: HealthChartPoint[] }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 id="historico-servidor" className="text-lg font-semibold text-surface-900">Histórico das verificações</h2>
-          <p className="mt-1 text-sm text-surface-600">Coletas dos últimos sete dias. A carga por núcleo é uma média, não o percentual de CPU usado.</p>
+          <p className="mt-1 text-sm text-surface-600">{range === 'day' ? 'Últimas 24 horas' : 'Últimos 7 dias'} · médias de disco e memória; pico de carga por intervalo.</p>
         </div>
-        <span className="text-sm text-surface-600">{points.length} {points.length === 1 ? 'coleta' : 'coletas'}</span>
+        <label className="flex items-center gap-2 text-sm text-surface-700">
+          <span>Período</span>
+          <select className="input w-auto py-2" value={range} onChange={(event) => onRangeChange(event.target.value as 'day' | 'week')}>
+            <option value="day">24 horas</option><option value="week">7 dias</option>
+          </select>
+        </label>
       </div>
-      {points.length === 0 ? (
+      {totalPoints === 0 ? (
         <p className="mt-4 rounded-lg bg-surface-50 p-4 text-sm text-surface-600">O histórico começará a aparecer após a próxima execução do monitor.</p>
       ) : (
         <>
+          <p className="mt-3 text-xs text-surface-500">{totalPoints} coletas resumidas em {points.length} pontos</p>
           <div className="mt-4 overflow-x-auto">
-            <svg className="min-w-[560px] w-full" viewBox={`0 0 ${width} 190`} role="img" aria-labelledby="chart-title chart-desc">
+            <svg className="w-full" viewBox={`0 0 ${width} 190`} role="img" aria-labelledby="chart-title chart-desc">
               <title id="chart-title">Gráfico histórico de saúde do servidor</title>
-              <desc id="chart-desc">Disco usado, memória disponível e carga média por núcleo, em porcentagem, ao longo das coletas.</desc>
+              <desc id="chart-desc">Médias de disco usado e memória disponível, mais o pico de carga por núcleo, ao longo das coletas. Carga não é percentual de CPU.</desc>
               {[0, 25, 50, 75, 100].map((tick) => <g key={tick}>
                 <line x1={left} x2={right} y1={y(tick)} y2={y(tick)} stroke="#e5e7eb" strokeDasharray="3 4" />
                 <text x={left - 8} y={y(tick) + 4} textAnchor="end" fontSize="11" fill="#64748b">{tick}%</text>
@@ -57,7 +63,7 @@ function HistoryChart({ points }: { points: HealthChartPoint[] }) {
           <div className="mt-2 flex flex-wrap gap-x-5 gap-y-2 text-xs text-surface-700" aria-label="Legenda do gráfico">
             {chartSeries.map((series) => <span key={series.key} className="inline-flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: series.color }} aria-hidden="true" />{series.label}</span>)}
           </div>
-          <div className="mt-2 flex justify-between text-xs text-surface-500"><span>{new Date(points[0].checkedAt).toLocaleString('pt-BR')}</span><span>{new Date(points[points.length - 1].checkedAt).toLocaleString('pt-BR')}</span></div>
+          <div className="mt-2 flex justify-between gap-3 text-xs text-surface-500"><span>{new Date(points[0].checkedAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span><span>{new Date(points[points.length - 1].checkedAt).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span></div>
         </>
       )}
     </section>
@@ -75,6 +81,7 @@ export default function SystemHealthPage() {
   const [history, setHistory] = useState<SystemHealthHistoryPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [range, setRange] = useState<'day' | 'week'>('day');
 
   const load = useCallback(() => {
     setLoading(true);
@@ -93,9 +100,17 @@ export default function SystemHealthPage() {
   }, [load]);
 
   const summary = health ? healthSummary(health) : null;
-  const metrics = health?.checks.filter((check) => check.status === 'metric') ?? [];
   const checks = health?.checks.filter((check) => check.status !== 'metric') ?? [];
-  const chartPoints = healthChartPoints(history);
+  const { chartPoints, totalPoints } = useMemo(() => {
+    const now = Date.now();
+    const duration = range === 'day' ? 24 * 60 * 60_000 : 7 * 24 * 60 * 60_000;
+    const filtered = healthChartPoints(history).filter((point) => Date.parse(point.checkedAt) >= now - duration);
+    return {
+      chartPoints: aggregateHealthPoints(filtered, range === 'day' ? 15 * 60_000 : 60 * 60_000),
+      totalPoints: filtered.length,
+    };
+  }, [history, range]);
+  const currentMetrics = health ? healthChartPoints([{ checkedAt: health.checkedAt ?? new Date().toISOString(), ok: health.state === 'ok', checks: health.checks }])[0] : null;
 
   return (
     <div className="space-y-6">
@@ -118,7 +133,23 @@ export default function SystemHealthPage() {
         </section>
       )}
 
-      <HistoryChart points={chartPoints} />
+      {currentMetrics && (
+        <section className="grid grid-cols-1 gap-3 sm:grid-cols-3" aria-label="Métricas atuais">
+          {([
+            ['Disco usado', currentMetrics.diskUsed, 'do espaço em disco'],
+            ['Memória disponível', currentMetrics.memoryAvailable, 'da memória livre'],
+            ['Carga por núcleo', currentMetrics.loadPerCore, 'média · não é uso de CPU'],
+          ] as const).map(([label, value, detail]) => (
+            <article className="card p-4" key={label}>
+              <p className="text-sm text-surface-600">{label}</p>
+              <p className="mt-1 text-2xl font-semibold text-surface-900">{value === null ? '—' : `${value.toFixed(1)}%`}</p>
+              <p className="text-xs text-surface-500">{detail}</p>
+            </article>
+          ))}
+        </section>
+      )}
+
+      <HistoryChart points={chartPoints} totalPoints={totalPoints} range={range} onRangeChange={setRange} />
 
       {checks.length > 0 && (
         <section className="card" aria-labelledby="verificacoes">
@@ -137,14 +168,6 @@ export default function SystemHealthPage() {
         </section>
       )}
 
-      {metrics.length > 0 && (
-        <section className="card p-5" aria-labelledby="metricas">
-          <h2 id="metricas" className="text-lg font-semibold text-surface-900 flex items-center gap-2"><Activity className="w-5 h-5" aria-hidden="true" />Métricas</h2>
-          <ul className="mt-2 text-sm text-surface-700 space-y-1">
-            {metrics.map((metric) => <li key={metric.message}>{metric.message}</li>)}
-          </ul>
-        </section>
-      )}
     </div>
   );
 }

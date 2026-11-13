@@ -5,6 +5,32 @@ export interface SystemHealthHistoryPoint { checkedAt: string; ok: boolean; chec
 
 export interface HealthChartPoint { checkedAt: string; diskUsed: number | null; memoryAvailable: number | null; loadPerCore: number | null }
 
+/** Agrupa coletas densas em intervalos para o gráfico continuar legível e leve. */
+export function aggregateHealthPoints(points: HealthChartPoint[], intervalMs: number): HealthChartPoint[] {
+  const buckets = new Map<number, HealthChartPoint[]>();
+  for (const point of points) {
+    const timestamp = Date.parse(point.checkedAt);
+    const bucket = Math.floor(timestamp / intervalMs) * intervalMs;
+    const entries = buckets.get(bucket);
+    if (entries) entries.push(point);
+    else buckets.set(bucket, [point]);
+  }
+  return [...buckets.entries()].sort(([a], [b]) => a - b).map(([, entries]) => {
+    const average = (key: keyof Omit<HealthChartPoint, 'checkedAt'>): number | null => {
+      const values = entries.map((entry) => entry[key]).filter((value): value is number => value !== null);
+      return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
+    };
+    const timestamps = entries.map((entry) => Date.parse(entry.checkedAt));
+    const loadValues = entries.map((entry) => entry.loadPerCore).filter((value): value is number => value !== null);
+    return {
+      checkedAt: new Date(timestamps.reduce((sum, timestamp) => sum + timestamp, 0) / timestamps.length).toISOString(),
+      diskUsed: average('diskUsed'),
+      memoryAvailable: average('memoryAvailable'),
+      loadPerCore: loadValues.length ? Math.max(...loadValues) : null,
+    };
+  });
+}
+
 /** Converte as métricas textuais do monitor para percentuais que o gráfico pode desenhar. */
 export function healthChartPoints(history: SystemHealthHistoryPoint[]): HealthChartPoint[] {
   return history.map(({ checkedAt, checks }) => {
