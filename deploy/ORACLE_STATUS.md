@@ -8,6 +8,15 @@
 > registro de 10 de novembro, mas os fluxos e limites descritos nessa entrada
 > não significam que o estado atual da instância foi novamente verificado.
 
+## CSP em modo de relatório e métrica de carga (13 de novembro, 15:25 UTC)
+
+- Publicados os commits `c1669fd` (`fix(health): mostra carga do servidor sem percentual`) e `844da5c` (`feat(security): registra violações CSP em modo relatório`), mais a correção de sintaxe da política CSP preparada nesta sequência.
+- O gráfico da saúde separa percentuais de disco/memória da carga média de 1 minuto e mostra a quantidade de CPUs como referência; carga média não é percentual de uso de CPU.
+- A API aceita relatórios CSP legado e Reporting API, limita tamanho e volume, sanitiza campos e remove query strings antes de registrar. A política `Content-Security-Policy-Report-Only` foi acrescentada ao Caddy ativo; não bloqueia scripts, estilos ou outros recursos enquanto observamos os relatórios. A configuração foi validada antes de reiniciar o Caddy.
+- Antes da publicação, passaram 8 testes focados, build da API, checagem de tipos e build do painel. Após a publicação, o endpoint local e o público responderam 204 para um relatório sintético, e a query de teste não apareceu no journal. `/`, `/admin/`, `/health` e `/api/public/trips` responderam 200; `/trips.json` respondeu 404. Caddy e API ficaram ativos.
+- A cópia de retorno da publicação está em `/srv/overtrip/retorno-csp-health-20261113-152052`; o backup SQLite local foi validado em `/var/backups/overtrip/overtrip-20261113-152052.db.gz`. Nenhuma migração ou mudança de esquema foi aplicada.
+- Não foi configurada cópia de backup no computador do usuário. Uma cópia externa permanece pendente de destino autorizado; os backups atuais seguem na própria VM.
+
 ## Histórico compacto da saúde do servidor (13 de novembro, 06:23 UTC)
 
 - Publicado o commit `81e164d` (`feat(panel): simplifica histórico da saúde do servidor`), somente com os arquivos estáticos do painel. Pacote SHA-256 `5f8f83377fb03f8973e62430fff89cca83e0b891d5dc19aac9ec060ff6490033`.
