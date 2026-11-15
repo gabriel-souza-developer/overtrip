@@ -15,6 +15,7 @@ const Reservations = React.lazy(() => import('./pages/Reservations'));
 const SystemHealthPage = React.lazy(() => import('./pages/SystemHealth'));
 const Gallery = React.lazy(() => import('./pages/Gallery'));
 const Settings = React.lazy(() => import('./pages/Settings'));
+const SocialPosts = React.lazy(() => import('./pages/SocialPosts'));
 
 interface User {
   id: string;
@@ -124,6 +125,7 @@ const AppRoutes = () => (
         <Route element={<AdminRoute />}>
           <Route path="/leads" element={<Leads />} />
           <Route path="/reservations" element={<Reservations />} />
+          <Route path="/social-posts" element={<SocialPosts />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/system" element={<SystemHealthPage />} />
         </Route>

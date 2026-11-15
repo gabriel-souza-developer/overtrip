@@ -18,6 +18,7 @@ import reservationRoutes from './routes/reservationRoutes.js';
 import systemRoutes from './routes/systemRoutes.js';
 import mediaRoutes from './routes/mediaRoutes.js';
 import cspReportRoutes from './routes/cspReportRoutes.js';
+import socialPostRoutes from './routes/socialPostRoutes.js';
 
 const app = express();
 
@@ -49,6 +50,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/trips', tripRoutes);
 app.use('/api/leads', leadRoutes);
 app.use('/api/reservations', reservationRoutes);
+app.use('/api/social-posts', socialPostRoutes);
 app.use('/api/system', systemRoutes);
 app.use('/api/visits', visitRoutes);
 app.use('/api/gallery', galleryRoutes);

@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { brandUrl } from '../lib/basePath';
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import * as Menu from '@radix-ui/react-dropdown-menu';
-import { Activity, ChevronDown, House, Images, LogOut, MapPinned, Menu as MenuIcon, Plane, Settings as SettingsIcon, Ticket, User, UsersRound, X } from 'lucide-react';
+import { Activity, ChevronDown, House, Images, LogOut, MapPinned, Menu as MenuIcon, Plane, Settings as SettingsIcon, Share2, Ticket, User, UsersRound, X } from 'lucide-react';
 import { useAuth } from '../App';
 import { useToast } from '../hooks/useToast';
 
@@ -12,6 +12,7 @@ const navItems = [
   { path: '/visits', label: 'Destinos visitados', icon: MapPinned },
   { path: '/leads', label: 'Interessados', icon: UsersRound, adminOnly: true },
   { path: '/reservations', label: 'Reservas', icon: Ticket, adminOnly: true },
+  { path: '/social-posts', label: 'Redes sociais', icon: Share2, adminOnly: true },
   { path: '/gallery', label: 'Galeria de memórias', icon: Images },
   { path: '/settings', label: 'Configurações', icon: SettingsIcon, adminOnly: true },
   { path: '/system', label: 'Saúde do servidor', icon: Activity, adminOnly: true },

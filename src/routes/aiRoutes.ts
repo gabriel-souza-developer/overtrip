@@ -2,6 +2,7 @@ import { Router, type RequestHandler, type Response } from 'express';
 import { asyncHandler } from '../middleware/errorHandler.js';
 import { authenticate, type AuthRequest } from '../middleware/auth.js';
 import { createRateLimiter } from '../middleware/rateLimit.js';
+import { generateSocialCaption, MAX_SOCIAL_BRIEFING, socialNetworks, type SocialNetwork } from '../services/socialCaption.js';
 import {
   AiDraftError,
   MAX_TEXT_LENGTH,
@@ -51,6 +52,28 @@ export function createAiRouter(deps: AiRoutesDeps = {}): Router {
   router.get('/status', (_req, res) => {
     res.json({ enabled: getClient() !== null });
   });
+
+  router.post('/social-caption', (req: AuthRequest, res: Response, next) => {
+    if (req.user?.role !== 'admin') { res.status(403).json({ error: 'Acesso disponível apenas para administradores.' }); return; }
+    next();
+  }, limiter, asyncHandler(async (req: AuthRequest, res: Response) => {
+    const { briefing, network } = (req.body ?? {}) as { briefing?: unknown; network?: unknown };
+    if (typeof briefing !== 'string' || !briefing.trim() || typeof network !== 'string' || !socialNetworks.includes(network as SocialNetwork)) {
+      res.status(400).json({ error: 'Informe o briefing e uma rede social válida.' }); return;
+    }
+    if (briefing.length > MAX_SOCIAL_BRIEFING) {
+      res.status(413).json({ error: `O briefing deve ter até ${MAX_SOCIAL_BRIEFING} caracteres.` }); return;
+    }
+    const client = getClient();
+    if (!client) { res.status(503).json({ error: 'A ajuda de IA não está ativada neste ambiente.' }); return; }
+    try {
+      const result = await generateSocialCaption(client, briefing.trim(), network as SocialNetwork, model());
+      res.set('Cache-Control', 'no-store').json(result);
+    } catch (error) {
+      if (error instanceof AiDraftError) { res.status(error.status).json({ error: error.message }); return; }
+      throw error;
+    }
+  }));
 
   router.post(
     '/trip-draft',

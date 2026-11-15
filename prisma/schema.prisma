@@ -11,6 +11,27 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Rascunhos privados; aprovação apenas registra revisão, não publica.
+model SocialPost {
+  id         String              @id @default(cuid())
+  title      String
+  version    Int                 @default(1)
+  approvedAt DateTime?
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+  variants   SocialPostVariant[]
+}
+
+model SocialPostVariant {
+  id       String     @id @default(cuid())
+  postId   String
+  platform String
+  caption  String
+  post     SocialPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, platform])
+}
+
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TRIP: Viagens e experiências comerciais da OVERTRIP
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
