@@ -5,6 +5,7 @@ import { tripApi } from '../api';
 import { calendarDays, capitalizeFirst, monthKey, saoPauloDateKey, tripsByDay, upcomingTrips, tripDay, type CalendarTrip } from '../lib/tripCalendar';
 import { tripStatusLabel } from '../lib/panelHelpers';
 import ErrorState from './ErrorState';
+import { holidaysForMonth } from '../lib/holidays';
 
 const weekdays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 const initialMonth = () => { const now = new Date(); return new Date(now.getFullYear(), now.getMonth(), 1); };
@@ -38,6 +39,12 @@ export default function TripCalendar() {
 
   const days = useMemo(() => calendarDays(month.getFullYear(), month.getMonth()), [month]);
   const grouped = useMemo(() => tripsByDay(trips), [trips]);
+  const holidays = useMemo(() => holidaysForMonth(month.getFullYear(), month.getMonth()), [month]);
+  const holidaysByDay = useMemo(() => {
+    const result = new Map<string, typeof holidays>();
+    for (const holiday of holidays) result.set(holiday.date, [...(result.get(holiday.date) || []), holiday]);
+    return result;
+  }, [holidays]);
   const chosen = grouped.get(selected) || [];
   // "Próxima" segue o dia de São Paulo (fuso da operação), não o do navegador.
   const upcoming = useMemo(() => upcomingTrips(trips, saoPauloDateKey()).slice(0, 4), [trips]);
@@ -73,10 +80,12 @@ export default function TripCalendar() {
           </div>
           <div className="mt-2 grid grid-cols-7 text-center text-xs font-semibold text-surface-600" aria-hidden="true">{weekdays.map(day => <span key={day} className="py-2">{day}</span>)}</div>
           <div className="grid grid-cols-7 gap-y-1" role="group" aria-label={`Datas de ${label}`}>
-            {days.map((day, index) => day ? <button key={day} type="button" aria-pressed={selected === day} aria-label={`${day.split('-').reverse().join('/')}, ${(grouped.get(day) || []).length} viagem(ns)`} onClick={() => setSelected(day)} className={`relative mx-auto min-h-11 w-full max-w-12 rounded-lg text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary-500 ${selected === day ? 'bg-primary-500 text-white' : 'text-surface-800 hover:bg-surface-100'} ${day === localDay(new Date()) && selected !== day ? 'ring-1 ring-primary-500' : ''}`}>
-              {Number(day.slice(-2))}{grouped.has(day) && <span className={`absolute bottom-1 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full ${selected === day ? 'bg-white' : 'bg-primary-500'}`} aria-hidden="true" />}
+            {days.map((day, index) => day ? <button key={day} type="button" aria-pressed={selected === day} aria-label={`${day.split('-').reverse().join('/')}, ${(grouped.get(day) || []).length} viagem(ns)${holidaysByDay.has(day) ? `, feriado: ${holidaysByDay.get(day)!.map(h => `${h.name} (${h.scope})`).join(', ')}` : ''}`} onClick={() => setSelected(day)} className={`relative mx-auto min-h-11 w-full max-w-12 rounded-lg text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary-500 ${selected === day ? 'bg-primary-500 text-white' : 'text-surface-800 hover:bg-surface-100'} ${day === localDay(new Date()) && selected !== day ? 'ring-1 ring-primary-500' : ''}`}>
+              {Number(day.slice(-2))}<span className="absolute bottom-1 left-0 right-0 flex justify-center gap-1" aria-hidden="true">{grouped.has(day) && <span className={`h-1.5 w-1.5 rounded-full ${selected === day ? 'bg-white' : 'bg-primary-500'}`} />}{holidaysByDay.has(day) && <span className={`h-1.5 w-1.5 rounded-sm ${selected === day ? 'bg-white' : 'bg-rose-700'}`} />}</span>
             </button> : <span key={`empty-${index}`} aria-hidden="true" />)}
           </div>
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-surface-600" aria-label="Legenda do calendário"><span className="inline-flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-primary-500" aria-hidden="true" />Viagem</span><span className="inline-flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-sm bg-rose-700" aria-hidden="true" />Feriado</span></div>
+          <div className="mt-4 border-t border-surface-200 pt-4" aria-live="polite"><h4 className="text-sm font-semibold text-surface-900">Feriados em {label}</h4>{holidays.length ? <ul className="mt-2 space-y-2">{holidays.map(holiday => <li key={`${holiday.date}-${holiday.name}`} className="flex items-start gap-2 text-sm text-surface-700"><span className="font-semibold tabular-nums">{holiday.date.slice(8, 10)}/{holiday.date.slice(5, 7)}</span><span>{holiday.name} <span className="text-xs text-surface-600">· {holiday.scope}</span></span></li>)}</ul> : <p className="mt-2 text-sm text-surface-600">Nenhum feriado cadastrado para este mês.</p>}<p className="mt-2 text-xs text-surface-600">Brasil, Paraíba e Campina Grande. Datas recorrentes segundo as regras atuais; pontos facultativos não incluídos.</p></div>
           <div className="mt-4 rounded-xl bg-surface-50 p-4"><h4 className="text-sm font-semibold text-surface-900">Viagens em {selectedLabel}</h4>
             {loading ? <p className="mt-2 text-sm text-surface-600">Carregando viagens…</p> : error ? <p className="mt-2 text-sm text-surface-600">As viagens não puderam ser carregadas.</p> : chosen.length === 0 ? <p className="mt-2 text-sm text-surface-600">Nenhuma viagem cadastrada para esta data.</p> : <ul className="mt-2 space-y-2">{chosen.map(trip => <li key={trip.id}><Link className="block rounded-lg border border-surface-200 p-3 text-sm hover:border-primary-500 focus-visible:outline focus-visible:outline-2" to={`/trips/${trip.id}/edit`}><span className="block font-semibold text-surface-900">{trip.title}</span><span className="mt-1 block text-xs text-surface-600">{[trip.city, trip.region].filter(Boolean).join(' - ')} · {tripStatusLabel(trip.status)}</span></Link></li>)}</ul>}
           </div>
