@@ -22,6 +22,7 @@ export default function Layout() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
+  const currentPage = navItems.find((item) => location.pathname === item.path || location.pathname.startsWith(`${item.path}/`))?.label ?? 'Painel';
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const asideRef = useRef<HTMLElement>(null);
   const [isDesktop, setIsDesktop] = useState(() => window.matchMedia('(min-width: 1024px)').matches);
@@ -87,20 +88,24 @@ export default function Layout() {
         aria-label="Menu principal"
       >
         <div className="flex flex-col h-full">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-surface-200">
-            <img src={brandUrl('overtrip-logo-com-fundo-laranja-192.png')} alt="OVERTRIP" width={56} height={56} className="w-14 h-14 rounded-lg" />
+          <div className="flex items-center justify-between px-5 py-5 border-b border-surface-200">
+            <div className="flex items-center gap-3">
+              <img src={brandUrl('overtrip-logo-com-fundo-laranja-192.png')} alt="" width={48} height={48} className="w-12 h-12 rounded-xl" />
+              <div><p className="text-sm font-bold tracking-wide text-surface-900">OVERTRIP</p><p className="mt-0.5 text-xs text-surface-600">Painel de gestão</p></div>
+            </div>
             <button type="button" className="btn-icon lg:hidden" onClick={() => setSidebarOpen(false)} aria-label="Fechar menu">
               <X className="w-5 h-5" aria-hidden="true" />
             </button>
           </div>
 
-          <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+          <nav className="flex-1 px-3 py-5 space-y-1 overflow-y-auto" aria-label="Navegação do painel">
+            <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-surface-600">Menu principal</p>
             {navItems.filter(item => !('adminOnly' in item) || user?.role === 'admin').map(({ path, label, icon: Icon }) => (
               <NavLink
                 key={path}
                 to={path}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors ${
+                  `flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium motion-safe:transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary-500 ${
                     isActive ? 'bg-primary-50 text-primary-500' : 'text-surface-600 hover:bg-surface-100 hover:text-surface-900'
                   }`
                 }
@@ -142,7 +147,7 @@ export default function Layout() {
             >
               <MenuIcon className="w-6 h-6" aria-hidden="true" />
             </button>
-            <div className="flex-1" />
+            <div className="flex-1 pl-2 lg:pl-0"><p className="text-sm font-semibold text-surface-900">{currentPage}</p><p className="hidden sm:block text-xs text-surface-600">Painel OVERTRIP</p></div>
             <Menu.Root>
               <Menu.Trigger className="flex items-center gap-2 px-2 py-1.5 min-h-[44px] rounded-lg text-surface-700 hover:bg-surface-100" aria-label="Minha conta">
                 <span className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center">
