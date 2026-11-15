@@ -104,7 +104,7 @@ export default function SocialArtCreator() {
 
   return <section className="card space-y-4 p-5" aria-labelledby="social-art-title">
     <div><h2 id="social-art-title" className="text-lg font-semibold text-surface-900">Criar arte com uma foto</h2>
-      <p className="mt-1 text-sm text-surface-600">Escolha uma foto, adicione um título e baixe a imagem no formato desejado. A composição acontece neste navegador.</p></div>
+      <p className="mt-1 text-sm text-surface-600">Escolha uma foto, adicione um título e baixe a imagem. Para incluí-la na revisão, anexe o arquivo baixado à rede desejada no rascunho. A composição acontece neste navegador.</p></div>
     <div className="grid gap-4 sm:grid-cols-2">
       <Field id="social-art-file" label="Foto" hint="JPEG, PNG ou WebP; até 10 MB.">
         <input id="social-art-file" className="input" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="social-art-file-hint" onChange={chooseFile} />

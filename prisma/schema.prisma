@@ -27,9 +27,25 @@ model SocialPostVariant {
   postId   String
   platform String
   caption  String
+  socialMediaId String?
+  socialMedia SocialMedia? @relation(fields: [socialMediaId], references: [id], onDelete: Restrict)
   post     SocialPost @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@unique([postId, platform])
+}
+
+// Arquivos imutáveis e privados, fora da pasta de imagens públicas.
+model SocialMedia {
+  id          String @id @default(cuid())
+  storageKey  String @unique
+  sha256      String
+  mimeType    String
+  width       Int
+  height      Int
+  sizeBytes   Int
+  createdById String
+  createdAt   DateTime @default(now())
+  variants    SocialPostVariant[]
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

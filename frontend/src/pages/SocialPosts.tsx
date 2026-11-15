@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Plus, Share2 } from 'lucide-react';
-import { request } from '../api';
+import { request, tripApi, type Trip } from '../api';
+import { tripDay } from '../lib/tripCalendar';
 import { socialPostsApi, type SocialPlatform, type SocialPost } from '../api/socialPosts';
 import PageHeader from '../components/PageHeader';
 import Button from '../components/Button';
@@ -13,6 +14,7 @@ const platforms: { value: SocialPlatform; label: string }[] = [
   { value: 'INSTAGRAM', label: 'Instagram' }, { value: 'FACEBOOK', label: 'Facebook' }, { value: 'TIKTOK', label: 'TikTok' },
 ];
 const blank = (): Record<SocialPlatform, string> => ({ INSTAGRAM: '', FACEBOOK: '', TIKTOK: '' });
+const blankImages = (): Record<SocialPlatform, string | null> => ({ INSTAGRAM: null, FACEBOOK: null, TIKTOK: null });
 
 export default function SocialPosts() {
   const [items, setItems] = useState<SocialPost[]>([]);
@@ -24,11 +26,20 @@ export default function SocialPosts() {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [captions, setCaptions] = useState(blank);
+  const [images, setImages] = useState(blankImages);
+  const [uploading, setUploading] = useState<SocialPlatform | null>(null);
   const [briefing, setBriefing] = useState('');
   const [generating, setGenerating] = useState<SocialPlatform | null>(null);
   const [busy, setBusy] = useState(false);
   const [formError, setFormError] = useState('');
   const [pendingRemoval, setPendingRemoval] = useState<SocialPost | null>(null);
+  const [tripQuery, setTripQuery] = useState('');
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [tripId, setTripId] = useState('');
+  const [tripLoading, setTripLoading] = useState(false);
+  const [tripError, setTripError] = useState('');
+  const [tripMore, setTripMore] = useState(false);
+  const [tripSearched, setTripSearched] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true); setError('');
@@ -40,12 +51,34 @@ export default function SocialPosts() {
   const edit = (post?: SocialPost) => {
     setEditing(post ?? null); setTitle(post?.title ?? '');
     const next = blank(); post?.variants.forEach(variant => { if (variant.platform in next) next[variant.platform] = variant.caption; });
-    setCaptions(next); setBriefing(''); setFormError(''); setOpen(true);
+    const nextImages = blankImages(); post?.variants.forEach(variant => { if (variant.platform in nextImages) nextImages[variant.platform] = variant.socialMediaId ?? null; });
+    setImages(nextImages);
+    setCaptions(next); setBriefing(''); setFormError(''); setTripQuery(''); setTrips([]); setTripId(''); setTripError(''); setTripMore(false); setTripSearched(false); setOpen(true);
+  };
+  const searchTrips = async () => {
+    setTripLoading(true); setTripError(''); setTripId(''); setTripSearched(false);
+    try {
+      const result = await tripApi.list({ page: 1, limit: 100, search: tripQuery.trim() });
+      setTrips(result.data); setTripMore(result.pagination.totalPages > 1); setTripSearched(true);
+    } catch (err) { setTrips([]); setTripError(err instanceof Error ? err.message : 'Não foi possível buscar as viagens.'); }
+    finally { setTripLoading(false); }
+  };
+  const useTrip = () => {
+    const trip = trips.find(item => item.id === tripId);
+    if (!trip) return;
+    if ((title.trim() || briefing.trim()) && !window.confirm('Substituir o título e a ideia pelos dados da viagem? As legendas já escritas serão mantidas.')) return;
+    const day = tripDay(trip.startDateISO);
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(day) ? day.split('-').reverse().join('/') : '';
+    const destination = [trip.city, trip.region].filter(Boolean).join(' - ');
+    const facts = [`Viagem: ${trip.title}`, destination && `Destino: ${destination}`, date && `Data de saída: ${date}`, trip.description && `Descrição: ${trip.description}`].filter(Boolean).join('\n');
+    setTitle(trip.title.slice(0, 160));
+    setBriefing(facts.slice(0, 3000));
+    setFormError('');
   };
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
-    const variants = platforms.map(({ value }) => ({ platform: value, caption: captions[value].trim() })).filter(v => v.caption);
-    if (!title.trim() || !variants.length) { setFormError('Informe um título e pelo menos uma legenda.'); return; }
+    const variants = platforms.map(({ value }) => ({ platform: value, caption: captions[value].trim(), socialMediaId: images[value] })).filter(v => v.caption || v.socialMediaId);
+    if (!title.trim() || !variants.length) { setFormError('Informe um título e pelo menos uma legenda ou imagem.'); return; }
     setBusy(true); setFormError('');
     try {
       const input = { title: title.trim(), variants };
@@ -54,6 +87,19 @@ export default function SocialPosts() {
       setOpen(false); await load();
     } catch (err) { setFormError(err instanceof Error ? err.message : 'Não foi possível salvar o rascunho.'); }
     finally { setBusy(false); }
+  };
+  const uploadImage = async (platform: SocialPlatform, file: File | undefined) => {
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 15 * 1024 * 1024) {
+      setFormError('Escolha uma imagem JPEG, PNG ou WebP de até 15 MB.');
+      return;
+    }
+    setUploading(platform); setFormError('');
+    try {
+      const media = await socialPostsApi.uploadImage(file);
+      setImages(current => ({ ...current, [platform]: media.id }));
+    } catch (err) { setFormError(err instanceof Error ? err.message : 'Não foi possível enviar a imagem.'); }
+    finally { setUploading(null); }
   };
   const suggest = async (platform: SocialPlatform) => {
     if (!briefing.trim()) { setFormError('Descreva o post para receber uma sugestão.'); return; }
@@ -94,17 +140,25 @@ export default function SocialPosts() {
     </article>)}</div>}
     {pages > 1 && <div className="flex items-center gap-3"><Button small disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Anterior</Button><span className="text-sm">Página {page} de {pages}</span><Button small disabled={page >= pages} onClick={() => setPage(p => p + 1)}>Próxima</Button></div>}
     <Modal open={!!pendingRemoval} onOpenChange={value => { if (!value && !busy) setPendingRemoval(null); }} title="Excluir post" description="O rascunho e suas legendas serão excluídos." footer={<><Button disabled={busy} onClick={() => setPendingRemoval(null)}>Cancelar</Button><Button variant="danger" loading={busy} onClick={() => void remove()}>Excluir</Button></>}><p>Excluir {pendingRemoval?.title}?</p></Modal>
-    <Modal open={open} onOpenChange={value => { if (!busy && !generating) setOpen(value); }} title={editing ? 'Revisar post' : 'Novo post'} description="Escreva as legendas para as redes que deseja usar." widthClass="max-w-2xl">
+    <Modal open={open} onOpenChange={value => { if (!busy && !generating && !uploading) setOpen(value); }} title={editing ? 'Revisar post' : 'Novo post'} description="Escreva as legendas e escolha as imagens para as redes que deseja usar." widthClass="max-w-2xl">
       <form className="space-y-5" onSubmit={save}>
+        {!editing && <details className="rounded-xl border border-surface-200 p-4">
+          <summary className="cursor-pointer font-semibold text-surface-900">Usar dados de uma viagem</summary>
+          <p className="mt-2 text-sm text-surface-600">Busque uma viagem e copie seus dados para a ideia. Confira a data e as informações antes de publicar.</p>
+          <div className="mt-3 flex flex-wrap items-end gap-2"><div className="min-w-0 flex-1"><Field id="social-trip-search" label="Buscar viagem"><input id="social-trip-search" className="input" value={tripQuery} onChange={event => setTripQuery(event.target.value)} placeholder="Nome ou destino" maxLength={100} /></Field></div><Button type="button" disabled={tripLoading} onClick={() => void searchTrips()}>{tripLoading ? 'Buscando...' : 'Buscar'}</Button></div>
+          {tripError && <p role="alert" className="mt-2 text-sm text-red-700">{tripError}</p>}
+          {trips.length > 0 && <div className="mt-3 space-y-2"><Field id="social-trip" label="Viagem"><select id="social-trip" className="input" value={tripId} onChange={event => setTripId(event.target.value)}><option value="">Selecione uma viagem</option>{trips.map(trip => <option key={trip.id} value={trip.id}>{trip.title} · {tripDay(trip.startDateISO).split('-').reverse().join('/')}</option>)}</select></Field><Button type="button" disabled={!tripId} onClick={useTrip}>Usar dados da viagem</Button>{tripMore && <p className="text-xs text-surface-600">Exibindo até 100 resultados. Refine a busca para encontrar outra viagem.</p>}</div>}
+          {!tripLoading && !tripError && trips.length === 0 && <p className="mt-2 text-xs text-surface-600">{tripSearched ? 'Nenhuma viagem encontrada. Tente outra busca.' : 'Digite um nome ou destino e clique em Buscar. Deixe em branco para listar viagens.'}</p>}
+        </details>}
         <Field id="social-title" label="Título interno" required><input id="social-title" className="input" value={title} onChange={e => setTitle(e.target.value)} maxLength={160} required /></Field>
         <Field id="social-briefing" label="Ideia para a legenda" hint="Descreva a viagem, o público e o que deseja comunicar. Revise sugestões antes de salvar."><textarea id="social-briefing" className="input" rows={3} maxLength={3000} value={briefing} onChange={e => setBriefing(e.target.value)} /></Field>
         <p className="text-sm text-surface-600">Ao solicitar uma sugestão, sua descrição será enviada ao provedor de IA configurado. Não inclua dados pessoais de clientes.</p>
-        {platforms.map(({ value, label }) => <Field key={value} id={`caption-${value}`} label={`Legenda para ${label}`}><textarea id={`caption-${value}`} className="input" rows={4} maxLength={5000} value={captions[value]} onChange={e => setCaptions(c => ({ ...c, [value]: e.target.value }))} /><div className="mt-2"><Button type="button" small disabled={busy || !!generating} onClick={() => void suggest(value)}>{generating === value ? 'Gerando...' : 'Sugerir legenda'}</Button></div></Field>)}
+        {platforms.map(({ value, label }) => <div key={value} className="space-y-3 rounded-xl border border-surface-200 p-4"><Field id={`caption-${value}`} label={`Legenda para ${label}`}><textarea id={`caption-${value}`} className="input" rows={4} maxLength={5000} value={captions[value]} onChange={e => setCaptions(c => ({ ...c, [value]: e.target.value }))} /><div className="mt-2"><Button type="button" small disabled={busy || !!generating || !!uploading} onClick={() => void suggest(value)}>{generating === value ? 'Gerando...' : 'Sugerir legenda'}</Button></div></Field><Field id={`image-${value}`} label={`Imagem para ${label}`} hint="JPEG, PNG ou WebP até 15 MB. A imagem é privada até a publicação."><input id={`image-${value}`} type="file" className="input" accept="image/jpeg,image/png,image/webp" disabled={busy || !!generating || !!uploading} onChange={e => { const file = e.target.files?.[0]; e.target.value = ''; void uploadImage(value, file); }} /></Field>{uploading === value && <p role="status" className="text-sm text-surface-600">Enviando imagem...</p>}{images[value] && <div className="space-y-2"><img src={socialPostsApi.imageUrl(images[value]!)} alt={`Imagem escolhida para ${label}`} className="max-h-60 max-w-full rounded-lg object-contain" /><Button type="button" small disabled={busy || !!uploading} onClick={() => setImages(current => ({ ...current, [value]: null }))}>Remover imagem</Button></div>}</div>)}
         {formError && <p role="alert" className="text-sm text-red-700">{formError}</p>}
         {editing?.approvedAt && <p className="text-sm text-surface-600">Ao salvar alterações, a revisão anterior será desfeita.</p>}
-        <div className="flex flex-wrap gap-2"><Button type="submit" variant="primary" loading={busy} disabled={!!generating}>Salvar rascunho</Button><Button type="button" disabled={busy || !!generating} onClick={() => setOpen(false)}>Cancelar</Button></div>
+        <div className="flex flex-wrap gap-2"><Button type="submit" variant="primary" loading={busy} disabled={!!generating || !!uploading}>Salvar rascunho</Button><Button type="button" disabled={busy || !!generating || !!uploading} onClick={() => setOpen(false)}>Cancelar</Button></div>
       </form>
-      {editing && <div className="mt-6 border-t border-surface-200 pt-4"><p className="mb-3 text-sm text-surface-600">Salve suas alterações e confira as legendas antes de marcar como revisado.</p><Button type="button" disabled={busy || !!generating || title !== editing.title || platforms.some(({ value }) => captions[value] !== (editing.variants.find(v => v.platform === value)?.caption ?? ''))} onClick={() => { setOpen(false); void approve(editing); }}>Marcar versão salva como revisada</Button></div>}
+      {editing && <div className="mt-6 border-t border-surface-200 pt-4"><p className="mb-3 text-sm text-surface-600">Salve suas alterações e confira as legendas e imagens antes de marcar como revisado.</p><Button type="button" disabled={busy || !!generating || !!uploading || title !== editing.title || platforms.some(({ value }) => captions[value] !== (editing.variants.find(v => v.platform === value)?.caption ?? '') || images[value] !== (editing.variants.find(v => v.platform === value)?.socialMediaId ?? null))} onClick={() => { setOpen(false); void approve(editing); }}>Marcar versão salva como revisada</Button></div>}
     </Modal>
   </div>;
 }

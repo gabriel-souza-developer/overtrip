@@ -19,6 +19,7 @@ import systemRoutes from './routes/systemRoutes.js';
 import mediaRoutes from './routes/mediaRoutes.js';
 import cspReportRoutes from './routes/cspReportRoutes.js';
 import socialPostRoutes from './routes/socialPostRoutes.js';
+import socialMediaRoutes from './routes/socialMediaRoutes.js';
 
 const app = express();
 
@@ -37,6 +38,7 @@ app.use('/api/csp-report', cspReportRoutes);
 app.use('/api/trips/:tripId/documents', documentRoutes);
 // Envio de imagens: corpo bruto, montado antes do express.json.
 app.use('/api/media', mediaRoutes);
+app.use('/api/social-media', socialMediaRoutes);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 

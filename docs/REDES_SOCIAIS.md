@@ -28,4 +28,6 @@ As redes e formatos serão priorizados conforme as contas da OVERTRIP e o acesso
 
 ## Situação da implementação
 
-O primeiro incremento permite rascunhos de legendas, sugestão por IA, revisão do texto salvo e criação de capa local com foto. A capa não está vinculada ao rascunho nem à revisão; OAuth, agendamento e publicação não existem ainda. Não usar a aprovação atual para publicar até que o vínculo de mídia e a versão revisada sejam implementados.
+O primeiro incremento permite rascunhos de legendas, sugestão por IA e criação de capa local com foto. A mídia social privada pode ser associada às variantes, e sua disponibilidade e integridade são verificadas ao aprovar. OAuth, agendamento e publicação não existem ainda.
+
+**Antes de publicar a mídia privada:** configurar backup e restauração do diretório `SOCIAL_MEDIA_DIR` (produção: `/var/lib/overtrip/social-media`) junto com o banco, testar recuperação em ambiente isolado e definir retenção de mídias órfãs. Os backups existentes de uploads públicos não incluem esse diretório. Também é necessário validar migração, frontend e permissões na instalação de destino.
