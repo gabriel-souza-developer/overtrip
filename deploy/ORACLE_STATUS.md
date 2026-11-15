@@ -8,6 +8,11 @@
 > registro de 10 de novembro, mas os fluxos e limites descritos nessa entrada
 > não significam que o estado atual da instância foi novamente verificado.
 
+## Destaque azul dos feriados (15 de novembro, 20:12 UTC)
+
+- Publicado apenas o painel do commit `5bdc05d`, com feriados em azul. Retorno: `/srv/overtrip/retorno-feriados-azul-20261115-201217/admin`. Painel, saúde e API pública responderam 200; Caddy e API ativos.
+- A função de redes sociais do commit posterior `7970dcc` não foi publicada; necessita integração oficial e validação antes de operar em produção.
+
 ## Feriados no calendário (15 de novembro, 19:57 UTC)
 
 - Publicado o painel do commit `bf6a213`, pacote SHA-256 `a287de72b1cdbeac9e1ec2db5f2d9d28c6ab003c51f95f2b17f93b599f8f071d`. Retorno em `/srv/overtrip/retorno-painel-feriados-20261115-195730/admin`.
