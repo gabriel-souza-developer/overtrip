@@ -8,6 +8,12 @@
 > registro de 10 de novembro, mas os fluxos e limites descritos nessa entrada
 > não significam que o estado atual da instância foi novamente verificado.
 
+## Atualização visual do painel (15 de novembro, 19:52 UTC)
+
+- Publicado o painel do commit `19b25d3`, pacote SHA-256 `ef553ec17658ad37ebee67ba23ab1df731f384d4b0cedade915eb6f3e2d67c2c`. A versão anterior está em `/srv/overtrip/retorno-painel-19b25d3-20261115-195212/admin`.
+- Navegação, indicadores e agenda foram simplificados; o indicador de viagens abertas informa que inclui datas passadas. Apenas arquivos do painel foram atualizados.
+- Após publicação, `/`, `/admin/`, `/health` e `/api/public/trips` responderam 200; API e Caddy estavam ativos. O HTML do painel mantém cache desativado. Compilação, tipos e 10 testes direcionados passaram.
+
 ## CSP em modo de relatório e métrica de carga (13 de novembro, 15:25 UTC)
 
 - Publicados os commits `c1669fd` (`fix(health): mostra carga do servidor sem percentual`) e `844da5c` (`feat(security): registra violações CSP em modo relatório`), mais a correção de sintaxe da política CSP preparada nesta sequência.
