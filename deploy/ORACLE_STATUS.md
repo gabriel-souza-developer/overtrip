@@ -8,6 +8,12 @@
 > registro de 10 de novembro, mas os fluxos e limites descritos nessa entrada
 > não significam que o estado atual da instância foi novamente verificado.
 
+## Feriados no calendário (15 de novembro, 19:57 UTC)
+
+- Publicado o painel do commit `bf6a213`, pacote SHA-256 `a287de72b1cdbeac9e1ec2db5f2d9d28c6ab003c51f95f2b17f93b599f8f071d`. Retorno em `/srv/overtrip/retorno-painel-feriados-20261115-195730/admin`.
+- O calendário mostra feriados recorrentes nacionais, da Paraíba e de Campina Grande, com Sexta-feira da Paixão e Corpus Christi calculados por ano. São regras atuais, sujeitas a revisão legal; pontos facultativos não estão incluídos.
+- Passaram 9 testes focados, tipos e build; navegador conferiu novembro de 2026 em celular e desktop. Após publicação, painel, saúde e API pública responderam 200; Caddy e API ativos.
+
 ## Atualização visual do painel (15 de novembro, 19:52 UTC)
 
 - Publicado o painel do commit `19b25d3`, pacote SHA-256 `ef553ec17658ad37ebee67ba23ab1df731f384d4b0cedade915eb6f3e2d67c2c`. A versão anterior está em `/srv/overtrip/retorno-painel-19b25d3-20261115-195212/admin`.
