@@ -30,4 +30,4 @@ As redes e formatos serão priorizados conforme as contas da OVERTRIP e o acesso
 
 O primeiro incremento permite rascunhos de legendas, sugestão por IA e criação de capa local com foto. A mídia social privada pode ser associada às variantes, e sua disponibilidade e integridade são verificadas ao aprovar. OAuth, agendamento e publicação não existem ainda.
 
-**Antes de publicar a mídia privada:** configurar backup e restauração do diretório `SOCIAL_MEDIA_DIR` (produção: `/var/lib/overtrip/social-media`) junto com o banco, testar recuperação em ambiente isolado e definir retenção de mídias órfãs. Os backups existentes de uploads públicos não incluem esse diretório. Também é necessário validar migração, frontend e permissões na instalação de destino.
+**Situação em produção:** o backup local inclui o diretório `SOCIAL_MEDIA_DIR`, e uma restauração com banco e imagem sintéticos foi ensaiada. Ainda faltam cópia fora da VM, teste de recuperação dos dados reais e política de retenção de mídias órfãs. Consulte `deploy/ORACLE_STATUS.md` para o registro operacional.

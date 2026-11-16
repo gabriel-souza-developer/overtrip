@@ -22,6 +22,7 @@ export default function SocialPosts() {
   const [pages, setPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [editing, setEditing] = useState<SocialPost | null>(null);
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('');
@@ -40,6 +41,13 @@ export default function SocialPosts() {
   const [tripError, setTripError] = useState('');
   const [tripMore, setTripMore] = useState(false);
   const [tripSearched, setTripSearched] = useState(false);
+  const hasChanges = title !== (editing?.title ?? '') || !!briefing.trim() || platforms.some(({ value }) => captions[value] !== (editing?.variants.find(v => v.platform === value)?.caption ?? '') || images[value] !== (editing?.variants.find(v => v.platform === value)?.socialMediaId ?? null));
+
+  const closeEditor = () => {
+    if (busy || generating || uploading) return;
+    if (hasChanges && !window.confirm('Descartar as alterações que ainda não foram salvas?')) return;
+    setOpen(false);
+  };
 
   const load = useCallback(async () => {
     setLoading(true); setError('');
@@ -52,7 +60,7 @@ export default function SocialPosts() {
     setEditing(post ?? null); setTitle(post?.title ?? '');
     const next = blank(); post?.variants.forEach(variant => { if (variant.platform in next) next[variant.platform] = variant.caption; });
     const nextImages = blankImages(); post?.variants.forEach(variant => { if (variant.platform in nextImages) nextImages[variant.platform] = variant.socialMediaId ?? null; });
-    setImages(nextImages);
+    setImages(nextImages); setNotice('');
     setCaptions(next); setBriefing(''); setFormError(''); setTripQuery(''); setTrips([]); setTripId(''); setTripError(''); setTripMore(false); setTripSearched(false); setOpen(true);
   };
   const searchTrips = async () => {
@@ -84,7 +92,7 @@ export default function SocialPosts() {
       const input = { title: title.trim(), variants };
       if (editing) await socialPostsApi.update(editing.id, { ...input, version: editing.version });
       else await socialPostsApi.create(input);
-      setOpen(false); await load();
+      setOpen(false); await load(); setNotice('Rascunho salvo. Abra novamente para revisar a versão salva.');
     } catch (err) { setFormError(err instanceof Error ? err.message : 'Não foi possível salvar o rascunho.'); }
     finally { setBusy(false); }
   };
@@ -117,21 +125,22 @@ export default function SocialPosts() {
   };
   const approve = async (post: SocialPost) => {
     setBusy(true); setError('');
-    try { await socialPostsApi.approve(post.id, post.version); await load(); }
+    try { await socialPostsApi.approve(post.id, post.version); await load(); setNotice('Versão marcada como revisada. A publicação nas redes ainda não está disponível.'); }
     catch (err) { setError(err instanceof Error ? err.message : 'Não foi possível aprovar.'); }
     finally { setBusy(false); }
   };
   const remove = async () => {
     if (!pendingRemoval) return;
     setBusy(true); setError('');
-    try { await socialPostsApi.remove(pendingRemoval.id, pendingRemoval.version); setPendingRemoval(null); if (items.length === 1 && page > 1) setPage(page - 1); else await load(); }
+    try { await socialPostsApi.remove(pendingRemoval.id, pendingRemoval.version); setPendingRemoval(null); setNotice('Rascunho excluído.'); if (items.length === 1 && page > 1) setPage(page - 1); else await load(); }
     catch (err) { setError(err instanceof Error ? err.message : 'Não foi possível excluir.'); setPendingRemoval(null); }
     finally { setBusy(false); }
   };
 
   return <div className="space-y-6">
-    <PageHeader title="Redes sociais" description="Prepare e revise suas legendas em um só lugar." actions={<Button variant="primary" icon={<Plus className="w-4 h-4" />} onClick={() => edit()}>Novo post</Button>} />
-    <p className="rounded-xl bg-surface-100 p-4 text-sm text-surface-700">A aprovação registra sua revisão. A conexão com redes e a publicação ainda não estão disponíveis.</p>
+    <PageHeader title="Redes sociais" description="Prepare legendas e imagens para suas redes." actions={<Button variant="primary" icon={<Plus className="w-4 h-4" />} onClick={() => edit()}>Novo post</Button>} />
+    <p className="rounded-xl bg-surface-100 p-4 text-sm text-surface-700">Crie um rascunho, salve e confira as versões de cada rede antes de marcá-lo como revisado. A conexão e a publicação nas redes ainda não estão disponíveis.</p>
+    {notice && <p role="status" className="rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800">{notice}</p>}
     <details className="card p-5"><summary className="cursor-pointer font-semibold text-surface-900">Criar uma capa</summary><div className="mt-4"><SocialArtCreator /></div></details>
     {error && <ErrorState message={error} onRetry={load} />}
     {loading ? <p role="status">Carregando posts...</p> : !error && items.length === 0 ? <div className="card p-10 text-center text-surface-600"><Share2 className="w-8 h-8 mx-auto mb-3" aria-hidden="true" />Nenhum post criado ainda.</div> : <div className="grid gap-3">{items.map(post => <article key={post.id} className="card p-5 flex flex-wrap items-start justify-between gap-4">
@@ -140,7 +149,7 @@ export default function SocialPosts() {
     </article>)}</div>}
     {pages > 1 && <div className="flex items-center gap-3"><Button small disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Anterior</Button><span className="text-sm">Página {page} de {pages}</span><Button small disabled={page >= pages} onClick={() => setPage(p => p + 1)}>Próxima</Button></div>}
     <Modal open={!!pendingRemoval} onOpenChange={value => { if (!value && !busy) setPendingRemoval(null); }} title="Excluir post" description="O rascunho e suas legendas serão excluídos." footer={<><Button disabled={busy} onClick={() => setPendingRemoval(null)}>Cancelar</Button><Button variant="danger" loading={busy} onClick={() => void remove()}>Excluir</Button></>}><p>Excluir {pendingRemoval?.title}?</p></Modal>
-    <Modal open={open} onOpenChange={value => { if (!busy && !generating && !uploading) setOpen(value); }} title={editing ? 'Revisar post' : 'Novo post'} description="Escreva as legendas e escolha as imagens para as redes que deseja usar." widthClass="max-w-2xl">
+    <Modal open={open} onOpenChange={value => { if (!value) closeEditor(); }} title={editing ? 'Revisar post' : 'Novo post'} description="Preencha somente as redes que deseja usar." widthClass="max-w-2xl">
       <form className="space-y-5" onSubmit={save}>
         {!editing && <details className="rounded-xl border border-surface-200 p-4">
           <summary className="cursor-pointer font-semibold text-surface-900">Usar dados de uma viagem</summary>
@@ -156,9 +165,9 @@ export default function SocialPosts() {
         {platforms.map(({ value, label }) => <div key={value} className="space-y-3 rounded-xl border border-surface-200 p-4"><Field id={`caption-${value}`} label={`Legenda para ${label}`}><textarea id={`caption-${value}`} className="input" rows={4} maxLength={5000} value={captions[value]} onChange={e => setCaptions(c => ({ ...c, [value]: e.target.value }))} /><div className="mt-2"><Button type="button" small disabled={busy || !!generating || !!uploading} onClick={() => void suggest(value)}>{generating === value ? 'Gerando...' : 'Sugerir legenda'}</Button></div></Field><Field id={`image-${value}`} label={`Imagem para ${label}`} hint="JPEG, PNG ou WebP até 15 MB. A imagem é privada até a publicação."><input id={`image-${value}`} type="file" className="input" accept="image/jpeg,image/png,image/webp" disabled={busy || !!generating || !!uploading} onChange={e => { const file = e.target.files?.[0]; e.target.value = ''; void uploadImage(value, file); }} /></Field>{uploading === value && <p role="status" className="text-sm text-surface-600">Enviando imagem...</p>}{images[value] && <div className="space-y-2"><img src={socialPostsApi.imageUrl(images[value]!)} alt={`Imagem escolhida para ${label}`} className="max-h-60 max-w-full rounded-lg object-contain" /><Button type="button" small disabled={busy || !!uploading} onClick={() => setImages(current => ({ ...current, [value]: null }))}>Remover imagem</Button></div>}</div>)}
         {formError && <p role="alert" className="text-sm text-red-700">{formError}</p>}
         {editing?.approvedAt && <p className="text-sm text-surface-600">Ao salvar alterações, a revisão anterior será desfeita.</p>}
-        <div className="flex flex-wrap gap-2"><Button type="submit" variant="primary" loading={busy} disabled={!!generating || !!uploading}>Salvar rascunho</Button><Button type="button" disabled={busy || !!generating || !!uploading} onClick={() => setOpen(false)}>Cancelar</Button></div>
+        <div className="flex flex-wrap gap-2"><Button type="submit" variant="primary" loading={busy} disabled={!!generating || !!uploading}>Salvar rascunho</Button><Button type="button" disabled={busy || !!generating || !!uploading} onClick={closeEditor}>Cancelar</Button></div>
       </form>
-      {editing && <div className="mt-6 border-t border-surface-200 pt-4"><p className="mb-3 text-sm text-surface-600">Salve suas alterações e confira as legendas e imagens antes de marcar como revisado.</p><Button type="button" disabled={busy || !!generating || !!uploading || title !== editing.title || platforms.some(({ value }) => captions[value] !== (editing.variants.find(v => v.platform === value)?.caption ?? '') || images[value] !== (editing.variants.find(v => v.platform === value)?.socialMediaId ?? null))} onClick={() => { setOpen(false); void approve(editing); }}>Marcar versão salva como revisada</Button></div>}
+      {editing && <div className="mt-6 border-t border-surface-200 pt-4"><p className="mb-3 text-sm text-surface-600">{editing.approvedAt ? 'Esta versão está revisada. Salvar alterações cancela a revisão.' : 'Confira as legendas e imagens. Salve qualquer alteração antes de marcar esta versão como revisada.'}</p>{!editing.approvedAt && <Button type="button" disabled={busy || !!generating || !!uploading || title !== editing.title || platforms.some(({ value }) => captions[value] !== (editing.variants.find(v => v.platform === value)?.caption ?? '') || images[value] !== (editing.variants.find(v => v.platform === value)?.socialMediaId ?? null))} onClick={() => { setOpen(false); void approve(editing); }}>Marcar versão salva como revisada</Button>}</div>}
     </Modal>
   </div>;
 }
