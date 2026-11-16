@@ -6,7 +6,7 @@ O serviço versionado `overtrip-backup.service` executa o script depois do snaps
 
 Antes da ativação, definir o destino e verificar acesso, espaço, retenção, monitoramento e recuperação fora da VM. Em ambiente de teste, criar os diretórios privados dedicados como usuário do serviço; o diretório pai do destino deve existir. Executar como `overtrip`:
 
-O serviço versionado usa os caminhos `/var/lib/overtrip/social-media` e `/var/backups/overtrip/social-media`. Crie a origem como `overtrip`, modo 700, antes de instalar a unidade; o script cria o destino se o diretório pai existir e for acessível. Se `SOCIAL_MEDIA_DIR` for alterado na API, ajuste a origem na unidade para o mesmo diretório. Um diretório de origem ausente faz o serviço falhar, inclusive quando ainda não há imagens; planeje a ativação junto com o recurso social.
+O serviço versionado carrega `/etc/overtrip/env`, o mesmo arquivo da API, e exige `NODE_ENV=production`. A origem é `SOCIAL_MEDIA_DIR` desse arquivo ou, se vazio/ausente, `/var/lib/overtrip/social-media`, como na API. O destino é `/var/backups/overtrip/social-media`. Crie a origem como `overtrip`, modo 700, antes de instalar a unidade; o script cria o destino se o diretório pai existir e for acessível. Um diretório de origem ausente, relativo ou inseguro faz o serviço falhar, inclusive quando ainda não há imagens. Se variáveis forem definidas por outro mecanismo na API (por exemplo, override do systemd), devem ser igualmente refletidas no serviço de backup; confira o ambiente efetivo sem divulgar segredos.
 
 ```bash
 python3 /caminho/backup-social-media.py /caminho/social-media /caminho/backup-social-media

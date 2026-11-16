@@ -4,6 +4,7 @@ Description=Backup diário do banco e das imagens do OVERTRIP
 [Service]
 Type=oneshot
 User=overtrip
+EnvironmentFile=/etc/overtrip/env
 ExecStart=/srv/overtrip/app/deploy/backup-sqlite.sh /var/lib/overtrip/overtrip.db /var/backups/overtrip 14
 ExecStart=/srv/overtrip/app/deploy/backup-uploads.sh /var/lib/overtrip/uploads /var/backups/overtrip/uploads
-ExecStart=/usr/bin/python3 /srv/overtrip/app/deploy/backup-social-media.py /var/lib/overtrip/social-media /var/backups/overtrip/social-media
+ExecStart=/usr/bin/python3 /srv/overtrip/app/deploy/backup-social-media.py --service

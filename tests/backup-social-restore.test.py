@@ -15,6 +15,15 @@ spec.loader.exec_module(backup_module)
 
 
 class SocialRestoreTest(unittest.TestCase):
+    def test_service_uses_api_environment_and_configured_source(self):
+        unit = (ROOT / 'deploy/overtrip-backup.service').read_text()
+        self.assertIn('EnvironmentFile=/etc/overtrip/env', unit)
+        self.assertIn('backup-social-media.py --service', unit)
+        self.assertEqual(backup_module.service_paths({'NODE_ENV': 'production', 'SOCIAL_MEDIA_DIR': '/dedicada'}), ('/dedicada', '/var/backups/overtrip/social-media'))
+        self.assertEqual(backup_module.service_paths({'NODE_ENV': 'production', 'SOCIAL_MEDIA_DIR': ''})[0], '/var/lib/overtrip/social-media')
+        with self.assertRaises(ValueError):
+            backup_module.service_paths({})
+
     def test_service_order_and_restore_of_referenced_file(self):
         lines = (ROOT / 'deploy/overtrip-backup.service').read_text().splitlines()
         commands = [line for line in lines if line.startswith('ExecStart=')]

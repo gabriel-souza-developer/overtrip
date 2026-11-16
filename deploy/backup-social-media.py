@@ -31,6 +31,12 @@ def digest(path: Path) -> str:
         return hashlib.file_digest(src, 'sha256').hexdigest()
 
 
+def service_paths(env: dict) -> tuple[str, str]:
+    if env.get('NODE_ENV') != 'production':
+        raise ValueError('Backup social exige NODE_ENV=production no ambiente da API.')
+    return env.get('SOCIAL_MEDIA_DIR') or '/var/lib/overtrip/social-media', '/var/backups/overtrip/social-media'
+
+
 def backup(source: Path, destination: Path) -> tuple[int, int]:
     source = private_directory(source)
     destination = private_directory(destination, create=True)
@@ -74,10 +80,19 @@ def backup(source: Path, destination: Path) -> tuple[int, int]:
 
 
 if __name__ == '__main__':
-    if len(sys.argv) != 3:
-        sys.exit('Uso: backup-social-media.py <origem absoluta> <destino absoluto>')
+    if sys.argv[1:] == ['--service']:
+        # A unidade carrega o mesmo EnvironmentFile da API. Sem NODE_ENV
+        # explícito não podemos presumir qual caminho padrão a API usa.
+        try:
+            source, destination = service_paths(os.environ)
+        except ValueError as exc:
+            sys.exit(str(exc))
+    elif len(sys.argv) == 3:
+        source, destination = sys.argv[1:]
+    else:
+        sys.exit('Uso: backup-social-media.py <origem absoluta> <destino absoluto> | --service')
     try:
-        copied, checked = backup(Path(sys.argv[1]), Path(sys.argv[2]))
+        copied, checked = backup(Path(source), Path(destination))
         print(f'Mídias sociais copiadas: {copied}; cópias existentes verificadas: {checked}')
     except (OSError, ValueError) as exc:
         sys.exit(f'Falha no backup privado: {exc}')
