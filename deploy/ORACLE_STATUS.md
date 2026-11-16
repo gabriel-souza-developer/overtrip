@@ -8,6 +8,14 @@
 > registro de 10 de novembro, mas os fluxos e limites descritos nessa entrada
 > não significam que o estado atual da instância foi novamente verificado.
 
+## Rascunhos para redes sociais (16 de novembro, 02:39 UTC)
+
+- Publicado o código da `main` no commit `a6e420e`; pacote SHA-256 `d132e0dc002931b6566447fade5ccf03d1f9ebb3eadc482b85748c1bcf7d0ca6`. Cópia de retorno dos arquivos anteriores em `/srv/overtrip/retorno-social-20261116-023930`.
+- As duas migrações sociais foram ensaiadas antes em cópia do banco, com `integrity_check` e `foreign_key_check`, e depois aplicadas ao banco ativo. Prisma Client foi gerado na VM ARM64.
+- API, Caddy e temporizador de backup ativos; `/admin/`, `/health` e `/api/public/trips` responderam 200 e `/api/social-posts` sem sessão respondeu 401. O menu social foi entregue no bundle. Não foi feito login real nem publicação em redes.
+- Serviço de backup atualizado e executado com sucesso: snapshot do banco, imagens públicas e mídia social privada; fonte e destino privados modo 700. Como não havia mídias sociais, não houve teste de restauração com imagens reais. Cópia externa à VM permanece pendente.
+- A tela permite rascunhos, sugestões de legenda quando houver provedor configurado, imagens privadas e revisão. Conexão OAuth, agendamento e publicação externa ainda não existem.
+
 ## Destaque azul dos feriados (15 de novembro, 20:12 UTC)
 
 - Publicado apenas o painel do commit `5bdc05d`, com feriados em azul. Retorno: `/srv/overtrip/retorno-feriados-azul-20261115-201217/admin`. Painel, saúde e API pública responderam 200; Caddy e API ativos.
