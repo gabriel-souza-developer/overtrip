@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../lib/prisma.js';
 import { config } from '../config.js';
+import { sessionCookieName } from '../lib/sessionCookie.js';
 
 export interface AuthRequest extends Request {
   user?: {
@@ -11,10 +12,6 @@ export interface AuthRequest extends Request {
     sessionVersion: Date;
   };
 }
-
-const sessionCookieName = () => config.nodeEnv === 'production'
-  ? '__Host-overtrip_session'
-  : 'overtrip_session';
 
 const cookieValue = (req: Request, name: string): string | null => {
   const prefix = `${name}=`;
@@ -32,7 +29,7 @@ export const authenticate = async (
   try {
     const authHeader = req.headers.authorization;
     const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
-    const cookieToken = cookieValue(req, sessionCookieName());
+    const cookieToken = cookieValue(req, sessionCookieName(req));
     const token = bearerToken || cookieToken;
 
     if (!token) {

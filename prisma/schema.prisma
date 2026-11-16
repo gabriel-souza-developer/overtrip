@@ -347,8 +347,96 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   approvedKnowledge AssistantKnowledgeVersion[]
+  memberships Membership[]
   
   @@index([email])
+}
+
+// Fundamento para múltiplas empresas. Os dados existentes ainda não estão
+// vinculados a organizações e o acesso multiempresa não está habilitado.
+model Organization {
+  id          String       @id @default(cuid())
+  name        String
+  slug        String       @unique
+  niche       String
+  status      String       @default("ACTIVE")
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  memberships Membership[]
+  lodgingUnits LodgingUnit[]
+}
+
+model Membership {
+  id             String       @id @default(cuid())
+  userId         String
+  organizationId String
+  role           String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@index([organizationId])
+}
+
+// Reservas da nova plataforma, independentes do turismo legado.
+model LodgingUnit {
+  id             String       @id @default(cuid())
+  organizationId String
+  name           String
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  reservations   LodgingReservation[]
+  blocks         LodgingBlock[]
+
+  @@unique([id, organizationId])
+  @@unique([organizationId, name])
+}
+
+model LodgingReservation {
+  id             String   @id @default(cuid())
+  organizationId String
+  unitId         String
+  guestName      String
+  checkIn        String
+  checkOut       String
+  status         String   @default("CONFIRMED")
+  createdAt      DateTime @default(now())
+  unit           LodgingUnit @relation(fields: [unitId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  nights         LodgingNight[]
+
+  @@unique([id, unitId])
+  @@index([organizationId, checkIn])
+}
+
+model LodgingNight {
+  reservationId String?
+  blockId       String?
+  unitId        String
+  night         String
+  reservation   LodgingReservation? @relation(fields: [reservationId, unitId], references: [id, unitId], onDelete: Cascade)
+  block         LodgingBlock? @relation(fields: [blockId, unitId], references: [id, unitId], onDelete: Cascade)
+
+  @@id([unitId, night])
+  @@index([reservationId])
+  @@index([blockId])
+}
+
+model LodgingBlock {
+  id             String @id @default(cuid())
+  organizationId String
+  unitId         String
+  start          String
+  end            String
+  reason         String?
+  status         String @default("ACTIVE")
+  createdAt      DateTime @default(now())
+  unit           LodgingUnit @relation(fields: [unitId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  nights         LodgingNight[]
+
+  @@unique([id, unitId])
+  @@index([organizationId, start])
 }
 
 // Cada registro é uma versão aprovada completa; o serviço não altera versões.

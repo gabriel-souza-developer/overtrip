@@ -6,6 +6,10 @@ import { ApiRequestError, authApi } from './api';
 import { ToastProvider } from './hooks/useToast';
 
 // Cada página vira um arquivo separado: o painel só baixa o código da tela aberta.
+const platformMode = import.meta.env.VITE_PLATFORM_MODE === 'true';
+const Prototype = import.meta.env.DEV && !platformMode ? React.lazy(() => import('./prototype/Prototype')) : null;
+const Workspace = import.meta.env.DEV || platformMode ? React.lazy(() => import('./pages/Workspace')) : null;
+
 const Dashboard = React.lazy(() => import('./pages/Dashboard'));
 const Trips = React.lazy(() => import('./pages/Trips'));
 const TripForm = React.lazy(() => import('./pages/TripForm'));
@@ -109,10 +113,25 @@ const LoadingScreen = () => (
   </div>
 );
 
-const AppRoutes = () => (
+const PlatformWorkspace = () => {
+  const { logout } = useAuth();
+  const [error, setError] = useState('');
+  return <><div className="max-w-5xl mx-auto px-4 sm:px-8 pt-4 flex justify-end"><button type="button" className="btn-secondary" onClick={() => { void logout().catch(() => setError('Não foi possível encerrar a sessão.')); }}>Sair</button></div>{error && <p role="alert">{error}</p>}<React.Suspense fallback={<LoadingScreen />}>{Workspace && <Workspace />}</React.Suspense></>;
+};
+
+const AppRoutes = () => platformMode ? (
   <Routes>
     <Route path="/login" element={<Login />} />
     <Route element={<ProtectedRoute />}>
+      <Route path="/espaco" element={<PlatformWorkspace />} />
+      <Route path="*" element={<Navigate to="/espaco" replace />} />
+    </Route>
+  </Routes>
+) : (
+  <Routes>
+    <Route path="/login" element={<Login />} />
+    <Route element={<ProtectedRoute />}>
+      {Workspace && <Route path="/espaco" element={<React.Suspense fallback={<LoadingScreen />}><Workspace /></React.Suspense>} />}
       <Route element={<Layout />}>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<Dashboard />} />
@@ -134,7 +153,9 @@ const AppRoutes = () => (
 );
 
 const App = () => (
-  <AuthProvider>
+  import.meta.env.DEV && !platformMode && window.location.pathname === '/prototipo' && Prototype ? (
+    <React.Suspense fallback={<LoadingScreen />}><Prototype /></React.Suspense>
+  ) : <AuthProvider>
     <ToastProvider>
       <AppRoutes />
     </ToastProvider>

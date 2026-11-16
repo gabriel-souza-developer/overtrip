@@ -1,0 +1,39 @@
+import { expect, test } from '@playwright/test';
+
+test('página de reservas não limita a grade e unidade escolhida permanece selecionada', async ({ page }) => {
+  const org = { id: 'org-a', name: 'Pousada A', slug: 'a', niche: 'pousada', role: 'owner' };
+  const first = { id: 'u1', name: 'Quarto 1' };
+  const second = { id: 'u2', name: 'Quarto 2' };
+  const firstReservation = { id: 'r1', unitId: first.id, guestName: 'Ana', checkIn: '2030-06-10', checkOut: '2030-06-11', status: 'CONFIRMED', unit: first };
+  const secondReservation = { id: 'r2', unitId: second.id, guestName: 'Bia', checkIn: '2030-06-10', checkOut: '2030-06-11', status: 'CONFIRMED', unit: second };
+  const pagination = (n: number) => ({ page: n, limit: 20, total: 2, totalPages: 2 });
+  await page.clock.setFixedTime(new Date('2030-06-10T12:00:00Z'));
+  await page.route('**/api/auth/me', route => route.fulfill({ json: { id: 'user', email: 'a@example.test', role: 'admin' } }));
+  await page.route('**/api/organizations', route => route.fulfill({ json: { organizations: [org] } }));
+  await page.route('**/api/organizations/current', route => route.fulfill({ json: { organization: org } }));
+  await page.route('**/api/lodging/**', route => {
+    const req = route.request();
+    expect(req.headers()['x-organization-id']).toBe(org.id);
+    const url = new URL(req.url());
+    const n = Number(url.searchParams.get('page') || '1');
+    if (url.pathname.endsWith('/blocks')) return route.fulfill({ json: { blocks: [], pagination: { page: 1, limit: 20, total: 0, totalPages: 0 } } });
+    if (url.pathname.endsWith('/movement')) return route.fulfill({ json: { arrivals: 2, departures: 0, overdueArrivals: 0, overdueDepartures: 0 } });
+    if (url.pathname.endsWith('/units')) return route.fulfill({ json: { units: [n === 1 ? first : second], pagination: pagination(n) } });
+    if (url.pathname.endsWith('/occupancy')) return route.fulfill({ json: { units: [{ ...(n === 1 ? first : second), occupiedNights: ['2030-06-10'] }], pagination: pagination(n), start: url.searchParams.get('start'), end: url.searchParams.get('end') } });
+    if (url.pathname.endsWith('/reservations')) return route.fulfill({ json: { reservations: [n === 1 ? firstReservation : secondReservation], pagination: pagination(n) } });
+    throw new Error(`Rota não esperada: ${req.url()}`);
+  });
+  await page.goto('/espaco');
+  await expect(page.getByRole('article').filter({ hasText: 'Ana' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Movimento de hoje' })).toContainText('2 chegadas previstas');
+  await page.locator('#stay-unit').selectOption('u1');
+  await page.getByRole('button', { name: 'Próximas unidades', exact: true }).click();
+  await expect(page.locator('#stay-unit')).toHaveValue('u1');
+  await expect(page.locator('#stay-unit option[value="u2"]')).toBeAttached();
+  await page.getByRole('button', { name: 'Próximas reservas' }).click();
+  await expect(page.getByRole('article').filter({ hasText: 'Bia' })).toBeVisible();
+  const grid = page.getByRole('table', { name: /Disponibilidade de unidades/ });
+  await expect(grid.getByRole('row').filter({ hasText: 'Quarto 1' }).getByRole('cell').first()).toHaveText('Ocupada');
+  await page.getByRole('button', { name: 'Próximas unidades na grade' }).click();
+  await expect(grid.getByRole('row').filter({ hasText: 'Quarto 2' }).getByRole('cell').first()).toHaveText('Ocupada');
+});

@@ -5,10 +5,7 @@ import { loginSchema, changePasswordSchema } from '../validators/index.js';
 import { generateToken, AuthRequest } from '../middleware/auth.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { config } from '../config.js';
-
-const sessionCookieName = () => config.nodeEnv === 'production'
-  ? '__Host-overtrip_session'
-  : 'overtrip_session';
+import { sessionCookieName } from '../lib/sessionCookie.js';
 
 const sessionCookieOptions = () => ({
   httpOnly: true,
@@ -36,7 +33,7 @@ export const authController = {
     const token = generateToken(user);
 
     res.set('Cache-Control', 'no-store');
-    res.cookie(sessionCookieName(), token, sessionCookieOptions());
+    res.cookie(sessionCookieName(req), token, sessionCookieOptions());
 
     res.json({
       user: {
@@ -94,7 +91,7 @@ export const authController = {
     });
     if (updated.count !== 1) throw AppError.unauthorized('Sessão encerrada. Entre novamente.');
 
-    res.clearCookie(sessionCookieName(), sessionCookieOptions());
+    res.clearCookie(sessionCookieName(req), sessionCookieOptions());
 
     res.json({ success: true, message: 'Senha alterada com sucesso' });
   },
@@ -108,7 +105,7 @@ export const authController = {
         data: { updatedAt: new Date(Math.max(Date.now(), req.user.sessionVersion.getTime() + 1)) },
       });
     }
-    res.clearCookie(sessionCookieName(), sessionCookieOptions());
+    res.clearCookie(sessionCookieName(req), sessionCookieOptions());
     res.status(204).end();
   },
 };

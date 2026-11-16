@@ -7,6 +7,8 @@ import { useAuth } from '../App';
 import { authApi } from '../api';
 
 export default function Login() {
+  const platformMode = import.meta.env.VITE_PLATFORM_MODE === 'true';
+  const destination = platformMode ? '/espaco' : '/dashboard';
   const { login, user } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
@@ -15,7 +17,7 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  if (user) return <Navigate to="/dashboard" replace />;
+  if (user) return <Navigate to={destination} replace />;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,7 +26,7 @@ export default function Login() {
 
     try {
       await login(email, password);
-      navigate('/dashboard');
+      navigate(destination);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Não foi possível entrar. Confira o e-mail e a senha.');
     } finally {
@@ -37,9 +39,9 @@ export default function Login() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <img src={brandUrl('overtrip-logo-com-fundo-laranja-192.png')} alt="OVERTRIP" width={96} height={96} className="w-24 h-24 rounded-xl mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-surface-900">Painel OVERTRIP</h1>
-          <p className="text-surface-600 mt-1">Entre para gerenciar as viagens</p>
+          {!platformMode && <img src={brandUrl('overtrip-logo-com-fundo-laranja-192.png')} alt="OVERTRIP" width={96} height={96} className="w-24 h-24 rounded-xl mx-auto mb-4" />}
+          <h1 className="text-2xl font-bold text-surface-900">{platformMode ? 'Espaços de trabalho' : 'Painel OVERTRIP'}</h1>
+          <p className="text-surface-600 mt-1">{platformMode ? 'Entre para acessar sua empresa' : 'Entre para gerenciar as viagens'}</p>
         </div>
 
         {/* Login form */}
@@ -98,7 +100,7 @@ export default function Login() {
 
           <div className="mt-6 pt-6 border-t border-surface-200">
             <p className="text-xs text-surface-600 text-center">
-              Acesso restrito à equipe OVERTRIP
+              {platformMode ? 'Acesso para usuários autorizados' : 'Acesso restrito à equipe OVERTRIP'}
             </p>
           </div>
         </div>

@@ -1,0 +1,30 @@
+import { expect, test } from '@playwright/test';
+
+test('demonstra chegada e saída e impede conflito entre reservas da sessão', async ({ page }) => {
+  await page.goto('/prototipo');
+  await page.getByRole('button', { name: 'Explorar demonstração' }).click();
+  await page.getByRole('button', { name: /Nova reserva/ }).click();
+  const form = page.locator('.demo-reservation-form');
+  await form.getByLabel('Nome do hóspede').fill('Hóspede Exemplo');
+  await form.getByLabel('Data de chegada').fill('2026-12-10');
+  await form.getByLabel('Data de saída').fill('2026-12-10');
+  await form.getByLabel('Acomodação').fill('Suíte de teste');
+  await form.getByRole('button', { name: 'Adicionar exemplo' }).click();
+  await expect(form.getByRole('alert')).toContainText('A saída deve acontecer depois da chegada');
+  await form.getByLabel('Data de saída').fill('2026-12-12');
+  await form.getByRole('button', { name: 'Adicionar exemplo' }).click();
+  await expect(page.getByText('saída 12/12/2026', { exact: false })).toBeVisible();
+  await page.getByRole('button', { name: /Nova reserva/ }).click();
+  await form.getByLabel('Nome do hóspede').fill('Outra pessoa');
+  await form.getByLabel('Data de chegada').fill('2026-12-11');
+  await form.getByLabel('Data de saída').fill('2026-12-13');
+  await form.getByLabel('Acomodação').fill('suíte de teste');
+  await form.getByRole('button', { name: 'Adicionar exemplo' }).click();
+  await expect(form.getByRole('alert')).toContainText('já possui uma reserva de exemplo');
+  await form.getByLabel('Data de chegada').fill('2026-12-12');
+  await form.getByRole('button', { name: 'Adicionar exemplo' }).click();
+  await expect(page.getByText('Outra pessoa', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Editar reserva de Hóspede Exemplo' }).click();
+  await form.getByRole('button', { name: 'Salvar alterações' }).click();
+  await expect(form).toHaveCount(0);
+});

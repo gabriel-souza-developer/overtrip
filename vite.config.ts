@@ -4,10 +4,25 @@ import path from 'path';
 import { serveRootAssets } from './vite-root-assets';
 
 export default defineConfig(({ command }) => ({
-  // Painel publicado em /admin; no dev continua na raiz.
-  base: command === 'build' ? '/admin/' : '/',
+  // Turismo usa /admin; a plataforma isolada usa a raiz do seu próprio host.
+  base: command === 'build' && process.env.VITE_PLATFORM_MODE !== 'true' ? '/admin/' : '/',
   root: path.resolve(__dirname, 'frontend'),
-  plugins: [react(), serveRootAssets()],
+  plugins: [
+    react(),
+    serveRootAssets(),
+    // Os testes de interface simulam as APIs. Uma rota esquecida não pode
+    // alcançar a API de desenvolvimento nem modificar seus dados.
+    ...(process.env.OVERTRIP_E2E_MOCKS === '1' ? [{
+      name: 'block-unmocked-e2e-api',
+      configureServer(server: import('vite').ViteDevServer) {
+        server.middlewares.use('/api', (_req, res) => {
+          res.statusCode = 503;
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify({ error: 'API não simulada no teste.' }));
+        });
+      },
+    }] : []),
+  ],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './frontend/src'),
@@ -17,8 +32,14 @@ export default defineConfig(({ command }) => ({
     port: 3100,
     strictPort: true,
     proxy: {
+      // Somente a suíte combinada usa a mesma sessão para dois servidores fictícios.
+      ...(process.env.OVERTRIP_E2E_PLATFORM_TARGET ? {
+        '/api/organizations': { target: process.env.OVERTRIP_E2E_PLATFORM_TARGET, changeOrigin: true },
+        '/api/lodging': { target: process.env.OVERTRIP_E2E_PLATFORM_TARGET, changeOrigin: true },
+      } : {}),
       '/api': {
-        target: 'http://localhost:3001',
+        // PLATFORM_API_TARGET encaminha também login e sessão para a plataforma.
+        target: process.env.PLATFORM_API_TARGET || process.env.OVERTRIP_E2E_API_TARGET || 'http://localhost:3001',
         changeOrigin: true,
       },
     },
