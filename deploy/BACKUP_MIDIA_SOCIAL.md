@@ -2,9 +2,11 @@
 
 O script `backup-social-media.py` prepara uma cópia incremental local dos arquivos imutáveis. Ele exige diretórios dedicados com modo 700, arquivos com modo 600 e proprietário igual ao usuário que executa o serviço. Uma cópia já existente é conferida pelo SHA-256; divergência interrompe o serviço e preserva a cópia. Não remove mídias antigas.
 
-O script é uma peça de preparo: **não está instalado nem integrado ao temporizador de produção**. O backup atual do banco não o executa. Uma cópia na mesma VM também não protege contra perda da VM.
+O serviço versionado `overtrip-backup.service` executa o script depois do snapshot do banco e do backup das imagens públicas. Esta alteração **ainda precisa ser instalada e validada na VM**; o temporizador atualmente instalado pode usar uma versão anterior. Uma cópia na mesma VM também não protege contra perda da VM.
 
 Antes da ativação, definir o destino e verificar acesso, espaço, retenção, monitoramento e recuperação fora da VM. Em ambiente de teste, criar os diretórios privados dedicados como usuário do serviço; o diretório pai do destino deve existir. Executar como `overtrip`:
+
+O serviço versionado usa os caminhos `/var/lib/overtrip/social-media` e `/var/backups/overtrip/social-media`. Crie a origem como `overtrip`, modo 700, antes de instalar a unidade; o script cria o destino se o diretório pai existir e for acessível. Se `SOCIAL_MEDIA_DIR` for alterado na API, ajuste a origem na unidade para o mesmo diretório. Um diretório de origem ausente faz o serviço falhar, inclusive quando ainda não há imagens; planeje a ativação junto com o recurso social.
 
 ```bash
 python3 /caminho/backup-social-media.py /caminho/social-media /caminho/backup-social-media
