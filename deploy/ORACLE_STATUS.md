@@ -8,6 +8,11 @@
 > registro de 10 de novembro, mas os fluxos e limites descritos nessa entrada
 > não significam que o estado atual da instância foi novamente verificado.
 
+## Melhorias na revisão social (16 de novembro, 02:48 UTC)
+
+- Publicado apenas o frontend do commit `41d152b`; retorno em `/srv/overtrip/retorno-social-ui-20261116-024808/admin`. Painel e saúde responderam 200; rascunhos sem sessão responderam 401; API e Caddy ativos.
+- O formulário avisa antes de descartar edições e apresenta mensagens ao salvar, revisar ou excluir. A ferramenta de inventário e a pré-verificação de publicação do mesmo commit permanecem somente no repositório, não foram instaladas na VM.
+
 ## Proteção do caminho do backup social (16 de novembro)
 
 - Instalado o ajuste `0750eba`: o serviço de backup lê o mesmo arquivo de ambiente da API e usa a mesma variável `SOCIAL_MEDIA_DIR`. A configuração da API na VM não tinha variáveis adicionais por override e declarava `NODE_ENV=production`.
