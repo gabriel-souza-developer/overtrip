@@ -8,6 +8,11 @@
 > registro de 10 de novembro, mas os fluxos e limites descritos nessa entrada
 > não significam que o estado atual da instância foi novamente verificado.
 
+## Proteção do caminho do backup social (16 de novembro)
+
+- Instalado o ajuste `0750eba`: o serviço de backup lê o mesmo arquivo de ambiente da API e usa a mesma variável `SOCIAL_MEDIA_DIR`. A configuração da API na VM não tinha variáveis adicionais por override e declarava `NODE_ENV=production`.
+- O serviço foi executado com `Result=success`; API, Caddy e temporizador ativos. Um ensaio local com banco e imagem sintéticos validou integridade, referência e hash após restauração; não equivale a restaurar os dados da VM nem a uma cópia externa.
+
 ## Rascunhos para redes sociais (16 de novembro, 02:39 UTC)
 
 - Publicado o código da `main` no commit `a6e420e`; pacote SHA-256 `d132e0dc002931b6566447fade5ccf03d1f9ebb3eadc482b85748c1bcf7d0ca6`. Cópia de retorno dos arquivos anteriores em `/srv/overtrip/retorno-social-20261116-023930`.
