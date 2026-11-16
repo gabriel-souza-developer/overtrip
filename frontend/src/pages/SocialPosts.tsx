@@ -140,6 +140,16 @@ export default function SocialPosts() {
   return <div className="space-y-6">
     <PageHeader title="Redes sociais" description="Prepare legendas e imagens para suas redes." actions={<Button variant="primary" icon={<Plus className="w-4 h-4" />} onClick={() => edit()}>Novo post</Button>} />
     <p className="rounded-xl bg-surface-100 p-4 text-sm text-surface-700">Crie um rascunho, salve e confira as versões de cada rede antes de marcá-lo como revisado. A conexão e a publicação nas redes ainda não estão disponíveis.</p>
+    <section className="card p-5" aria-labelledby="social-connections-title">
+      <h2 id="social-connections-title" className="text-base font-semibold text-surface-900">Conexões com redes sociais</h2>
+      <p className="mt-1 text-sm text-surface-600">A conexão de contas está em preparação. Você já pode criar e revisar rascunhos enquanto isso.</p>
+      <ul className="mt-4 grid gap-2 sm:grid-cols-2">
+        {['Instagram', 'Facebook'].map(network => <li key={network} className="flex items-center justify-between gap-3 rounded-lg border border-surface-200 px-4 py-3">
+          <span className="font-medium text-surface-900">{network}</span>
+          <span className="text-sm text-surface-600">Em preparação</span>
+        </li>)}
+      </ul>
+    </section>
     {notice && <p role="status" className="rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800">{notice}</p>}
     <details className="card p-5"><summary className="cursor-pointer font-semibold text-surface-900">Criar uma capa</summary><div className="mt-4"><SocialArtCreator /></div></details>
     {error && <ErrorState message={error} onRetry={load} />}
