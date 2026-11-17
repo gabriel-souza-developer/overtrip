@@ -364,6 +364,7 @@ model Organization {
   updatedAt   DateTime     @updatedAt
   memberships Membership[]
   lodgingUnits LodgingUnit[]
+  restaurantTables RestaurantTable[]
 }
 
 model Membership {
@@ -437,6 +438,52 @@ model LodgingBlock {
 
   @@unique([id, unitId])
   @@index([organizationId, start])
+}
+
+// Reservas de restaurante, independentes da pousada. Uma mesa aceita no
+// máximo um grupo por turno: sem duração nem combinação de mesas ainda.
+model RestaurantTable {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  capacity       Int
+  createdAt      DateTime @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  reservations   RestaurantReservation[]
+
+  @@unique([id, organizationId])
+  @@unique([organizationId, name])
+}
+
+model RestaurantReservation {
+  id             String   @id @default(cuid())
+  organizationId String
+  tableId        String
+  guestName      String
+  partySize      Int
+  date           String
+  shift          String
+  time           String
+  status         String   @default("CONFIRMED")
+  createdAt      DateTime @default(now())
+  table          RestaurantTable @relation(fields: [tableId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  occupancy      RestaurantOccupancy[]
+
+  @@unique([id, tableId])
+  @@index([organizationId, date])
+}
+
+// O cancelamento apaga a linha de ocupação e libera a mesa no turno,
+// preservando o histórico da reserva (status CANCELLED).
+model RestaurantOccupancy {
+  reservationId String
+  tableId       String
+  date          String
+  shift         String
+  reservation   RestaurantReservation @relation(fields: [reservationId, tableId], references: [id, tableId], onDelete: Cascade)
+
+  @@id([tableId, date, shift])
+  @@index([reservationId])
 }
 
 // Cada registro é uma versão aprovada completa; o serviço não altera versões.

@@ -85,6 +85,23 @@ clientes devem informar `page` e `limit`.
 
 `GET /api/organizations/current` recebe `X-Organization-Id`, verifica o vínculo e o estado da empresa no banco a cada requisição e devolve o contexto e papel correspondentes. A revogação do vínculo e a desativação da empresa impedem acessos posteriores. A rota não torna os módulos legados multiempresa nem substitui a necessidade de ambiente e dados próprios.
 
+Há uma API inicial de restaurante em `/api/restaurant`, com o mesmo padrão de
+sessão, cabeçalho e papel da pousada, restrita a organizações de nicho
+`restaurante`. Ela cadastra mesas com capacidade, registra e cancela reservas
+por mesa, data, turno (`ALMOCO` ou `JANTAR`) e horário, e recusa reservas cujo
+grupo exceda a capacidade da mesa. A chave única (mesa, data, turno) na tabela
+de ocupação impede reservas simultâneas conflitantes; o cancelamento apaga a
+linha de ocupação e libera o turno, preservando a reserva no histórico com
+status `CANCELLED`. A chegada e a ausência são registradas pelas transições
+`CONFIRMED` → `ARRIVED` e `CONFIRMED` → `NO_SHOW`; repetir a transição já
+realizada é segura, e outros saltos ou o cancelamento após uma dessas
+marcações são recusados. Essas marcações não liberam o turno. Ainda não há
+mesas combinadas, grupos, duração configurável, canais, pagamentos ou
+importação de dados legados. Esta aposta técnica foi implementada antes da
+validação com operadores reais prevista na fase 4 e em
+[HIPOTESES_PRODUTO_RESERVAS.md](HIPOTESES_PRODUTO_RESERVAS.md); revisar as
+regras de turno e capacidade com operadores antes de um piloto.
+
 ## Nichos e funcionalidades iniciais
 
 - **Pousada:** propriedade, acomodações e unidades, disponibilidade por noite, bloqueios, reservas, hóspedes, check-in e check-out.
@@ -121,9 +138,9 @@ Pousadas e restaurantes compartilham identidade, acesso, usuários e componentes
 
 ### 4. MVP de restaurantes
 
-- Validar turnos, capacidade, duração, mesas combinadas, grupos, cancelamentos e ausências com operadores.
-- Implementar estabelecimentos, mesas e reservas de mesa; agenda e registro de chegada.
-- Testar conflitos e reservas simultâneas antes de um piloto isolado.
+- Implementadas mesas com capacidade e reservas por mesa, data, turno e horário, com conflito e cancelamento testados (unitário, HTTP e e2e); agenda, chegada e ausência na tela `/espaco`.
+- Ainda falta: validar turnos, capacidade, duração, mesas combinadas, grupos, cancelamentos e ausências com operadores reais — a implementação acima é uma aposta técnica, não o resultado dessa validação.
+- Testar conflitos e reservas simultâneas em piloto isolado, com dados reais.
 
 ### 5. Piloto e evolução
 

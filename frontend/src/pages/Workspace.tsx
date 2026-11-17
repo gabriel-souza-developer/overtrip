@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { request } from '../api';
 import Button from '../components/Button';
 import WorkspaceLodging from './WorkspaceLodging';
+import WorkspaceRestaurant from './WorkspaceRestaurant';
 
 interface Organization { id: string; name: string; slug: string; niche: string; role: string }
 
@@ -44,7 +45,9 @@ export default function Workspace() {
       <h2 className="text-xl font-semibold">{current.name}</h2>
       <p className="text-sm text-surface-600">{current.niche} · {current.role}</p>
       {organizations.length > 1 && <Button onClick={() => setCurrent(null)}>Trocar espaço</Button>}
-      {current.niche === 'pousada' ? <WorkspaceLodging key={current.id} organizationId={current.id} /> : <p>Este espaço ainda não tem módulos operacionais disponíveis.</p>}
+      {current.niche === 'pousada' ? <WorkspaceLodging key={current.id} organizationId={current.id} />
+        : current.niche === 'restaurante' ? <WorkspaceRestaurant key={current.id} organizationId={current.id} />
+        : <p>Este espaço ainda não tem módulos operacionais disponíveis.</p>}
     </section> : organizations.length ? <div className="grid gap-3">{organizations.map(org => <button key={org.id} type="button" className="card p-5 text-left hover:border-primary-500" onClick={() => void select(org.id)}><strong>{org.name}</strong><span className="block text-sm text-surface-600">{org.niche}</span></button>)}</div> : !error && <p>Esta conta ainda não está vinculada a uma empresa ativa.</p>}
   </main>;
 }
