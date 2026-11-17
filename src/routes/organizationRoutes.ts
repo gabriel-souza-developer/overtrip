@@ -1,0 +1,24 @@
+import { Router } from 'express';
+import { authenticate } from '../middleware/auth.js';
+import { requireOrganizationMembership } from '../middleware/organizationContext.js';
+import { organizationController } from '../controllers/organizationController.js';
+import { asyncHandler } from '../middleware/errorHandler.js';
+import organizationTripRoutes from './organizationTripRoutes.js';
+import organizationLeadRoutes from './organizationLeadRoutes.js';
+import organizationReservationRoutes from './organizationReservationRoutes.js';
+
+// Fundação isolada: nenhuma rota legada (trips, leads, reservas, site público)
+// é montada ou alterada aqui. Primeira etapa de multiempresa — não implica
+// isolamento de dados operacionais ainda.
+const router = Router();
+
+router.use((_req, res, next) => { res.set('Cache-Control', 'private, no-store'); next(); });
+router.use(authenticate);
+
+router.get('/', asyncHandler(organizationController.listMine));
+router.use('/:organizationId/tourism/trips', organizationTripRoutes);
+router.use('/:organizationId/tourism/leads', organizationLeadRoutes);
+router.use('/:organizationId/tourism/reservations', organizationReservationRoutes);
+router.get('/:organizationId', requireOrganizationMembership(), asyncHandler(organizationController.getSelected));
+
+export default router;

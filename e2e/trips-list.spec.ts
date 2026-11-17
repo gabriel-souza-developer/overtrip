@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-const admin = { id: 'playwright-admin', email: 'playwright@example.test', name: 'Playwright', role: 'admin' };
+const admin = { id: 'playwright-admin', email: 'playwright@example.test', name: 'Playwright', role: 'admin', legacyAccess: true };
 const trip = (id: string, title: string, startDateISO: string, status = 'OPEN') => ({ id, title, city: 'Lucena', region: 'PB', status, startDateISO, media: [{ src: 'assets/images/a.jpg', alt: 'a' }], priceValue: 100, free: false });
 
 test.beforeEach(async ({ page }) => {
@@ -49,6 +49,6 @@ test('o resumo destaca próximas viagens e separa as concluídas', async ({ page
   await page.goto('/dashboard');
   await expect(page.getByRole('heading', { name: 'Seu resumo' })).toHaveCount(0);
   await expect(page.getByRole('link', { name: /Próximas viagens/ })).toHaveAttribute('href', '/trips?period=upcoming');
-  await expect(page.getByText('Concluídas ficam em Anteriores')).toBeVisible();
-  await expect(page.getByRole('link', { name: /Publicadas no site/ })).toHaveAttribute('href', '/trips?status=OPEN&period=all');
+  await expect(page.getByText('De hoje em diante')).toBeVisible();
+  await expect(page.getByRole('link', { name: /Viagens abertas/ })).toHaveAttribute('href', '/trips?status=OPEN&period=all');
 });

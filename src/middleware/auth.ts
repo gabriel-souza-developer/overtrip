@@ -8,6 +8,7 @@ export interface AuthRequest extends Request {
     id: string;
     email: string;
     role: string;
+    legacyAccess?: boolean;
     sessionVersion: Date;
   };
 }
@@ -62,7 +63,7 @@ export const authenticate = async (
     // Verify user still exists and is active
     const user = await prisma.user.findUnique({
       where: { id: decoded.id },
-      select: { id: true, email: true, role: true, updatedAt: true },
+      select: { id: true, email: true, role: true, legacyAccess: true, updatedAt: true },
     });
 
     if (!user || !Number.isSafeInteger(decoded.sv) || decoded.sv !== user.updatedAt.getTime()) {
@@ -71,12 +72,20 @@ export const authenticate = async (
       return;
     }
 
-    req.user = { id: user.id, email: user.email, role: user.role, sessionVersion: user.updatedAt };
+    req.user = { id: user.id, email: user.email, role: user.role, legacyAccess: user.legacyAccess, sessionVersion: user.updatedAt };
     next();
-  } catch (error) {
-    console.error('Authentication error:', error);
+  } catch {
+    // Driver errors can include user identifiers and query arguments.
+    console.error('Erro interno de autenticação.');
     res.status(500).json({ error: 'Erro interno de autenticação' });
   }
+};
+
+/** Acesso explícito ao domínio global legado; role e vínculo não o concedem. */
+export const requireLegacyAccess = (req: AuthRequest, res: Response, next: NextFunction): void => {
+  if (!req.user) { res.status(401).json({ error: 'Não autenticado', code: 'SESSION_INVALID' }); return; }
+  if (req.user.legacyAccess !== true) { res.status(403).json({ error: 'Acesso ao painel legado não autorizado.', code: 'LEGACY_ACCESS_DENIED' }); return; }
+  next();
 };
 
 export const authorize = (...roles: string[]) => {

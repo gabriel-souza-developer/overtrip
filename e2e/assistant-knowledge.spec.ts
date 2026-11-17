@@ -3,12 +3,12 @@ import { expect, test } from '@playwright/test';
 test('administrador edita e aprova uma versão de conhecimento', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('auth_token', 'test-token');
-    localStorage.setItem('auth_user', JSON.stringify({ id: 'admin', email: 'admin@example.test', name: 'Admin', role: 'admin' }));
+    localStorage.setItem('auth_user', JSON.stringify({ id: 'admin', email: 'admin@example.test', name: 'Admin', role: 'admin', legacyAccess: true }));
   });
   let sent: unknown;
   await page.route(/\/api\/(?!.*\.tsx?(?:\?|$))/, async route => {
     const path = new URL(route.request().url()).pathname;
-    if (path.endsWith('/auth/me')) return route.fulfill({ json: { id: 'admin', email: 'admin@example.test', name: 'Admin', role: 'admin' } });
+    if (path.endsWith('/auth/me')) return route.fulfill({ json: { id: 'admin', email: 'admin@example.test', name: 'Admin', role: 'admin', legacyAccess: true } });
     if (path.endsWith('/settings/public-faq')) return route.fulfill({ json: { version: 0, updatedAt: null, entries: [{ question: 'FAQ do site?', answer: 'Resposta pública.' }] } });
     if (path.endsWith('/assistant-knowledge/versions')) return route.fulfill({ json: [] });
     if (path.endsWith('/assistant-knowledge')) {

@@ -30,7 +30,7 @@ const visit = async (key: string, data: Record<string, unknown>) => {
 beforeAll(async () => {
   await new Promise<void>((r) => { server = app.listen(0, r); });
   baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
-  const admin = await prisma.user.create({ data: { email: `${TAG}@example.com`, passwordHash: 'test', role: 'admin' } });
+  const admin = await prisma.user.create({ data: { legacyAccess: true, email: `${TAG}@example.com`, passwordHash: 'test', role: 'admin' } });
   adminId = admin.id;
   adminToken = generateToken(admin);
   await gal('old', '2000-01-10');

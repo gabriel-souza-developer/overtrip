@@ -15,6 +15,7 @@ const expected = [
   { path: '/visits', label: 'Destinos visitados', icon: 'MapPinned', adminOnly: false },
   { path: '/leads', label: 'Interessados', icon: 'UsersRound', adminOnly: true },
   { path: '/reservations', label: 'Reservas', icon: 'Ticket', adminOnly: true },
+  { path: '/social-posts', label: 'Redes sociais', icon: 'Share2', adminOnly: true },
   { path: '/gallery', label: 'Galeria de memórias', icon: 'Images', adminOnly: false },
   { path: '/settings', label: 'Configurações', icon: 'SettingsIcon', adminOnly: true },
   { path: '/system', label: 'Saúde do servidor', icon: 'Activity', adminOnly: true },
@@ -23,7 +24,7 @@ const expected = [
 // Tela de cada rota; o Início tem cabeçalho próprio ("Visão geral"), fora do PageHeader.
 const pages: Record<string, string> = {
   '/trips': 'Trips', '/visits': 'Visits', '/leads': 'Leads', '/reservations': 'Reservations',
-  '/gallery': 'Gallery', '/settings': 'Settings', '/system': 'SystemHealth',
+  '/social-posts': 'SocialPosts', '/gallery': 'Gallery', '/settings': 'Settings', '/system': 'SystemHealth',
 };
 
 describe('menu lateral do painel', () => {

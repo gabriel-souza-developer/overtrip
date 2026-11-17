@@ -21,3 +21,48 @@ describe('catálogo privado do conector', () => {
     expect((await fetch(`${url}/catalog`, { method: 'POST', headers })).status).toBe(404);
   });
 });
+
+describe('isolamento por empresa no catálogo e nas rotas n8n', () => {
+  const TAG = `assistant-org-isolation-test:${Date.now()}`;
+  const headers = { authorization: `Bearer ${secret}` };
+  let organizationId: string;
+
+  beforeAll(async () => {
+    const organization = await prisma.organization.create({ data: { name: TAG, slug: TAG } });
+    organizationId = organization.id;
+    await prisma.trip.create({
+      data: {
+        organizationId,
+        title: TAG,
+        category: 'Teste',
+        description: 'Descrição completa da experiência.',
+        city: 'Cidade',
+        region: 'PB',
+        intensityClass: 'moderado',
+        includes: JSON.stringify(['Item A']),
+        media: JSON.stringify([{ src: 'assets/images/a.jpg', alt: 'Alt' }]),
+        status: 'OPEN',
+        free: true,
+        meetingTBD: true,
+        startDateISO: new Date('2030-01-01T09:00:00-03:00'),
+        storedIdentity: `${TAG}:trip`,
+      },
+    });
+  });
+
+  afterAll(async () => {
+    await prisma.trip.deleteMany({ where: { organizationId } });
+    await prisma.organization.delete({ where: { id: organizationId } });
+  });
+
+  it('não recomenda viagem de outra empresa no catálogo nem nas rotas n8n, por padrão', async () => {
+    const catalog = await (await fetch(`${url}/catalog`, { headers })).json() as { trips: { title: string }[] };
+    expect(catalog.trips.map((t) => t.title)).not.toContain(TAG);
+
+    const n8nTrips = await (await fetch(`${url}/n8n/trips`, { headers })).json() as { title: string }[];
+    expect(n8nTrips.map((t) => t.title)).not.toContain(TAG);
+
+    const n8nV2Trips = await (await fetch(`${url}/n8n/v2/trips`, { headers })).json() as { title: string }[];
+    expect(n8nV2Trips.map((t) => t.title)).not.toContain(TAG);
+  });
+});

@@ -50,7 +50,7 @@ describe('GET /api/trips?period=', () => {
   };
 
   beforeAll(async () => {
-    const user = await prisma.user.create({ data: { email: `${tag}@example.test`, passwordHash: 'x', role: 'admin' } });
+    const user = await prisma.user.create({ data: { legacyAccess: true, email: `${tag}@example.test`, passwordHash: 'x', role: 'admin' } });
     userId = user.id;
     token = generateToken(user);
     await make('futura', new Date(`${day(30)}T00:00:00.000Z`));

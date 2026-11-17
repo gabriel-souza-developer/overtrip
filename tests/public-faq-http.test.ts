@@ -23,8 +23,8 @@ beforeAll(async () => {
   originalFaqSetting = await prisma.setting.findUnique({ where: { key: PUBLIC_FAQ_KEY }, select: { value: true } });
   await prisma.setting.deleteMany({ where: { key: PUBLIC_FAQ_KEY } });
   const tag = `public-faq-${Date.now()}`;
-  const admin = await prisma.user.create({ data: { email: `${tag}-admin@example.test`, passwordHash: 'test', role: 'admin' } });
-  const user = await prisma.user.create({ data: { email: `${tag}-user@example.test`, passwordHash: 'test', role: 'user' } });
+  const admin = await prisma.user.create({ data: { legacyAccess: true, email: `${tag}-admin@example.test`, passwordHash: 'test', role: 'admin' } });
+  const user = await prisma.user.create({ data: { legacyAccess: true, email: `${tag}-user@example.test`, passwordHash: 'test', role: 'user' } });
   adminId = admin.id;
   userId = user.id;
   adminToken = generateToken(admin);

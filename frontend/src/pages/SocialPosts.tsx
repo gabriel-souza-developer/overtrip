@@ -9,6 +9,7 @@ import Field from '../components/Field';
 import Modal from '../components/Modal';
 import ErrorState from '../components/ErrorState';
 import SocialArtCreator from '../components/SocialArtCreator';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 const platforms: { value: SocialPlatform; label: string }[] = [
   { value: 'INSTAGRAM', label: 'Instagram' }, { value: 'FACEBOOK', label: 'Facebook' }, { value: 'TIKTOK', label: 'TikTok' },
@@ -34,6 +35,7 @@ export default function SocialPosts() {
   const [busy, setBusy] = useState(false);
   const [formError, setFormError] = useState('');
   const [pendingRemoval, setPendingRemoval] = useState<SocialPost | null>(null);
+  const [pendingConfirmation, setPendingConfirmation] = useState<{ kind: 'discard' } | { kind: 'trip'; trip: Trip } | { kind: 'suggest'; platform: SocialPlatform } | null>(null);
   const [tripQuery, setTripQuery] = useState('');
   const [trips, setTrips] = useState<Trip[]>([]);
   const [tripId, setTripId] = useState('');
@@ -45,7 +47,7 @@ export default function SocialPosts() {
 
   const closeEditor = () => {
     if (busy || generating || uploading) return;
-    if (hasChanges && !window.confirm('Descartar as alterações que ainda não foram salvas?')) return;
+    if (hasChanges) { setPendingConfirmation({ kind: 'discard' }); return; }
     setOpen(false);
   };
 
@@ -71,10 +73,7 @@ export default function SocialPosts() {
     } catch (err) { setTrips([]); setTripError(err instanceof Error ? err.message : 'Não foi possível buscar as viagens.'); }
     finally { setTripLoading(false); }
   };
-  const useTrip = () => {
-    const trip = trips.find(item => item.id === tripId);
-    if (!trip) return;
-    if ((title.trim() || briefing.trim()) && !window.confirm('Substituir o título e a ideia pelos dados da viagem? As legendas já escritas serão mantidas.')) return;
+  const applyTrip = (trip: Trip) => {
     const day = tripDay(trip.startDateISO);
     const date = /^\d{4}-\d{2}-\d{2}$/.test(day) ? day.split('-').reverse().join('/') : '';
     const destination = [trip.city, trip.region].filter(Boolean).join(' - ');
@@ -82,6 +81,12 @@ export default function SocialPosts() {
     setTitle(trip.title.slice(0, 160));
     setBriefing(facts.slice(0, 3000));
     setFormError('');
+  };
+  const useTrip = () => {
+    const trip = trips.find(item => item.id === tripId);
+    if (!trip) return;
+    if (title.trim() || briefing.trim()) { setPendingConfirmation({ kind: 'trip', trip }); return; }
+    applyTrip(trip);
   };
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -109,9 +114,8 @@ export default function SocialPosts() {
     } catch (err) { setFormError(err instanceof Error ? err.message : 'Não foi possível enviar a imagem.'); }
     finally { setUploading(null); }
   };
-  const suggest = async (platform: SocialPlatform) => {
+  const generateSuggestion = async (platform: SocialPlatform) => {
     if (!briefing.trim()) { setFormError('Descreva o post para receber uma sugestão.'); return; }
-    if (captions[platform].trim() && !window.confirm('Substituir a legenda atual pela sugestão de IA?')) return;
     const original = captions[platform];
     setGenerating(platform); setFormError('');
     try {
@@ -122,6 +126,19 @@ export default function SocialPosts() {
       });
     } catch (err) { setFormError(err instanceof Error ? err.message : 'Não foi possível gerar a sugestão.'); }
     finally { setGenerating(null); }
+  };
+  const suggest = (platform: SocialPlatform) => {
+    if (!briefing.trim()) { setFormError('Descreva o post para receber uma sugestão.'); return; }
+    if (captions[platform].trim()) { setPendingConfirmation({ kind: 'suggest', platform }); return; }
+    void generateSuggestion(platform);
+  };
+  const confirmAction = () => {
+    const action = pendingConfirmation;
+    if (!action || busy || generating || uploading) return;
+    setPendingConfirmation(null);
+    if (action.kind === 'discard') setOpen(false);
+    else if (action.kind === 'trip') applyTrip(action.trip);
+    else void generateSuggestion(action.platform);
   };
   const approve = async (post: SocialPost) => {
     setBusy(true); setError('');
@@ -179,5 +196,14 @@ export default function SocialPosts() {
       </form>
       {editing && <div className="mt-6 border-t border-surface-200 pt-4"><p className="mb-3 text-sm text-surface-600">{editing.approvedAt ? 'Esta versão está revisada. Salvar alterações cancela a revisão.' : 'Confira as legendas e imagens. Salve qualquer alteração antes de marcar esta versão como revisada.'}</p>{!editing.approvedAt && <Button type="button" disabled={busy || !!generating || !!uploading || title !== editing.title || platforms.some(({ value }) => captions[value] !== (editing.variants.find(v => v.platform === value)?.caption ?? '') || images[value] !== (editing.variants.find(v => v.platform === value)?.socialMediaId ?? null))} onClick={() => { setOpen(false); void approve(editing); }}>Marcar versão salva como revisada</Button>}</div>}
     </Modal>
+    <ConfirmDialog
+      open={!!pendingConfirmation}
+      onOpenChange={value => { if (!value) setPendingConfirmation(null); }}
+      title={pendingConfirmation?.kind === 'discard' ? 'Descartar alterações?' : pendingConfirmation?.kind === 'trip' ? 'Usar dados da viagem?' : 'Substituir legenda?'}
+      description={pendingConfirmation?.kind === 'discard' ? 'As alterações que ainda não foram salvas serão perdidas.' : pendingConfirmation?.kind === 'trip' ? 'O título e a ideia serão substituídos. As legendas já escritas serão mantidas.' : 'A legenda atual será substituída pela sugestão de IA.'}
+      confirmLabel={pendingConfirmation?.kind === 'discard' ? 'Descartar alterações' : pendingConfirmation?.kind === 'trip' ? 'Usar dados da viagem' : 'Gerar sugestão'}
+      danger={pendingConfirmation?.kind === 'discard'}
+      onConfirm={confirmAction}
+    />
   </div>;
 }

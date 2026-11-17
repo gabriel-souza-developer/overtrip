@@ -16,7 +16,7 @@ test('revisa a origem e aplica somente os campos escolhidos sem salvar', async (
     if (url.pathname.endsWith('/auth/me')) {
       meRequests++;
       meCookie = route.request().headers().cookie;
-      return route.fulfill({ json: { id: 'admin', email: 'admin@example.test', name: 'Admin', role: 'admin' } });
+      return route.fulfill({ json: { id: 'admin', email: 'admin@example.test', name: 'Admin', role: 'admin', legacyAccess: true } });
     }
     if (url.pathname.endsWith('/documents/doc-1') && route.request().method() === 'GET') {
       downloadCookie = route.request().headers().cookie;

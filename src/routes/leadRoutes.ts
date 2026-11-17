@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
 import { authenticate, authorize } from '../middleware/auth.js';
 import { AppError, asyncHandler } from '../middleware/errorHandler.js';
+import { currentLegacyLeadFilterWithConsistentTrip, currentLegacyTourismFilter, currentReservationExistsInLegacyScope, legacyTourismOrganizationIdForNewRecord } from '../services/legacyTourismScope.js';
 
 const router = Router();
 // Interested-party contact information is private and only available to administrators.
@@ -66,6 +67,7 @@ const clean = <T extends Record<string, unknown>>(data: T) => Object.fromEntries
 router.get('/', asyncHandler(async (req: Request, res: Response) => {
   const { page, limit, stage: currentStage, tripId, followUp } = filters.parse(req.query);
   const where = {
+    ...currentLegacyLeadFilterWithConsistentTrip(),
     ...(currentStage ? { stage: currentStage } : {}),
     ...(tripId ? { tripId } : {}),
     ...(followUp === 'due' ? { nextFollowUpAt: { not: null, lt: startOfTomorrowInBusinessZone() } } : {}),
@@ -81,14 +83,32 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
 }));
 
 router.get('/:id', asyncHandler(async (req: Request, res: Response) => {
-  const item = await prisma.lead.findUnique({ where: { id: req.params.id }, include: { ...include, events: { orderBy: { createdAt: 'desc' }, take: 100 } } });
+  // Mesma consulta: um interessado de outra empresa, ou cuja viagem vinculada
+  // seja de outra empresa (dado inconsistente), não deve nem ser encontrado.
+  const item = await prisma.lead.findFirst({ where: { id: req.params.id, ...currentLegacyLeadFilterWithConsistentTrip() }, include: { ...include, events: { orderBy: { createdAt: 'desc' }, take: 100 } } });
   if (!item) throw AppError.notFound('Interessado não encontrado');
   res.json(item);
 }));
 
 router.post('/', asyncHandler(async (req: Request, res: Response) => {
   const input = leadInput.parse(req.body);
-  const item = await prisma.lead.create({ data: { ...clean(input), name: input.name, nextFollowUpAt: input.nextFollowUpAt ? new Date(input.nextFollowUpAt) : null }, include });
+  const item = await prisma.$transaction(async (tx) => {
+    // Checagem de escopo da viagem referenciada e criação na mesma transação:
+    // nunca vincula um interessado a uma viagem de outra empresa (a FK do banco
+    // garante apenas que a viagem existe, não que é desta operação).
+    if (input.tripId) {
+      const trip = await tx.trip.findFirst({ where: { id: input.tripId, ...currentLegacyTourismFilter() }, select: { id: true } });
+      if (!trip) throw AppError.badRequest('Viagem referenciada não existe', { tripId: input.tripId });
+    }
+    return tx.lead.create({
+      data: {
+        ...clean(input), name: input.name,
+        nextFollowUpAt: input.nextFollowUpAt ? new Date(input.nextFollowUpAt) : null,
+        organizationId: legacyTourismOrganizationIdForNewRecord(),
+      },
+      include,
+    });
+  });
   res.status(201).json(item);
 }));
 
@@ -97,8 +117,14 @@ router.put('/:id', asyncHandler(async (req: Request, res: Response) => {
   if (!Object.keys(input).length) throw AppError.badRequest('Informe ao menos um campo');
   const data = { ...clean(input), ...(input.nextFollowUpAt !== undefined ? { nextFollowUpAt: input.nextFollowUpAt ? new Date(input.nextFollowUpAt) : null } : {}) };
   const item = await prisma.$transaction(async (tx) => {
+    // Existência, escopo e consistência da viagem vinculada checados na mesma
+    // transação da atualização.
+    const existing = await tx.lead.findFirst({ where: { id: req.params.id, ...currentLegacyLeadFilterWithConsistentTrip() }, select: { id: true } });
+    if (!existing) throw AppError.notFound('Interessado não encontrado');
     if (input.tripId) {
-      const conflicting = await tx.reservation.findFirst({ where: { leadId: req.params.id, tripId: { not: input.tripId } }, select: { id: true } });
+      const trip = await tx.trip.findFirst({ where: { id: input.tripId, ...currentLegacyTourismFilter() }, select: { id: true } });
+      if (!trip) throw AppError.badRequest('Viagem referenciada não existe', { tripId: input.tripId });
+      const conflicting = await currentReservationExistsInLegacyScope(tx, { leadId: req.params.id, tripIdNot: input.tripId });
       if (conflicting) throw AppError.conflict('Este interessado possui reserva vinculada a outra viagem.');
     }
     return tx.lead.update({ where: { id: req.params.id }, data, include });
@@ -108,14 +134,20 @@ router.put('/:id', asyncHandler(async (req: Request, res: Response) => {
 
 router.post('/:id/events', asyncHandler(async (req: Request, res: Response) => {
   const { body } = z.object({ body: z.string().trim().min(1).max(2000) }).strict().parse(req.body);
-  const lead = await prisma.lead.findUnique({ where: { id: req.params.id }, select: { id: true } });
-  if (!lead) throw AppError.notFound('Interessado não encontrado');
-  const event = await prisma.leadEvent.create({ data: { leadId: lead.id, body } });
+  const event = await prisma.$transaction(async (tx) => {
+    const lead = await tx.lead.findFirst({ where: { id: req.params.id, ...currentLegacyLeadFilterWithConsistentTrip() }, select: { id: true } });
+    if (!lead) throw AppError.notFound('Interessado não encontrado');
+    return tx.leadEvent.create({ data: { leadId: lead.id, body } });
+  });
   res.status(201).json(event);
 }));
 
 router.delete('/:id', asyncHandler(async (req: Request, res: Response) => {
   await prisma.$transaction(async (tx) => {
+    // Existência e escopo do interessado checados na mesma transação da exclusão;
+    // sem isso, qualquer ID de outra empresa seria excluído se não tivesse reserva.
+    const existing = await tx.lead.findFirst({ where: { id: req.params.id, ...currentLegacyLeadFilterWithConsistentTrip() }, select: { id: true } });
+    if (!existing) throw AppError.notFound('Interessado não encontrado');
     const reservation = await tx.reservation.findFirst({ where: { leadId: req.params.id }, select: { id: true } });
     if (reservation) throw AppError.conflict('Desvincule as reservas deste interessado antes de excluí-lo.');
     await tx.lead.delete({ where: { id: req.params.id } });

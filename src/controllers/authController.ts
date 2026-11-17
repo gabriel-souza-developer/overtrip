@@ -6,6 +6,10 @@ import { generateToken, AuthRequest } from '../middleware/auth.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { config } from '../config.js';
 
+// Mesma ordem de custo das senhas atuais, para evitar resposta imediata
+// quando não existe usuário. O hash não corresponde a uma conta utilizável.
+const DUMMY_PASSWORD_HASH = '$2a$12$4ngBzuWhF/zzihSghDPEFe4sx1p.M8UZUnPhIjGubJ5WPzqpVav/q';
+
 const sessionCookieName = () => config.nodeEnv === 'production'
   ? '__Host-overtrip_session'
   : 'overtrip_session';
@@ -21,15 +25,16 @@ export const authController = {
   async login(req: Request, res: Response) {
     const { email, password } = loginSchema.parse(req.body);
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    // Preserve a busca exata das contas antigas; contas novas usam e-mail
+    // normalizado e aceitam também letras maiúsculas digitadas no login.
+    const user = await prisma.user.findUnique({ where: { email } })
+      ?? (email !== email.toLowerCase()
+        ? await prisma.user.findUnique({ where: { email: email.toLowerCase() } })
+        : null);
     
-    if (!user) {
-      throw AppError.unauthorized('Credenciais inválidas');
-    }
-
-    const validPassword = await bcrypt.compare(password, user.passwordHash);
+    const validPassword = await bcrypt.compare(password, user?.passwordHash ?? DUMMY_PASSWORD_HASH);
     
-    if (!validPassword) {
+    if (!user || !validPassword) {
       throw AppError.unauthorized('Credenciais inválidas');
     }
 
@@ -44,6 +49,7 @@ export const authController = {
         email: user.email,
         name: user.name,
         role: user.role,
+        legacyAccess: user.legacyAccess,
       },
     });
   },
@@ -55,7 +61,7 @@ export const authController = {
 
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
-      select: { id: true, email: true, name: true, role: true, createdAt: true },
+      select: { id: true, email: true, name: true, role: true, legacyAccess: true, createdAt: true },
     });
 
     if (!user) {

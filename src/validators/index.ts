@@ -183,7 +183,8 @@ export const loginSchema = z.object({
 
 export const changePasswordSchema = z.object({
   currentPassword: z.string().min(6),
-  newPassword: z.string().min(6, 'Nova senha deve ter pelo menos 6 caracteres'),
+  newPassword: z.string().min(8, 'Nova senha deve ter pelo menos 8 caracteres')
+    .refine(value => Buffer.byteLength(value, 'utf8') <= 72 && !/[\r\n\0]/.test(value), 'Use no máximo 72 bytes, sem quebras de linha.'),
 });
 
 export const defaultWhatsappSchema = z.object({

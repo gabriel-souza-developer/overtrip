@@ -4,9 +4,14 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-export const prisma = globalForPrisma.prisma ?? new PrismaClient({
-  log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-});
+function createClient(): PrismaClient {
+  // A mensagem padrão do Prisma pode conter valores privados das consultas.
+  const client = new PrismaClient({ log: [{ emit: 'event', level: 'error' }] });
+  client.$on('error', () => console.error('Erro no acesso ao banco de dados.'));
+  return client;
+}
+
+export const prisma = globalForPrisma.prisma ?? createClient();
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 

@@ -23,7 +23,7 @@ beforeAll(async () => {
   baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 
   const user = await prisma.user.create({
-    data: {
+    data: { legacyAccess: true,
       email: `test:trip-publish-http:${Date.now()}@example.com`,
       passwordHash: 'unused-in-this-test',
       role: 'admin',
@@ -33,7 +33,7 @@ beforeAll(async () => {
   token = generateToken(user);
 
   const nonAdminUser = await prisma.user.create({
-    data: {
+    data: { legacyAccess: true,
       email: `test:trip-publish-http:non-admin:${Date.now()}@example.com`,
       passwordHash: 'unused-in-this-test',
       role: 'editor',

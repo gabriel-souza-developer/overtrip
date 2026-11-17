@@ -1,13 +1,14 @@
 import { expect, test, type Page } from '@playwright/test';
 
 const SHOTS = process.env.MENU_SCREENSHOT_DIR;
-const admin = { id: 'admin', email: 'admin@example.test', name: 'Admin', role: 'admin' };
+const admin = { id: 'admin', email: 'admin@example.test', name: 'Admin', role: 'admin', legacyAccess: true };
 const menu = [
   { label: 'Início', heading: 'Visão geral', path: '/dashboard' },
   { label: 'Viagens', heading: 'Viagens', path: '/trips' },
   { label: 'Destinos visitados', heading: 'Destinos visitados', path: '/visits' },
   { label: 'Interessados', heading: 'Interessados', path: '/leads' },
   { label: 'Reservas', heading: 'Reservas', path: '/reservations' },
+  { label: 'Redes sociais', heading: 'Redes sociais', path: '/social-posts' },
   { label: 'Galeria de memórias', heading: 'Galeria de memórias', path: '/gallery' },
   { label: 'Configurações', heading: 'Configurações', path: '/settings' },
   { label: 'Saúde do servidor', heading: 'Saúde do servidor', path: '/system' },

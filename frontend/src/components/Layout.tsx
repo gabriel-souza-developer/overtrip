@@ -99,23 +99,32 @@ export default function Layout() {
             </button>
           </div>
 
-          <nav className="flex-1 px-3 py-5 space-y-1 overflow-y-auto" aria-label="Navegação do painel">
-            <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-surface-600">Menu principal</p>
-            {navItems.filter(item => !('adminOnly' in item) || user?.role === 'admin').map(({ path, label, icon: Icon }) => (
-              <NavLink
-                key={path}
-                to={path}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium motion-safe:transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary-500 ${
-                    isActive ? 'bg-primary-50 text-primary-500' : 'text-surface-600 hover:bg-surface-100 hover:text-surface-900'
-                  }`
-                }
-                onClick={() => setSidebarOpen(false)}
-              >
-                <Icon className="w-5 h-5 shrink-0" aria-hidden="true" />
-                {label}
-              </NavLink>
-            ))}
+          <nav className="flex-1 px-3 py-5 overflow-y-auto" aria-label="Navegação do painel">
+            {[
+              { label: 'Operação', items: navItems.filter(item => !['/settings', '/system'].includes(item.path)) },
+              { label: 'Administração', items: navItems.filter(item => ['/settings', '/system'].includes(item.path)) },
+            ].map(({ label: groupLabel, items }) => {
+              const visibleItems = items.filter(item => !('adminOnly' in item) || user?.role === 'admin');
+              if (!visibleItems.length) return null;
+              return <div key={groupLabel} className="mb-6 space-y-1">
+                <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-surface-600">{groupLabel}</p>
+                {visibleItems.map(({ path, label, icon: Icon }) => (
+                  <NavLink
+                    key={path}
+                    to={path}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium motion-safe:transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary-500 ${
+                        isActive ? 'bg-primary-50 text-primary-600' : 'text-surface-600 hover:bg-surface-100 hover:text-surface-900'
+                      }`
+                    }
+                    onClick={() => setSidebarOpen(false)}
+                  >
+                    <Icon className="w-5 h-5 shrink-0" aria-hidden="true" />
+                    {label}
+                  </NavLink>
+                ))}
+              </div>;
+            })}
           </nav>
 
           <div className="p-3 border-t border-surface-200">
@@ -148,7 +157,7 @@ export default function Layout() {
             >
               <MenuIcon className="w-6 h-6" aria-hidden="true" />
             </button>
-            <div className="flex-1 pl-2 lg:pl-0"><p className="text-sm font-semibold text-surface-900">{currentPage}</p><p className="hidden sm:block text-xs text-surface-600">Painel OVERTRIP</p></div>
+            <div className="flex-1 pl-2 lg:pl-0"><p className="text-sm font-semibold text-surface-900">{currentPage}</p></div>
             <Menu.Root>
               <Menu.Trigger className="flex items-center gap-2 px-2 py-1.5 min-h-[44px] rounded-lg text-surface-700 hover:bg-surface-100" aria-label="Minha conta">
                 <span className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center">

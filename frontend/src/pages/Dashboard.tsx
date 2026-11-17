@@ -57,7 +57,7 @@ export default function Dashboard() {
       {error && <ErrorState message={error} onRetry={loadStats} />}
       <section aria-labelledby="indicadores-title">
         <h2 id="indicadores-title" className="mb-3 text-lg font-bold text-surface-900">Resumo das viagens</h2>
-        <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2 xl:grid-cols-4">
           {statsConfig.map(({ key, label, icon: Icon, tone, to, detail }) => (
             <Link key={key} to={to} className="group rounded-2xl border border-surface-200 bg-white p-4 shadow-sm motion-safe:transition sm:p-5 hover:border-primary-300 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500" aria-label={`${label}: ${loading ? 'carregando' : key === 'tripsUpcoming' ? upcomingTrips ?? 'indisponível' : stats ? stats[key] : 'indisponível'}. ${detail}`}>
               <div className="flex items-start justify-between gap-3"><span className="text-sm font-semibold leading-snug text-surface-700" aria-hidden="true">{label}</span><span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${toneClass[tone]}`}><Icon className="h-5 w-5" aria-hidden="true" /></span></div>

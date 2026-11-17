@@ -12,7 +12,7 @@ test.beforeEach(async ({ page }) => {
   });
 
   // O painel confirma a sessão ao abrir; sem isso a pessoa cai no login.
-  await page.route('**/api/auth/me', (route) => route.fulfill({ json: { id: 'playwright-admin', email: 'playwright@example.test', name: 'Playwright', role: 'admin' } }));
+  await page.route('**/api/auth/me', (route) => route.fulfill({ json: { id: 'playwright-admin', email: 'playwright@example.test', name: 'Playwright', role: 'admin', legacyAccess: true } }));
   await page.route('**/api/visits**', (route) => route.fulfill({
     contentType: 'application/json',
     body: JSON.stringify({

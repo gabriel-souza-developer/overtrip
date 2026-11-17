@@ -3,9 +3,9 @@ import { expect, test } from '@playwright/test';
 test('cadastra destino visitado sem viagem e preserva coordenadas confirmadas', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('auth_token', 'playwright-test-token');
-    localStorage.setItem('auth_user', JSON.stringify({ id: 'admin', email: 'admin@example.test', name: 'Admin', role: 'admin' }));
+    localStorage.setItem('auth_user', JSON.stringify({ id: 'admin', email: 'admin@example.test', name: 'Admin', role: 'admin', legacyAccess: true }));
   });
-  await page.route('**/api/auth/me', route => route.fulfill({ json: { id: 'admin', email: 'admin@example.test', name: 'Admin', role: 'admin' } }));
+  await page.route('**/api/auth/me', route => route.fulfill({ json: { id: 'admin', email: 'admin@example.test', name: 'Admin', role: 'admin', legacyAccess: true } }));
   await page.route('**/api/visits**', async route => {
     if (route.request().method() === 'POST') {
       const body = route.request().postDataJSON();

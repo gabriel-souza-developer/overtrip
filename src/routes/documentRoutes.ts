@@ -2,6 +2,7 @@ import { Router, raw, Response, NextFunction } from 'express';
 import { createHash } from 'node:crypto';
 import { prisma } from '../lib/prisma.js';
 import { authenticate, authorize, AuthRequest } from '../middleware/auth.js';
+import { requireLegacyTripScope } from '../middleware/legacyTripScope.js';
 import { AppError, asyncHandler } from '../middleware/errorHandler.js';
 import { createRateLimiter } from '../middleware/rateLimit.js';
 import { assertPdfUpload, DOCUMENT_MAX_BYTES, DOCUMENT_MAX_PER_TRIP, DocumentUploadError } from '../services/documentUpload.js';
@@ -13,6 +14,7 @@ import { generateDocumentSuggestions } from '../services/documentSuggestions.js'
 const router = Router({ mergeParams: true });
 router.use(authenticate, authorize('admin'));
 router.use((_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
+router.use(requireLegacyTripScope);
 const metadata = { id: true, originalFilename: true, sizeBytes: true, scanStatus: true, extractionStatus: true, retentionUntil: true, createdAt: true } as const;
 
 router.get('/', asyncHandler(async (req: AuthRequest, res: Response) => {

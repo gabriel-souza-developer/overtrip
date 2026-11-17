@@ -12,8 +12,8 @@ const todayInSaoPaulo = () => {
   return `${date.year}-${date.month}-${date.day}`;
 };
 beforeAll(async () => {
-  const admin = await prisma.user.create({ data: { email: 'lead-test-admin@example.test', passwordHash: 'test', role: 'admin' } });
-  const user = await prisma.user.create({ data: { email: 'lead-test-user@example.test', passwordHash: 'test', role: 'user' } });
+  const admin = await prisma.user.create({ data: { legacyAccess: true, email: 'lead-test-admin@example.test', passwordHash: 'test', role: 'admin' } });
+  const user = await prisma.user.create({ data: { legacyAccess: true, email: 'lead-test-user@example.test', passwordHash: 'test', role: 'user' } });
   adminToken = generateToken(admin); userToken = generateToken(user);
   await new Promise<void>(resolve => { server = app.listen(0, resolve); });
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}/api/leads`;

@@ -31,3 +31,57 @@ describe('buildConfig / JWT_SECRET', () => {
     }
   });
 });
+
+describe('buildConfig / PUBLIC_SITE_ORGANIZATION_IDS', () => {
+  it('sem a variável, não autoriza nenhuma organização (preserva o site/assistente com dado legado)', () => {
+    expect(buildConfig({ NODE_ENV: 'development' }).publicSiteOrganizationIds).toEqual([]);
+  });
+
+  it('string vazia também não autoriza nenhuma organização', () => {
+    expect(buildConfig({ NODE_ENV: 'development', PUBLIC_SITE_ORGANIZATION_IDS: '' }).publicSiteOrganizationIds).toEqual([]);
+  });
+
+  it('aceita lista separada por vírgula, removendo espaços e duplicados', () => {
+    const result = buildConfig({ NODE_ENV: 'development', PUBLIC_SITE_ORGANIZATION_IDS: ' org-a, org-b ,org-a,,' }).publicSiteOrganizationIds;
+    expect(result).toEqual(['org-a', 'org-b']);
+  });
+
+  it('recusa "*" e "all" como atalho para todas as organizações', () => {
+    expect(() => buildConfig({ NODE_ENV: 'development', PUBLIC_SITE_ORGANIZATION_IDS: '*' })).toThrow(/PUBLIC_SITE_ORGANIZATION_IDS/);
+    expect(() => buildConfig({ NODE_ENV: 'development', PUBLIC_SITE_ORGANIZATION_IDS: 'org-a,all' })).toThrow(/PUBLIC_SITE_ORGANIZATION_IDS/);
+    expect(() => buildConfig({ NODE_ENV: 'development', PUBLIC_SITE_ORGANIZATION_IDS: 'ALL' })).toThrow(/PUBLIC_SITE_ORGANIZATION_IDS/);
+  });
+});
+
+describe('buildConfig / LEGACY_TOURISM_ORGANIZATION_ID', () => {
+  it('sem a variável, o escopo legado é só organizationId null (comportamento inalterado)', () => {
+    expect(buildConfig({ NODE_ENV: 'development' }).legacyTourismOrganizationId).toBeNull();
+  });
+
+  it('string vazia também mantém o escopo legado padrão', () => {
+    expect(buildConfig({ NODE_ENV: 'development', LEGACY_TOURISM_ORGANIZATION_ID: '' }).legacyTourismOrganizationId).toBeNull();
+  });
+
+  it('aceita um único ID, sem espaços', () => {
+    expect(buildConfig({ NODE_ENV: 'development', LEGACY_TOURISM_ORGANIZATION_ID: ' org-overtrip ' }).legacyTourismOrganizationId).toBe('org-overtrip');
+  });
+
+  it('recusa "*" e "all" como atalho para todas as organizações', () => {
+    expect(() => buildConfig({ NODE_ENV: 'development', LEGACY_TOURISM_ORGANIZATION_ID: '*' })).toThrow(/LEGACY_TOURISM_ORGANIZATION_ID/);
+    expect(() => buildConfig({ NODE_ENV: 'development', LEGACY_TOURISM_ORGANIZATION_ID: 'ALL' })).toThrow(/LEGACY_TOURISM_ORGANIZATION_ID/);
+  });
+
+  it('recusa uma lista separada por vírgula: aceita um único ID, não vários', () => {
+    expect(() => buildConfig({ NODE_ENV: 'development', LEGACY_TOURISM_ORGANIZATION_ID: 'org-a,org-b' })).toThrow(/LEGACY_TOURISM_ORGANIZATION_ID/);
+  });
+
+  it('é independente de PUBLIC_SITE_ORGANIZATION_IDS (variáveis e propósitos distintos)', () => {
+    const result = buildConfig({
+      NODE_ENV: 'development',
+      LEGACY_TOURISM_ORGANIZATION_ID: 'org-legado',
+      PUBLIC_SITE_ORGANIZATION_IDS: 'org-publico',
+    });
+    expect(result.legacyTourismOrganizationId).toBe('org-legado');
+    expect(result.publicSiteOrganizationIds).toEqual(['org-publico']);
+  });
+});

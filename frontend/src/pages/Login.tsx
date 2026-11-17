@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { brandUrl } from '../lib/basePath';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import Button from '../components/Button';
 import { useAuth } from '../App';
@@ -10,12 +10,13 @@ export default function Login() {
   const { login, user } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  if (user) return <Navigate to="/dashboard" replace />;
+  if (user) return <Navigate to={user.legacyAccess ? '/dashboard' : '/empresa'} replace />;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,8 +24,8 @@ export default function Login() {
     setLoading(true);
 
     try {
-      await login(email, password);
-      navigate('/dashboard');
+      const loggedInUser = await login(email, password);
+      navigate(loggedInUser.legacyAccess ? '/dashboard' : '/empresa');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Não foi possível entrar. Confira o e-mail e a senha.');
     } finally {
@@ -44,6 +45,7 @@ export default function Login() {
 
         {/* Login form */}
         <div className="card p-6 sm:p-8">
+          {(location.state as { passwordChanged?: boolean } | null)?.passwordChanged && <p role="status" className="mb-6 text-sm text-green-800">Senha alterada. Entre novamente com sua nova senha.</p>}
           {error && (
             <div className="alert-error mb-6" role="alert">
               {error}
@@ -98,7 +100,7 @@ export default function Login() {
 
           <div className="mt-6 pt-6 border-t border-surface-200">
             <p className="text-xs text-surface-600 text-center">
-              Acesso restrito à equipe OVERTRIP
+              Acesso exclusivo para usuários autorizados
             </p>
           </div>
         </div>

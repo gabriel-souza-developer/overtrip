@@ -17,8 +17,8 @@ const auth = (token: string) => ({ Authorization: `Bearer ${token}` });
 beforeAll(async () => {
   if (process.env.NODE_ENV === 'production' || process.env.DATABASE_URL !== expectedDb) throw new Error('Exige banco de teste isolado.');
   dir = await mkdtemp(join(tmpdir(), 'overtrip-private-media-')); process.env.SOCIAL_MEDIA_DIR = dir;
-  const a = await prisma.user.create({ data: { email: emails[0], passwordHash: 'x', role: 'admin' } });
-  const e = await prisma.user.create({ data: { email: emails[1], passwordHash: 'x', role: 'editor' } });
+  const a = await prisma.user.create({ data: { legacyAccess: true, email: emails[0], passwordHash: 'x', role: 'admin' } });
+  const e = await prisma.user.create({ data: { legacyAccess: true, email: emails[1], passwordHash: 'x', role: 'editor' } });
   admin = generateToken(a); editor = generateToken(e);
   await new Promise<void>(resolve => { server = app.listen(0, resolve); });
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}/api`;

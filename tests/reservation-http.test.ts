@@ -16,8 +16,8 @@ const headers = (token: string) => ({ Authorization: `Bearer ${token}`, 'Content
 const post = (path: string, data: unknown, token = adminToken, method = 'POST') => fetch(`${base}${path}`, { method, headers: headers(token), body: JSON.stringify(data) });
 
 beforeAll(async () => {
-  const admin = await prisma.user.create({ data: { email: 'reservation-admin@example.test', passwordHash: 'test', role: 'admin' } });
-  const user = await prisma.user.create({ data: { email: 'reservation-user@example.test', passwordHash: 'test', role: 'user' } });
+  const admin = await prisma.user.create({ data: { legacyAccess: true, email: 'reservation-admin@example.test', passwordHash: 'test', role: 'admin' } });
+  const user = await prisma.user.create({ data: { legacyAccess: true, email: 'reservation-user@example.test', passwordHash: 'test', role: 'user' } });
   adminToken = generateToken(admin); userToken = generateToken(user);
   const trip = await prisma.trip.create({ data: { title: 'Viagem teste', category: 'Teste', description: 'Viagem teste', city: 'Cidade', region: 'PB', startDateISO: new Date('2030-01-01T12:00:00Z'), intensityClass: 'light', includes: '[]', media: '[]', storedIdentity: 'reservation-http-test' } });
   tripId = trip.id;

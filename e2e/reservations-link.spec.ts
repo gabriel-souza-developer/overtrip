@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test';
 
 test('vincula a reserva a um interessado da viagem escolhida', async ({ page }) => {
-  await page.addInitScript(() => { localStorage.setItem('auth_token', 'token'); localStorage.setItem('auth_user', JSON.stringify({ id: '1', email: 'admin@example.test', name: 'Admin', role: 'admin' })); });
-  await page.route('**/api/auth/me', route => route.fulfill({ json: { id: '1', email: 'admin@example.test', name: 'Admin', role: 'admin' } }));
+  await page.addInitScript(() => { localStorage.setItem('auth_token', 'token'); localStorage.setItem('auth_user', JSON.stringify({ id: '1', email: 'admin@example.test', name: 'Admin', role: 'admin', legacyAccess: true })); });
+  await page.route('**/api/auth/me', route => route.fulfill({ json: { id: '1', email: 'admin@example.test', name: 'Admin', role: 'admin', legacyAccess: true } }));
   await page.route('**/api/trips?*', route => route.fulfill({ json: { data: [{ id: 'trip1', title: 'Lucena' }, { id: 'trip2', title: 'Outra' }], pagination: { page: 1, totalPages: 1, total: 2, limit: 100 } } }));
   await page.route('**/api/leads?*', route => route.fulfill({ json: { data: [{ id: 'lead1', name: 'Ana', tripId: 'trip1' }, { id: 'lead2', name: 'Bia', tripId: 'trip2' }], pagination: { page: 1, totalPages: 1, total: 2 } } }));
   let submitted: Record<string, unknown> | undefined;

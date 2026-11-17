@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-const admin = { id: 'faq-admin', email: 'faq@example.test', name: 'Admin', role: 'admin' };
+const admin = { id: 'faq-admin', email: 'faq@example.test', name: 'Admin', role: 'admin', legacyAccess: true };
 const initial = { version: 0, updatedAt: null, entries: [
   { question: 'Posso embarcar sozinho(a)?', answer: 'Pode sim, venha com a gente.' },
   { question: 'Como confirmo minha vaga?', answer: 'Com uma reserva.' },

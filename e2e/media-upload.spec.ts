@@ -19,7 +19,7 @@ async function mockApi(page: Page, overrides: Record<string, Handler> = {}) {
     const url = new URL(route.request().url());
     const key = `${route.request().method()} ${url.pathname}`;
     if (overrides[key]) return overrides[key](route, url);
-    if (url.pathname === '/api/auth/me') return route.fulfill({ json: { id: 'u1', email: 'p@example.test', name: 'Playwright', role: 'editor' } });
+    if (url.pathname === '/api/auth/me') return route.fulfill({ json: { id: 'u1', email: 'p@example.test', name: 'Playwright', role: 'editor', legacyAccess: true } });
     if (url.pathname.startsWith('/api/public/media/')) return route.fulfill({ contentType: 'image/jpeg', body: photo });
     if (key === 'POST /api/media') {
       uploads.push({

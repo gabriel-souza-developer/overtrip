@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { type RequestHandler } from 'express';
 import cors from 'cors';
 import { config } from './config.js';
 import { errorHandler } from './middleware/errorHandler.js';
@@ -20,8 +20,12 @@ import mediaRoutes from './routes/mediaRoutes.js';
 import cspReportRoutes from './routes/cspReportRoutes.js';
 import socialPostRoutes from './routes/socialPostRoutes.js';
 import socialMediaRoutes from './routes/socialMediaRoutes.js';
+import organizationRoutes from './routes/organizationRoutes.js';
+import { authenticate, requireLegacyAccess } from './middleware/auth.js';
 
 const app = express();
+// A barreira também define no-store em respostas de autenticação e permissão.
+const legacyGate: RequestHandler[] = [(_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); }, authenticate, requireLegacyAccess];
 
 if (config.trustProxy) app.set('trust proxy', config.trustProxy);
 
@@ -35,10 +39,10 @@ app.use(cors({
 }));
 // Relatórios de CSP precisam do parser bruto e ficam antes do JSON geral.
 app.use('/api/csp-report', cspReportRoutes);
-app.use('/api/trips/:tripId/documents', documentRoutes);
+app.use('/api/trips/:tripId/documents', legacyGate, documentRoutes);
 // Envio de imagens: corpo bruto, montado antes do express.json.
-app.use('/api/media', mediaRoutes);
-app.use('/api/social-media', socialMediaRoutes);
+app.use('/api/media', legacyGate, mediaRoutes);
+app.use('/api/social-media', legacyGate, socialMediaRoutes);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
@@ -49,17 +53,18 @@ app.get('/health', (_req, res) => {
 
 // API routes
 app.use('/api/auth', authRoutes);
-app.use('/api/trips', tripRoutes);
-app.use('/api/leads', leadRoutes);
-app.use('/api/reservations', reservationRoutes);
-app.use('/api/social-posts', socialPostRoutes);
-app.use('/api/system', systemRoutes);
-app.use('/api/visits', visitRoutes);
-app.use('/api/gallery', galleryRoutes);
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/settings', settingsRoutes);
-app.use('/api/assistant-knowledge', assistantKnowledgeRoutes);
-app.use('/api/ai', aiRoutes);
+app.use('/api/trips', legacyGate, tripRoutes);
+app.use('/api/leads', legacyGate, leadRoutes);
+app.use('/api/reservations', legacyGate, reservationRoutes);
+app.use('/api/social-posts', legacyGate, socialPostRoutes);
+app.use('/api/system', legacyGate, systemRoutes);
+app.use('/api/visits', legacyGate, visitRoutes);
+app.use('/api/gallery', legacyGate, galleryRoutes);
+app.use('/api/dashboard', legacyGate, dashboardRoutes);
+app.use('/api/settings', legacyGate, settingsRoutes);
+app.use('/api/assistant-knowledge', legacyGate, assistantKnowledgeRoutes);
+app.use('/api/ai', legacyGate, aiRoutes);
+app.use('/api/organizations', organizationRoutes);
 
 // 404 handler
 app.use((_req, res) => {

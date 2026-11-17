@@ -17,8 +17,8 @@ const variants = [{ platform: 'INSTAGRAM', caption: 'Uma viagem especial' }, { p
 const request = (path: string, method: string, body: unknown, token = adminToken) => fetch(`${base}${path}`, { method, headers: headers(token), body: JSON.stringify(body) });
 beforeAll(async () => {
   if (process.env.NODE_ENV === 'production' || process.env.DATABASE_URL !== testDatabase) throw new Error('Este teste exige o banco isolado prisma/test.db.');
-  const admin = await prisma.user.create({ data: { email: emails[0], passwordHash: 'x', role: 'admin' } });
-  const user = await prisma.user.create({ data: { email: emails[1], passwordHash: 'x', role: 'user' } });
+  const admin = await prisma.user.create({ data: { legacyAccess: true, email: emails[0], passwordHash: 'x', role: 'admin' } });
+  const user = await prisma.user.create({ data: { legacyAccess: true, email: emails[1], passwordHash: 'x', role: 'user' } });
   adminToken = generateToken(admin); userToken = generateToken(user);
   await new Promise<void>(resolve => { server = app.listen(0, resolve); });
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}/api/social-posts`;
