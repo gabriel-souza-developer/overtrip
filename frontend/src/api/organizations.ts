@@ -21,10 +21,11 @@ export interface OrgLead {
   responsible: string | null; notes: string | null; nextFollowUpAt: string | null; createdAt: string; updatedAt: string;
   tripId: string | null;
 }
-// Só nome/contato/etapa/notas — nunca organizationId, tripId ou qualquer
+// Só dados do interessado — nunca organizationId, tripId ou qualquer
 // relação: o servidor deriva/gera o resto.
 export interface OrgLeadEssentials {
   name: string; phone?: string | null; email?: string | null; stage?: OrgLeadStage; notes?: string | null;
+  responsible?: string | null; nextFollowUpAt?: string | null;
 }
 
 export type OrgReservationStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED';
@@ -47,12 +48,16 @@ export interface OrgReservationEssentials {
 export interface OrgInstallmentEssentials { amountCents: number; dueDate?: string | null }
 
 export interface ListResult<T> { data: T[]; pagination: { page: number; limit: number; total: number; totalPages: number } }
+export interface OrganizationDashboardSummary { trips: { total: number; upcoming: number; open: number; drafts: number }; leads?: number; reservations?: number }
 
 const orgPath = (organizationId: string, suffix = '') => `/organizations/${encodeURIComponent(organizationId)}${suffix}`;
-const pageQuery = (params?: { page?: number; limit?: number }) => {
+const pageQuery = (params?: { page?: number; limit?: number; search?: string; status?: string; period?: string }) => {
   const query = new URLSearchParams();
   if (params?.page) query.set('page', String(params.page));
   if (params?.limit) query.set('limit', String(params.limit));
+  if (params?.search) query.set('search', params.search);
+  if (params?.status) query.set('status', params.status);
+  if (params?.period) query.set('period', params.period);
   return query.toString();
 };
 
@@ -60,8 +65,9 @@ export const organizationApi = {
   listMine: () => request<{ organizations: OrganizationSummary[] }>('/organizations'),
 
   get: (organizationId: string) => request<OrganizationContext>(orgPath(organizationId)),
+  dashboard: (organizationId: string) => request<OrganizationDashboardSummary>(orgPath(organizationId, '/tourism/dashboard')),
 
-  trips: (organizationId: string, params?: { page?: number; limit?: number }) =>
+  trips: (organizationId: string, params?: { page?: number; limit?: number; search?: string; status?: string; period?: 'upcoming' | 'past' }) =>
     request<ListResult<OrgTrip>>(`${orgPath(organizationId, '/tourism/trips')}?${pageQuery(params)}`),
   trip: (organizationId: string, tripId: string) =>
     request<OrgTrip>(orgPath(organizationId, `/tourism/trips/${encodeURIComponent(tripId)}`)),
@@ -70,8 +76,12 @@ export const organizationApi = {
   updateTrip: (organizationId: string, tripId: string, data: Partial<OrgTripEssentials> & { expectedUpdatedAt: string }) =>
     request<OrgTrip>(orgPath(organizationId, `/tourism/trips/${encodeURIComponent(tripId)}`), { method: 'PUT', body: JSON.stringify(data) }),
 
-  leads: (organizationId: string, params?: { page?: number; limit?: number }) =>
-    request<ListResult<OrgLead>>(`${orgPath(organizationId, '/tourism/leads')}?${pageQuery(params)}`),
+  leads: (organizationId: string, params?: { page?: number; limit?: number; stage?: OrgLeadStage; followUp?: 'due' }) => {
+    const query = new URLSearchParams(pageQuery(params));
+    if (params?.stage) query.set('stage', params.stage);
+    if (params?.followUp) query.set('followUp', params.followUp);
+    return request<ListResult<OrgLead>>(`${orgPath(organizationId, '/tourism/leads')}?${query}`);
+  },
   lead: (organizationId: string, leadId: string) =>
     request<OrgLead>(orgPath(organizationId, `/tourism/leads/${encodeURIComponent(leadId)}`)),
   createLead: (organizationId: string, data: OrgLeadEssentials) =>

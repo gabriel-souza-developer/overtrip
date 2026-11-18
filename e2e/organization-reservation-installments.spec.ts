@@ -45,6 +45,7 @@ function mockOrganizationApi(page: import('@playwright/test').Page, { onInstallm
       reservation = result as typeof reservation;
       return route.fulfill({ json: reservation });
     }
+    if (url.pathname === '/api/organizations/a/tourism/dashboard') return route.fulfill({ json: { trips: { total: 0, upcoming: 0, open: 0, drafts: 0 }, leads: 0, reservations: 0 } });
     return route.fulfill({ json: { data: [], pagination: { page: 1, limit: 20, total: 0, totalPages: 0 } } });
   });
 }
@@ -54,8 +55,8 @@ async function login(page: import('@playwright/test').Page) {
   await page.getByLabel('E-mail').fill(user.email);
   await page.getByLabel('Senha', { exact: true }).fill('senha-segura');
   await page.getByRole('button', { name: 'Entrar' }).click();
-  await expect(page).toHaveURL(/\/empresa\/a\/trips$/);
-  await page.getByRole('link', { name: 'Reservas' }).click();
+  await expect(page).toHaveURL(/\/empresa\/a\/dashboard$/);
+  await page.getByRole('link', { name: 'Reservas', exact: true }).click();
   await expect(page).toHaveURL(/\/empresa\/a\/reservations$/);
 }
 

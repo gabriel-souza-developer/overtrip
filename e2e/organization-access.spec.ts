@@ -13,18 +13,19 @@ test('login de agência abre apenas a empresa vinculada e oculta dados após err
       if (url.searchParams.get('page') === '2') return route.fulfill({ status: 403, json: { error: 'Acesso revogado' } });
       return route.fulfill({ json: { data: [{ id: 'lead', name: 'Cliente privado', phone: null, email: null, stage: 'NEW', responsible: null, nextFollowUpAt: null }], pagination: { page: 1, limit: 20, total: 21, totalPages: 2 } } });
     }
+    if (url.pathname === '/api/organizations/a/tourism/dashboard') return route.fulfill({ json: { trips: { total: 0, upcoming: 0, open: 0, drafts: 0 }, leads: 0, reservations: 0 } });
     return route.fulfill({ json: { data: [], pagination: { page: 1, limit: 20, total: 0, totalPages: 0 } } });
   });
   await page.goto('/login');
   await page.getByLabel('E-mail').fill(user.email);
   await page.getByLabel('Senha', { exact: true }).fill('senha-segura');
   await page.getByRole('button', { name: 'Entrar' }).click();
-  await expect(page).toHaveURL(/\/empresa\/a\/trips$/);
-  await page.getByRole('link', { name: 'Interessados' }).click();
+  await expect(page).toHaveURL(/\/empresa\/a\/dashboard$/);
+  await page.getByRole('link', { name: 'Interessados', exact: true }).click();
   await expect(page.getByText('Cliente privado')).toBeVisible();
   await page.getByRole('button', { name: 'Próxima página' }).click();
   await expect(page.getByText('Cliente privado')).toHaveCount(0);
   await expect(page.getByText('Acesso revogado')).toBeVisible();
   await page.goto('/dashboard');
-  await expect(page).toHaveURL(/\/empresa\/a\/trips$/);
+  await expect(page).toHaveURL(/\/empresa\/a\/dashboard$/);
 });

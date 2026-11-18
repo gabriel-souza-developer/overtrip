@@ -43,6 +43,7 @@ function mockOrganizationApi(page: import('@playwright/test').Page, { role, rese
       if (result && typeof result === 'object' && '__error' in result) return route.fulfill((result as { __error: { status: number; json: unknown } }).__error);
       return route.fulfill({ json: result });
     }
+    if (url.pathname === '/api/organizations/a/tourism/dashboard') return route.fulfill({ json: { trips: { total: 0, upcoming: 0, open: 0, drafts: 0 }, leads: 0, reservations: 0 } });
     return route.fulfill({ json: { data: [], pagination: { page: 1, limit: 20, total: 0, totalPages: 0 } } });
   });
 }
@@ -52,8 +53,8 @@ async function login(page: import('@playwright/test').Page) {
   await page.getByLabel('E-mail').fill(user.email);
   await page.getByLabel('Senha', { exact: true }).fill('senha-segura');
   await page.getByRole('button', { name: 'Entrar' }).click();
-  await expect(page).toHaveURL(/\/empresa\/a\/trips$/);
-  await page.getByRole('link', { name: 'Reservas' }).click();
+  await expect(page).toHaveURL(/\/empresa\/a\/dashboard$/);
+  await page.getByRole('link', { name: 'Reservas', exact: true }).click();
   await expect(page).toHaveURL(/\/empresa\/a\/reservations$/);
 }
 
@@ -184,9 +185,9 @@ test('MEMBER não tem acesso a reservas: o menu nem mostra o link, e a rota dire
   await page.getByLabel('E-mail').fill(user.email);
   await page.getByLabel('Senha', { exact: true }).fill('senha-segura');
   await page.getByRole('button', { name: 'Entrar' }).click();
-  await expect(page).toHaveURL(/\/empresa\/a\/trips$/);
+  await expect(page).toHaveURL(/\/empresa\/a\/dashboard$/);
   // MEMBER não vê o item "Reservas" no menu da empresa.
-  await expect(page.getByRole('link', { name: 'Reservas' })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Reservas', exact: true })).toHaveCount(0);
 
   await page.goto('/empresa/a/reservations');
   await expect(page.getByText('Acesso restrito')).toBeVisible();

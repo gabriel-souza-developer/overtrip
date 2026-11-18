@@ -9,7 +9,7 @@ import { loadActiveOrganizationMembership } from '../src/middleware/organization
 // Primeira operação de escrita de interessados (CRM) no escopo de
 // organização. Cobre: isolamento entre duas empresas, MEMBER sem qualquer
 // acesso (nem leitura), acesso direto/spoofing (organizationId, tripId,
-// responsible fora do permitido), exigência de contato e a reconfirmação de
+// campos não permitidos), exigência de contato e a reconfirmação de
 // vínculo/papel que a escrita faz DENTRO da própria transação.
 
 let server: Server;
@@ -71,13 +71,40 @@ describe('POST /api/organizations/:organizationId/tourism/leads', () => {
     expect(row.tripId).toBeNull();
   });
 
-  it('nunca aceita organizationId, tripId, responsible ou qualquer campo fora de nome/contato/etapa/notas (spoofing é recusado, nunca ignorado em silêncio)', async () => {
+  it('nunca aceita organizationId ou tripId arbitrários (spoofing é recusado)', async () => {
     const spoofed = { ...essentialBody, organizationId: orgB, tripId: 'alguma-viagem', responsible: 'Alguém', nextFollowUpAt: new Date().toISOString() };
     const response = await fetch(`${base}/${orgA}/tourism/leads`, { method: 'POST', headers: auth(ownerToken), body: JSON.stringify(spoofed) });
     expect(response.status).toBe(400);
     const body = await response.json() as { code: string };
     expect(body.code).toBe('VALIDATION_ERROR');
     expect(await prisma.lead.count({ where: { organizationId: orgB } })).toBe(0);
+  });
+
+  it('permite acompanhamento e filtra etapa e contatos de hoje ou vencidos sem incluir outra empresa', async () => {
+    const day = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+    const today = new Date(`${day}T12:00:00.000Z`);
+    const yesterday = new Date(today.getTime() - 86400000);
+    const tomorrow = new Date(today.getTime() + 86400000);
+    const create = async (organization: string, name: string, stage: string, nextFollowUpAt: Date) => {
+      const response = await fetch(`${base}/${organization}/tourism/leads`, { method: 'POST', headers: auth(ownerToken), body: JSON.stringify({ ...essentialBody, name, stage, responsible: 'Ana', nextFollowUpAt: nextFollowUpAt.toISOString() }) });
+      expect(response.status).toBe(201);
+      return await response.json() as { id: string; responsible: string; nextFollowUpAt: string; updatedAt: string };
+    };
+    const due = await create(orgA, 'Hoje', 'CONTACTED', today);
+    await create(orgA, 'Ontem', 'NEW', yesterday);
+    await create(orgA, 'Amanhã', 'CONTACTED', tomorrow);
+    await create(orgB, 'Empresa B', 'CONTACTED', yesterday);
+    expect(due.responsible).toBe('Ana');
+    const response = await fetch(`${base}/${orgA}/tourism/leads?stage=CONTACTED&followUp=due`, { headers: auth(ownerToken) });
+    expect(response.status).toBe(200);
+    const list = await response.json() as { data: { name: string }[]; pagination: { total: number } };
+    expect(list.data.map(item => item.name)).toEqual(['Hoje']);
+    expect(list.pagination.total).toBe(1);
+    const update = await fetch(`${base}/${orgA}/tourism/leads/${due.id}`, { method: 'PUT', headers: auth(ownerToken), body: JSON.stringify({ responsible: null, nextFollowUpAt: null, expectedUpdatedAt: due.updatedAt }) });
+    expect(update.status).toBe(200);
+    const saved = await update.json() as { responsible: string | null; nextFollowUpAt: string | null };
+    expect(saved.responsible).toBeNull();
+    expect(saved.nextFollowUpAt).toBeNull();
   });
 
   it('exige nome e ao menos um contato (telefone ou e-mail)', async () => {

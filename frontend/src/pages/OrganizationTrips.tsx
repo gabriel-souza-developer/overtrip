@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, useSearchParams } from 'react-router-dom';
 import { Pencil, Plane, Plus } from 'lucide-react';
 import { organizationApi, type OrgTrip, type OrgTripEssentials } from '../api/organizations';
-import { tripStatusLabel } from '../lib/panelHelpers';
+import { TRIP_STATUS_LABELS, tripStatusLabel } from '../lib/panelHelpers';
 import { toLocalDateTime, fromLocalDateTime } from '../lib/organizationDateTime';
 import type { OrganizationOutletContext } from './OrganizationLayout';
 import PageHeader from '../components/PageHeader';
@@ -12,6 +12,7 @@ import Pagination from '../components/Pagination';
 import Modal from '../components/Modal';
 import Button from '../components/Button';
 import Field from '../components/Field';
+import FilterBar from '../components/FilterBar';
 
 const CAN_MANAGE_TRIPS = (role: string) => role === 'OWNER' || role === 'ADMIN';
 
@@ -20,11 +21,15 @@ const emptyForm: TripForm = { title: '', category: '', description: '', city: ''
 
 export default function OrganizationTrips() {
   const { organization, role } = useOutletContext<OrganizationOutletContext>();
+  const [urlParams] = useSearchParams();
   const canManage = CAN_MANAGE_TRIPS(role);
   const [trips, setTrips] = useState<OrgTrip[]>([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [search, setSearch] = useState('');
+  const [status, setStatus] = useState(() => urlParams.get('status') ?? '');
+  const [period, setPeriod] = useState<'upcoming' | 'past' | 'all'>(() => urlParams.get('period') === 'all' ? 'all' : urlParams.get('period') === 'past' ? 'past' : 'upcoming');
 
   const [editing, setEditing] = useState<OrgTrip | null>(null);
   const [creating, setCreating] = useState(false);
@@ -35,13 +40,13 @@ export default function OrganizationTrips() {
   const load = useCallback(async (page = 1) => {
     setLoading(true); setError('');
     try {
-      const data = await organizationApi.trips(organization.id, { page, limit: 20 });
+      const data = await organizationApi.trips(organization.id, { page, limit: 20, search, status, period: period === 'all' ? undefined : period });
       setTrips(data.data); setPagination(data.pagination);
     } catch (err) {
       setTrips([]);
       setError(err instanceof Error ? err.message : 'Não foi possível carregar as viagens.');
     } finally { setLoading(false); }
-  }, [organization.id]);
+  }, [organization.id, search, status, period]);
   useEffect(() => { void load(1); }, [load]);
 
   const openCreate = () => { setEditing(null); setCreating(true); setForm(emptyForm); setFormError(''); };
@@ -96,6 +101,17 @@ export default function OrganizationTrips() {
         description={canManage ? 'Crie e edite rascunhos de viagens desta empresa.' : 'Consulta somente leitura das viagens desta empresa.'}
         actions={canManage ? <Button variant="primary" icon={<Plus className="w-4 h-4" aria-hidden="true" />} onClick={openCreate}>Nova viagem</Button> : undefined}
       />
+      <div className="flex flex-wrap gap-2" role="group" aria-label="Período das viagens">
+        {([{ value: 'upcoming', label: 'Próximas' }, { value: 'past', label: 'Anteriores' }, { value: 'all', label: 'Todas' }] as const).map(option => (
+          <button key={option.value} type="button" aria-pressed={period === option.value} onClick={() => setPeriod(option.value)} className={`min-h-[40px] rounded-full border px-4 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary-500 ${period === option.value ? 'border-primary-600 bg-primary-600 text-white' : 'border-surface-300 bg-white text-surface-800 hover:border-primary-300'}`}>{option.label}</button>
+        ))}
+      </div>
+      <FilterBar searchLabel="Buscar viagens" searchPlaceholder="Buscar por nome, cidade ou categoria" searchValue={search} onSearch={setSearch} onClear={() => { setSearch(''); setStatus(''); setPeriod('upcoming'); }} hasFilters={!!search || !!status || period !== 'upcoming'}>
+        <select className="select w-full lg:w-52" value={status} onChange={event => setStatus(event.target.value)} aria-label="Filtrar por situação">
+          <option value="">Todas as situações</option>
+          {Object.entries(TRIP_STATUS_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+        </select>
+      </FilterBar>
       {error && <ErrorState message={error} onRetry={() => void load(pagination.page)} />}
       {error ? null : loading ? (
         <p role="status" className="text-sm text-surface-600">Carregando viagens...</p>

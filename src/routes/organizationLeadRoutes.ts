@@ -26,14 +26,32 @@ type LeadProjection = {
 function safeLead({ trip, ...lead }: LeadProjection, organizationId: string) {
   return { ...lead, tripId: trip?.organizationId === organizationId ? trip.id : null };
 }
+const STAGE = z.enum(['NEW', 'CONTACTED', 'NEGOTIATING', 'WON', 'LOST']);
 const filters = z.object({
   page: z.coerce.number().int().min(1).max(100000).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
+  stage: STAGE.optional(),
+  followUp: z.enum(['due']).optional(),
 }).strict();
 
-const STAGE = z.enum(['NEW', 'CONTACTED', 'NEGOTIATING', 'WON', 'LOST']);
+// Mesmo limite do CRM legado: até o fim do dia corrente em São Paulo.
+function startOfTomorrowInBusinessZone(now = new Date()): Date {
+  const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' });
+  const parts = Object.fromEntries(formatter.formatToParts(now).map(part => [part.type, part.value]));
+  const target = Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day) + 1);
+  const detailed = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' });
+  let instant = target;
+  for (let i = 0; i < 3; i++) {
+    const p = Object.fromEntries(detailed.formatToParts(new Date(instant)).map(part => [part.type, part.value]));
+    const rendered = Date.UTC(Number(p.year), Number(p.month) - 1, Number(p.day), Number(p.hour), Number(p.minute), Number(p.second));
+    const adjusted = target - (rendered - instant);
+    if (adjusted === instant) break;
+    instant = adjusted;
+  }
+  return new Date(instant);
+}
 const nullableText = (max: number) => z.string().trim().max(max).nullable().optional();
-// Só nome/contato/etapa/notas — nunca organizationId, tripId ou qualquer
+// Dados de contato e acompanhamento — nunca organizationId, tripId ou qualquer
 // campo fora dessa lista, que o .strict() rejeita. Vincular a uma viagem
 // exigiria reconferir, na mesma transação, tanto o escopo da viagem quanto a
 // coerência com reservas já vinculadas ao interessado; para manter o MVP sem
@@ -45,6 +63,8 @@ const essentialLeadFields = {
   email: z.union([z.email('E-mail inválido').max(254), z.literal(''), z.null()]).optional(),
   stage: STAGE.optional(),
   notes: nullableText(3000),
+  responsible: nullableText(120),
+  nextFollowUpAt: z.union([z.iso.datetime({ offset: true }), z.null()]).optional(),
 };
 const hasContact = (data: { phone?: string | null; email?: string | null }) => !!(data.phone && data.phone.trim()) || !!(data.email);
 const createSchema = z.object(essentialLeadFields).strict()
@@ -56,11 +76,12 @@ const clean = <T extends Record<string, unknown>>(data: T) => Object.fromEntries
 );
 
 router.get('/', asyncHandler(async (req: OrganizationRequest, res: Response) => {
-  const { page, limit } = filters.parse(req.query);
+  const { page, limit, stage, followUp } = filters.parse(req.query);
   const organizationId = req.organizationContext!.organization.id;
-  const where = { organizationId };
+  const where = { organizationId, ...(stage ? { stage } : {}), ...(followUp === 'due' ? { nextFollowUpAt: { not: null, lt: startOfTomorrowInBusinessZone() } } : {}) };
+  const orderBy = followUp === 'due' ? [{ nextFollowUpAt: 'asc' as const }, { updatedAt: 'desc' as const }, { id: 'asc' as const }] : [{ updatedAt: 'desc' as const }, { id: 'asc' as const }];
   const [rows, total] = await prisma.$transaction([
-    prisma.lead.findMany({ where, select, orderBy: [{ updatedAt: 'desc' }, { id: 'asc' }], skip: (page - 1) * limit, take: limit }),
+    prisma.lead.findMany({ where, select, orderBy, skip: (page - 1) * limit, take: limit }),
     prisma.lead.count({ where }),
   ]);
   res.json({ data: rows.map(row => safeLead(row, organizationId)), pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } });

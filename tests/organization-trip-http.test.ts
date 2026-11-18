@@ -23,8 +23,8 @@ beforeAll(async () => {
   await prisma.membership.create({ data: { organizationId: orgA, userId, role: 'OWNER' } });
   await prisma.membership.create({ data: { organizationId: orgB, userId, role: 'MEMBER' } });
   const common = { category: 'Teste', description: 'Privado', city: 'Cidade', region: 'PB', startDateISO: new Date('2030-01-01T12:00:00Z'), intensityClass: 'light', includes: '[]', media: '[{"src":"private-fixture"}]' };
-  tripA = (await prisma.trip.create({ data: { ...common, title: 'Viagem A', storedIdentity: 'scoped-trip-a', organizationId: orgA } })).id;
-  tripB = (await prisma.trip.create({ data: { ...common, title: 'Viagem B', storedIdentity: 'scoped-trip-b', organizationId: orgB } })).id;
+  tripA = (await prisma.trip.create({ data: { ...common, title: 'Viagem A', titleSearch: 'viagem a', storedIdentity: 'scoped-trip-a', organizationId: orgA } })).id;
+  tripB = (await prisma.trip.create({ data: { ...common, title: 'Viagem B', titleSearch: 'viagem b', storedIdentity: 'scoped-trip-b', organizationId: orgB } })).id;
   await prisma.trip.create({ data: { ...common, title: 'Legado sem empresa', storedIdentity: 'scoped-trip-legacy' } });
   await new Promise<void>(resolve => { server = app.listen(0, '127.0.0.1', resolve); });
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}/api/organizations`;
@@ -51,6 +51,13 @@ describe('consulta isolada de viagens por empresa', () => {
     const other = await (await fetch(`${base}/${orgB}/tourism/trips`, { headers: authorization() })).json() as { data: { id: string }[] };
     expect(other.data.map(item => item.id)).toEqual([tripB]);
     expect((await fetch(`${base}/${orgA}/tourism/trips?limit=101`, { headers: authorization() })).status).toBe(400);
+  });
+  it('filtra busca, situação e período sem incluir viagem de outra empresa', async () => {
+    const get = async (query: string) => (await (await fetch(`${base}/${orgA}/tourism/trips?${query}`, { headers: authorization() })).json()) as { data: { id: string }[]; pagination: { total: number } };
+    expect((await get('search=VIAGEM%20A&status=DRAFT&period=upcoming')).data.map(item => item.id)).toEqual([tripA]);
+    expect((await get('search=viagem%20b')).pagination.total).toBe(0);
+    expect((await get('status=OPEN')).pagination.total).toBe(0);
+    expect((await get('period=past')).pagination.total).toBe(0);
   });
   it('não revela IDs de outra empresa e revalida revogação imediatamente', async () => {
     expect((await fetch(`${base}/${orgA}/tourism/trips/${tripA}`, { headers: authorization() })).status).toBe(200);

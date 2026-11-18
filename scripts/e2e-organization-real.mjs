@@ -22,6 +22,7 @@ let api;
 let vite;
 let browser;
 let prisma;
+let debugPage;
 
 async function unusedPort() {
   return new Promise((resolve, reject) => {
@@ -49,6 +50,8 @@ async function login(page, frontendUrl, email, agency) {
   await page.getByLabel('Senha', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Entrar' }).click();
   await page.getByText(agency, { exact: true }).first().waitFor();
+  await page.getByRole('heading', { name: 'Visão geral', exact: true }).waitFor();
+  await page.getByRole('link', { name: 'Viagens', exact: true }).click();
   await page.getByRole('heading', { name: 'Viagens', exact: true }).waitFor();
 }
 
@@ -84,6 +87,7 @@ try {
   browser = await chromium.launch({ headless: true });
   const contextA = await browser.newContext();
   const a = await contextA.newPage();
+  debugPage = a;
   await login(a, frontendUrl, 'a@example.test', 'Agência A');
   await a.getByRole('button', { name: 'Nova viagem' }).first().click();
   await a.getByLabel('Título').fill('Viagem exclusiva A');
@@ -110,9 +114,9 @@ try {
   const createdLead = await prisma.lead.findFirstOrThrow({ where: { organizationId: 'agency-a', name: 'Interessado exclusivo A' } });
   if (createdLead.stage !== 'NEW' || createdLead.organizationId !== 'agency-a') throw new Error('Interessado criado com dados inesperados');
   await a.getByRole('button', { name: 'Editar Interessado exclusivo A' }).click();
-  await a.getByLabel('Etapa').selectOption('CONTACTED');
+  await a.getByRole('dialog', { name: 'Editar interessado' }).getByLabel('Etapa').selectOption('CONTACTED');
   await a.getByRole('button', { name: 'Salvar' }).click();
-  await a.getByText('Contato realizado').waitFor();
+  await a.locator('article').filter({ has: a.getByRole('heading', { name: 'Interessado exclusivo A', exact: true }) }).getByText('Contato realizado').waitFor();
 
   await a.getByRole('link', { name: 'Reservas' }).click();
   await a.getByRole('button', { name: 'Nova reserva' }).first().click();
@@ -211,6 +215,7 @@ try {
   await a.getByLabel('Senha', { exact: true }).fill(newPassword);
   await a.getByRole('button', { name: 'Entrar' }).click();
   await a.getByText('Agência A', { exact: true }).first().waitFor();
+  await a.getByRole('link', { name: 'Viagens', exact: true }).click();
   await a.getByRole('heading', { name: 'Viagem exclusiva A revisada' }).waitFor();
   const stillDenied = await b.request.get(`${frontendUrl}/api/organizations/agency-a/tourism/trips/${created.id}`);
   if (stillDenied.status() !== 403 && stillDenied.status() !== 404) throw new Error('Acesso cruzado permitido após troca de senha');
@@ -219,6 +224,7 @@ try {
   console.log('PASS: duas agências, viagem, interessado, reserva, parcelas, troca de senha e isolamento de API/painel/site público.');
 } catch (error) {
   console.error('FAIL:', error instanceof Error ? error.message : 'falha desconhecida');
+  if (debugPage && !debugPage.isClosed()) console.error('Tela de teste:', (await debugPage.locator('body').innerText().catch(() => '')).slice(0, 1500));
   process.exitCode = 1;
 } finally {
   await browser?.close();

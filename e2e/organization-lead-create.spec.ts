@@ -35,6 +35,7 @@ function mockOrganizationApi(page: import('@playwright/test').Page, { role, lead
       if (result && typeof result === 'object' && '__error' in result) return route.fulfill((result as { __error: { status: number; json: unknown } }).__error);
       return route.fulfill({ json: result });
     }
+    if (url.pathname === '/api/organizations/a/tourism/dashboard') return route.fulfill({ json: { trips: { total: 0, upcoming: 0, open: 0, drafts: 0 }, leads: 0, reservations: 0 } });
     return route.fulfill({ json: { data: [], pagination: { page: 1, limit: 20, total: 0, totalPages: 0 } } });
   });
 }
@@ -44,8 +45,8 @@ async function login(page: import('@playwright/test').Page) {
   await page.getByLabel('E-mail').fill(user.email);
   await page.getByLabel('Senha', { exact: true }).fill('senha-segura');
   await page.getByRole('button', { name: 'Entrar' }).click();
-  await expect(page).toHaveURL(/\/empresa\/a\/trips$/);
-  await page.getByRole('link', { name: 'Interessados' }).click();
+  await expect(page).toHaveURL(/\/empresa\/a\/dashboard$/);
+  await page.getByRole('link', { name: 'Interessados', exact: true }).click();
   await expect(page).toHaveURL(/\/empresa\/a\/leads$/);
 }
 
@@ -68,6 +69,8 @@ test('OWNER cadastra um interessado pelo formulário', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Novo interessado' })).toBeVisible();
   await page.getByLabel('Nome').fill('Maria Interessada');
   await page.getByLabel('Telefone').fill('83999990000');
+  await page.getByLabel('Responsável').fill('Ana');
+  await page.getByRole('dialog', { name: 'Novo interessado' }).getByLabel('Próximo contato').fill('2030-06-01');
   await page.getByRole('button', { name: 'Salvar' }).click();
 
   await expect(page.getByRole('heading', { name: 'Novo interessado' })).toHaveCount(0);
@@ -77,6 +80,20 @@ test('OWNER cadastra um interessado pelo formulário', async ({ page }) => {
   expect(created).not.toHaveProperty('organizationId');
   expect(created).not.toHaveProperty('tripId');
   expect((created as Record<string, unknown>).name).toBe('Maria Interessada');
+  expect((created as Record<string, unknown>).responsible).toBe('Ana');
+  expect((created as Record<string, unknown>).nextFollowUpAt).toBe('2030-06-01T12:00:00.000Z');
+});
+
+test('filtros solicitam somente a etapa e contatos vencidos ou de hoje', async ({ page }) => {
+  await mockOrganizationApi(page, { role: 'OWNER', leads: [] });
+  await login(page);
+  await page.getByLabel('Etapa', { exact: true }).selectOption('CONTACTED');
+  const filtered = page.waitForRequest(request => {
+    const url = new URL(request.url());
+    return url.pathname.endsWith('/tourism/leads') && url.searchParams.get('stage') === 'CONTACTED' && url.searchParams.get('followUp') === 'due';
+  });
+  await page.getByLabel('Próximo contato', { exact: true }).selectOption('due');
+  await filtered;
 });
 
 test('OWNER vê as anotações e envia somente campos alterados com versão', async ({ page }) => {
@@ -91,7 +108,7 @@ test('OWNER vê as anotações e envia somente campos alterados com versão', as
   await page.getByRole('button', { name: /^Editar/ }).click();
   await expect(page.getByRole('heading', { name: 'Editar interessado' })).toBeVisible();
   await expect(page.getByLabel('Anotações')).toHaveValue('Preferência original');
-  await page.getByLabel('Etapa').selectOption('CONTACTED');
+  await page.getByRole('dialog', { name: 'Editar interessado' }).getByLabel('Etapa').selectOption('CONTACTED');
   await page.getByRole('button', { name: 'Salvar' }).click();
 
   await expect(page.getByRole('heading', { name: 'Editar interessado' })).toHaveCount(0);
@@ -107,10 +124,10 @@ test('conflito de versão mantém edição aberta e informa que é preciso recar
   await mockOrganizationApi(page, { role: 'OWNER', leads: [leadA], onUpdate: () => ({ __error: { status: 409, json: { error: 'Este interessado foi alterado por outra pessoa. Recarregue os dados antes de salvar.' } } }) });
   await login(page);
   await page.getByRole('button', { name: /^Editar/ }).click();
-  await page.getByLabel('Etapa').selectOption('WON');
+  await page.getByRole('dialog', { name: 'Editar interessado' }).getByLabel('Etapa').selectOption('WON');
   await page.getByRole('button', { name: 'Salvar' }).click();
   await expect(page.getByRole('alert')).toContainText('Recarregue');
-  await expect(page.getByLabel('Etapa')).toHaveValue('WON');
+  await expect(page.getByRole('dialog', { name: 'Editar interessado' }).getByLabel('Etapa')).toHaveValue('WON');
 });
 
 test('erro de validação do servidor aparece no formulário e não fecha o modal', async ({ page }) => {
@@ -134,9 +151,9 @@ test('MEMBER não tem acesso a interessados: o menu nem mostra o link, e a rota 
   await page.getByLabel('E-mail').fill(user.email);
   await page.getByLabel('Senha', { exact: true }).fill('senha-segura');
   await page.getByRole('button', { name: 'Entrar' }).click();
-  await expect(page).toHaveURL(/\/empresa\/a\/trips$/);
+  await expect(page).toHaveURL(/\/empresa\/a\/dashboard$/);
   // MEMBER não vê o item "Interessados" no menu da empresa.
-  await expect(page.getByRole('link', { name: 'Interessados' })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'Interessados', exact: true })).toHaveCount(0);
 
   await page.goto('/empresa/a/leads');
   await expect(page.getByText('Acesso restrito')).toBeVisible();

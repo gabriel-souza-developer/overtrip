@@ -6,6 +6,9 @@ import { asyncHandler } from '../middleware/errorHandler.js';
 import organizationTripRoutes from './organizationTripRoutes.js';
 import organizationLeadRoutes from './organizationLeadRoutes.js';
 import organizationReservationRoutes from './organizationReservationRoutes.js';
+import organizationDashboardRoutes from './organizationDashboardRoutes.js';
+import organizationVisitRoutes from './organizationVisitRoutes.js';
+import organizationGalleryRoutes from './organizationGalleryRoutes.js';
 
 // Fundação isolada: nenhuma rota legada (trips, leads, reservas, site público)
 // é montada ou alterada aqui. Primeira etapa de multiempresa — não implica
@@ -16,6 +19,9 @@ router.use((_req, res, next) => { res.set('Cache-Control', 'private, no-store');
 router.use(authenticate);
 
 router.get('/', asyncHandler(organizationController.listMine));
+router.use('/:organizationId/tourism/dashboard', organizationDashboardRoutes);
+router.use('/:organizationId/tourism/visits', organizationVisitRoutes);
+router.use('/:organizationId/tourism/gallery', organizationGalleryRoutes);
 router.use('/:organizationId/tourism/trips', organizationTripRoutes);
 router.use('/:organizationId/tourism/leads', organizationLeadRoutes);
 router.use('/:organizationId/tourism/reservations', organizationReservationRoutes);

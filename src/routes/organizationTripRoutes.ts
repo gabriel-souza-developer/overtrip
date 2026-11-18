@@ -1,10 +1,12 @@
 import { randomBytes } from 'node:crypto';
 import { Router, type Response } from 'express';
 import { z } from 'zod';
+import type { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma.js';
 import { asyncHandler, AppError } from '../middleware/errorHandler.js';
 import { assertOrganizationWriteAccess, requireOrganizationMembership, type OrganizationRequest } from '../middleware/organizationContext.js';
-import { normalizeForSearch } from '../utils/searchUtils.js';
+import { applySearchFilter, normalizeForSearch } from '../utils/searchUtils.js';
+import { tripPeriodWhere } from '../utils/tripPeriod.js';
 
 // The parent router authenticates first. No legacy routes, media or related
 // global records are exposed here during the ownership migration.
@@ -15,6 +17,9 @@ const select = { id: true, title: true, category: true, description: true, city:
 const filters = z.object({
   page: z.coerce.number().int().min(1).max(100000).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
+  search: z.string().trim().max(200).optional(),
+  status: z.enum(['DRAFT', 'REVIEW', 'OPEN', 'COMPLETED', 'CANCELLED', 'SOLD_OUT', 'CLOSED']).optional(),
+  period: z.enum(['upcoming', 'past']).optional(),
 }).strict();
 
 // Só os dados essenciais de um rascunho: nunca organizationId, status,
@@ -36,11 +41,16 @@ const updateSchema = z.object({ ...z.object(essentialTripFields).partial().shape
   .refine(({ expectedUpdatedAt: _expectedUpdatedAt, ...changes }) => Object.keys(changes).length > 0, { message: 'Informe ao menos um campo para atualizar' });
 
 router.get('/', asyncHandler(async (req: OrganizationRequest, res: Response) => {
-  const { page, limit } = filters.parse(req.query);
+  const { page, limit, search, status, period } = filters.parse(req.query);
   const organizationId = req.organizationContext!.organization.id;
-  const where = { organizationId };
+  const clauses: Prisma.TripWhereInput[] = [{ organizationId }];
+  if (status) clauses.push({ status });
+  if (period) clauses.push(tripPeriodWhere(period));
+  const matches = applySearchFilter(search, ['titleSearch', 'citySearch', 'categorySearch']);
+  if (matches) clauses.push({ OR: matches });
+  const where: Prisma.TripWhereInput = { AND: clauses };
   const [trips, total] = await prisma.$transaction([
-    prisma.trip.findMany({ where, select, orderBy: [{ startDateISO: 'desc' }, { id: 'asc' }], skip: (page - 1) * limit, take: limit }),
+    prisma.trip.findMany({ where, select, orderBy: [{ startDateISO: period === 'upcoming' ? 'asc' : 'desc' }, { id: 'asc' }], skip: (page - 1) * limit, take: limit }),
     prisma.trip.count({ where }),
   ]);
   res.json({ data: trips, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } });

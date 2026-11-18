@@ -19,6 +19,9 @@ const SocialPosts = React.lazy(() => import('./pages/SocialPosts'));
 const OrganizationSelect = React.lazy(() => import('./pages/OrganizationSelect'));
 const OrganizationLayout = React.lazy(() => import('./pages/OrganizationLayout'));
 const OrganizationTrips = React.lazy(() => import('./pages/OrganizationTrips'));
+const OrganizationVisits = React.lazy(() => import('./pages/OrganizationVisits'));
+const OrganizationGallery = React.lazy(() => import('./pages/OrganizationGallery'));
+const OrganizationDashboard = React.lazy(() => import('./pages/OrganizationDashboard'));
 const OrganizationLeads = React.lazy(() => import('./pages/OrganizationLeads'));
 const OrganizationReservations = React.lazy(() => import('./pages/OrganizationReservations'));
 
@@ -137,8 +140,11 @@ const AppRoutes = () => (
     <Route element={<ProtectedRoute />}>
       <Route path="/empresa" element={<React.Suspense fallback={<LoadingScreen />}><OrganizationSelect /></React.Suspense>} />
       <Route path="/empresa/:organizationId" element={<React.Suspense fallback={<LoadingScreen />}><OrganizationLayout /></React.Suspense>}>
-        <Route index element={<Navigate to="trips" replace />} />
+        <Route index element={<Navigate to="dashboard" replace />} />
+        <Route path="dashboard" element={<OrganizationDashboard />} />
         <Route path="trips" element={<OrganizationTrips />} />
+        <Route path="visits" element={<OrganizationVisits />} />
+        <Route path="gallery" element={<OrganizationGallery />} />
         <Route path="leads" element={<OrganizationLeads />} />
         <Route path="reservations" element={<OrganizationReservations />} />
       </Route>
