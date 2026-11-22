@@ -24,7 +24,7 @@ import PublicationReadinessPanel from '../components/PublicationReadinessPanel';
 import TripCardPreview from '../components/TripCardPreview';
 import TripProposalPreview from '../components/TripProposalPreview';
 import { applySuggestions, type DraftKey, type TripDraft } from '../lib/aiDraft';
-import { ArrayInput, DeparturesInput, MediaInput } from '../components/TripFormInputs';
+import { ArrayInput, DeparturesInput, LocationPicker, MediaInput } from '../components/TripFormInputs';
 
 const intensityOptions = ['leve', 'moderado', 'intenso', 'extremo'] as const;
 
@@ -60,7 +60,7 @@ const emptyForm = (): FormState => ({
   departureTime: '', departureTolerance: '', returnTime: '', scheduleInfo: '', scheduleTBD: false,
   priceValue: null, priceDisplay: '', priceUnit: 'por pessoa', free: false,
   intensityClass: 'moderado', spotsLeft: null, trailDistance: '', supportPoint: '', supportPointInfo: '',
-  meetingCity: '', meetingPoint: '', meetingTBD: false, meetingDetails: '', meetingMapsQuery: '',
+  meetingCity: '', meetingPoint: '', meetingTBD: false, meetingDetails: '', meetingMapsQuery: '', meetingLat: null, meetingLng: null,
   includes: [], includesHighlight: '', includedServices: [], itinerary: [], routeNotes: [], importantInfo: [],
   media: [], buttonLabel: 'Quero viajar', buttonClass: 'button-dark', status: 'DRAFT',
   availabilitySchema: 'https://schema.org/InStock', departures: [],
@@ -95,6 +95,10 @@ export default function TripForm() {
 
   const applyAiDraft = (draft: TripDraft, chosen: DraftKey[], overwrite: DraftKey[]) => {
     const next = applySuggestions(formData as Record<string, unknown>, draft, chosen, overwrite, defaultsRef.current) as FormState;
+    if (['meetingCity', 'meetingPoint', 'meetingMapsQuery'].some(key => next[key] !== formData[key])) {
+      next.meetingLat = null;
+      next.meetingLng = null;
+    }
     if (next.priceValue !== formData.priceValue) {
       next.priceDisplay = syncPriceDisplay(formData.priceValue, next.priceValue, formData.priceDisplay || '');
       setPriceText(formatPriceInput(next.priceValue));
@@ -158,6 +162,8 @@ export default function TripForm() {
         meetingTBD: trip.meetingTBD,
         meetingDetails: trip.meetingDetails || '',
         meetingMapsQuery: trip.meetingMapsQuery || '',
+        meetingLat: trip.meetingLat,
+        meetingLng: trip.meetingLng,
         includes: mergeUnique(trip.includes, trip.includedServices || []),
         includesHighlight: trip.includesHighlight || '',
         includedServices: [],
@@ -175,6 +181,8 @@ export default function TripForm() {
           city: d.city,
           mapsUrl: d.mapsUrl || undefined,
           mapsQuery: d.mapsQuery || undefined,
+          lat: d.lat,
+          lng: d.lng,
           orderIndex: d.orderIndex,
         })) || [],
       };
@@ -211,12 +219,13 @@ export default function TripForm() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
+    const locationChanged = ['meetingCity', 'meetingPoint', 'meetingMapsQuery'].includes(name);
     if (type === 'checkbox') {
       setFormData(prev => ({ ...prev, [name]: (e.target as HTMLInputElement).checked }));
     } else if (type === 'number') {
       setFormData(prev => ({ ...prev, [name]: value ? parseFloat(value) : null }));
     } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
+      setFormData(prev => ({ ...prev, [name]: value, ...(locationChanged ? { meetingLat: null, meetingLng: null } : {}) }));
     }
     clearError(name);
   };
@@ -453,6 +462,11 @@ export default function TripForm() {
             <Field id="meetingMapsQuery" label="Localização do embarque no mapa (opcional)" hint="Endereço usado para gerar o link do mapa.">
               <input id="meetingMapsQuery" name="meetingMapsQuery" className="input" value={f.meetingMapsQuery} onChange={handleChange} placeholder="Rua, bairro, cidade/UF" />
             </Field>
+            <div className="form-group">
+              <span className="label">Coordenadas confirmadas do embarque (opcional)</span>
+              <p className="hint mb-2">Confirme a coordenada para o site mostrar um mapa junto do embarque. Ela será removida se você alterar cidade, local ou endereço.</p>
+              <LocationPicker key={JSON.stringify([f.meetingCity, f.meetingPoint, f.meetingMapsQuery])} coords={f.meetingLat !== null && f.meetingLng !== null ? { lat: f.meetingLat, lng: f.meetingLng } : null} onConfirm={(result) => setFormData(prev => ({ ...prev, meetingLat: result.lat, meetingLng: result.lng }))} onClear={() => setFormData(prev => ({ ...prev, meetingLat: null, meetingLng: null }))} />
+            </div>
             {errors.departure && <p className="field-error" role="alert">{errors.departure}</p>}
           </div>
 

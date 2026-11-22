@@ -83,6 +83,28 @@ test('lista de embarques informa que substitui o embarque único na prévia', as
   await expect(page.getByText('Enquanto estiver a confirmar, os pontos cadastrados não aparecerão no site.')).toBeVisible();
 });
 
+test('coordenadas confirmadas são removidas ao alterar o endereço do embarque', async ({ page }) => {
+  await page.route(/https:\/\/photon\.komoot\.io\/api\//, route => route.fulfill({ json: {
+    features: [{ geometry: { coordinates: [-35.8814, -7.2159] }, properties: { name: 'Praça da Bandeira', city: 'Campina Grande', state: 'Paraíba', countrycode: 'BR' } }],
+  } }));
+  await page.goto('/trips/new');
+  await page.getByLabel('Cidade de embarque').fill('Campina Grande');
+  await page.getByLabel('Local de embarque').fill('Praça da Bandeira');
+  await page.getByRole('textbox', { name: 'Pesquisar local no mapa' }).first().fill('Praça da Bandeira');
+  await page.getByRole('button', { name: 'Pesquisar' }).click();
+  await page.getByRole('button', { name: 'Usar esta localização' }).click();
+  await expect(page.getByText('Ver localização confirmada no mapa')).toBeVisible();
+
+  await page.getByLabel('Local de embarque').fill('Terminal Rodoviário');
+  await expect(page.getByText('Ver localização confirmada no mapa')).toHaveCount(0);
+
+  await page.getByRole('textbox', { name: 'Pesquisar local no mapa' }).first().fill('Terminal Rodoviário');
+  await page.getByRole('button', { name: 'Pesquisar' }).click();
+  await page.getByRole('button', { name: 'Usar esta localização' }).click();
+  await page.getByRole('button', { name: 'Remover coordenadas' }).click();
+  await expect(page.getByText('Ver localização confirmada no mapa')).toHaveCount(0);
+});
+
 test('não salva nem descarta texto digitado antes de adicionar à lista', async ({ page }) => {
   let writes = 0;
   await page.route('**/api/trips', route => { if (route.request().method() !== 'GET') writes++; return route.fulfill({ json: {} }); });

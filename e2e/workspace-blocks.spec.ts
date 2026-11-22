@@ -34,8 +34,10 @@ test('bloqueia noites, informa conflito e libera ao cancelar', async ({ page }) 
   });
 
   await page.goto('/espaco');
+  await page.getByRole('button', { name: 'Abrir operação' }).first().click();
   await expect(page.getByRole('heading', { name: 'Pousada A' })).toBeVisible();
   await page.getByLabel('A partir de', { exact: true }).fill('2030-06-10');
+  await page.getByText('Novo bloqueio', { exact: true }).click();
   await page.getByLabel('Unidade do bloqueio').selectOption('unit-a');
   await page.getByLabel('Primeiro dia bloqueado').fill('2030-06-10');
   await page.getByLabel('Liberar a partir de').fill('2030-06-12');
@@ -88,6 +90,8 @@ test('preserva o resultado ao falhar a atualização após registrar bloqueio', 
     throw new Error(`Rota inesperada: ${req.method()} ${path}`);
   });
   await page.goto('/espaco');
+  await page.getByRole('button', { name: 'Abrir operação' }).first().click();
+  await page.getByText('Novo bloqueio', { exact: true }).click();
   await page.getByLabel('Unidade do bloqueio').selectOption('unit-a');
   await page.getByLabel('Primeiro dia bloqueado').fill('2030-06-10');
   await page.getByLabel('Liberar a partir de').fill('2030-06-12');

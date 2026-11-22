@@ -4,6 +4,9 @@ import Button from '../components/Button';
 import Field from '../components/Field';
 import WorkspaceCalendar, { businessToday } from './WorkspaceCalendar';
 import WorkspaceBlocks from './WorkspaceBlocks';
+import Modal from '../components/Modal';
+import { ArrowDownLeft, ArrowUpRight, BedDouble, CalendarDays, Plus } from 'lucide-react';
+import './workspace-lodging.css';
 
 type Unit = { id: string; name: string };
 type Pagination = { page: number; totalPages: number; total: number };
@@ -24,6 +27,8 @@ export default function WorkspaceLodging({ organizationId }: { organizationId: s
   const [unitVersion, setUnitVersion] = useState(0);
   const requestSequence = useRef(0);
   const [unitName, setUnitName] = useState('');
+  const [unitOpen, setUnitOpen] = useState(false);
+  const [bookingOpen, setBookingOpen] = useState(false);
   const [form, setForm] = useState({ unitId: '', guestName: '', checkIn: '', checkOut: '' });
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
@@ -125,7 +130,7 @@ export default function WorkspaceLodging({ organizationId }: { organizationId: s
     event.preventDefault(); setBusy(true); setError('');
     try {
       await request('/lodging/units', { method: 'POST', headers, body: JSON.stringify({ name: unitName.trim() }) });
-      setUnitName(''); setUnitVersion(value => value + 1); await refreshAfterSave();
+      setUnitName(''); setUnitOpen(false); setUnitVersion(value => value + 1); await refreshAfterSave();
     } catch (err) { fail(err, 'Não foi possível cadastrar a unidade.'); }
     finally { setBusy(false); }
   };
@@ -133,7 +138,7 @@ export default function WorkspaceLodging({ organizationId }: { organizationId: s
     event.preventDefault(); setBusy(true); setError('');
     try {
       await request('/lodging/reservations', { method: 'POST', headers, body: JSON.stringify({ ...form, guestName: form.guestName.trim() }) });
-      setForm({ unitId: '', guestName: '', checkIn: '', checkOut: '' }); setSelectedUnit(null); await refreshAfterSave();
+      setForm({ unitId: '', guestName: '', checkIn: '', checkOut: '' }); setSelectedUnit(null); setBookingOpen(false); await refreshAfterSave();
     } catch (err) { fail(err, 'Não foi possível registrar a reserva.'); }
     finally { setBusy(false); }
   };
@@ -154,33 +159,36 @@ export default function WorkspaceLodging({ organizationId }: { organizationId: s
   const { arrivals, departures, overdueArrivals, overdueDepartures } = movement;
   const unitOptions = selectedUnit && !units.some(unit => unit.id === selectedUnit.id) ? [selectedUnit, ...units] : units;
 
-  return <div className="space-y-5">
-    <h2 className="text-xl font-semibold">Unidades e reservas</h2>
-    <p className="text-sm text-surface-600">O checkout libera a unidade nesse dia. Reservas conflitantes são recusadas.</p>
+  return <div className="lodging-ui space-y-6">
+    <div className="lodging-heading"><div><span className="lodging-eyebrow">HOSPEDAGEM</span><h2>Visão da pousada</h2><p>Acompanhe a ocupação, chegadas e reservas.</p></div><Button variant="primary" icon={<Plus size={16} />} disabled={!initialized || loadFailed} onClick={() => { setError(''); setBookingOpen(true); }}>Nova reserva</Button></div>
     {error && <p role="alert" className="text-red-700">{error}</p>}
     {loading && !initialized ? <p role="status">Carregando reservas...</p> : loadFailed ? <Button disabled={loading} onClick={() => setLoadVersion(v => v + 1)}>{loading ? 'Carregando...' : 'Tentar carregar novamente'}</Button> : <>
-      <section className="card p-4 space-y-1" aria-label="Movimento de hoje"><h3 className="font-semibold">Movimento de hoje</h3>{loading ? <p>Atualizando movimento...</p> : <><p>{arrivals} {arrivals === 1 ? 'chegada prevista' : 'chegadas previstas'} · {departures} {departures === 1 ? 'saída prevista' : 'saídas previstas'}</p>{(overdueArrivals > 0 || overdueDepartures > 0) && <p className="text-amber-700">Pendências anteriores: {overdueArrivals} {overdueArrivals === 1 ? 'chegada' : 'chegadas'} · {overdueDepartures} {overdueDepartures === 1 ? 'saída' : 'saídas'}. Confira e atualize as reservas.</p>}</>}</section>
+      <section aria-label="Movimento de hoje"><div className="lodging-section-heading"><div><h3>Movimento de hoje</h3><p>O que precisa de atenção na hospedagem.</p></div></div>{loading ? <p role="status">Atualizando movimento...</p> : <><div className="lodging-stats"><div className="lodging-stat"><span>Chegadas previstas</span><ArrowDownLeft size={19} aria-hidden="true" /><strong>{arrivals}</strong><small>Para hoje</small></div><div className="lodging-stat"><span>Saídas previstas</span><ArrowUpRight size={19} aria-hidden="true" /><strong>{departures}</strong><small>Para hoje</small></div><div className="lodging-stat"><span>Chegadas pendentes</span><CalendarDays size={19} aria-hidden="true" /><strong>{overdueArrivals}</strong><small>De dias anteriores</small></div><div className="lodging-stat"><span>Saídas pendentes</span><BedDouble size={19} aria-hidden="true" /><strong>{overdueDepartures}</strong><small>De dias anteriores</small></div></div><p className="sr-only">{arrivals} {arrivals === 1 ? 'chegada prevista' : 'chegadas previstas'} · {departures} {departures === 1 ? 'saída prevista' : 'saídas previstas'}{(overdueArrivals > 0 || overdueDepartures > 0) && ` · Pendências anteriores: ${overdueArrivals} ${overdueArrivals === 1 ? 'chegada' : 'chegadas'} · ${overdueDepartures} ${overdueDepartures === 1 ? 'saída' : 'saídas'}`}</p></>}</section>
       <WorkspaceCalendar organizationId={organizationId} version={calendarVersion} onAccessDenied={accessDenied} />
-      <WorkspaceBlocks key={unitVersion} organizationId={organizationId} version={calendarVersion} onAccessDenied={accessDenied} onChanged={() => setCalendarVersion(value => value + 1)} />
-      <form className="card p-4 space-y-3" onSubmit={addUnit}>
+      <div className="lodging-unit-action"><div><h3>Suas unidades</h3><p>Cadastre as acomodações disponíveis para reserva.</p></div><Button onClick={() => { setError(''); setUnitOpen(true); }}>Cadastrar unidade</Button></div>
+      <Modal open={unitOpen} onOpenChange={open => { if (!busy) setUnitOpen(open); }} title="Cadastrar unidade" description="Adicione uma acomodação à pousada.">
+      <form className="workspace-form space-y-4" onSubmit={addUnit}>
+        {error && <p role="alert" className="text-red-700">{error}</p>}
         <Field id="unit-name" label="Nome da unidade" required><input id="unit-name" className="input" value={unitName} onChange={e => setUnitName(e.target.value)} required maxLength={100} /></Field>
         <Button type="submit" variant="primary" disabled={busy || loading}>Cadastrar unidade</Button>
-      </form>
-      <form className="card p-4 space-y-3" onSubmit={addBooking}>
-        <h3 className="font-semibold">Nova reserva</h3>
+      </form></Modal>
+      <Modal open={bookingOpen} onOpenChange={open => { if (!busy) setBookingOpen(open); }} title="Nova reserva" description="A saída não ocupa a noite desse dia.">
+      <form className="workspace-form space-y-4" onSubmit={addBooking}>
+        {error && <p role="alert" className="text-red-700">{error}</p>}
         <Field id="stay-unit" label="Unidade" required><select id="stay-unit" className="input" required disabled={loading} value={form.unitId} onChange={e => { setSelectedUnit(unitOptions.find(unit => unit.id === e.target.value) || null); setForm({ ...form, unitId: e.target.value }); }}><option value="">Selecione</option>{unitOptions.map(unit => <option key={unit.id} value={unit.id}>{unit.name}</option>)}</select></Field>
         {unitPagination.totalPages > 1 && <div className="flex items-center gap-2"><Button small disabled={unitPage <= 1 || busy || loading} onClick={() => setUnitPage(unitPage - 1)}>Unidades anteriores</Button><span>Página {unitPage} de {unitPagination.totalPages}</span><Button small disabled={unitPage >= unitPagination.totalPages || busy || loading} onClick={() => setUnitPage(unitPage + 1)}>Próximas unidades</Button></div>}
         <Field id="stay-guest" label="Hóspede" required><input id="stay-guest" className="input" required maxLength={120} value={form.guestName} onChange={e => setForm({ ...form, guestName: e.target.value })} /></Field>
         <Field id="stay-in" label="Entrada" required><input id="stay-in" className="input" type="date" required value={form.checkIn} onChange={e => setForm({ ...form, checkIn: e.target.value })} /></Field>
         <Field id="stay-out" label="Saída" required><input id="stay-out" className="input" type="date" required min={form.checkIn || undefined} value={form.checkOut} onChange={e => setForm({ ...form, checkOut: e.target.value })} /></Field>
         <Button type="submit" variant="primary" disabled={busy || loading || !unitOptions.length}>Registrar reserva</Button>
-      </form>
-      <section className="space-y-3"><h3 className="font-semibold">Reservas registradas</h3>
+      </form></Modal>
+      <section className="lodging-reservations card p-5 space-y-4"><div className="lodging-section-heading"><div><span className="lodging-eyebrow">RESERVAS</span><h3>Reservas registradas</h3><p>Consulte e acompanhe as estadias.</p></div></div>
         {<div className="flex flex-wrap gap-3"><Field id="stay-search" label="Buscar hóspede"><input id="stay-search" type="search" className="input" value={guestSearch} maxLength={120} onChange={event => setGuestSearch(event.target.value)} /></Field><Field id="stay-status" label="Situação da reserva"><select id="stay-status" className="input" value={statusFilter} onChange={event => { setBookingPage(1); setStatusFilter(event.target.value); }}><option value="">Todas</option>{Object.entries(statusLabel).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></Field></div>}
         {loading || guestSearch.trim() !== appliedSearch ? <p role="status">Buscando reservas...</p> : !bookings.length && <p>{appliedSearch || statusFilter ? 'Nenhuma reserva encontrada com esses filtros.' : 'Nenhuma reserva registrada.'}</p>}
         {!loading && guestSearch.trim() === appliedSearch && bookings.map(booking => <article key={booking.id} className="card p-4 space-y-2"><strong>{booking.guestName}</strong><p>{booking.unit.name} · {dateLabel(booking.checkIn)} a {dateLabel(booking.checkOut)}</p><p>{statusLabel[booking.status] || booking.status}</p>{pendingStay?.id === booking.id ? <div className="flex flex-wrap items-center gap-2"><span>A data prevista é {dateLabel(pendingStay.action === 'check-in' ? booking.checkIn : booking.checkOut)}. Confirmar o registro agora?</span><Button small disabled={busy} onClick={() => setPendingStay(null)}>Voltar</Button><Button small variant="primary" disabled={busy} onClick={() => void changeStay(booking.id, pendingStay.action)}>Confirmar registro</Button></div> : <>{booking.status === 'CONFIRMED' && <Button small disabled={busy} onClick={() => booking.checkIn === day ? void changeStay(booking.id, 'check-in') : setPendingStay({ id: booking.id, action: 'check-in' })}>Registrar chegada</Button>} {booking.status === 'CHECKED_IN' && <Button small disabled={busy} onClick={() => booking.checkOut === day ? void changeStay(booking.id, 'check-out') : setPendingStay({ id: booking.id, action: 'check-out' })}>Registrar saída</Button>}</>} {booking.status === 'CONFIRMED' && (pendingCancel === booking.id ? <div className="flex gap-2"><span>Cancelar esta reserva?</span><Button small disabled={busy} onClick={() => setPendingCancel(null)}>Voltar</Button><Button small variant="danger" disabled={busy} onClick={() => void cancel(booking.id)}>Confirmar cancelamento</Button></div> : <Button small disabled={busy} onClick={() => setPendingCancel(booking.id)}>Cancelar reserva</Button>)}</article>)}
         {!loading && bookingPagination.totalPages > 1 && <div className="flex items-center gap-3"><Button small disabled={bookingPage <= 1 || busy} onClick={() => setBookingPage(bookingPage - 1)}>Reservas anteriores</Button><span>Página {bookingPage} de {bookingPagination.totalPages}</span><Button small disabled={bookingPage >= bookingPagination.totalPages || busy} onClick={() => setBookingPage(bookingPage + 1)}>Próximas reservas</Button></div>}
       </section>
+      <WorkspaceBlocks key={unitVersion} organizationId={organizationId} version={calendarVersion} onAccessDenied={accessDenied} onChanged={() => setCalendarVersion(value => value + 1)} />
     </>}
   </div>;
 }

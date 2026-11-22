@@ -71,7 +71,9 @@ export const authenticate = async (
     req.user = { id: user.id, email: user.email, role: user.role, sessionVersion: user.updatedAt };
     next();
   } catch (error) {
-    console.error('Authentication error:', error);
+    // Erros de consulta do Prisma podem carregar argumentos da consulta/dados
+    // do usuário. Preserve o sinal operacional sem serializar o objeto bruto.
+    console.error('Falha interna ao autenticar a sessão.');
     res.status(500).json({ error: 'Erro interno de autenticação' });
   }
 };

@@ -113,11 +113,7 @@ const LoadingScreen = () => (
   </div>
 );
 
-const PlatformWorkspace = () => {
-  const { logout } = useAuth();
-  const [error, setError] = useState('');
-  return <><div className="max-w-5xl mx-auto px-4 sm:px-8 pt-4 flex justify-end"><button type="button" className="btn-secondary" onClick={() => { void logout().catch(() => setError('Não foi possível encerrar a sessão.')); }}>Sair</button></div>{error && <p role="alert">{error}</p>}<React.Suspense fallback={<LoadingScreen />}>{Workspace && <Workspace />}</React.Suspense></>;
-};
+const PlatformWorkspace = () => <React.Suspense fallback={<LoadingScreen />}>{Workspace && <Workspace />}</React.Suspense>;
 
 const AppRoutes = () => platformMode ? (
   <Routes>

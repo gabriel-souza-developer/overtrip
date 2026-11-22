@@ -20,6 +20,17 @@ describe('prévia de proposta', () => {
     expect(text).toContain('Destino: Lucena - PB');
     expect(text).toContain('Data: 29/11/2026');
   });
+  it('mostra o período completo na prévia e no texto copiado', () => {
+    const p = buildTripProposal({ ...base, endDateISO: '2026-11-30', returnTime: '17:00' }, 'OVERTRIP');
+    expect(p.date).toBe('29/11/2026 a 30/11/2026');
+    expect(tripProposalText(p)).toContain('Data: 29/11/2026 a 30/11/2026');
+  });
+  it('não duplica a mesma data e identifica retorno quando a partida está ausente', () => {
+    expect(buildTripProposal({ ...base, endDateISO: '2026-11-29T00:00:00.000Z' }, 'OVERTRIP').date).toBe('29/11/2026');
+    expect(buildTripProposal({ ...base, startDateISO: '', endDateISO: '2026-11-30' }, 'OVERTRIP').date).toBe('Retorno em 30/11/2026');
+    expect(buildTripProposal({ ...base, endDateISO: 'inválida' }, 'OVERTRIP').date).toBe('29/11/2026');
+    expect(buildTripProposal({ ...base, startDateISO: '', endDateISO: '' }, 'OVERTRIP').date).toBeNull();
+  });
   it('usa somente termos fornecidos e mantém horário a confirmar', () => {
     const p = buildTripProposal({ ...base, free: true, scheduleTBD: true, meetingTBD: true, includes: ['Transporte'], itinerary: ['Praia'] }, 'Organizador');
     expect(p.price).toBe('Gratuito');

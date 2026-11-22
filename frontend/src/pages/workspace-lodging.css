@@ -1,0 +1,23 @@
+.lodging-ui { color: #172f2a; }
+.lodging-heading, .lodging-section-heading, .lodging-unit-action { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.lodging-heading h2 { font-size: 1.8rem; line-height: 1.2; font-weight: 700; letter-spacing: -.035em; margin: .35rem 0; }
+.lodging-heading p, .lodging-section-heading p, .lodging-unit-action p { color: #718b86; font-size: .875rem; margin-top: .3rem; }
+.lodging-eyebrow { color: #7b9e96; font-size: .65rem; font-weight: 700; letter-spacing: .12em; }
+.lodging-section-heading h2, .lodging-section-heading h3, .lodging-unit-action h3 { color: #172f2a; font-size: 1.05rem; font-weight: 700; }
+.lodging-section-heading { margin-bottom: 1rem; }
+.lodging-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; }
+.lodging-stat { position: relative; min-height: 140px; padding: 1.2rem; border: 1px solid #e4eeea; border-radius: .85rem; background: white; box-shadow: 0 4px 14px #1d493d08; display: flex; flex-direction: column; gap: .65rem; }
+.lodging-stat span { color: #738b85; font-size: .75rem; font-weight: 600; padding-right: 1.5rem; }
+.lodging-stat svg { position: absolute; top: 1.1rem; right: 1.1rem; color: #3b8d73; }
+.lodging-stat strong { font-size: 1.9rem; line-height: 1; font-weight: 700; }
+.lodging-stat small { color: #829b95; font-size: .75rem; }
+.lodging-ui .card { border-color: #e4eeea; border-radius: .85rem; box-shadow: 0 4px 14px #1d493d08; }
+.lodging-ui .btn-primary, .workspace-form .btn-primary { background: #217a60; border-color: #217a60; color: white; }
+.lodging-ui .btn-primary:hover, .workspace-form .btn-primary:hover { background: #19644e; border-color: #19644e; }
+.lodging-ui .btn-primary:disabled, .workspace-form .btn-primary:disabled { opacity: .5; }
+.lodging-unit-action { background: #edf6f0; border: 1px solid #dceee3; border-radius: .85rem; padding: 1.15rem; }
+.lodging-disclosure { border: 1px solid #dceee3; border-radius: .7rem; padding: .8rem 1rem; background: #f8fbf9; }
+.lodging-disclosure summary { color: #216d56; cursor: pointer; font-size: .875rem; font-weight: 700; }
+.lodging-reservations > article { border-radius: .65rem; }
+@media (max-width: 800px) { .lodging-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .lodging-heading, .lodging-unit-action { align-items: stretch; flex-direction: column; } .lodging-heading h2 { font-size: 1.5rem; } .lodging-stat { min-height: 120px; } }

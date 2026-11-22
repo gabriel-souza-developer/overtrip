@@ -126,6 +126,79 @@ const safeMediaUrl = (value) => {
 const getMapsHref = (point) => safeHttpUrl(point.mapsUrl)
   || (point.mapsQuery ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(point.mapsQuery)}` : "");
 
+/* ==========================================================================
+   MAPA DO EMBARQUE: coordenadas confirmadas no painel (pesquisa + seleção
+   manual, nunca inventadas). Viagens antigas sem coordenadas continuam só
+   com os links de texto acima; o mapa só aparece quando a API confirma lat/lng.
+   ========================================================================== */
+
+// Mesma validação da API (src/services/publicTrips.ts): número finito e dentro do intervalo.
+const validMapCoord = (lat, lng) => {
+  if (typeof lat !== "number" || typeof lng !== "number" || !Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
+  return { lat, lng };
+};
+
+const getTripMapPoints = (trip) => {
+  if (trip.meetingTBD) return [];
+  const points = [];
+  const departures = list(trip.departures);
+  // A lista detalhada substitui o embarque único no conteúdo e no mapa.
+  // Coordenadas antigas do campo principal não podem acrescentar um local extra.
+  if (!departures.length) {
+    const meetingCoords = validMapCoord(trip.meetingLat, trip.meetingLng);
+    if (meetingCoords) points.push({ ...meetingCoords, label: getMeetingLabel(trip) });
+  }
+  for (const point of departures) {
+    const coords = validMapCoord(point.lat, point.lng);
+    if (coords) points.push({ ...coords, label: [text(point.time), text(point.place), text(point.city)].filter(Boolean).join(" — ") });
+  }
+  return points;
+};
+
+const buildTripMapHTML = (trip, tripIndex, points) => {
+  if (!points.length) return "";
+  // JSON embutido num atributo: escapeHtml trata as aspas/âncoras do próprio JSON.
+  const pointsJSON = escapeHtml(JSON.stringify(points));
+  const fallbackLinks = points.map((point) => `<li><a href="https://www.openstreetmap.org/?mlat=${encodeURIComponent(point.lat)}&amp;mlon=${encodeURIComponent(point.lng)}#map=16/${encodeURIComponent(point.lat)}/${encodeURIComponent(point.lng)}" target="_blank" rel="noreferrer">${escapeHtml(point.label)}</a></li>`).join("");
+  return `<div class="trip-boarding-map-wrapper">
+            <div class="trip-boarding-map" id="trip-map-${escapeHtml(tripIndex)}" data-trip-points="${pointsJSON}" role="group" aria-label="Mapa do embarque de ${escapeHtml(trip.title)}"></div>
+            <p class="trip-boarding-map-credit">Mapa © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">colaboradores do OpenStreetMap</a>.</p>
+            <details class="trip-boarding-map-fallback"><summary>Ver locais em texto</summary><ul>${fallbackLinks}</ul></details>
+          </div>`;
+};
+
+// Mapa de verdade só é criado ao abrir os detalhes (lazy), e só uma vez por card.
+const initTripBoardingMap = (container) => {
+  if (!container || container.dataset.mapReady) return;
+  let points;
+  try {
+    points = JSON.parse(container.dataset.tripPoints || "[]");
+  } catch {
+    points = [];
+  }
+  points = Array.isArray(points) ? points.filter((p) => p && typeof p.lat === "number" && typeof p.lng === "number") : [];
+  if (!points.length) return;
+  if (typeof L === "undefined") {
+    container.textContent = "Não foi possível carregar o mapa agora.";
+    return;
+  }
+  container.dataset.mapReady = "true";
+  const map = L.map(container, { scrollWheelZoom: false });
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    subdomains: "abc",
+    maxZoom: 19,
+  }).addTo(map);
+  const markers = points.map((point) => L.marker([point.lat, point.lng]).addTo(map).bindPopup(escapeHtml(text(point.label))));
+  if (markers.length > 1) {
+    map.fitBounds(L.featureGroup(markers).getBounds().pad(0.3));
+  } else {
+    map.setView([points[0].lat, points[0].lng], 14);
+  }
+  container.addEventListener("click", () => map.scrollWheelZoom.enable());
+};
+
 // Texto único do embarque (mensagem do WhatsApp, aria-label).
 const getMeetingLabel = (trip) => {
   if (trip.meetingTBD) return 'Embarque a confirmar';
@@ -307,6 +380,7 @@ const buildTripCardHTML = (rawTrip, tripIndex) => {
               <span>${escapeHtml(trip.includesHighlight)}</span>
             </div>` : ""}
             ${buildTripDetailsHTML(trip)}
+            ${buildTripMapHTML(trip, tripIndex, getTripMapPoints(trip))}
           </div>
         </details>
 
@@ -422,6 +496,11 @@ const bindTripIncludesToggles = () => {
       const label = details.querySelector(".trip-includes-toggle-label");
       if (label) {
         label.textContent = details.open ? "Ocultar detalhes" : "Ver roteiro & o que inclui";
+      }
+      // O mapa só é montado na primeira vez que a pessoa abre os detalhes
+      // (evita criar um mapa Leaflet por card antes de alguém pedir para ver).
+      if (details.open) {
+        initTripBoardingMap(details.querySelector(".trip-boarding-map"));
       }
     });
   });
@@ -1329,4 +1408,4 @@ const updateYearsCount = () => {
   statEl.textContent = years > 0 ? `${years} anos` : "1º ano";
 };
 
-export { formatTripTime, buildTripSchema, normalizeTrip, buildTripCardHTML, buildHeroTripHTML, buildTripCardsHTML, buildGalleryCardHTML, buildTestimonialHTML, buildTestimonialTabHTML, buildTestimonialPanelHTML, renderHeroNextTrip, renderTrips, renderGallery, renderTestimonials, updateYearsCount, setupLightbox, setupTestimonialTabs };
+export { formatTripTime, buildTripSchema, normalizeTrip, buildTripCardHTML, buildHeroTripHTML, buildTripCardsHTML, buildGalleryCardHTML, buildTestimonialHTML, buildTestimonialTabHTML, buildTestimonialPanelHTML, renderHeroNextTrip, renderTrips, renderGallery, renderTestimonials, updateYearsCount, setupLightbox, setupTestimonialTabs, getTripMapPoints, buildTripMapHTML, validMapCoord };

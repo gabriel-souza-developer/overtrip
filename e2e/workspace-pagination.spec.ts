@@ -24,12 +24,15 @@ test('página de reservas não limita a grade e unidade escolhida permanece sele
     throw new Error(`Rota não esperada: ${req.url()}`);
   });
   await page.goto('/espaco');
+  await page.getByRole('button', { name: 'Abrir operação' }).first().click();
   await expect(page.getByRole('article').filter({ hasText: 'Ana' })).toBeVisible();
   await expect(page.getByRole('region', { name: 'Movimento de hoje' })).toContainText('2 chegadas previstas');
+  await page.getByRole('button', { name: 'Nova reserva' }).click();
   await page.locator('#stay-unit').selectOption('u1');
   await page.getByRole('button', { name: 'Próximas unidades', exact: true }).click();
   await expect(page.locator('#stay-unit')).toHaveValue('u1');
   await expect(page.locator('#stay-unit option[value="u2"]')).toBeAttached();
+  await page.getByRole('dialog').getByRole('button', { name: 'Fechar' }).click();
   await page.getByRole('button', { name: 'Próximas reservas' }).click();
   await expect(page.getByRole('article').filter({ hasText: 'Bia' })).toBeVisible();
   const grid = page.getByRole('table', { name: /Disponibilidade de unidades/ });

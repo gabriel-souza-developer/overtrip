@@ -1,18 +1,34 @@
 import React, { useEffect, useState } from 'react';
+import { BedDouble, CalendarDays, ChevronRight, Compass, LayoutDashboard, LogOut, Menu, UtensilsCrossed, X } from 'lucide-react';
 import { request } from '../api';
-import Button from '../components/Button';
+import { useAuth } from '../App';
 import WorkspaceLodging from './WorkspaceLodging';
 import WorkspaceRestaurant from './WorkspaceRestaurant';
+import WorkspaceOverview from './WorkspaceOverview';
+import './workspace.css';
 
 interface Organization { id: string; name: string; slug: string; niche: string; role: string }
+type View = 'overview' | 'operation';
+const nicheLabel = (niche: string) => niche === 'pousada' ? 'Hospedagem' : niche === 'restaurante' ? 'Restaurante' : niche;
+const roleLabel = (role: string) => ({ owner: 'Proprietário', admin: 'Administrador', staff: 'Equipe' } as Record<string, string>)[role] || role;
 
-/** Espaço experimental isolado: nunca usa rotas globais de turismo. */
+/** Espaço isolado: todas as operações usam apenas APIs da plataforma. */
 export default function Workspace() {
+  const { user, logout } = useAuth();
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [current, setCurrent] = useState<Organization | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [version, setVersion] = useState(0);
+  const [view, setView] = useState<View>('overview');
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') setMenuOpen(false); };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [menuOpen]);
 
   useEffect(() => {
     let active = true;
@@ -30,24 +46,48 @@ export default function Workspace() {
   }, [version]);
 
   const select = async (id: string) => {
-    setLoading(true); setError('');
+    setLoading(true); setError(''); setMenuOpen(false);
     try {
       const result = await request<{ organization: Organization }>('/organizations/current', { headers: { 'X-Organization-Id': id } });
-      setCurrent(result.organization);
+      setCurrent(result.organization); setView('overview');
     } catch (err) { setError(err instanceof Error ? err.message : 'Não foi possível abrir o espaço.'); }
     finally { setLoading(false); }
   };
+  const go = (next: View) => { setView(next); setMenuOpen(false); };
+  const signOut = async () => {
+    try { await logout(); }
+    catch { setError('Não foi possível confirmar o encerramento da sessão.'); }
+  };
+  const label = view === 'overview' ? 'Visão geral' : current?.niche === 'restaurante' ? 'Reservas e mesas' : 'Reservas e unidades';
+  const operator = user?.name || user?.email || 'Conta';
 
-  return <main className="max-w-5xl mx-auto p-4 sm:p-8 space-y-6">
-    <header><p className="text-sm text-surface-600">Ambiente de desenvolvimento</p><h1 className="text-2xl font-semibold">Espaços de trabalho</h1></header>
-    {error && <div role="alert" className="text-red-700"><p>{error}</p><Button small onClick={() => setVersion(v => v + 1)}>Tentar novamente</Button></div>}
-    {loading ? <p role="status">Carregando espaço...</p> : current ? <section className="space-y-5">
-      <h2 className="text-xl font-semibold">{current.name}</h2>
-      <p className="text-sm text-surface-600">{current.niche} · {current.role}</p>
-      {organizations.length > 1 && <Button onClick={() => setCurrent(null)}>Trocar espaço</Button>}
-      {current.niche === 'pousada' ? <WorkspaceLodging key={current.id} organizationId={current.id} />
-        : current.niche === 'restaurante' ? <WorkspaceRestaurant key={current.id} organizationId={current.id} />
-        : <p>Este espaço ainda não tem módulos operacionais disponíveis.</p>}
-    </section> : organizations.length ? <div className="grid gap-3">{organizations.map(org => <button key={org.id} type="button" className="card p-5 text-left hover:border-primary-500" onClick={() => void select(org.id)}><strong>{org.name}</strong><span className="block text-sm text-surface-600">{org.niche}</span></button>)}</div> : !error && <p>Esta conta ainda não está vinculada a uma empresa ativa.</p>}
-  </main>;
+  return <div className="workspace-app">
+    <a href="#workspace-content" className="workspace-skip">Ir para o conteúdo</a>
+    <div className="workspace-mobile"><div className="workspace-brand"><span className="workspace-brand-icon"><Compass size={17} /></span> ENTRE<span>·</span>VIAS</div><button type="button" className="workspace-menu-toggle" onClick={() => setMenuOpen(value => !value)} aria-label={menuOpen ? 'Fechar menu' : 'Abrir menu'} aria-expanded={menuOpen} aria-controls="workspace-sidebar">{menuOpen ? <X size={21} /> : <Menu size={21} />}</button></div>
+    {menuOpen && <button type="button" aria-label="Fechar menu" className="workspace-backdrop" onClick={() => setMenuOpen(false)} />}
+    <div className="workspace-layout">
+      <aside id="workspace-sidebar" className={`workspace-sidebar${menuOpen ? ' is-open' : ''}`} aria-label="Navegação do espaço">
+        <div className="workspace-brand workspace-desktop-brand"><span className="workspace-brand-icon"><Compass size={17} /></span> ENTRE<span>·</span>VIAS</div>
+        <p className="workspace-side-label">ESPAÇO DE TRABALHO</p>
+        {current ? <div className="workspace-company"><span className="workspace-company-icon">{current.name.trim().charAt(0).toLocaleUpperCase('pt-BR')}</span><span><strong>{current.name}</strong><small>{nicheLabel(current.niche)}</small></span></div> : <p className="workspace-side-empty">Selecione uma empresa</p>}
+        {organizations.length > 1 && current && <button type="button" className="workspace-switch" onClick={() => { setCurrent(null); setMenuOpen(false); }}>Trocar espaço</button>}
+        <p className="workspace-side-label workspace-nav-label">MENU PRINCIPAL</p>
+        <nav aria-label="Menu da plataforma" className="workspace-nav">
+          <button type="button" disabled={!current} aria-current={current && view === 'overview' ? 'page' : undefined} onClick={() => go('overview')}><LayoutDashboard size={18} />Visão geral</button>
+          <button type="button" disabled={!current} aria-current={current && view === 'operation' ? 'page' : undefined} onClick={() => go('operation')}><CalendarDays size={18} />{current?.niche === 'restaurante' ? 'Reservas e mesas' : 'Reservas e unidades'}</button>
+        </nav>
+        <div className="workspace-side-bottom"><div className="workspace-help"><strong>Seu espaço de trabalho</strong><p>Acompanhe e organize suas reservas em um só lugar.</p></div><button type="button" className="workspace-signout" onClick={() => void signOut()}><LogOut size={17} /> Sair</button></div>
+      </aside>
+      <div className="workspace-main">
+        <header className="workspace-topbar"><div className="workspace-breadcrumb">{current ? <h2>{current.name}</h2> : <span>Painel</span>}<ChevronRight size={14} /><strong>{current ? label : 'Espaços de trabalho'}</strong></div><div className="workspace-user"><span className="workspace-avatar">{operator.trim().charAt(0).toLocaleUpperCase('pt-BR')}</span><span><strong>{operator}</strong><small>{current ? roleLabel(current.role) : 'Conta'}</small></span></div></header>
+        <main id="workspace-content" className="workspace-content" tabIndex={-1}>
+          {error && <div className="workspace-alert" role="alert"><span>{error}</span><button type="button" onClick={() => setVersion(value => value + 1)}>Tentar novamente</button></div>}
+          {loading ? <p role="status" className="workspace-status">Carregando espaço...</p> : current ? <>
+            {view === 'operation' && <header className="workspace-heading"><div><p className="workspace-kicker"><span /> {nicheLabel(current.niche)}</p><h1>{label}</h1><p>Organize as atividades do seu espaço.</p></div></header>}
+            {view === 'overview' ? <WorkspaceOverview key={current.id} organizationId={current.id} niche={current.niche} onOpen={() => go('operation')} /> : current.niche === 'pousada' ? <WorkspaceLodging key={current.id} organizationId={current.id} /> : current.niche === 'restaurante' ? <WorkspaceRestaurant key={current.id} organizationId={current.id} /> : <p>Este espaço ainda não tem módulos operacionais disponíveis.</p>}
+          </> : organizations.length ? <section><header className="workspace-heading"><div><p className="workspace-kicker"><span /> SEUS ESPAÇOS</p><h1>Escolha uma empresa</h1><p>Abra o espaço que deseja acompanhar.</p></div></header><div className="workspace-org-grid">{organizations.map(org => <button key={org.id} type="button" className="workspace-org-card" onClick={() => void select(org.id)}><span className="workspace-org-icon">{org.niche === 'restaurante' ? <UtensilsCrossed size={20} /> : <BedDouble size={20} />}</span><span><strong>{org.name}</strong><small>{nicheLabel(org.niche)}</small></span><ChevronRight size={17} /></button>)}</div></section> : !error && <section className="workspace-empty"><h1>Nenhuma empresa disponível</h1><p>Esta conta ainda não está vinculada a uma empresa ativa.</p></section>}
+        </main>
+      </div>
+    </div>
+  </div>;
 }

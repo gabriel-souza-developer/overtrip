@@ -20,6 +20,36 @@ beforeAll(async () => {
 });
 afterAll(async () => { await new Promise<void>(resolve => server.close(() => resolve())); await prisma.$disconnect(); });
 describe('CRM de interessados', () => {
+  it('busca nome e pagina somente interessados sem viagem ou associados à viagem selecionada', async () => {
+    const suffix = `${Date.now()}`;
+    const tripData = { category: 'Teste', description: 'Teste', city: 'Cidade', region: 'PB', startDateISO: new Date('2030-01-01T12:00:00Z'), intensityClass: 'light', includes: '[]', media: '[]' };
+    const first = await prisma.trip.create({ data: { ...tripData, title: 'Primeira', storedIdentity: `lead-filter-a-${suffix}` } });
+    const second = await prisma.trip.create({ data: { ...tripData, title: 'Segunda', storedIdentity: `lead-filter-b-${suffix}` } });
+    const created = await Promise.all([
+      prisma.lead.create({ data: { name: `Consulta ${suffix} livre` } }),
+      prisma.lead.create({ data: { name: `Consulta ${suffix} vinculada`, tripId: first.id } }),
+      prisma.lead.create({ data: { name: `Consulta ${suffix} outra`, tripId: second.id } }),
+      prisma.lead.create({ data: { name: `Outro nome ${suffix}`, tripId: first.id } }),
+    ]);
+    try {
+      const params = new URLSearchParams({ search: `Consulta ${suffix}`, eligibleTripId: first.id, page: '1', limit: '1' });
+      const fetchPage = async () => (await (await fetch(`${base}?${params}`, { headers: headers(adminToken) })).json()) as { data: { id: string }[]; pagination: { total: number; totalPages: number } };
+      const page1 = await fetchPage();
+      params.set('page', '2');
+      const page2 = await fetchPage();
+      expect(page1.pagination).toMatchObject({ total: 2, totalPages: 2 });
+      expect(new Set([...page1.data, ...page2.data].map(item => item.id))).toEqual(new Set([created[0].id, created[1].id]));
+      params.set('tripId', first.id);
+      params.set('page', '1');
+      const exact = await fetchPage();
+      expect(exact.pagination.total).toBe(1);
+      expect(exact.data[0].id).toBe(created[1].id);
+      expect((await fetch(`${base}?search=${'a'.repeat(121)}`, { headers: headers(adminToken) })).status).toBe(400);
+    } finally {
+      await prisma.lead.deleteMany({ where: { id: { in: created.map(item => item.id) } } });
+      await prisma.trip.deleteMany({ where: { id: { in: [first.id, second.id] } } });
+    }
+  });
   it('protege dados, valida entrada e permite acompanhar e excluir contatos', async () => {
     expect((await fetch(base)).status).toBe(401);
     expect((await fetch(base, { headers: headers(userToken) })).status).toBe(403);

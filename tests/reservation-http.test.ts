@@ -97,6 +97,9 @@ describe('reservas administrativas', () => {
     expect(linked.status).toBe(201);
     const saved = await linked.json() as { id: string; leadId: string };
     expect(saved.leadId).toBe(lead.id);
+    const linkedRows = await (await fetch(`${base}?tripId=${tripId}`, { headers: headers(adminToken) })).json() as { data: { id: string; lead: { id: string; name: string } | null }[] };
+    expect(linkedRows.data.find(row => row.id === saved.id)?.lead).toEqual({ id: lead.id, name: 'Interessado da reserva' });
+    expect(linkedRows.data.find(row => row.id === reservationId)?.lead).toBeNull();
     const leadUrl = `${base.replace('/reservations', '/leads')}/${lead.id}`;
     expect((await fetch(leadUrl, { method: 'PUT', headers: headers(adminToken), body: JSON.stringify({ tripId: other.id }) })).status).toBe(409);
     expect((await fetch(leadUrl, { method: 'DELETE', headers: headers(adminToken) })).status).toBe(409);

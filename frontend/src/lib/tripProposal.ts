@@ -20,7 +20,11 @@ const text = (value: string | null | undefined): string | null => value?.trim() 
 /** Preview only: missing or unapproved terms are never inferred. */
 export function buildTripProposal(trip: TripFormData, organizer: string): TripProposal {
   const destination = [text(trip.city), text(trip.region)].filter(Boolean).join(' - ');
-  const date = trip.startDateISO ? formatDateBR(trip.startDateISO) : '—';
+  const startDate = formatDateBR(trip.startDateISO);
+  const endDate = formatDateBR(trip.endDateISO);
+  const date = startDate !== '—'
+    ? endDate !== '—' && endDate !== startDate ? `${startDate} a ${endDate}` : startDate
+    : endDate !== '—' ? `Retorno em ${endDate}` : null;
   const points = trip.meetingTBD ? ['A confirmar'] : (trip.departures ?? [])
     .map(p => [text(p.time), text(p.place), text(p.city)].filter(Boolean).join(' · ')).filter(Boolean);
   if (!points.length && !trip.meetingTBD) {
@@ -39,7 +43,7 @@ export function buildTripProposal(trip: TripFormData, organizer: string): TripPr
     title: text(trip.title) || 'Nova viagem',
     description: text(trip.description),
     destination: destination || null,
-    date: date === '—' ? null : date,
+    date,
     schedule: text(trip.scheduleInfo) || times || (trip.scheduleTBD ? 'A confirmar' : null),
     departures: points,
     price: price ? `${price}${!trip.free && text(trip.priceUnit) ? ` ${text(trip.priceUnit)}` : ''}` : null,

@@ -3,6 +3,8 @@ import { ApiRequestError, request } from '../api';
 import Button from '../components/Button';
 import Field from '../components/Field';
 import { businessToday } from './WorkspaceCalendar';
+import { CalendarDays, ChevronDown, Clock3, Plus, UsersRound, UtensilsCrossed } from 'lucide-react';
+import './workspace-restaurant.css';
 
 type Table = { id: string; name: string; capacity: number };
 type Pagination = { page: number; totalPages: number; total: number };
@@ -25,6 +27,8 @@ export default function WorkspaceRestaurant({ organizationId }: { organizationId
   const requestSequence = useRef(0);
   const [tableName, setTableName] = useState('');
   const [tableCapacity, setTableCapacity] = useState('');
+  const [showTableForm, setShowTableForm] = useState(false);
+  const [showBookingForm, setShowBookingForm] = useState(false);
   const [form, setForm] = useState({ tableId: '', guestName: '', partySize: '', date: '', shift: 'JANTAR' as 'ALMOCO' | 'JANTAR', time: '' });
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
@@ -119,7 +123,7 @@ export default function WorkspaceRestaurant({ organizationId }: { organizationId
     event.preventDefault(); setBusy(true); setError('');
     try {
       await request('/restaurant/tables', { method: 'POST', headers, body: JSON.stringify({ name: tableName.trim(), capacity: Number(tableCapacity) }) });
-      setTableName(''); setTableCapacity(''); await refreshAfterSave();
+      setTableName(''); setTableCapacity(''); setShowTableForm(false); await refreshAfterSave();
     } catch (err) { fail(err, 'Não foi possível cadastrar a mesa.'); }
     finally { setBusy(false); }
   };
@@ -127,7 +131,7 @@ export default function WorkspaceRestaurant({ organizationId }: { organizationId
     event.preventDefault(); setBusy(true); setError('');
     try {
       await request('/restaurant/reservations', { method: 'POST', headers, body: JSON.stringify({ ...form, guestName: form.guestName.trim(), partySize: Number(form.partySize) }) });
-      setForm({ tableId: '', guestName: '', partySize: '', date: '', shift: 'JANTAR', time: '' }); setSelectedTable(null); await refreshAfterSave();
+      setForm({ tableId: '', guestName: '', partySize: '', date: '', shift: 'JANTAR', time: '' }); setSelectedTable(null); setShowBookingForm(false); await refreshAfterSave();
     } catch (err) { fail(err, 'Não foi possível registrar a reserva.'); }
     finally { setBusy(false); }
   };
@@ -147,19 +151,23 @@ export default function WorkspaceRestaurant({ organizationId }: { organizationId
   const { expected, arrived, overdue } = movement;
   const tableOptions = selectedTable && !tables.some(table => table.id === selectedTable.id) ? [selectedTable, ...tables] : tables;
 
-  return <div className="space-y-5">
-    <h2 className="text-xl font-semibold">Mesas e reservas</h2>
-    <p className="text-sm text-surface-600">Uma mesa aceita no máximo um grupo por turno. Reservas conflitantes são recusadas.</p>
+  return <div className="restaurant-workspace">
+    <header className="restaurant-heading">
+      <div><p className="restaurant-kicker">RESTAURANTE</p><h2>Mesas e reservas</h2><p>Acompanhe os grupos do dia e organize sua agenda.</p></div>
+      <div className="restaurant-actions"><button type="button" className="restaurant-secondary" aria-expanded={showTableForm} aria-controls="restaurant-table-form" onClick={() => setShowTableForm(value => !value)}><UtensilsCrossed size={16} aria-hidden="true" /> {showTableForm ? 'Fechar mesa' : 'Cadastrar mesa'}</button><button type="button" className="restaurant-primary" aria-expanded={showBookingForm} aria-controls="restaurant-booking-form" onClick={() => setShowBookingForm(value => !value)}><Plus size={16} aria-hidden="true" /> {showBookingForm ? 'Fechar reserva' : 'Nova reserva'}</button></div>
+    </header>
+    <p className="restaurant-note">Uma mesa aceita no máximo um grupo por turno. Reservas conflitantes são recusadas.</p>
     {error && <p role="alert" className="text-red-700">{error}</p>}
     {loading && !initialized ? <p role="status">Carregando reservas...</p> : loadFailed ? <Button disabled={loading} onClick={() => setLoadVersion(v => v + 1)}>{loading ? 'Carregando...' : 'Tentar carregar novamente'}</Button> : <>
-      <section className="card p-4 space-y-1" aria-label="Movimento de hoje"><h3 className="font-semibold">Movimento de hoje</h3>{loading ? <p>Atualizando movimento...</p> : <><p>{expected} {expected === 1 ? 'grupo esperado' : 'grupos esperados'} · {arrived} {arrived === 1 ? 'grupo presente' : 'grupos presentes'}</p>{overdue > 0 && <p className="text-amber-700">Pendências anteriores: {overdue} {overdue === 1 ? 'reserva' : 'reservas'} sem chegada ou ausência registrada. Confira e atualize.</p>}</>}</section>
-      <form className="card p-4 space-y-3" onSubmit={addTable}>
+      <section className="restaurant-movement" aria-label="Movimento de hoje"><div className="restaurant-section-heading"><div><p className="restaurant-kicker">ACOMPANHAMENTO</p><h3>Movimento de hoje</h3></div><CalendarDays size={19} aria-hidden="true" /></div>{loading ? <p role="status">Atualizando movimento...</p> : <><div className="restaurant-metrics"><div><span><UsersRound size={17} aria-hidden="true" /> Grupos esperados</span><strong>{expected}</strong><small>Reservas para hoje</small></div><div><span><UtensilsCrossed size={17} aria-hidden="true" /> Grupos presentes</span><strong>{arrived}</strong><small>Chegadas registradas</small></div><div><span><Clock3 size={17} aria-hidden="true" /> Pendências anteriores</span><strong>{overdue}</strong><small>Sem chegada ou ausência</small></div></div>{overdue > 0 && <p className="restaurant-warning">Confira e atualize as reservas pendentes de dias anteriores.</p>}</>}</section>
+      <form id="restaurant-table-form" className="restaurant-form" onSubmit={addTable} hidden={!showTableForm}>
+        <div className="restaurant-section-heading"><div><p className="restaurant-kicker">ESTRUTURA</p><h3>Cadastrar mesa</h3></div><UtensilsCrossed size={19} aria-hidden="true" /></div>
         <Field id="table-name" label="Nome da mesa" required><input id="table-name" className="input" value={tableName} onChange={e => setTableName(e.target.value)} required maxLength={100} /></Field>
         <Field id="table-capacity" label="Capacidade (lugares)" required><input id="table-capacity" className="input" type="number" min={1} max={50} value={tableCapacity} onChange={e => setTableCapacity(e.target.value)} required /></Field>
         <Button type="submit" variant="primary" disabled={busy || loading}>Cadastrar mesa</Button>
       </form>
-      <form className="card p-4 space-y-3" onSubmit={addBooking}>
-        <h3 className="font-semibold">Nova reserva</h3>
+      <form id="restaurant-booking-form" className="restaurant-form" onSubmit={addBooking} hidden={!showBookingForm}>
+        <div className="restaurant-section-heading"><div><p className="restaurant-kicker">AGENDA</p><h3>Nova reserva</h3></div><CalendarDays size={19} aria-hidden="true" /></div>
         <Field id="booking-table" label="Mesa" required><select id="booking-table" className="input" required disabled={loading} value={form.tableId} onChange={e => { setSelectedTable(tableOptions.find(table => table.id === e.target.value) || null); setForm({ ...form, tableId: e.target.value }); }}><option value="">Selecione</option>{tableOptions.map(table => <option key={table.id} value={table.id}>{table.name} · até {table.capacity}</option>)}</select></Field>
         {tablePagination.totalPages > 1 && <div className="flex items-center gap-2"><Button small disabled={tablePage <= 1 || busy || loading} onClick={() => setTablePage(tablePage - 1)}>Mesas anteriores</Button><span>Página {tablePage} de {tablePagination.totalPages}</span><Button small disabled={tablePage >= tablePagination.totalPages || busy || loading} onClick={() => setTablePage(tablePage + 1)}>Próximas mesas</Button></div>}
         <Field id="booking-guest" label="Hóspede" required><input id="booking-guest" className="input" required maxLength={150} value={form.guestName} onChange={e => setForm({ ...form, guestName: e.target.value })} /></Field>
@@ -169,10 +177,10 @@ export default function WorkspaceRestaurant({ organizationId }: { organizationId
         <Field id="booking-time" label="Horário" required><input id="booking-time" className="input" type="time" required value={form.time} onChange={e => setForm({ ...form, time: e.target.value })} /></Field>
         <Button type="submit" variant="primary" disabled={busy || loading || !tableOptions.length}>Registrar reserva</Button>
       </form>
-      <section className="space-y-3"><h3 className="font-semibold">Reservas registradas</h3>
+      <section className="restaurant-reservations"><div className="restaurant-section-heading"><div><p className="restaurant-kicker">AGENDA</p><h3>Reservas registradas</h3><p>Consulte e atualize o atendimento dos seus grupos.</p></div><ChevronDown size={19} aria-hidden="true" /></div>
         {<div className="flex flex-wrap gap-3"><Field id="booking-search" label="Buscar hóspede"><input id="booking-search" type="search" className="input" value={guestSearch} maxLength={150} onChange={event => setGuestSearch(event.target.value)} /></Field><Field id="booking-status" label="Situação da reserva"><select id="booking-status" className="input" value={statusFilter} onChange={event => { setBookingPage(1); setStatusFilter(event.target.value); }}><option value="">Todas</option>{Object.entries(statusLabel).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></Field></div>}
         {loading || guestSearch.trim() !== appliedSearch ? <p role="status">Buscando reservas...</p> : !bookings.length && <p>{appliedSearch || statusFilter ? 'Nenhuma reserva encontrada com esses filtros.' : 'Nenhuma reserva registrada.'}</p>}
-        {!loading && guestSearch.trim() === appliedSearch && bookings.map(booking => <article key={booking.id} className="card p-4 space-y-2"><strong>{booking.guestName}</strong><p>{booking.table.name} · {dateLabel(booking.date)} · {shiftLabel[booking.shift]} às {booking.time} · {booking.partySize} {booking.partySize === 1 ? 'pessoa' : 'pessoas'}</p><p>{statusLabel[booking.status] || booking.status}</p>{booking.status === 'CONFIRMED' && <div className="flex flex-wrap gap-2"><Button small disabled={busy} onClick={() => void mark(booking.id, 'arrive')}>Registrar chegada</Button><Button small disabled={busy} onClick={() => void mark(booking.id, 'no-show')}>Registrar ausência</Button>{pendingCancel === booking.id ? <><span>Cancelar esta reserva?</span><Button small disabled={busy} onClick={() => setPendingCancel(null)}>Voltar</Button><Button small variant="danger" disabled={busy} onClick={() => void cancel(booking.id)}>Confirmar cancelamento</Button></> : <Button small disabled={busy} onClick={() => setPendingCancel(booking.id)}>Cancelar reserva</Button>}</div>}</article>)}
+        {!loading && guestSearch.trim() === appliedSearch && bookings.map(booking => <article key={booking.id} className="restaurant-booking"><div className="restaurant-booking-main"><div className="restaurant-date"><CalendarDays size={16} aria-hidden="true" /><span>{dateLabel(booking.date)}</span></div><div><strong>{booking.guestName}</strong><p>{booking.table.name} · {shiftLabel[booking.shift]} às {booking.time} · {booking.partySize} {booking.partySize === 1 ? 'pessoa' : 'pessoas'}</p></div><span className={`restaurant-status restaurant-status-${booking.status.toLowerCase()}`}>{statusLabel[booking.status] || booking.status}</span></div>{booking.status === 'CONFIRMED' && <div className="restaurant-booking-actions"><Button small disabled={busy} onClick={() => void mark(booking.id, 'arrive')}>Registrar chegada</Button><Button small disabled={busy} onClick={() => void mark(booking.id, 'no-show')}>Registrar ausência</Button>{pendingCancel === booking.id ? <><span>Cancelar esta reserva?</span><Button small disabled={busy} onClick={() => setPendingCancel(null)}>Voltar</Button><Button small variant="danger" disabled={busy} onClick={() => void cancel(booking.id)}>Confirmar cancelamento</Button></> : <Button small disabled={busy} onClick={() => setPendingCancel(booking.id)}>Cancelar reserva</Button>}</div>}</article>)}
         {!loading && bookingPagination.totalPages > 1 && <div className="flex items-center gap-3"><Button small disabled={bookingPage <= 1 || busy} onClick={() => setBookingPage(bookingPage - 1)}>Reservas anteriores</Button><span>Página {bookingPage} de {bookingPagination.totalPages}</span><Button small disabled={bookingPage >= bookingPagination.totalPages || busy} onClick={() => setBookingPage(bookingPage + 1)}>Próximas reservas</Button></div>}
       </section>
     </>}

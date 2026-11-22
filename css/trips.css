@@ -507,6 +507,47 @@
   background: rgba(212, 91, 45, 0.05);
 }
 
+.trip-boarding-map-wrapper {
+  margin-top: 1rem;
+}
+
+.trip-boarding-map {
+  position: relative;
+  z-index: 0;
+  height: 12rem;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--paper);
+}
+
+.trip-boarding-map .leaflet-popup-content-wrapper {
+  border-radius: var(--radius-lg);
+  font-family: "Inter", "Inter Fallback", sans-serif;
+}
+
+.trip-boarding-map-credit {
+  margin: 0.4rem 0 0;
+  color: var(--text-soft);
+  font-size: 0.7rem;
+}
+
+.trip-boarding-map-fallback {
+  margin-top: 0.4rem;
+}
+
+.trip-boarding-map-fallback summary {
+  cursor: pointer;
+  color: var(--text-soft);
+  font-size: 0.74rem;
+}
+
+.trip-boarding-map-fallback ul {
+  margin: 0.4rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.78rem;
+}
+
 .trip-includes-heading {
   margin: 0 0 0.75rem;
   color: var(--ink);

@@ -1,11 +1,87 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ImagePlus, Plus, Star, X } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import { isValidImageSrc, IMAGE_SRC_MESSAGE, isUploadedMediaSrc } from '../lib/imageSrc';
+import { locationMapUrl, LocationResult, parseLocationResults } from '../lib/locationSearch';
 import ImageThumb from './ImageThumb';
 import ImageUploader from './ImageUploader';
 import Button from './Button';
 import { imageSourceLabel } from '../lib/assetUrl';
+
+/** Pesquisa um endereço no Photon (serviço de geocodificação de terceiro, sem chave de API). */
+async function searchPhoton(query: string, signal: AbortSignal): Promise<LocationResult[]> {
+  const url = new URL('https://photon.komoot.io/api/');
+  url.search = new URLSearchParams({ q: query, limit: '5' }).toString();
+  const response = await fetch(url.toString(), { signal });
+  if (!response.ok) throw new Error('Serviço de pesquisa indisponível. Tente novamente.');
+  return parseLocationResults(await response.json());
+}
+
+/** Pesquisa de local reutilizável: busca no Photon, mostra resultados e só usa a coordenada quando a pessoa confirma. */
+export function LocationPicker({ coords, onConfirm, onClear }: { coords: { lat: number; lng: number } | null; onConfirm: (result: LocationResult) => void; onClear?: () => void }) {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<LocationResult[]>([]);
+  const [error, setError] = useState('');
+  const [searching, setSearching] = useState(false);
+  const request = useRef<AbortController | null>(null);
+
+  useEffect(() => () => request.current?.abort(), []);
+
+  const search = async () => {
+    const text = query.trim();
+    if (text.length < 3) { setError('Digite pelo menos três caracteres.'); return; }
+    request.current?.abort();
+    const controller = new AbortController();
+    request.current = controller;
+    setSearching(true);
+    setError('');
+    setResults([]);
+    try {
+      const found = await searchPhoton(text, controller.signal);
+      if (controller.signal.aborted) return;
+      setResults(found);
+      if (!found.length) setError('Nenhum local encontrado. Experimente outro nome ou inclua a cidade.');
+    } catch {
+      if (!controller.signal.aborted) setError('Não foi possível pesquisar agora. Tente novamente.');
+    } finally {
+      if (!controller.signal.aborted) setSearching(false);
+    }
+  };
+
+  return (
+    <div className="space-y-2 rounded-lg border border-surface-200 p-3">
+      <p className="text-xs text-surface-600">Pesquisar local no mapa (opcional). A pesquisa envia o texto digitado ao Photon, serviço de terceiro fora da OVERTRIP.</p>
+      <div className="flex flex-col sm:flex-row gap-2">
+        <input
+          type="text"
+          className="input flex-1 min-w-0"
+          aria-label="Pesquisar local no mapa"
+          placeholder="Endereço, ponto de referência ou cidade"
+          value={query}
+          onChange={(e) => { request.current?.abort(); setSearching(false); setQuery(e.target.value); setResults([]); setError(''); }}
+          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); if (!searching) void search(); } }}
+        />
+        <Button loading={searching} loadingText="Pesquisando..." onClick={search}>Pesquisar</Button>
+      </div>
+      {error && <p className="text-sm text-red-700" role="alert">{error}</p>}
+      {results.length > 0 && (
+        <ul className="space-y-2" aria-label="Resultados da pesquisa">
+          {results.map((result, index) => (
+            <li key={`${result.lat}-${result.lng}-${index}`} className="rounded border border-surface-200 p-2 text-sm space-y-1">
+              <p>{result.label}</p>
+              <p className="text-surface-600">{result.lat}, {result.lng}</p>
+              <div className="flex flex-wrap items-center gap-3">
+                <a className="text-primary-500 underline" href={locationMapUrl(result.lat, result.lng)} target="_blank" rel="noopener noreferrer">Abrir no mapa</a>
+                <Button small onClick={() => { onConfirm(result); setResults([]); }}>Usar esta localização</Button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+      {coords && <div className="flex flex-wrap items-center gap-4 text-sm"><a className="text-primary-500 underline" href={locationMapUrl(coords.lat, coords.lng)} target="_blank" rel="noopener noreferrer">Ver localização confirmada no mapa</a>{onClear && <button type="button" className="text-primary-600 underline" onClick={onClear}>Remover coordenadas</button>}</div>}
+    </div>
+  );
+}
 
 export function ArrayInput({ id, value, onChange, placeholder, onPendingChange }: { id: string; value: string[]; onChange: (val: string[]) => void; placeholder: string; onPendingChange?: (pending: boolean) => void }) {
   const [newItem, setNewItem] = useState('');
@@ -139,7 +215,7 @@ export function MediaInput({ value, onChange, inputId, onPendingChange, onLinkPe
   );
 }
 
-export type Departure = { time: string; place: string; city: string; mapsUrl?: string | null; mapsQuery?: string | null; orderIndex: number };
+export type Departure = { time: string; place: string; city: string; mapsUrl?: string | null; mapsQuery?: string | null; lat?: number | null; lng?: number | null; orderIndex: number };
 
 /** Lugares de onde o grupo sai, cada um com seu horário. */
 export function DeparturesInput({ value, onChange, onPendingChange }: { value: Departure[]; onChange: (val: Departure[]) => void; onPendingChange?: (pending: boolean) => void }) {
@@ -148,12 +224,20 @@ export function DeparturesInput({ value, onChange, onPendingChange }: { value: D
   const [city, setCity] = useState('');
   const [mapsUrl, setMapsUrl] = useState('');
   const [mapsQuery, setMapsQuery] = useState('');
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationPickerVersion, setLocationPickerVersion] = useState(0);
   const [missing, setMissing] = useState(false);
+
+  const updatePlaceText = (setter: (value: string) => void, value: string) => {
+    setter(value);
+    setCoords(null);
+    setLocationPickerVersion(version => version + 1);
+  };
 
   const handleAdd = () => {
     if (!time.trim() || !place.trim() || !city.trim()) { setMissing(true); return; }
-    onChange([...value, { time: time.trim(), place: place.trim(), city: city.trim(), mapsUrl: mapsUrl.trim() || undefined, mapsQuery: mapsQuery.trim() || undefined, orderIndex: value.length }]);
-    setTime(''); setPlace(''); setCity(''); setMapsUrl(''); setMapsQuery(''); setMissing(false);
+    onChange([...value, { time: time.trim(), place: place.trim(), city: city.trim(), mapsUrl: mapsUrl.trim() || undefined, mapsQuery: mapsQuery.trim() || undefined, lat: coords?.lat ?? undefined, lng: coords?.lng ?? undefined, orderIndex: value.length }]);
+    setTime(''); setPlace(''); setCity(''); setMapsUrl(''); setMapsQuery(''); setCoords(null); setMissing(false);
     onPendingChange?.(false);
   };
 
@@ -165,12 +249,13 @@ export function DeparturesInput({ value, onChange, onPendingChange }: { value: D
     <div className="space-y-3">
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2" onInput={(event) => onPendingChange?.(Array.from(event.currentTarget.querySelectorAll('input')).some((input) => !!input.value.trim()))}>
         <input type="text" className="input" placeholder="Horário (ex.: 06h00)" aria-label="Horário da saída" value={time} onChange={(e) => setTime(e.target.value)} onKeyDown={onEnter} />
-        <input type="text" className="input" placeholder="Local (ex.: Shopping)" aria-label="Local da saída" value={place} onChange={(e) => setPlace(e.target.value)} onKeyDown={onEnter} />
-        <input type="text" className="input" placeholder="Cidade" aria-label="Cidade da saída" value={city} onChange={(e) => setCity(e.target.value)} onKeyDown={onEnter} />
-        <input type="url" className="input sm:col-span-1" placeholder="Link do Google Maps (opcional)" aria-label="Link do Google Maps (opcional)" value={mapsUrl} onChange={(e) => setMapsUrl(e.target.value)} onKeyDown={onEnter} />
-        <input type="text" className="input" placeholder="Endereço no Google Maps (opcional)" aria-label="Endereço no Google Maps (opcional)" value={mapsQuery} onChange={(e) => setMapsQuery(e.target.value)} onKeyDown={onEnter} />
-        <Button variant="primary" onClick={handleAdd} icon={<Plus className="w-4 h-4" aria-hidden="true" />}>Adicionar saída</Button>
+        <input type="text" className="input" placeholder="Local (ex.: Shopping)" aria-label="Local da saída" value={place} onChange={(e) => updatePlaceText(setPlace, e.target.value)} onKeyDown={onEnter} />
+        <input type="text" className="input" placeholder="Cidade" aria-label="Cidade da saída" value={city} onChange={(e) => updatePlaceText(setCity, e.target.value)} onKeyDown={onEnter} />
+        <input type="url" className="input sm:col-span-1" placeholder="Link do Google Maps (opcional)" aria-label="Link do Google Maps (opcional)" value={mapsUrl} onChange={(e) => updatePlaceText(setMapsUrl, e.target.value)} onKeyDown={onEnter} />
+        <input type="text" className="input" placeholder="Endereço no Google Maps (opcional)" aria-label="Endereço no Google Maps (opcional)" value={mapsQuery} onChange={(e) => updatePlaceText(setMapsQuery, e.target.value)} onKeyDown={onEnter} />
       </div>
+      <LocationPicker key={locationPickerVersion} coords={coords} onConfirm={(result) => setCoords({ lat: result.lat, lng: result.lng })} onClear={() => setCoords(null)} />
+      <Button variant="primary" onClick={handleAdd} icon={<Plus className="w-4 h-4" aria-hidden="true" />}>Adicionar saída</Button>
       {missing && <p className="field-error" role="alert">Preencha horário, local e cidade para adicionar.</p>}
       {value.length > 0 && (
         <ul className="space-y-1">
@@ -180,6 +265,7 @@ export function DeparturesInput({ value, onChange, onPendingChange }: { value: D
               <span className="text-sm font-medium text-surface-900">{item.place}</span>
               <span className="text-sm text-surface-600">{item.city}</span>
               {(item.mapsUrl || item.mapsQuery) && <span className="badge badge-info">Google Maps</span>}
+              {typeof item.lat === 'number' && typeof item.lng === 'number' && <span className="badge badge-info">Mapa confirmado</span>}
               <button type="button" className="btn-icon ml-auto text-red-700 hover:bg-red-50" onClick={() => onChange(value.filter((_, i) => i !== index).map((d, i) => ({ ...d, orderIndex: i })))} aria-label={`Remover saída ${item.place} às ${item.time}`}>
                 <X className="w-4 h-4" aria-hidden="true" />
               </button>

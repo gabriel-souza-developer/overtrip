@@ -55,7 +55,14 @@ function intensityLabel(intensityClass: string): string {
   return word ? `Intensidade ${INTENSITY_WORDS[word] ?? word}` : '';
 }
 
-type DepartureRow = { time: string; place: string; city: string; mapsUrl: string | null; mapsQuery: string | null; orderIndex: number };
+type DepartureRow = { time: string; place: string; city: string; mapsUrl: string | null; mapsQuery: string | null; lat: number | null; lng: number | null; orderIndex: number };
+
+// Só confirmadas pela equipe (pesquisa + seleção explícita no painel); nunca inventadas.
+function validCoords(lat: number | null | undefined, lng: number | null | undefined): { lat: number; lng: number } | null {
+  if (typeof lat !== 'number' || typeof lng !== 'number' || !Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
+  return { lat, lng };
+}
 type TripRow = NonNullable<Awaited<ReturnType<typeof findRows>>>[number];
 
 function findRows() {
@@ -80,6 +87,7 @@ function nullIfEmpty<T>(arr: T[]): T[] | null {
 
 /** Mapeamento explícito: só entra aqui o que o site (js/render.js, js/main.js) consome. */
 export function mapPublicTrip(trip: TripRow) {
+  const meetingCoords = trip.meetingTBD ? null : validCoords(trip.meetingLat, trip.meetingLng);
   return {
     title: trip.title,
     headlineDisplay: trip.headlineDisplay,
@@ -94,13 +102,18 @@ export function mapPublicTrip(trip: TripRow) {
     meetingInfo: meetingInfo(trip),
     meetingDetails: trip.meetingTBD ? null : trip.meetingDetails,
     meetingMapsQuery: trip.meetingTBD ? null : trip.meetingMapsQuery,
-    departures: (trip.meetingTBD ? [] : trip.departures).map((d: DepartureRow) => ({
-      time: d.time,
-      place: d.place,
-      city: d.city,
-      ...(d.mapsUrl ? { mapsUrl: d.mapsUrl } : {}),
-      ...(d.mapsQuery ? { mapsQuery: d.mapsQuery } : {}),
-    })),
+    ...(meetingCoords ? { meetingLat: meetingCoords.lat, meetingLng: meetingCoords.lng } : {}),
+    departures: (trip.meetingTBD ? [] : trip.departures).map((d: DepartureRow) => {
+      const coords = validCoords(d.lat, d.lng);
+      return {
+        time: d.time,
+        place: d.place,
+        city: d.city,
+        ...(d.mapsUrl ? { mapsUrl: d.mapsUrl } : {}),
+        ...(d.mapsQuery ? { mapsQuery: d.mapsQuery } : {}),
+        ...(coords ? { lat: coords.lat, lng: coords.lng } : {}),
+      };
+    }),
     scheduleInfo: trip.scheduleInfo,
     scheduleTBD: trip.scheduleTBD,
     dateDisplay: formatDateDisplay(trip.startDateISO),

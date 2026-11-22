@@ -53,7 +53,7 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
   const [rows, total] = await prisma.$transaction([
     prisma.reservation.findMany({
       where,
-      include: { trip: { select: { id: true, title: true, startDateISO: true } }, installments: { orderBy: { createdAt: 'asc' } } },
+      include: { trip: { select: { id: true, title: true, startDateISO: true } }, lead: { select: { id: true, name: true } }, installments: { orderBy: { createdAt: 'asc' } } },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: (page - 1) * limit, take: limit,
     }),
     prisma.reservation.count({ where }),

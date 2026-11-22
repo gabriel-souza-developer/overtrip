@@ -279,6 +279,8 @@ export interface Trip {
   meetingTBD: boolean;
   meetingDetails: string | null;
   meetingMapsQuery: string | null;
+  meetingLat: number | null;
+  meetingLng: number | null;
   includes: string[];
   includesHighlight: string | null;
   includedServices: string[] | null;
@@ -306,6 +308,8 @@ export interface TripDeparture {
   city: string;
   mapsUrl: string | null;
   mapsQuery: string | null;
+  lat: number | null;
+  lng: number | null;
   orderIndex: number;
 }
 
@@ -340,6 +344,8 @@ export interface TripFormData {
   meetingTBD?: boolean;
   meetingDetails?: string | null;
   meetingMapsQuery?: string | null;
+  meetingLat?: number | null;
+  meetingLng?: number | null;
   includes?: string[];
   includesHighlight?: string | null;
   includedServices?: string[] | null;
@@ -351,7 +357,7 @@ export interface TripFormData {
   buttonClass?: string;
   status?: TripStatus;
   availabilitySchema?: string;
-  departures?: Array<{ time: string; place: string; city: string; mapsUrl?: string | null; mapsQuery?: string | null; orderIndex: number }>;
+  departures?: Array<{ time: string; place: string; city: string; mapsUrl?: string | null; mapsQuery?: string | null; lat?: number | null; lng?: number | null; orderIndex: number }>;
 }
 
 export interface Visit {

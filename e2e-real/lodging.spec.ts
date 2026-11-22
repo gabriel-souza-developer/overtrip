@@ -7,13 +7,17 @@ test('pousada registra estadias persistentes e recusa noites sobrepostas', async
   await page.getByRole('button', { name: 'Entrar', exact: true }).click();
   await expect(page).toHaveURL(process.env.OVERTRIP_E2E_PLATFORM_ONLY === '1' ? /\/espaco/ : /\/dashboard/);
   await page.goto('/espaco');
-  await expect(page.getByRole('heading', { name: 'Pousada fictícia E2E' })).toBeVisible();
+  await expect(page.getByText('Pousada fictícia E2E').first()).toBeVisible();
+  await page.getByRole('button', { name: 'Abrir operação' }).first().click();
 
+  await page.getByRole('button', { name: 'Cadastrar unidade' }).click();
   await page.getByLabel('Nome da unidade').fill('Quarto 101');
   await page.getByRole('button', { name: 'Cadastrar unidade' }).click();
+  await page.getByRole('button', { name: 'Nova reserva' }).click();
   await expect(page.locator('#stay-unit option').filter({ hasText: 'Quarto 101' })).toBeAttached();
 
   const book = async (guest: string, checkIn: string, checkOut: string) => {
+    if (!await page.locator('#stay-unit').isVisible()) await page.getByRole('button', { name: 'Nova reserva' }).click();
     await page.locator('#stay-unit').selectOption({ label: 'Quarto 101' });
     await page.locator('#stay-guest').fill(guest);
     await page.locator('#stay-in').fill(checkIn);
@@ -36,21 +40,25 @@ test('pousada registra estadias persistentes e recusa noites sobrepostas', async
   if (await first.getByRole('button', { name: 'Confirmar registro' }).isVisible()) await first.getByRole('button', { name: 'Confirmar registro' }).click();
   await expect(first).toContainText('Hóspede presente');
   await page.reload();
+  await page.getByRole('button', { name: 'Abrir operação' }).first().click();
   await expect(first).toContainText('Hóspede presente');
 
   await book('Hóspede em conflito', '2030-06-11', '2030-06-13');
   await expect(page.getByRole('alert')).toContainText('já está reservada');
   await expect(page.locator('article').filter({ hasText: 'Hóspede em conflito' })).toHaveCount(0);
 
+  await page.getByRole('dialog').getByRole('button', { name: 'Fechar' }).click();
   await first.getByRole('button', { name: 'Registrar saída' }).click();
   if (await first.getByRole('button', { name: 'Confirmar registro' }).isVisible()) await first.getByRole('button', { name: 'Confirmar registro' }).click();
   await expect(first).toContainText('Estadia encerrada');
   await page.reload();
+  await page.getByRole('button', { name: 'Abrir operação' }).first().click();
   await expect(first).toContainText('Estadia encerrada');
   await book('Conflito após saída', '2030-06-11', '2030-06-12');
   await expect(page.getByRole('alert')).toContainText('já está reservada');
   await expect(page.locator('article').filter({ hasText: 'Conflito após saída' })).toHaveCount(0);
 
+  await page.getByRole('dialog').getByRole('button', { name: 'Fechar' }).click();
   await book('Hóspede seguinte', '2030-06-12', '2030-06-14');
   const second = page.locator('article').filter({ hasText: 'Hóspede seguinte' });
   await expect(second).toContainText('12/06/2030 a 14/06/2030');
@@ -59,6 +67,7 @@ test('pousada registra estadias persistentes e recusa noites sobrepostas', async
   await expect(second).toBeVisible();
   await page.getByLabel('Buscar hóspede').fill('');
   await page.reload();
+  await page.getByRole('button', { name: 'Abrir operação' }).first().click();
   await expect(first).toContainText('Estadia encerrada');
   await expect(second).toContainText('Confirmada');
   await expect(page.locator('article')).toHaveCount(2);
@@ -68,6 +77,7 @@ test('pousada registra estadias persistentes e recusa noites sobrepostas', async
   await second.getByRole('button', { name: 'Confirmar cancelamento' }).click();
   await expect(second).toContainText('Cancelada');
   await expect(occupancy.getByRole('cell').nth(2)).toHaveText('Sem reserva');
+  await page.getByText('Novo bloqueio', { exact: true }).click();
   await page.getByLabel('Unidade do bloqueio').selectOption({ label: 'Quarto 101' });
   await page.getByLabel('Primeiro dia bloqueado').fill('2030-06-12');
   await page.getByLabel('Liberar a partir de').fill('2030-06-14');
@@ -78,6 +88,7 @@ test('pousada registra estadias persistentes e recusa noites sobrepostas', async
   await expect(occupancy.getByRole('cell').nth(2)).toHaveText('Bloqueada');
   await book('Conflito com manutenção', '2030-06-12', '2030-06-13');
   await expect(page.getByRole('alert')).toContainText('bloqueada');
+  await page.getByRole('dialog').getByRole('button', { name: 'Fechar' }).click();
   await block.getByRole('button', { name: 'Cancelar bloqueio' }).click();
   await block.getByRole('button', { name: 'Confirmar cancelamento do bloqueio' }).click();
   await expect(block).toContainText('Cancelado');

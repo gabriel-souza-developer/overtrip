@@ -30,7 +30,7 @@ export default function TripProposalPreview({ trip, dirty }: { trip: TripFormDat
     </div>
     <Modal open={open} onOpenChange={setOpen} title="Prévia da proposta" description="Esta prévia não publica nem envia dados. Revise o conteúdo antes de compartilhar." widthClass="max-w-2xl" footer={<><Button onClick={() => setOpen(false)}>Fechar</Button><Button variant="primary" icon={<Copy className="h-4 w-4" aria-hidden="true" />} onClick={copy}>Copiar texto</Button></>}>
       <div className="space-y-4">
-        {dirty && <p className="text-sm text-amber-800 bg-amber-50 rounded-lg p-3" role="status">A prévia inclui alterações ainda não salvas.</p>}
+        {dirty && <p className="text-sm text-yellow-800 bg-yellow-50 rounded-lg p-3" role="status">A prévia inclui alterações ainda não salvas.</p>}
         <Field id="proposal-organizer" label="Agência ou organizador" hint="Usado somente nesta prévia; não altera as configurações."><input id="proposal-organizer" className="input" maxLength={120} value={organizer} onChange={e => setOrganizer(e.target.value)} /></Field>
         <article className="rounded-xl border border-surface-200 overflow-hidden bg-white">
           <header className="bg-surface-900 text-white px-5 py-4 flex items-center gap-3">{proposal.organizer.toUpperCase() === 'OVERTRIP' && <img src={brandUrl('overtrip-logo-com-fundo-laranja-192.png')} alt="" className="h-10 w-10 rounded-lg" />}<div><p className="text-xs text-surface-300 uppercase tracking-wide">Proposta de viagem</p><p className="font-semibold">{proposal.organizer}</p></div></header>

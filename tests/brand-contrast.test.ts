@@ -13,7 +13,7 @@ function scale(name: string): Record<string, string> {
 }
 const scales: Record<string, Record<string, string>> = { primary: scale('primary'), surface: scale('surface') };
 
-// Resolve "bg-primary-500" / "hover:bg-primary-400" etc. para o hex da escala.
+// Resolve "bg-primary-500" / "hover:bg-primary-600" etc. para o hex da escala.
 function hexOf(token: string): string {
   const [, family, level] = token.match(/(primary|surface)-(\d+)$/)!;
   return scales[family][level];
@@ -37,32 +37,38 @@ function contrast(a: string, b: string): number {
 
 const white = '#ffffff';
 
-describe('contraste da paleta da marca no painel', () => {
-  it('escalas mantêm a marca: primary-500 = rust e surface-900 = ink', () => {
-    expect(scales.primary['500']).toBe('#e26b1b');
+// O painel (frontend/src) usa um verde/teal próprio (herdado do Workspace), separado
+// do laranja da marca/site público: a prévia do card (.site-card-preview, que espelha
+// o site) e o site público continuam com --rust/oklch(...) e não entram aqui.
+describe('contraste da paleta do painel (verde/teal do Workspace)', () => {
+  it('escalas do painel: primary-500 = verde do Workspace e surface-900 = ink', () => {
+    expect(scales.primary['500']).toBe('#26755e');
+    expect(scales.primary['600']).toBe('#1d634e');
     expect(scales.surface['900']).toBe('#0d0d0d');
     expect(scales.surface['50']).toBe('#fafafa');
   });
 
-  it('.btn-primary usa o laranja da marca (#E26B1B) com texto branco; hover no tom claro', () => {
+  it('.btn-primary usa o verde do Workspace (#26755E) com texto branco; hover no tom mais escuro (#1D634E)', () => {
     const c = rule('.btn-primary');
     expect(find(c, 'bg-')).toBe('bg-primary-500');
     expect(find(c, 'text-')).toBe('text-white');
-    expect(find(c, 'hover:bg-')).toBe('hover:bg-primary-400');
+    expect(find(c, 'hover:bg-')).toBe('hover:bg-primary-600');
+    expect(contrast(white, hexOf(find(c, 'bg-')))).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(white, hexOf(find(c, 'hover:bg-')))).toBeGreaterThanOrEqual(4.5);
   });
 
-  it('.pagination-btn-active: mantém o rust claro com texto ink e contraste AA', () => {
+  it('.pagination-btn-active: mesmo verde, texto branco e contraste AA no normal/hover', () => {
     const c = rule('.pagination-btn-active');
     expect(find(c, 'bg-')).toBe('bg-primary-500');
-    expect(find(c, 'text-')).toBe('text-surface-900');
-    expect(find(c, 'hover:bg-')).toBe('hover:bg-primary-400');
-    const text = hexOf(find(c, 'text-'));
-    expect(contrast(text, hexOf(find(c, 'bg-')))).toBeGreaterThanOrEqual(4.5);
-    expect(contrast(text, hexOf(find(c, 'hover:bg-')))).toBeGreaterThanOrEqual(4.5);
+    expect(find(c, 'text-')).toBe('text-white');
+    expect(find(c, 'hover:bg-')).toBe('hover:bg-primary-600');
+    expect(contrast(white, hexOf(find(c, 'bg-')))).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(white, hexOf(find(c, 'hover:bg-')))).toBeGreaterThanOrEqual(4.5);
   });
 
-  it('rust puro com texto branco NÃO passa AA', () => {
-    expect(contrast(white, scales.primary['500'])).toBeLessThan(4.5);
+  it('verde da marca do painel com texto branco passa AA (normal e hover)', () => {
+    expect(contrast(white, scales.primary['500'])).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(white, scales.primary['600'])).toBeGreaterThanOrEqual(4.5);
   });
 
   it('texto secundário surface-500 sobre o fundo surface-50 e branco passa AA', () => {
@@ -74,18 +80,19 @@ describe('contraste da paleta da marca no painel', () => {
     expect(css).toMatch(new RegExp(`background-color: ${scales.surface['50']};`));
   });
 
-  it('foco usa o laranja da marca e tem ao menos 3:1 contra o fundo branco', () => {
+  it('foco visível usa o verde do painel (não mais o laranja do site) e tem ao menos 3:1 contra o fundo branco', () => {
     expect(css).toContain(`outline: 2px solid ${scales.primary['500']};`);
     expect(contrast(scales.primary['500'], white)).toBeGreaterThanOrEqual(3);
   });
 
-  it('o painel usa o mesmo laranja do site: nenhum tom escuro (primary-600/700) nas telas', () => {
+  it('nenhum laranja antigo da marca (#E26B1B e tons escuros anteriores) sobrevive no painel', () => {
+    // primary-600 é intencional (hover de .btn-primary/.pagination-btn-active); 700+ não são usados.
     const walk = (dir: string): string[] => readdirSync(dir).flatMap((name) => {
       const full = join(dir, name);
       return statSync(full).isDirectory() ? walk(full) : /\.(tsx?|css)$/.test(name) ? [full] : [];
     });
-    const offenders = walk(join(root, 'frontend/src')).filter((file) => /primary-(?:600|700|800|900)\b/.test(readFileSync(file, 'utf8')));
+    const offenders = walk(join(root, 'frontend/src')).filter((file) => /primary-(?:700|800|900)\b/.test(readFileSync(file, 'utf8')));
     expect(offenders).toEqual([]);
-    expect(css).not.toMatch(/#bf5200|#993e00/i);
+    expect(css).not.toMatch(/#e26b1b|#bf5200|#993e00|#fa8746|#ffa977/i);
   });
 });

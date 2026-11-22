@@ -22,6 +22,7 @@ test('pede confirmação ao registrar chegada fora da data prevista', async ({ p
   await page.route('**/api/lodging/reservations?*', route => route.fulfill({ json: { pagination, reservations: [{ id: 'r1', unitId: 'u1', guestName: 'Ana', checkIn: '2030-06-12', checkOut: '2030-06-13', status: requests ? 'CHECKED_IN' : 'CONFIRMED', unit }] } }));
   await page.route('**/api/lodging/reservations/r1/check-in', route => { requests++; return route.fulfill({ json: {} }); });
   await page.goto('/espaco');
+  await page.getByRole('button', { name: 'Abrir operação' }).first().click();
   const reservation = page.getByRole('article').filter({ hasText: 'Ana' });
   await reservation.getByRole('button', { name: 'Registrar chegada' }).click();
   await expect(reservation).toContainText('A data prevista é 12/06/2030');
@@ -47,6 +48,7 @@ test('mostra movimentos do dia e pendências anteriores sem presumir ausência',
     { id: 'c', unitId: 'u1', guestName: 'Chegada anterior', checkIn: '2030-06-09', checkOut: '2030-06-10', status: 'CONFIRMED', unit },
   ] } }));
   await page.goto('/espaco');
+  await page.getByRole('button', { name: 'Abrir operação' }).first().click();
   const movement = page.getByRole('region', { name: 'Movimento de hoje' });
   await expect(movement).toContainText('1 chegada prevista · 1 saída prevista');
   await expect(movement).toContainText('Pendências anteriores: 1 chegada · 0 saídas');
@@ -109,8 +111,11 @@ test('espaços isolam unidades e reservas, rejeitam conflito e permitem cancelam
   await page.goto('/espaco');
   await page.getByRole('button', { name: /Pousada A/ }).click();
   await expect(page.getByRole('heading', { name: 'Pousada A' })).toBeVisible();
+  await page.getByRole('button', { name: 'Abrir operação' }).first().click();
+  await page.getByRole('button', { name: 'Cadastrar unidade' }).click();
   await page.getByLabel('Nome da unidade').fill('Suíte A');
   await page.getByRole('button', { name: 'Cadastrar unidade' }).click();
+  await page.getByRole('button', { name: 'Nova reserva' }).click();
   await expect(page.locator('#stay-unit').getByRole('option', { name: 'Suíte A' })).toBeAttached();
   await page.locator('#stay-unit').selectOption('org-a-unit');
   await page.locator('#stay-guest').fill('Ana da pousada A');
@@ -118,20 +123,24 @@ test('espaços isolam unidades e reservas, rejeitam conflito e permitem cancelam
   await page.getByLabel('Saída').fill('2026-12-12');
   await page.getByRole('button', { name: 'Registrar reserva' }).click();
   await expect(page.getByText('Ana da pousada A')).toBeVisible();
+  await page.getByRole('button', { name: 'Nova reserva' }).click();
   await page.locator('#stay-unit').selectOption('org-a-unit');
   await page.locator('#stay-guest').fill('Conflito');
   await page.getByLabel('Entrada').fill('2026-12-11');
   await page.getByLabel('Saída').fill('2026-12-13');
   await page.getByRole('button', { name: 'Registrar reserva' }).click();
   await expect(page.getByRole('alert')).toContainText('Unidade indisponível');
+  if (await page.getByRole('dialog').isVisible()) await page.getByRole('dialog').getByRole('button', { name: 'Fechar' }).click();
   await page.getByRole('button', { name: 'Trocar espaço' }).click();
   await page.getByRole('button', { name: /Pousada B/ }).click();
   await expect(page.getByRole('heading', { name: 'Pousada B' })).toBeVisible();
+  await page.getByRole('button', { name: 'Abrir operação' }).first().click();
   await expect(page.getByText('Ana da pousada A')).toHaveCount(0);
   await expect(page.locator('#stay-unit').getByRole('option', { name: 'Suíte A' })).toHaveCount(0);
   await expect(page.getByText('Nenhuma reserva registrada.')).toBeVisible();
   await page.getByRole('button', { name: 'Trocar espaço' }).click();
   await page.getByRole('button', { name: /Pousada A/ }).click();
+  await page.getByRole('button', { name: 'Abrir operação' }).first().click();
   await expect(page.getByText('Ana da pousada A')).toBeVisible();
   await page.getByRole('button', { name: 'Cancelar reserva', exact: true }).click();
   await page.getByRole('button', { name: 'Confirmar cancelamento' }).click();
@@ -168,11 +177,14 @@ test('informa que operação foi salva se atualização falha e permite recarreg
     throw new Error(`Requisição inesperada: ${req.method()} ${path}`);
   });
   await page.goto('/espaco');
+  await page.getByRole('button', { name: 'Abrir operação' }).first().click();
+  await page.getByRole('button', { name: 'Cadastrar unidade' }).click();
   await page.getByLabel('Nome da unidade').fill('Suíte A');
   await page.getByRole('button', { name: 'Cadastrar unidade' }).click();
   await expect(page.getByRole('alert')).toContainText('Operação concluída');
   await expect(page.getByRole('button', { name: 'Cadastrar unidade' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Tentar carregar novamente' }).click();
+  await page.getByRole('button', { name: 'Nova reserva' }).click();
   await expect(page.locator('#stay-unit').getByRole('option', { name: 'Suíte A' })).toBeAttached();
   expect(attempts).toBe(1);
 });
@@ -201,7 +213,9 @@ test('revogação de acesso oculta dados e permite tentar novamente', async ({ p
     throw new Error(`Requisição inesperada: ${req.method()} ${path}`);
   });
   await page.goto('/espaco');
+  await page.getByRole('button', { name: 'Abrir operação' }).first().click();
   await expect(page.getByText('Hóspede privado')).toBeVisible();
+  await page.getByRole('button', { name: 'Cadastrar unidade' }).click();
   await page.getByLabel('Nome da unidade').fill('Outra unidade');
   await page.getByRole('button', { name: 'Cadastrar unidade' }).click();
   await expect(page.getByRole('alert')).toContainText('Acesso revogado');

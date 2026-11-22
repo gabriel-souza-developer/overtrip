@@ -25,6 +25,7 @@ async function setup(page: Page, getTotal: () => number, onCancel: () => void) {
     throw new Error(`Rota inesperada: ${req.method()} ${url.pathname}`);
   });
   await page.goto('/espaco');
+  await page.getByRole('button', { name: 'Abrir operação' }).first().click();
 }
 
 test('cancelamento na última página retorna à página restante do filtro', async ({ page }) => {
@@ -53,7 +54,9 @@ test('uma atualização normal retorna à primeira página mesmo quando o total 
     pages.push(current);
     return route.fulfill({ json: { reservations: [], pagination: paginated(current, 0) } });
   });
+  await page.getByRole('button', { name: 'Nova reserva' }).click();
   await page.getByRole('button', { name: 'Próximas unidades', exact: true }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Fechar' }).click();
   await expect(page.getByText('Nenhuma reserva registrada.')).toBeVisible();
   expect(pages).toEqual([2, 1]);
   await page.waitForTimeout(400);

@@ -6,11 +6,12 @@ import type { AddressInfo } from 'node:net';
 // Todos os caminhos usados pela API pertencem a este processo de teste.
 const directory = process.env.OVERTRIP_E2E_TEMP_DIR;
 const platformOnly = process.env.OVERTRIP_E2E_PLATFORM_ONLY === '1';
+const frontendPort = Number(process.env.OVERTRIP_E2E_FRONTEND_PORT || '4391');
 if (!directory) throw new Error('Diretório temporário de teste não informado');
 process.env.DATABASE_URL = `file:${join(directory, 'test.db')}`;
 process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = 'e2e-isolated-secret-never-used-in-production';
-process.env.CORS_ORIGIN = 'http://127.0.0.1:4391';
+process.env.CORS_ORIGIN = `http://127.0.0.1:${frontendPort}`;
 process.env.UPLOADS_DIR = join(directory, 'uploads');
 process.env.DOCUMENT_STORAGE_DIR = join(directory, 'documents');
 process.env.OVERTRIP_E2E_MOCKS = '0';
@@ -41,6 +42,9 @@ async function main() {
     const second = await prisma.user.create({ data: { email: 'outra-e2e@example.test', passwordHash: await bcrypt.default.hash('senha-e2e-123', 4), role: 'user' } });
     const otherOrg = await prisma.organization.create({ data: { name: 'Outra pousada E2E', slug: 'outra-pousada-e2e', niche: 'pousada' } });
     await prisma.membership.create({ data: { userId: second.id, organizationId: otherOrg.id, role: 'owner' } });
+    const restaurantUser = await prisma.user.create({ data: { email: 'restaurante-e2e@example.test', passwordHash: await bcrypt.default.hash('senha-e2e-123', 4), role: 'user' } });
+    const restaurant = await prisma.organization.create({ data: { name: 'Restaurante fictício E2E', slug: 'restaurante-e2e', niche: 'restaurante' } });
+    await prisma.membership.create({ data: { userId: restaurantUser.id, organizationId: restaurant.id, role: 'owner' } });
   }
   await prisma.trip.create({ data: {
     title: 'Viagem fictícia E2E', category: 'Teste', description: 'Viagem de teste',
@@ -61,7 +65,7 @@ async function main() {
   });
   const platformTarget = `http://127.0.0.1:${(platformApi.address() as AddressInfo).port}`;
   const target = platformOnly ? platformTarget : `http://127.0.0.1:${(api!.address() as AddressInfo).port}`;
-  vite = spawn(process.execPath, [resolve('node_modules/vite/bin/vite.js'), '--host', '127.0.0.1', '--port', '4391', '--strictPort'], {
+  vite = spawn(process.execPath, [resolve('node_modules/vite/bin/vite.js'), '--host', '127.0.0.1', '--port', String(frontendPort), '--strictPort'], {
     env: { ...process.env, OVERTRIP_E2E_API_TARGET: target, OVERTRIP_E2E_PLATFORM_TARGET: platformTarget, VITE_PLATFORM_MODE: platformOnly ? 'true' : 'false' }, stdio: ['ignore', 'pipe', 'inherit'],
   });
   vite.stdout!.on('data', chunk => { process.stdout.write(chunk); if (String(chunk).includes('ready in')) console.log('E2E_REAL_READY'); });

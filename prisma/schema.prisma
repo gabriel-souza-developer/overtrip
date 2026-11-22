@@ -56,7 +56,11 @@ model Trip {
   meetingTBD        Boolean   @default(false)
   meetingDetails    String?
   meetingMapsQuery  String?
-  
+  // Coordenadas confirmadas pela equipe (pesquisa no Photon + seleção manual).
+  // NULLABLE: viagens antigas não têm; nunca preenchidas automaticamente.
+  meetingLat        Float?
+  meetingLng        Float?
+
   // Conteúdo (JSON stored as String)
   includes          String      // JSON string: ["Banho de rio", ...]
   includesHighlight String?
@@ -222,8 +226,12 @@ model TripDeparture {
   city       String
   mapsUrl    String?
   mapsQuery  String?
+  // Coordenadas confirmadas pela equipe (pesquisa no Photon + seleção manual).
+  // NULLABLE: embarques antigos não têm; nunca preenchidas automaticamente.
+  lat        Float?
+  lng        Float?
   orderIndex Int
-  
+
   createdAt  DateTime @default(now())
   
   @@index([tripId])

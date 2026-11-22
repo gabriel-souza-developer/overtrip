@@ -34,6 +34,8 @@ export const tripCreateSchema = z.object({
   meetingTBD: z.boolean().default(false),
   meetingDetails: z.string().optional().nullable(),
   meetingMapsQuery: z.string().optional().nullable(),
+  meetingLat: z.number().min(-90).max(90).optional().nullable(),
+  meetingLng: z.number().min(-180).max(180).optional().nullable(),
   includes: z.array(z.string()).default([]),
   includesHighlight: z.string().optional().nullable(),
   includedServices: z.array(z.string()).optional().nullable(),
@@ -57,6 +59,8 @@ export const tripCreateSchema = z.object({
     city: z.string(),
     mapsUrl: z.string().url().optional().nullable(),
     mapsQuery: z.string().optional().nullable(),
+    lat: z.number().min(-90).max(90).optional().nullable(),
+    lng: z.number().min(-180).max(180).optional().nullable(),
     orderIndex: z.number().int(),
   })).optional().default([]),
 });

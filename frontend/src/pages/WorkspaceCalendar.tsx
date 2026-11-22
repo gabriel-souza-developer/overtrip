@@ -56,7 +56,7 @@ export default function WorkspaceCalendar({ organizationId, version, onAccessDen
         <tbody>{units.map(unit => <tr key={unit.id}><th scope="row" className="p-2 text-left whitespace-nowrap">{unit.name}</th>{days.map(day => {
           const blocked = unit.blockedNights?.includes(day) ?? false;
           const occupied = unit.occupiedNights.includes(day);
-          return <td key={day} className="p-2 text-center"><span className={blocked ? 'text-amber-700' : occupied ? 'text-red-700' : 'text-green-700'}>{blocked ? 'Bloqueada' : occupied ? 'Ocupada' : 'Sem reserva'}</span></td>;
+          return <td key={day} className="p-2 text-center"><span className={blocked ? 'text-yellow-700' : occupied ? 'text-red-700' : 'text-green-700'}>{blocked ? 'Bloqueada' : occupied ? 'Ocupada' : 'Sem reserva'}</span></td>;
         })}</tr>)}</tbody>
       </table>
     </div>{pagination.totalPages > 1 && <div className="flex items-center gap-3"><Button small disabled={page <= 1} onClick={() => setPage(page - 1)}>Unidades anteriores na grade</Button><span>Página {page} de {pagination.totalPages}</span><Button small disabled={page >= pagination.totalPages} onClick={() => setPage(page + 1)}>Próximas unidades na grade</Button></div>}</>}

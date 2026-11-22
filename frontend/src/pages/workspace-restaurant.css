@@ -1,0 +1,38 @@
+.restaurant-workspace { color: #193c38; display: grid; gap: 22px; }
+.restaurant-heading, .restaurant-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+.restaurant-heading h2 { color: #163a35; font-size: clamp(1.65rem, 3vw, 2rem); font-weight: 700; letter-spacing: -.035em; line-height: 1.15; margin: 3px 0 8px; }
+.restaurant-heading p:not(.restaurant-kicker), .restaurant-section-heading p:not(.restaurant-kicker) { color: #708b85; font-size: .875rem; margin: 4px 0 0; }
+.restaurant-kicker { color: #6e9a8d; font-size: .625rem; font-weight: 700; letter-spacing: .12em; margin: 0; }
+.restaurant-actions, .restaurant-booking-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.restaurant-primary, .restaurant-secondary { align-items: center; border: 1px solid #236f5a; border-radius: 9px; display: inline-flex; font-size: .8125rem; font-weight: 650; gap: 7px; justify-content: center; min-height: 42px; padding: 0 16px; }
+.restaurant-primary { background: #236f5a; box-shadow: 0 4px 10px #174d3d20; color: white; }
+.restaurant-primary:hover { background: #195946; }
+.restaurant-secondary { background: white; color: #236f5a; }
+.restaurant-secondary:hover { background: #edf7f1; }
+.restaurant-primary:focus-visible, .restaurant-secondary:focus-visible { outline: 2px solid #236f5a; outline-offset: 3px; }
+.restaurant-note { color: #708b85; font-size: .8125rem; margin: -8px 0 0; }
+.restaurant-movement, .restaurant-form, .restaurant-reservations { background: white; border: 1px solid #e4ece8; border-radius: 14px; box-shadow: 0 4px 18px #174b3a08; padding: 22px; }
+.restaurant-form[hidden] { display: none; }
+.restaurant-form { display: grid; gap: 14px; }
+.restaurant-form .btn-primary { background: #236f5a; border-color: #236f5a; justify-self: start; }
+.restaurant-form .btn-primary:hover { background: #195946; }
+.restaurant-section-heading { color: #7a9c91; margin-bottom: 16px; }
+.restaurant-section-heading h3 { color: #193c38; font-size: 1rem; font-weight: 700; margin: 4px 0 0; }
+.restaurant-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.restaurant-metrics > div { background: #f6faf7; border: 1px solid #edf3ef; border-radius: 10px; display: grid; gap: 9px; padding: 15px; }
+.restaurant-metrics span { align-items: center; color: #69877e; display: flex; font-size: .75rem; font-weight: 600; gap: 7px; }
+.restaurant-metrics strong { color: #183e36; font-size: 1.65rem; line-height: 1; }
+.restaurant-metrics small { color: #89a399; font-size: .7rem; }
+.restaurant-warning { background: #fff8e9; border-radius: 8px; color: #805b17; font-size: .8125rem; margin-top: 14px; padding: 10px 12px; }
+.restaurant-reservations { display: grid; gap: 14px; }
+.restaurant-reservations .restaurant-section-heading { margin-bottom: 0; }
+.restaurant-booking { border: 1px solid #e8efeb; border-radius: 10px; padding: 14px; }
+.restaurant-booking-main { align-items: center; display: flex; gap: 14px; }
+.restaurant-booking-main strong { color: #193c38; font-size: .875rem; }
+.restaurant-booking-main p { color: #718e84; font-size: .75rem; margin: 4px 0 0; }
+.restaurant-date { align-items: center; background: #f1f7f3; border-radius: 8px; color: #397a67; display: flex; flex-direction: column; flex-shrink: 0; font-size: .625rem; gap: 4px; padding: 8px; }
+.restaurant-status { background: #eaf6ee; border-radius: 999px; color: #277958; font-size: .6875rem; font-weight: 700; margin-left: auto; padding: 5px 9px; white-space: nowrap; }
+.restaurant-status-no_show { background: #fff3e5; color: #a65e20; }
+.restaurant-status-cancelled { background: #f6eeed; color: #96635d; }
+.restaurant-booking-actions { border-top: 1px solid #edf2ef; margin-top: 12px; padding-top: 12px; }
+@media (max-width: 640px) { .restaurant-heading { align-items: flex-start; flex-direction: column; } .restaurant-actions { width: 100%; } .restaurant-actions button { flex: 1; } .restaurant-movement, .restaurant-form, .restaurant-reservations { padding: 16px; } .restaurant-metrics { grid-template-columns: 1fr; } .restaurant-metrics > div { grid-template-columns: 1fr auto; align-items: center; gap: 5px; } .restaurant-metrics strong { grid-row: span 2; } .restaurant-booking-main { flex-wrap: wrap; } }

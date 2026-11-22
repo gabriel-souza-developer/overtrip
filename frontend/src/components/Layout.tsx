@@ -2,9 +2,10 @@ import React, { useEffect, useRef, useState } from 'react';
 import { brandUrl } from '../lib/basePath';
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import * as Menu from '@radix-ui/react-dropdown-menu';
-import { Activity, ChevronDown, House, Images, LogOut, MapPinned, Menu as MenuIcon, Plane, Settings as SettingsIcon, Ticket, User, UsersRound, X } from 'lucide-react';
+import { Activity, ChevronDown, House, Images, KeyRound, LogOut, MapPinned, Menu as MenuIcon, Plane, Settings as SettingsIcon, Ticket, User, UsersRound, X } from 'lucide-react';
 import { useAuth } from '../App';
 import { useToast } from '../hooks/useToast';
+import ChangePasswordDialog from './ChangePasswordDialog';
 
 const navItems = [
   { path: '/dashboard', label: 'Início', icon: House },
@@ -23,6 +24,7 @@ export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
   const asideRef = useRef<HTMLElement>(null);
   const [isDesktop, setIsDesktop] = useState(() => window.matchMedia('(min-width: 1024px)').matches);
 
@@ -157,6 +159,9 @@ export default function Layout() {
                     <p className="text-sm font-medium text-surface-900">{user?.name}</p>
                     <p className="text-xs text-surface-600 break-all">{user?.email}</p>
                   </div>
+                  <Menu.Item className="menu-item" onSelect={() => setPasswordOpen(true)}>
+                    <KeyRound className="w-4 h-4" aria-hidden="true" /> Trocar senha
+                  </Menu.Item>
                   <Menu.Item className="menu-item" onSelect={handleLogout}>
                     <LogOut className="w-4 h-4" aria-hidden="true" /> Sair
                   </Menu.Item>
@@ -165,6 +170,8 @@ export default function Layout() {
             </Menu.Root>
           </div>
         </header>
+
+        <ChangePasswordDialog open={passwordOpen} onClose={() => setPasswordOpen(false)} />
 
         <main id="conteudo" ref={mainRef} tabIndex={-1} className="p-4 sm:p-6 lg:p-8 max-w-7xl outline-none">
           <React.Suspense fallback={<div className="flex justify-center py-16" role="status" aria-label="Carregando"><div className="spinner w-8 h-8" /></div>}>

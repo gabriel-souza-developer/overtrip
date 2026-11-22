@@ -101,6 +101,42 @@ describe('GET /api/public/trips', () => {
     }
   });
 
+  it('viagem antiga (sem lat/lng) continua sem o campo preenchido na projeção pública', async () => {
+    const { mine } = await listPublic();
+    const open = mine.find((t) => t.title.endsWith('open'));
+    expect(open.meetingLat == null).toBe(true);
+    expect(open.meetingLng == null).toBe(true);
+  });
+
+  it('mostra coordenadas confirmadas do embarque (ponto único e múltiplos pontos) quando válidas', async () => {
+    await makeTrip('coords', 'OPEN', new Date('2030-06-10T09:00:00-03:00'), {
+      meetingTBD: false,
+      meetingLat: -7.2159, meetingLng: -35.8814,
+      departures: { create: [{ time: '06h', place: 'Praça', city: 'CG', orderIndex: 0, lat: -7.21, lng: -35.88 }] },
+    });
+    const { mine } = await listPublic();
+    const trip = mine.find((t) => t.title.endsWith('coords'));
+    expect(trip.meetingLat).toBeCloseTo(-7.2159);
+    expect(trip.meetingLng).toBeCloseTo(-35.8814);
+    expect(trip.departures[0].lat).toBeCloseTo(-7.21);
+    expect(trip.departures[0].lng).toBeCloseTo(-35.88);
+  });
+
+  it('não mostra coordenadas inválidas (fora do intervalo) nem de embarque a confirmar', async () => {
+    await makeTrip('coords-invalid', 'OPEN', new Date('2030-06-11T09:00:00-03:00'), {
+      meetingTBD: false, meetingLat: 500, meetingLng: 0,
+    });
+    await makeTrip('coords-tbd', 'OPEN', new Date('2030-06-12T09:00:00-03:00'), {
+      meetingTBD: true, meetingLat: -7.2159, meetingLng: -35.8814,
+    });
+    const { mine } = await listPublic();
+    const invalid = mine.find((t) => t.title.endsWith('coords-invalid'));
+    expect(invalid.meetingLat == null).toBe(true);
+    const tbd = mine.find((t) => t.title.endsWith('coords-tbd'));
+    expect(tbd.meetingLat == null).toBe(true);
+    expect(tbd.meetingLng == null).toBe(true);
+  });
+
   it('não expõe campos internos', async () => {
     const { mine } = await listPublic();
     const text = JSON.stringify(mine);

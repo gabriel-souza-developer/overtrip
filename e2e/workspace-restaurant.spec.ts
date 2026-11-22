@@ -56,9 +56,12 @@ test('mesas e reservas isolam espaços, rejeitam conflito no turno e permitem ca
   await page.goto('/espaco');
   await page.getByRole('button', { name: /Restaurante A/ }).click();
   await expect(page.getByRole('heading', { name: 'Restaurante A' })).toBeVisible();
+  await page.getByRole('button', { name: 'Abrir operação' }).click();
+  await page.getByRole('button', { name: 'Cadastrar mesa' }).click();
   await page.getByLabel('Nome da mesa').fill('Mesa 1');
   await page.getByLabel('Capacidade (lugares)').fill('4');
-  await page.getByRole('button', { name: 'Cadastrar mesa' }).click();
+  await page.locator('#restaurant-table-form').getByRole('button', { name: 'Cadastrar mesa' }).click();
+  await page.getByRole('button', { name: 'Nova reserva' }).click();
   await expect(page.locator('#booking-table').getByRole('option', { name: /Mesa 1/ })).toBeAttached();
   await page.locator('#booking-table').selectOption('org-a-table');
   await page.locator('#booking-guest').fill('Grupo da noite');
@@ -68,6 +71,7 @@ test('mesas e reservas isolam espaços, rejeitam conflito no turno e permitem ca
   await page.getByLabel('Horário').fill('20:00');
   await page.getByRole('button', { name: 'Registrar reserva' }).click();
   await expect(page.getByText('Grupo da noite')).toBeVisible();
+  await page.getByRole('button', { name: 'Nova reserva' }).click();
   await page.locator('#booking-table').selectOption('org-a-table');
   await page.locator('#booking-guest').fill('Conflito');
   await page.getByLabel('Tamanho do grupo').fill('2');
@@ -79,11 +83,13 @@ test('mesas e reservas isolam espaços, rejeitam conflito no turno e permitem ca
   await page.getByRole('button', { name: 'Trocar espaço' }).click();
   await page.getByRole('button', { name: /Restaurante B/ }).click();
   await expect(page.getByRole('heading', { name: 'Restaurante B' })).toBeVisible();
+  await page.getByRole('button', { name: 'Abrir operação' }).click();
   await expect(page.getByText('Grupo da noite')).toHaveCount(0);
   await expect(page.locator('#booking-table').getByRole('option', { name: /Mesa 1/ })).toHaveCount(0);
   await expect(page.getByText('Nenhuma reserva registrada.')).toBeVisible();
   await page.getByRole('button', { name: 'Trocar espaço' }).click();
   await page.getByRole('button', { name: /Restaurante A/ }).click();
+  await page.getByRole('button', { name: 'Abrir operação' }).click();
   const reservation = page.getByRole('article').filter({ hasText: 'Grupo da noite' });
   await reservation.getByRole('button', { name: 'Cancelar reserva', exact: true }).click();
   await reservation.getByRole('button', { name: 'Confirmar cancelamento', exact: true }).click();

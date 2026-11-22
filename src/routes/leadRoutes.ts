@@ -1,5 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma.js';
 import { authenticate, authorize } from '../middleware/auth.js';
 import { AppError, asyncHandler } from '../middleware/errorHandler.js';
@@ -25,6 +26,8 @@ const updateInput = leadInput.partial();
 const filters = z.object({
   stage: stage.optional(),
   tripId: z.string().trim().min(1).max(100).optional(),
+  eligibleTripId: z.string().trim().min(1).max(100).optional(),
+  search: z.string().trim().max(120).optional(),
   followUp: z.enum(['due']).optional(),
   page: z.coerce.number().int().min(1).max(100000).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
@@ -63,17 +66,43 @@ const clean = <T extends Record<string, unknown>>(data: T) => Object.fromEntries
   Object.entries(data).map(([k, v]) => [k, v === '' ? null : v])
 );
 
+// SQLite lower() only folds ASCII. Fold the uppercase accented letters used
+// in Portuguese explicitly; preserve accents and literal substring semantics.
+const portugueseCaseFold = (value: Prisma.Sql): Prisma.Sql => {
+  const pairs = [['Á', 'á'], ['À', 'à'], ['Â', 'â'], ['Ã', 'ã'], ['Ä', 'ä'], ['É', 'é'], ['È', 'è'], ['Ê', 'ê'], ['Ë', 'ë'], ['Í', 'í'], ['Ì', 'ì'], ['Î', 'î'], ['Ï', 'ï'], ['Ó', 'ó'], ['Ò', 'ò'], ['Ô', 'ô'], ['Õ', 'õ'], ['Ö', 'ö'], ['Ú', 'ú'], ['Ù', 'ù'], ['Û', 'û'], ['Ü', 'ü'], ['Ç', 'ç']] as const;
+  return Prisma.sql`lower(${pairs.reduce((expression, [upper, lower]) => Prisma.sql`replace(${expression}, ${upper}, ${lower})`, value)})`;
+};
+
 router.get('/', asyncHandler(async (req: Request, res: Response) => {
-  const { page, limit, stage: currentStage, tripId, followUp } = filters.parse(req.query);
+  const { page, limit, stage: currentStage, tripId, eligibleTripId, search, followUp } = filters.parse(req.query);
   const where = {
     ...(currentStage ? { stage: currentStage } : {}),
     ...(tripId ? { tripId } : {}),
+    AND: [
+      ...(eligibleTripId ? [{ OR: [{ tripId: eligibleTripId }, { tripId: null }] }] : []),
+    ],
     ...(followUp === 'due' ? { nextFollowUpAt: { not: null, lt: startOfTomorrowInBusinessZone() } } : {}),
   };
   const orderBy = followUp === 'due'
     ? [{ nextFollowUpAt: 'asc' as const }, { updatedAt: 'desc' as const }, { id: 'asc' as const }]
     : [{ updatedAt: 'desc' as const }, { id: 'asc' as const }];
-  const [data, total] = await prisma.$transaction([
+  // Prisma's SQLite `contains` uses LIKE, so '%' and '_' otherwise become
+  // wildcards. instr performs literal matching, with every value parameterized.
+  // Page, count and hydration share a snapshot; only page-sized IDs enter JS.
+  const [data, total] = search ? await prisma.$transaction(async tx => {
+    const term = portugueseCaseFold(Prisma.sql`${search}`);
+    const clauses = [Prisma.sql`(instr(${portugueseCaseFold(Prisma.sql`"name"`)}, ${term}) > 0 OR instr(${portugueseCaseFold(Prisma.sql`COALESCE("phone", '')`)}, ${term}) > 0 OR instr(${portugueseCaseFold(Prisma.sql`COALESCE("email", '')`)}, ${term}) > 0)`];
+    if (currentStage) clauses.push(Prisma.sql`"stage" = ${currentStage}`);
+    if (tripId) clauses.push(Prisma.sql`"tripId" = ${tripId}`);
+    if (eligibleTripId) clauses.push(Prisma.sql`("tripId" = ${eligibleTripId} OR "tripId" IS NULL)`);
+    if (followUp === 'due') clauses.push(Prisma.sql`"nextFollowUpAt" IS NOT NULL AND "nextFollowUpAt" < ${startOfTomorrowInBusinessZone().getTime()}`);
+    const condition = Prisma.join(clauses, ' AND ');
+    const order = followUp === 'due' ? Prisma.sql`"nextFollowUpAt" ASC, "updatedAt" DESC, "id" ASC` : Prisma.sql`"updatedAt" DESC, "id" ASC`;
+    const ids = await tx.$queryRaw<{ id: string }[]>(Prisma.sql`SELECT "id" FROM "Lead" WHERE ${condition} ORDER BY ${order} LIMIT ${limit} OFFSET ${(page - 1) * limit}`);
+    const count = await tx.$queryRaw<{ total: bigint }[]>(Prisma.sql`SELECT COUNT(*) AS "total" FROM "Lead" WHERE ${condition}`);
+    const rows = await tx.lead.findMany({ where: { id: { in: ids.map(item => item.id) } }, include, orderBy });
+    return [rows, Number(count[0].total)] as const;
+  }) : await prisma.$transaction([
     prisma.lead.findMany({ where, include, orderBy, skip: (page - 1) * limit, take: limit }),
     prisma.lead.count({ where }),
   ]);
