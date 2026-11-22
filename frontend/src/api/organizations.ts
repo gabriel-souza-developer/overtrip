@@ -80,6 +80,16 @@ export interface OrgReservationEssentials {
 export interface OrgInstallmentEssentials { amountCents: number; dueDate?: string | null }
 
 export interface ListResult<T> { data: T[]; pagination: { page: number; limit: number; total: number; totalPages: number } }
+// Trilha mínima de auditoria (ver ReservationAuditLog no servidor): nunca
+// traz nome/telefone de cliente, valor ou observação. actorUserId é o id
+// interno de quem fez a mudança; o servidor não resolve isso para nome ou
+// e-mail, então a UI nunca deve mostrá-lo como se fosse um nome — ver
+// ReservationHistory em OrganizationReservations.tsx.
+export type OrgReservationAuditAction = 'RESERVATION_CREATED' | 'RESERVATION_UPDATED' | 'INSTALLMENT_CREATED' | 'INSTALLMENT_UPDATED' | 'INSTALLMENT_DELETED';
+export interface OrgReservationAuditEntry {
+  id: string; action: OrgReservationAuditAction; entityType: 'Reservation' | 'ReservationInstallment'; entityId: string;
+  actorUserId: string; createdAt: string;
+}
 export interface OrganizationDashboardSummary { trips: { total: number; upcoming: number; open: number; drafts: number }; leads?: number; reservations?: number }
 // truncated nunca deve ser ignorado pela UI: se true, há mais viagens no
 // intervalo do que o servidor devolveu (limite de segurança), e a agenda
@@ -151,4 +161,6 @@ export const organizationApi = {
     request<OrgReservation>(orgPath(organizationId, `/tourism/reservations/${encodeURIComponent(reservationId)}/installments/${encodeURIComponent(installmentId)}`), { method: 'PUT', body: JSON.stringify(data) }),
   deleteInstallment: (organizationId: string, reservationId: string, installmentId: string, data: { expectedUpdatedAt: string }) =>
     request<OrgReservation>(orgPath(organizationId, `/tourism/reservations/${encodeURIComponent(reservationId)}/installments/${encodeURIComponent(installmentId)}`), { method: 'DELETE', body: JSON.stringify(data) }),
+  reservationAudit: (organizationId: string, reservationId: string, params?: { page?: number; limit?: number }, options?: { signal?: AbortSignal }) =>
+    request<ListResult<OrgReservationAuditEntry>>(`${orgPath(organizationId, `/tourism/reservations/${encodeURIComponent(reservationId)}/audit`)}?${pageQuery(params)}`, { signal: options?.signal }),
 };

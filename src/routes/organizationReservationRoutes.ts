@@ -4,6 +4,7 @@ import type { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma.js';
 import { asyncHandler, AppError } from '../middleware/errorHandler.js';
 import { assertOrganizationWriteAccess, requireOrganizationMembership, type OrganizationRequest } from '../middleware/organizationContext.js';
+import { recordReservationAuditIfOwned } from '../services/reservationAudit.js';
 
 // Parent router provides authentication and no-store; account-global roles
 // never grant access to another company's private customer/payment records.
@@ -28,6 +29,13 @@ const filters = z.object({
   page: z.coerce.number().int().min(1).max(100000).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
 }).strict();
+
+// Grava a mesma trilha mínima de auditoria (recordReservationAuditIfOwned,
+// compartilhada com a operação legada em reservationRoutes.ts — ver
+// src/services/reservationAudit.ts). organizationId aqui é sempre o da
+// própria empresa (nunca nulo, por já vir de req.organizationContext), logo
+// toda mutação desta rota grava uma entrada.
+const auditSelect = { id: true, action: true, entityType: true, entityId: true, actorUserId: true, createdAt: true } satisfies Prisma.ReservationAuditLogSelect;
 
 // Registro manual: nunca processa pagamento nem reduz vagas por conta
 // própria (deixado explícito também na interface). Só os campos essenciais
@@ -134,7 +142,7 @@ router.post('/', asyncHandler(async (req: OrganizationRequest, res: Response) =>
     const trip = await tx.trip.findFirst({ where: { id: data.tripId, organizationId }, select: { id: true } });
     if (!trip) throw AppError.notFound('Viagem não encontrada nesta empresa.');
     await checkLead(tx, data.leadId, data.tripId, organizationId);
-    return tx.reservation.create({
+    const created = await tx.reservation.create({
       data: {
         tripId: data.tripId,
         customerName: data.customerName,
@@ -146,6 +154,8 @@ router.post('/', asyncHandler(async (req: OrganizationRequest, res: Response) =>
       },
       select,
     });
+    await recordReservationAuditIfOwned(tx, { organizationId, actorUserId: req.user!.id, action: 'RESERVATION_CREATED', entityType: 'Reservation', entityId: created.id, reservationId: created.id });
+    return created;
   });
   res.status(201).json(safeReservation(reservation, organizationId));
 }));
@@ -191,6 +201,7 @@ router.put('/:reservationId', asyncHandler(async (req: OrganizationRequest, res:
       data: { ...data, updatedAt },
     });
     if (count !== 1) throw AppError.conflict('Esta reserva foi alterada por outra pessoa. Recarregue os dados antes de salvar.');
+    await recordReservationAuditIfOwned(tx, { organizationId, actorUserId: req.user!.id, action: 'RESERVATION_UPDATED', entityType: 'Reservation', entityId: reservationId, reservationId });
     return tx.reservation.findFirst({ where: { id: reservationId, organizationId }, select });
   });
   res.json(safeReservation(reservation!, organizationId));
@@ -207,8 +218,9 @@ router.post('/:reservationId/installments', asyncHandler(async (req: Organizatio
     if (current.installments.length >= 120) throw AppError.conflict('A reserva já atingiu o limite de 120 parcelas.');
     const allocated = current.installments.reduce((sum, entry) => sum + entry.amountCents, 0);
     if (allocated + data.amountCents > current.totalCents) throw AppError.conflict('A soma das parcelas não pode ultrapassar o total da reserva.');
-    await tx.reservationInstallment.create({ data: { reservationId, amountCents: data.amountCents, dueDate: dateFromDay(data.dueDate) } });
+    const installment = await tx.reservationInstallment.create({ data: { reservationId, amountCents: data.amountCents, dueDate: dateFromDay(data.dueDate) } });
     await bumpReservationVersion(tx, reservationId, organizationId, current.updatedAt);
+    await recordReservationAuditIfOwned(tx, { organizationId, actorUserId: req.user!.id, action: 'INSTALLMENT_CREATED', entityType: 'ReservationInstallment', entityId: installment.id, reservationId });
     return tx.reservation.findFirst({ where: { id: reservationId, organizationId }, select });
   });
   res.status(201).json(safeReservation(reservation!, organizationId));
@@ -243,6 +255,7 @@ router.put('/:reservationId/installments/:installmentId', asyncHandler(async (re
       },
     });
     await bumpReservationVersion(tx, reservationId, organizationId, current.updatedAt);
+    await recordReservationAuditIfOwned(tx, { organizationId, actorUserId: req.user!.id, action: 'INSTALLMENT_UPDATED', entityType: 'ReservationInstallment', entityId: installmentId, reservationId });
     return tx.reservation.findFirst({ where: { id: reservationId, organizationId }, select });
   });
   res.json(safeReservation(reservation!, organizationId));
@@ -264,9 +277,28 @@ router.delete('/:reservationId/installments/:installmentId', asyncHandler(async 
     if (existing.paidAt) throw AppError.conflict('Desmarque o recebimento antes de excluir a parcela.');
     await tx.reservationInstallment.delete({ where: { id: installmentId } });
     await bumpReservationVersion(tx, reservationId, organizationId, current.updatedAt);
+    await recordReservationAuditIfOwned(tx, { organizationId, actorUserId: req.user!.id, action: 'INSTALLMENT_DELETED', entityType: 'ReservationInstallment', entityId: installmentId, reservationId });
     return tx.reservation.findFirst({ where: { id: reservationId, organizationId }, select });
   });
   res.json(safeReservation(reservation!, organizationId));
+}));
+
+// Só OWNER/ADMIN desta empresa (mesmo guard do router inteiro). Mesmo escopo
+// de leitura das demais rotas: reserva de outra empresa, ou cuja viagem
+// pertença a outra empresa, não é nem encontrada — a auditoria nunca revela
+// se uma reserva de outra empresa existe.
+router.get('/:reservationId/audit', asyncHandler(async (req: OrganizationRequest, res: Response) => {
+  const reservationId = z.string().min(1).max(128).parse(req.params.reservationId);
+  const { page, limit } = filters.parse(req.query);
+  const organizationId = req.organizationContext!.organization.id;
+  const reservation = await prisma.reservation.findFirst({ where: { id: reservationId, organizationId, trip: { is: { organizationId } } }, select: { id: true } });
+  if (!reservation) throw AppError.notFound('Reserva não encontrada.');
+  const where = { organizationId, reservationId };
+  const [rows, total] = await prisma.$transaction([
+    prisma.reservationAuditLog.findMany({ where, select: auditSelect, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: (page - 1) * limit, take: limit }),
+    prisma.reservationAuditLog.count({ where }),
+  ]);
+  res.json({ data: rows, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } });
 }));
 
 export default router;

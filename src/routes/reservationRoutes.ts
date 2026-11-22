@@ -2,7 +2,7 @@ import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma.js';
-import { authenticate, authorize } from '../middleware/auth.js';
+import { authenticate, authorize, type AuthRequest } from '../middleware/auth.js';
 import { AppError, asyncHandler } from '../middleware/errorHandler.js';
 import {
   currentLegacyLeadFilterWithConsistentTrip,
@@ -12,6 +12,17 @@ import {
   currentReservationIdsInLegacyScopePage,
   legacyTourismOrganizationIdForNewRecord,
 } from '../services/legacyTourismScope.js';
+import { recordReservationAuditIfOwned } from '../services/reservationAudit.js';
+
+// A operação legada só grava auditoria quando a reserva pertence a uma
+// empresa real (LEGACY_TOURISM_ORGANIZATION_ID configurado — modo
+// compartilhado: ver legacyTourismScope.ts). Reserva legada sem empresa
+// (organizationId null, o caso comum fora do modo compartilhado) continua
+// sem trilha, como sempre — não há empresa a quem pertença esse histórico,
+// e mudar isso agora criaria entradas "órfãs" sem organização dona.
+// recordReservationAuditIfOwned já faz esse corte sozinha (organizationId
+// null é no-op); aqui só nomeamos o ator (quem está logado no painel
+// legado).
 
 // Todos os valores são centavos inteiros. Este módulo registra apenas a operação
 // administrativa: não processa pagamentos nem altera automaticamente as vagas.
@@ -106,7 +117,7 @@ router.get('/:id', asyncHandler(async (req: Request, res: Response) => {
   res.json(row);
 }));
 
-router.post('/', asyncHandler(async (req: Request, res: Response) => {
+router.post('/', asyncHandler(async (req: AuthRequest, res: Response) => {
   const data = createSchema.parse(req.body);
   const row = await prisma.$transaction(async tx => {
     // Mesma consulta: nunca cria reserva vinculada a uma viagem de outra
@@ -114,12 +125,14 @@ router.post('/', asyncHandler(async (req: Request, res: Response) => {
     const trip = await tx.trip.findFirst({ where: { id: data.tripId, ...currentLegacyTourismFilter() }, select: { id: true } });
     if (!trip) throw AppError.notFound('Viagem não encontrada.');
     await checkLead(tx, data.leadId, data.tripId);
-    return tx.reservation.create({ data: { ...data, organizationId: legacyTourismOrganizationIdForNewRecord() }, include: { installments: true } });
+    const created = await tx.reservation.create({ data: { ...data, organizationId: legacyTourismOrganizationIdForNewRecord() }, include: { installments: true } });
+    await recordReservationAuditIfOwned(tx, { organizationId: created.organizationId, actorUserId: req.user!.id, action: 'RESERVATION_CREATED', entityType: 'Reservation', entityId: created.id, reservationId: created.id });
+    return created;
   });
   res.status(201).json(row);
 }));
 
-router.patch('/:id', asyncHandler(async (req: Request, res: Response) => {
+router.patch('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
   const id = idSchema.parse(req.params.id);
   const data = updateSchema.parse(req.body);
   const row = await prisma.$transaction(async tx => {
@@ -131,12 +144,14 @@ router.patch('/:id', asyncHandler(async (req: Request, res: Response) => {
     const allocated = reservation.installments.reduce((sum, entry) => sum + entry.amountCents, 0);
     if (data.totalCents !== undefined && data.totalCents < allocated) throw AppError.conflict('O valor total não pode ser menor que a soma das parcelas.');
     const updatedAt = new Date(Math.max(Date.now(), reservation.updatedAt.getTime() + 1));
-    return tx.reservation.update({ where: { id }, data: { ...data, updatedAt }, include: { installments: { orderBy: { createdAt: 'asc' } } } });
+    const updated = await tx.reservation.update({ where: { id }, data: { ...data, updatedAt }, include: { installments: { orderBy: { createdAt: 'asc' } } } });
+    await recordReservationAuditIfOwned(tx, { organizationId: reservation.organizationId, actorUserId: req.user!.id, action: 'RESERVATION_UPDATED', entityType: 'Reservation', entityId: id, reservationId: id });
+    return updated;
   });
   res.json(row);
 }));
 
-router.post('/:id/installments', asyncHandler(async (req: Request, res: Response) => {
+router.post('/:id/installments', asyncHandler(async (req: AuthRequest, res: Response) => {
   const id = idSchema.parse(req.params.id);
   const data = installmentCreateSchema.parse(req.body);
   const row = await prisma.$transaction(async tx => {
@@ -149,12 +164,13 @@ router.post('/:id/installments', asyncHandler(async (req: Request, res: Response
     if (allocated + data.amountCents > reservation.totalCents) throw AppError.conflict('A soma das parcelas não pode ultrapassar o total da reserva.');
     const installment = await tx.reservationInstallment.create({ data: { reservationId: id, amountCents: data.amountCents, dueDate: dateFromDay(data.dueDate) } });
     await bumpReservationVersion(tx, id, reservation.updatedAt);
+    await recordReservationAuditIfOwned(tx, { organizationId: reservation.organizationId, actorUserId: req.user!.id, action: 'INSTALLMENT_CREATED', entityType: 'ReservationInstallment', entityId: installment.id, reservationId: id });
     return installment;
   });
   res.status(201).json(row);
 }));
 
-router.patch('/:id/installments/:installmentId', asyncHandler(async (req: Request, res: Response) => {
+router.patch('/:id/installments/:installmentId', asyncHandler(async (req: AuthRequest, res: Response) => {
   const id = idSchema.parse(req.params.id);
   const installmentId = idSchema.parse(req.params.installmentId);
   const data = installmentUpdateSchema.parse(req.body);
@@ -176,12 +192,13 @@ router.patch('/:id/installments/:installmentId', asyncHandler(async (req: Reques
       paidAt: data.paid === undefined ? undefined : data.paid ? existing.paidAt ?? new Date() : null,
     } });
     await bumpReservationVersion(tx, id, reservation.updatedAt);
+    await recordReservationAuditIfOwned(tx, { organizationId: reservation.organizationId, actorUserId: req.user!.id, action: 'INSTALLMENT_UPDATED', entityType: 'ReservationInstallment', entityId: installmentId, reservationId: id });
     return installment;
   });
   res.json(row);
 }));
 
-router.delete('/:id/installments/:installmentId', asyncHandler(async (req: Request, res: Response) => {
+router.delete('/:id/installments/:installmentId', asyncHandler(async (req: AuthRequest, res: Response) => {
   const id = idSchema.parse(req.params.id);
   const installmentId = idSchema.parse(req.params.installmentId);
   await prisma.$transaction(async tx => {
@@ -194,6 +211,7 @@ router.delete('/:id/installments/:installmentId', asyncHandler(async (req: Reque
     if (installment.paidAt) throw AppError.conflict('Desmarque o pagamento antes de excluir a parcela.');
     await tx.reservationInstallment.delete({ where: { id: installmentId } });
     await bumpReservationVersion(tx, id, reservation.updatedAt);
+    await recordReservationAuditIfOwned(tx, { organizationId: reservation.organizationId, actorUserId: req.user!.id, action: 'INSTALLMENT_DELETED', entityType: 'ReservationInstallment', entityId: installmentId, reservationId: id });
   });
   res.status(204).end();
 }));

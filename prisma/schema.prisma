@@ -194,6 +194,37 @@ model ReservationInstallment {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// RESERVATION_AUDIT_LOG: trilha mínima de quem mudou o quê numa reserva
+// - Só ator, ação, entidade, empresa e quando. Nunca senha, nome/telefone de
+//   cliente, valor em centavos, observação ou conteúdo de documento.
+// - organizationId/actorUserId/reservationId/entityId são referências
+//   simples (sem relação Prisma), o mesmo padrão já usado em createdById de
+//   MediaAsset/TripDocument — propositalmente para não alterar nenhum outro
+//   modelo (Organization, User, Reservation) só para acrescentar auditoria.
+// - Só as rotas de organização (organizationReservationRoutes.ts) escrevem
+//   aqui, sempre na mesma transação da mutação. O painel legado
+//   (reservationRoutes.ts, reservas sem empresa) não grava nada aqui.
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+model ReservationAuditLog {
+  id             String   @id @default(cuid())
+  organizationId String
+  actorUserId    String
+  // RESERVATION_CREATED | RESERVATION_UPDATED | INSTALLMENT_CREATED |
+  // INSTALLMENT_UPDATED | INSTALLMENT_DELETED
+  action         String
+  // "Reservation" | "ReservationInstallment"
+  entityType     String
+  entityId       String
+  // Reserva "dona", mesmo quando entityType é uma parcela — permite listar
+  // o histórico completo de uma reserva com uma única consulta.
+  reservationId  String
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, reservationId, createdAt])
+  @@index([organizationId, createdAt])
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TRIP_DOCUMENT: Arquivos privados anexados à preparação de uma viagem
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // O arquivo físico nunca fica no banco, em assets/ ou em URL pública. storageKey

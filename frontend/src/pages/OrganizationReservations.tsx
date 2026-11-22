@@ -1,7 +1,10 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { CalendarCheck, Pencil, Plus, ShieldAlert, Trash2 } from 'lucide-react';
-import { organizationApi, type OrgInstallment, type OrgLead, type OrgReservation, type OrgReservationStatus, type OrgTrip } from '../api/organizations';
+import { CalendarCheck, History, Pencil, Plus, ShieldAlert, Trash2 } from 'lucide-react';
+import {
+  organizationApi, type OrgInstallment, type OrgLead, type OrgReservation, type OrgReservationAuditAction,
+  type OrgReservationAuditEntry, type OrgReservationStatus, type OrgTrip,
+} from '../api/organizations';
 import { formatDateBR } from '../lib/dateInput';
 import { reservationMoneyToCents } from '../lib/reservationMoney';
 import type { OrganizationOutletContext } from './OrganizationLayout';
@@ -19,6 +22,21 @@ const STATUS_OPTIONS = Object.keys(STATUS_LABELS) as OrgReservationStatus[];
 const formatMoney = (cents: number) => (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const textFromCents = (cents: number) => (cents / 100).toFixed(2).replace('.', ',');
 const dayFromIso = (iso: string | null) => iso ? iso.slice(0, 10) : '';
+
+// Rótulo da ação, nunca o nome técnico do model/enum. Sem "quem fez": o
+// servidor devolve só o id interno de quem mudou (actorUserId), e não há
+// hoje como resolver isso para nome/e-mail dentro da própria empresa com
+// segurança — mostrar o id cru pareceria um nome ou um código de erro, o
+// que a tarefa pede para nunca fazer. Quando existir uma forma segura de
+// resolver o autor, adicionar a coluna aqui é só reusar esta mesma linha.
+const HISTORY_ACTION_LABELS: Record<OrgReservationAuditAction, string> = {
+  RESERVATION_CREATED: 'Reserva criada',
+  RESERVATION_UPDATED: 'Reserva atualizada',
+  INSTALLMENT_CREATED: 'Parcela adicionada',
+  INSTALLMENT_UPDATED: 'Parcela atualizada',
+  INSTALLMENT_DELETED: 'Parcela excluída',
+};
+const formatHistoryWhen = (iso: string) => new Date(iso).toLocaleString('pt-BR');
 
 interface ReservationForm { tripId: string; customerName: string; customerPhone: string; seats: string; totalText: string; leadId: string; status: OrgReservationStatus }
 const emptyForm: ReservationForm = { tripId: '', customerName: '', customerPhone: '', seats: '1', totalText: '', leadId: '', status: 'PENDING' };
@@ -56,6 +74,31 @@ export default function OrganizationReservations() {
   const [installmentEditForm, setInstallmentEditForm] = useState<InstallmentForm>(emptyInstallmentForm);
   const [deletingInstallment, setDeletingInstallment] = useState<OrgInstallment | null>(null);
 
+  const [viewingHistory, setViewingHistory] = useState<OrgReservation | null>(null);
+  const [historyEntries, setHistoryEntries] = useState<OrgReservationAuditEntry[]>([]);
+  const [historyPagination, setHistoryPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 0 });
+  // Página PEDIDA, atualizada ao disparar a chamada — nunca só quando ela dá
+  // certo. historyPagination.page só avança com uma resposta bem-sucedida;
+  // se a página 2 falhar, ele continua em 1, e usá-lo para repetir refaria a
+  // página 1 em vez da que realmente falhou. "Tentar de novo" sempre repete
+  // historyRequestedPage, não historyPagination.page.
+  const [historyRequestedPage, setHistoryRequestedPage] = useState(1);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState('');
+  // Geração da requisição de histórico em voo + o controller para abortá-la:
+  // ao trocar de reserva, de página ou de empresa, ou ao fechar o modal, a
+  // resposta antiga (que pode chegar depois da nova, fora de ordem) nunca
+  // deve atualizar a tela — ela é descartada comparando o id capturado no
+  // início da chamada com o id atual da referência, e o fetch em si é
+  // abortado como reforço (quando o ambiente honra o AbortSignal).
+  const historyRequestIdRef = useRef(0);
+  const historyAbortRef = useRef<AbortController | null>(null);
+  const invalidateHistoryRequest = useCallback(() => {
+    historyRequestIdRef.current += 1;
+    historyAbortRef.current?.abort();
+    historyAbortRef.current = null;
+  }, []);
+
   const load = useCallback(async (page = 1) => {
     if (!allowed) { setLoading(false); return; }
     setLoading(true); setError('');
@@ -68,6 +111,48 @@ export default function OrganizationReservations() {
     } finally { setLoading(false); }
   }, [organization.id, allowed]);
   useEffect(() => { void load(1); }, [load]);
+
+  const loadHistory = useCallback(async (reservationId: string, page: number) => {
+    invalidateHistoryRequest(); // qualquer requisição anterior (outra reserva ou página) deixa de valer
+    const requestId = historyRequestIdRef.current;
+    const controller = new AbortController();
+    historyAbortRef.current = controller;
+    setHistoryRequestedPage(page); // guarda já aqui, mesmo que a chamada abaixo falhe
+    setHistoryLoading(true); setHistoryError('');
+    try {
+      const data = await organizationApi.reservationAudit(organization.id, reservationId, { page, limit: 10 }, { signal: controller.signal });
+      if (historyRequestIdRef.current !== requestId) return; // uma chamada mais nova já é a atual: descarta esta resposta tardia
+      setHistoryEntries(data.data); setHistoryPagination(data.pagination);
+    } catch (err) {
+      if (historyRequestIdRef.current !== requestId) return;
+      if (err instanceof Error && err.name === 'AbortError') return; // cancelada por nós mesmos, não é uma falha a reportar
+      setHistoryEntries([]);
+      setHistoryError(err instanceof Error ? err.message : 'Não foi possível carregar o histórico desta reserva.');
+    } finally {
+      if (historyRequestIdRef.current === requestId) setHistoryLoading(false);
+    }
+  }, [organization.id, invalidateHistoryRequest]);
+  const openHistory = (row: OrgReservation) => {
+    setViewingHistory(row); setHistoryEntries([]); setHistoryError('');
+    setHistoryPagination({ page: 1, limit: 10, total: 0, totalPages: 0 });
+    void loadHistory(row.id, 1);
+  };
+  const closeHistory = () => {
+    invalidateHistoryRequest();
+    setViewingHistory(null); setHistoryEntries([]); setHistoryError(''); setHistoryLoading(false); setHistoryRequestedPage(1);
+  };
+  // Trocar de empresa é uma troca de contexto completa: nenhuma resposta de
+  // histórico da empresa anterior pode aparecer depois, nem o modal deve
+  // continuar aberto mostrando a reserva de outra empresa.
+  useEffect(() => {
+    invalidateHistoryRequest();
+    setViewingHistory(null); setHistoryEntries([]); setHistoryError(''); setHistoryLoading(false); setHistoryRequestedPage(1);
+  }, [organization.id, invalidateHistoryRequest]);
+  // Desmontar a página (navegar para outra rota) com uma requisição de
+  // histórico em voo não deve deixá-la rodando nem arriscar um setState
+  // tardio num componente que já saiu de cena.
+  useEffect(() => () => invalidateHistoryRequest(), [invalidateHistoryRequest]);
+
   const loadTrips = useCallback(async (page: number) => {
     setTripLoading(true); setTripError('');
     try {
@@ -259,9 +344,14 @@ export default function OrganizationReservations() {
                 </div>
                 <div className="flex flex-col items-end gap-2">
                   <span className="badge-neutral self-start">{STATUS_LABELS[row.status]}</span>
-                  <Button small icon={<Pencil className="w-4 h-4" aria-hidden="true" />} onClick={() => openEdit(row)} aria-label={`Editar reserva de ${row.customerName}`}>
-                    <span className="hidden sm:inline">Editar</span>
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button small icon={<History className="w-4 h-4" aria-hidden="true" />} onClick={() => openHistory(row)} aria-label={`Ver histórico da reserva de ${row.customerName}`}>
+                      <span className="hidden sm:inline">Histórico</span>
+                    </Button>
+                    <Button small icon={<Pencil className="w-4 h-4" aria-hidden="true" />} onClick={() => openEdit(row)} aria-label={`Editar reserva de ${row.customerName}`}>
+                      <span className="hidden sm:inline">Editar</span>
+                    </Button>
+                  </div>
                 </div>
               </div>
               {row.installments.length > 0 && (
@@ -405,6 +495,35 @@ export default function OrganizationReservations() {
         busy={installmentSaving}
         onConfirm={() => void confirmDeleteInstallment()}
       />
+
+      <Modal
+        open={!!viewingHistory}
+        onOpenChange={(open) => { if (!open) closeHistory(); }}
+        title="Histórico da reserva"
+        description={viewingHistory ? `Ações registradas em ${viewingHistory.trip.title} desde a ativação deste histórico, da mais recente à mais antiga. Mudanças feitas antes disso podem não aparecer aqui.` : undefined}
+        widthClass="max-w-xl"
+        footer={<Button onClick={closeHistory}>Fechar</Button>}
+      >
+        {historyError ? (
+          <ErrorState message={historyError} onRetry={() => viewingHistory && void loadHistory(viewingHistory.id, historyRequestedPage)} />
+        ) : historyLoading && historyEntries.length === 0 ? (
+          <p role="status" className="text-sm text-surface-600">Carregando histórico...</p>
+        ) : historyEntries.length === 0 ? (
+          <EmptyState icon={<History />} title="Nenhuma atividade registrada" text="Nada desde a ativação deste histórico; mudanças mais antigas podem não ter sido registradas, e as próximas aparecerão aqui." />
+        ) : (
+          <div className="space-y-2">
+            <ul className="space-y-2">
+              {historyEntries.map((entry) => (
+                <li key={entry.id} className="flex flex-wrap items-center justify-between gap-2 border border-surface-200 rounded-lg p-3">
+                  <span className="text-sm font-medium text-surface-900">{HISTORY_ACTION_LABELS[entry.action]}</span>
+                  <time className="text-sm text-surface-600" dateTime={entry.createdAt}>{formatHistoryWhen(entry.createdAt)}</time>
+                </li>
+              ))}
+            </ul>
+            <Pagination pagination={historyPagination} onChange={(page) => viewingHistory && void loadHistory(viewingHistory.id, page)} />
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
