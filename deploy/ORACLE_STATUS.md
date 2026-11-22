@@ -8,6 +8,11 @@
 > registro de 10 de novembro, mas os fluxos e limites descritos nessa entrada
 > não significam que o estado atual da instância foi novamente verificado.
 
+## Link de recuperação de senha (22 de novembro de 2026, 22:23 UTC)
+
+- Publicado somente o painel do commit `6a0bf44`. O link “Esqueci minha senha” agora aparece logo abaixo do campo de senha, alinhado à direita, com contraste reforçado, sublinhado e área clicável de 44 px. O pacote anterior foi preservado em `/srv/overtrip/retorno-login-link-6a0bf44-20261122-222349/admin`.
+- Após a publicação, `/admin/` e `/health` responderam HTTP 200; Caddy e API estavam ativos. No navegador, o link foi encontrado no DOM com altura de 44 px. Tipos e build do frontend passaram antes da publicação.
+
 ## Histórico de reservas por empresa (22 de novembro de 2026, UTC)
 
 - Publicado backend e painel do commit `542c7dc`; backup consistente do banco, aplicação e painel anterior em `/srv/overtrip/retorno-542c7dc-20261122-040902`. Migração aditiva `20261122030947_reservation_audit_log` ensaiada em cópia antes da aplicação; Prisma confirmou 28 migrações atualizadas.
