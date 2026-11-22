@@ -153,7 +153,7 @@ export default function Trips() {
             aria-pressed={period === option.value}
             title={option.hint}
             onClick={() => list.setFilter('period', option.value === 'upcoming' ? '' : option.value)}
-            className={`min-h-[40px] rounded-full border px-4 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary-500 ${period === option.value ? 'border-primary-500 bg-primary-500 text-white' : 'border-surface-300 bg-white text-surface-800 hover:border-primary-300'}`}
+            className={`min-h-[40px] rounded-full border px-4 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary-500 ${period === option.value ? 'border-primary-600 bg-primary-600 text-white' : 'border-surface-300 bg-white text-surface-800 hover:border-primary-300'}`}
           >
             {option.label}
           </button>

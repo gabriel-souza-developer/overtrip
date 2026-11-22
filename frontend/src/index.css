@@ -383,7 +383,7 @@ textarea.input {
 }
 
 .pagination-btn-active {
-  @apply bg-primary-500 text-surface-900 border-primary-500 hover:bg-primary-400;
+  @apply bg-primary-600 text-white border-primary-600 hover:bg-primary-700;
 }
 
 .dropdown {

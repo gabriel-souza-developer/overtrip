@@ -21,6 +21,8 @@
 .agency-panel .to-orange-50 { --tw-gradient-to: var(--agency-50) var(--tw-gradient-to-position); }
 .agency-panel .btn-primary { background-color: var(--agency-600); color: #fff; }
 .agency-panel .btn-primary:hover { background-color: var(--agency-600-hover); }
+.agency-panel .pagination-btn-active { background-color: var(--agency-600); border-color: var(--agency-600); color: #fff; }
+.agency-panel .pagination-btn-active:hover { background-color: var(--agency-600-hover); }
 .agency-panel .hover\:border-primary-300:hover { border-color: var(--agency-300); }
 .agency-panel .hover\:text-primary-600:hover,
 .agency-panel .group:hover .group-hover\:text-primary-600 { color: var(--agency-600); }

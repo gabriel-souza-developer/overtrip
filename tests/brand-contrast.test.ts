@@ -46,19 +46,20 @@ describe('contraste da paleta da marca no painel', () => {
 
   it('.btn-primary mantém contraste AA com texto branco, inclusive no hover', () => {
     const c = rule('.btn-primary');
+    // Laranja vivo, próximo do login, mas legível em texto branco pequeno.
+    expect(hexOf(find(c, 'bg-'))).toBe('#ce4900');
     expect(find(c, 'text-')).toBe('text-white');
     expect(contrast(white, hexOf(find(c, 'bg-')))).toBeGreaterThanOrEqual(4.5);
     expect(contrast(white, hexOf(find(c, 'hover:bg-')))).toBeGreaterThanOrEqual(4.5);
   });
 
-  it('.pagination-btn-active: mantém o rust claro com texto ink e contraste AA', () => {
+  it('.pagination-btn-active usa a mesma cor dos botões e texto branco legível', () => {
     const c = rule('.pagination-btn-active');
-    expect(find(c, 'bg-')).toBe('bg-primary-500');
-    expect(find(c, 'text-')).toBe('text-surface-900');
-    expect(find(c, 'hover:bg-')).toBe('hover:bg-primary-400');
-    const text = hexOf(find(c, 'text-'));
-    expect(contrast(text, hexOf(find(c, 'bg-')))).toBeGreaterThanOrEqual(4.5);
-    expect(contrast(text, hexOf(find(c, 'hover:bg-')))).toBeGreaterThanOrEqual(4.5);
+    expect(find(c, 'bg-')).toBe('bg-primary-600');
+    expect(find(c, 'text-')).toBe('text-white');
+    expect(find(c, 'hover:bg-')).toBe('hover:bg-primary-700');
+    expect(contrast(white, hexOf(find(c, 'bg-')))).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(white, hexOf(find(c, 'hover:bg-')))).toBeGreaterThanOrEqual(4.5);
   });
 
   it('rust puro com texto branco NÃO passa AA', () => {
