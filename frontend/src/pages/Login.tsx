@@ -94,14 +94,15 @@ export default function Login() {
                   {showPassword ? <EyeOff className="w-5 h-5" aria-hidden="true" /> : <Eye className="w-5 h-5" aria-hidden="true" />}
                 </button>
               </div>
+              <div className="login-forgot-row">
+                <Link to="/esqueci-senha" className="login-forgot">Esqueci minha senha</Link>
+              </div>
             </div>
 
             <Button type="submit" variant="primary" className="login-submit w-full py-3" loading={loading} loadingText="Entrando...">
               Entrar <ArrowRight className="w-4 h-4" aria-hidden="true" />
             </Button>
           </form>
-
-          <Link to="/esqueci-senha" className="login-forgot">Esqueci minha senha</Link>
 
           <p className="login-security"><ShieldCheck aria-hidden="true" /> Acesso exclusivo para usuários autorizados</p>
           </div>
