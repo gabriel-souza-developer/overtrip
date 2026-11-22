@@ -234,6 +234,20 @@ const buildTripCardHTML = (rawTrip, tripIndex) => {
   const includesHTML = trip.includes
     .map((item) => `<li><span class="trip-includes-icon" aria-hidden="true">${TRIP_ICON_CHECK_CIRCLE}</span><span>${escapeHtml(item)}</span></li>`)
     .join("");
+  // O que inclui, destaque e demais seções (roteiro, percurso, avisos) só
+  // existem se o painel preencheu algo. Sem nenhum dado, não há o que exibir:
+  // o toggle some por completo, em vez de abrir uma caixa vazia.
+  const includesListHTML = includesHTML
+    ? `<p class="trip-includes-heading">O que inclui</p>
+            <ul class="trip-includes">${includesHTML}</ul>`
+    : "";
+  const includesHighlightHTML = trip.includesHighlight.trim()
+    ? `<div class="trip-includes-highlight">
+              <span class="trip-includes-highlight-icon" aria-hidden="true">${TRIP_ICON_SHIELD}</span>
+              <span>${escapeHtml(trip.includesHighlight)}</span>
+            </div>`
+    : "";
+  const includesBodyHTML = `${includesListHTML}${includesHighlightHTML}${buildTripDetailsHTML(trip)}`;
   const dateDisplay = formatTripDate(trip.startDateISO);
   const departure = trip.departureTime || (trip.scheduleTBD ? "" : formatTripTime(trip.startDateISO));
   const levelWord = trip.intensityLabel.replace(/^Intensidade\s*/i, "");
@@ -297,18 +311,10 @@ const buildTripCardHTML = (rawTrip, tripIndex) => {
           ${boardingHTML}
         </div>
 
-        <details class="trip-includes-toggle">
+        ${includesBodyHTML ? `<details class="trip-includes-toggle">
           <summary><span class="trip-includes-toggle-label">Ver roteiro &amp; o que inclui</span></summary>
-          <div class="trip-includes-body">
-            ${includesHTML ? `<p class="trip-includes-heading">O que inclui</p>
-            <ul class="trip-includes">${includesHTML}</ul>` : ""}
-            ${trip.includesHighlight ? `<div class="trip-includes-highlight">
-              <span class="trip-includes-highlight-icon" aria-hidden="true">${TRIP_ICON_SHIELD}</span>
-              <span>${escapeHtml(trip.includesHighlight)}</span>
-            </div>` : ""}
-            ${buildTripDetailsHTML(trip)}
-          </div>
-        </details>
+          <div class="trip-includes-body">${includesBodyHTML}</div>
+        </details>` : ""}
 
         <div class="trip-footer">
           ${trip.free

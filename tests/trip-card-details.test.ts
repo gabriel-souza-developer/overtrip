@@ -29,6 +29,23 @@ describe('informações da viagem no card do site', () => {
     for (const text of ['Roteiro', 'Informações importantes', 'Percurso:', 'Ponto de apoio:', 'O que você vai viver']) expect(html).not.toContain(text);
   });
 
+  it('não mostra o toggle "Ver roteiro & o que inclui" quando a viagem não tem nenhum dado para ele', () => {
+    const html = buildTripCardHTML({ ...base, includes: [], includedServices: [], includesHighlight: '' }, 0);
+    expect(html).not.toContain('trip-includes-toggle');
+    expect(html).not.toContain('Ver roteiro');
+  });
+
+  it('não mostra o toggle quando o destaque contém apenas espaços', () => {
+    const html = buildTripCardHTML({ ...base, includes: [], includedServices: [], includesHighlight: '   ' }, 0);
+    expect(html).not.toContain('trip-includes-toggle');
+  });
+
+  it('mostra o toggle quando só o destaque do que inclui está preenchido', () => {
+    const html = buildTripCardHTML({ ...base, includes: [], includedServices: [], includesHighlight: 'Inclui seguro viagem.' }, 0);
+    expect(html).toContain('trip-includes-toggle');
+    expect(html).toContain('Inclui seguro viagem.');
+  });
+
   it('escapa o texto das novas seções', () => {
     const attack = '"><img src=x onerror=alert(1)>';
     const html = buildTripCardHTML({ ...base, itinerary: [attack], importantInfo: [attack], routeNotes: [attack], trailDistance: attack, supportPoint: attack, supportPointInfo: attack }, 0);
