@@ -112,7 +112,7 @@ export const authController = {
       const now = new Date();
       const updated = await tx.user.updateMany({
         where: { id: userId, updatedAt: sessionVersion },
-        data: { passwordHash: newPasswordHash, updatedAt: new Date(Math.max(Date.now(), user.updatedAt.getTime() + 1)) },
+        data: { passwordHash: newPasswordHash, credentialVersion: { increment: 1 }, updatedAt: new Date(Math.max(Date.now(), user.updatedAt.getTime() + 1)) },
       });
       if (updated.count !== 1) throw AppError.unauthorized('Sessão encerrada. Entre novamente.');
       await invalidatePendingResetTokens(tx, userId, now);

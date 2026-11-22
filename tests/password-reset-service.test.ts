@@ -1,3 +1,4 @@
+import { recoverAccountPassword } from '../scripts/lib/recoverAccountPassword.js';
 import { describe, it, expect, afterEach } from 'vitest';
 import bcrypt from 'bcryptjs';
 import { prisma } from '../src/lib/prisma.js';
@@ -195,10 +196,11 @@ describe('resetPassword: fecha a corrida de emissão com troca de senha concorre
     const user = await createUser();
     try {
       const staleVersion = user.updatedAt;
+      const staleCredentialVersion = user.credentialVersion;
 
       // Troca de senha autenticada concluindo ANTES do token ser gravado.
       await prisma.$transaction(async (tx) => {
-        await tx.user.update({ where: { id: user.id }, data: { updatedAt: new Date(staleVersion.getTime() + 5000) } });
+        await tx.user.update({ where: { id: user.id }, data: { credentialVersion: { increment: 1 }, updatedAt: new Date(staleVersion.getTime() + 5000) } });
         await invalidatePendingResetTokens(tx, user.id);
       });
 
@@ -208,7 +210,7 @@ describe('resetPassword: fecha a corrida de emissão com troca de senha concorre
           userId: user.id,
           tokenHash: hashToken(rawToken),
           expiresAt: new Date(Date.now() + 30 * 60 * 1000),
-          issuedForUpdatedAt: staleVersion, // versão que a solicitação "viu", já obsoleta
+          issuedForUpdatedAt: staleVersion, issuedCredentialVersion: staleCredentialVersion, // versão que a solicitação "viu", já obsoleta
         },
       });
       expect(tokenRow.usedAt).toBeNull(); // confirma: a varredura de invalidação não alcançou este token
@@ -225,12 +227,13 @@ describe('resetPassword: fecha a corrida de emissão com troca de senha concorre
     const user = await createUser();
     try {
       const staleVersion = user.updatedAt;
+      const staleCredentialVersion = user.credentialVersion;
 
       const otherRawToken = 'outro-token-valido-' + suffix();
       await prisma.passwordResetToken.create({
         data: {
           userId: user.id, tokenHash: hashToken(otherRawToken),
-          expiresAt: new Date(Date.now() + 30 * 60 * 1000), issuedForUpdatedAt: staleVersion,
+          expiresAt: new Date(Date.now() + 30 * 60 * 1000), issuedForUpdatedAt: staleVersion, issuedCredentialVersion: staleCredentialVersion,
         },
       });
       expect(await resetPassword(otherRawToken, 'senha-concorrente-999')).toBe('success');
@@ -241,7 +244,7 @@ describe('resetPassword: fecha a corrida de emissão com troca de senha concorre
       const tokenRow = await prisma.passwordResetToken.create({
         data: {
           userId: user.id, tokenHash: hashToken(rawToken),
-          expiresAt: new Date(Date.now() + 30 * 60 * 1000), issuedForUpdatedAt: staleVersion,
+          expiresAt: new Date(Date.now() + 30 * 60 * 1000), issuedForUpdatedAt: staleVersion, issuedCredentialVersion: staleCredentialVersion,
         },
       });
       expect(tokenRow.usedAt).toBeNull();
@@ -255,6 +258,24 @@ describe('resetPassword: fecha a corrida de emissão com troca de senha concorre
   });
 });
 
+describe('recuperação administrativa de senha', () => {
+  it('invalida links emitidos anteriormente por meio da versão da credencial', async () => {
+    const user = await createUser();
+    const rawToken = 'token-antes-recuperacao-admin-' + suffix();
+    try {
+      await prisma.passwordResetToken.create({ data: {
+        userId: user.id, tokenHash: hashToken(rawToken),
+        expiresAt: new Date(Date.now() + 60_000), issuedForUpdatedAt: user.updatedAt,
+        issuedCredentialVersion: user.credentialVersion,
+      } });
+      await recoverAccountPassword(prisma, user.id, 'senha-administrativa-123', true);
+      expect(await resetPassword(rawToken, 'senha-obsoleta-123')).toBe('invalid');
+      const current = await prisma.user.findUniqueOrThrow({ where: { id: user.id } });
+      expect(await bcrypt.compare('senha-administrativa-123', current.passwordHash)).toBe(true);
+    } finally { await prisma.user.delete({ where: { id: user.id } }); }
+  });
+});
+
 describe('requestPasswordReset: concorrência real com troca de senha (leitura e criação atômicas)', () => {
   it('disparando os dois ao mesmo tempo, nenhum token pendente fica com versão desatualizada da credencial', async () => {
     configureBrevo();
@@ -263,7 +284,7 @@ describe('requestPasswordReset: concorrência real com troca de senha (leitura e
     try {
       const concurrentPasswordChange = prisma.$transaction(async (tx) => {
         const current = await tx.user.findUniqueOrThrow({ where: { id: user.id } });
-        await tx.user.update({ where: { id: user.id }, data: { updatedAt: new Date(current.updatedAt.getTime() + 1) } });
+        await tx.user.update({ where: { id: user.id }, data: { credentialVersion: { increment: 1 }, updatedAt: new Date(current.updatedAt.getTime() + 1) } });
         await invalidatePendingResetTokens(tx, user.id);
       });
 
@@ -280,7 +301,7 @@ describe('requestPasswordReset: concorrência real com troca de senha (leitura e
         // uma versão de credencial diferente da atual — se tivesse, seria
         // exatamente a corrida que este teste existe para prevenir.
         if (token.usedAt === null) {
-          expect(token.issuedForUpdatedAt.getTime()).toBe(freshUser.updatedAt.getTime());
+          expect(token.issuedCredentialVersion).toBe(freshUser.credentialVersion);
         }
       }
     } finally {

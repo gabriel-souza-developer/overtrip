@@ -66,6 +66,24 @@ async function seedToken(userId: string, rawToken: string, expiresAt: Date, used
   });
 }
 
+describe('link de recuperação após logout', () => {
+  it('continua válido depois que a sessão existente é encerrada', async () => {
+    const { user, password } = await createUser();
+    const rawToken = 'token-apos-logout-' + suffix();
+    try {
+      const loggedIn = await login(user.email, password);
+      expect(loggedIn.status).toBe(200);
+      const cookie = loggedIn.headers.get('set-cookie')!.split(';')[0];
+      await seedToken(user.id, rawToken, new Date(Date.now() + 60_000));
+      const logout = await fetch(`${baseUrl}/api/auth/logout`, { method: 'POST', headers: { Cookie: cookie, Origin: config.corsOrigin } });
+      expect(logout.status).toBe(204);
+      const result = await resetPassword(rawToken, 'nova-senha-apos-logout-123');
+      expect(result.status).toBe(200);
+      expect((await login(user.email, 'nova-senha-apos-logout-123')).status).toBe(200);
+    } finally { await prisma.user.delete({ where: { id: user.id } }); }
+  });
+});
+
 describe('POST /api/auth/forgot-password e /api/auth/reset-password (HTTP real)', () => {
   describe('indisponibilidade (sem Brevo configurado)', () => {
     it('responde 503 com mensagem clara, igual para conta existente e inexistente, e não cria token', async () => {

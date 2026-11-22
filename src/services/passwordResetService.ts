@@ -116,24 +116,10 @@ export async function requestPasswordReset(
 
     const normalized = email.trim();
 
-    // Leitura do usuário e criação do token na MESMA transação: fecha a
-    // corrida em que uma troca de senha concorrente (changePassword ou um
-    // resetPassword com outro token) lê o estado atual, conclui e invalida
-    // os tokens pendentes — tudo isso entre a leitura e a escrita daqui —
-    // e só então este token é gravado, com uma versão de credencial
-    // (issuedForUpdatedAt) que já ficou obsoleta sem que nada a comparasse.
-    // A varredura de invalidação da outra transação não via este token
-    // (ainda não existia); quem fecha a corrida é o consumo, em
-    // resetPassword, comparando issuedForUpdatedAt com o User.updatedAt
-    // atual (ver lá) — mas só gravar aqui a versão vista dentro da MESMA
-    // transação da leitura já evita capturar uma versão que estava sendo
-    // trocada nesse instante exato.
-    //
-    // A checagem de espaço na fila de envio também entra aqui, antes de
-    // criar qualquer token: se a fila está saturada, nem a conta existente
-    // grava um token (e seria descartado de novo a seguir) — o custo fica
-    // igual ao de uma conta inexistente (só a leitura), sem expor a
-    // saturação por tempo de resposta nem por efeito colateral.
+    // Emite o token com a versão atual da credencial, na mesma transação
+    // da leitura. Trocas de senha incrementam essa versão; logout apenas
+    // altera a versão de sessão. A comparação no consumo fecha corridas.
+    // Confere também a capacidade da fila antes de criar o token.
     const result: CreateTokenOutcome = await prisma.$transaction(async (tx) => {
       const user = await tx.user.findUnique({ where: { email: normalized } })
         ?? (normalized !== normalized.toLowerCase()
@@ -148,7 +134,7 @@ export async function requestPasswordReset(
       const expiresAt = new Date(Date.now() + config.passwordResetTokenTtlMinutes * 60 * 1000);
 
       await tx.passwordResetToken.create({
-        data: { userId: user.id, tokenHash, expiresAt, issuedForUpdatedAt: user.updatedAt },
+        data: { userId: user.id, tokenHash, expiresAt, issuedForUpdatedAt: user.updatedAt, issuedCredentialVersion: user.credentialVersion },
       });
 
       return { kind: 'created', rawToken, tokenHash, recipient: user.email };
@@ -198,14 +184,9 @@ export type ResetPasswordOutcome = 'success' | 'invalid';
  * null` no updateMany é quem garante uso único sob concorrência — a segunda
  * tentativa com o mesmo token nunca encontra linha para atualizar.
  *
- * Antes de consumir, compara `issuedForUpdatedAt` (versão de credencial no
- * instante da emissão, ver requestPasswordReset) com o `User.updatedAt`
- * ATUAL: se não combinam, a senha mudou por algum caminho depois que este
- * token foi emitido, e ele é rejeitado — mesmo que, por alguma corrida, não
- * tenha sido marcado usedAt por invalidatePendingResetTokens (ex.: o token
- * só foi criado depois que aquela varredura já tinha rodado). Esta checagem
- * é o que de fato fecha a corrida, independente de qualquer suposição sobre
- * ordem de execução entre transações concorrentes.
+ * A versão de credencial é independente da versão de sessão: logout não
+ * invalida o link, mas qualquer troca de senha incrementa a versão e invalida
+ * inclusive tokens inseridos em concorrência após a varredura de invalidação.
  */
 export async function resetPassword(rawToken: string, newPassword: string): Promise<ResetPasswordOutcome> {
   const tokenHash = hashToken(rawToken);
@@ -220,7 +201,7 @@ export async function resetPassword(rawToken: string, newPassword: string): Prom
     const user = await tx.user.findUnique({ where: { id: tokenRow.userId } });
     if (!user) return 'invalid';
 
-    if (tokenRow.issuedForUpdatedAt.getTime() !== user.updatedAt.getTime()) {
+    if (tokenRow.issuedCredentialVersion !== user.credentialVersion) {
       return 'invalid';
     }
 
@@ -237,6 +218,7 @@ export async function resetPassword(rawToken: string, newPassword: string): Prom
       where: { id: user.id },
       data: {
         passwordHash: newPasswordHash,
+        credentialVersion: { increment: 1 },
         updatedAt: new Date(Math.max(Date.now(), user.updatedAt.getTime() + 1, now.getTime() + 1)),
       },
     });

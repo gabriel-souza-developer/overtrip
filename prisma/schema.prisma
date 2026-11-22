@@ -455,6 +455,7 @@ model User {
   email     String   @unique
   name      String?
   passwordHash String
+  credentialVersion Int @default(0)
   role      String   @default("admin")
   legacyAccess Boolean @default(false) // acesso explícito ao painel global de turismo
   createdAt DateTime @default(now())
@@ -481,12 +482,10 @@ model PasswordResetToken {
   tokenHash String    @unique
   expiresAt DateTime
   usedAt    DateTime?
-  // User.updatedAt no instante da emissão (lido e gravado na mesma
-  // transação). Comparado ao User.updatedAt atual no consumo: fecha a
-  // corrida em que a emissão lê o usuário antes de uma troca de senha
-  // concorrente, mas só grava o token depois que a varredura de invalidação
-  // dessa troca já rodou (ela não via um token que ainda não existia).
+  // Campo legado da primeira migração de reset; não valida credenciais.
   issuedForUpdatedAt DateTime
+  // Versão da senha, independente da versão de sessão alterada no logout.
+  issuedCredentialVersion Int @default(0)
   createdAt DateTime  @default(now())
 
   @@index([userId])

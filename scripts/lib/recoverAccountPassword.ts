@@ -24,7 +24,7 @@ export async function recoverAccountPassword(
     const updatedAt = new Date(Math.max(Date.now(), user.updatedAt.getTime() + 1));
     const result = await tx.user.updateMany({
       where: { id: user.id, updatedAt: user.updatedAt },
-      data: { passwordHash: passwordHash!, updatedAt },
+      data: { passwordHash: passwordHash!, credentialVersion: { increment: 1 }, updatedAt },
     });
     if (result.count !== 1) throw new AccountRecoveryError('A conta foi alterada durante a operação. Verifique o estado antes de tentar novamente.');
     return 'applied';
