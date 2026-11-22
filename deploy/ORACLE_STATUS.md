@@ -1,12 +1,21 @@
 # Estado da produção na Oracle
 
 > Este arquivo é um diário de alterações e verificações, não um monitor em
-> tempo real. O registro mais recente abaixo é de 13 de novembro de 2026; não
+> tempo real. O registro mais recente abaixo não
 > confirma que serviços, DNS, dados ou configurações continuam iguais hoje.
 > Para mudanças operacionais, obtenha evidência nova diretamente da VM e
 > preserve os limites de privacidade. CRM/reservas foram publicados segundo o
 > registro de 10 de novembro, mas os fluxos e limites descritos nessa entrada
 > não significam que o estado atual da instância foi novamente verificado.
+
+## Plataforma multiagência (22 de novembro de 2026, UTC)
+
+- Publicado o commit `bc26620` da branch `gabriel-souza-developer/turismo-multiagencia`, com frontend e backend compilados na VM ARM64. Código, painel e cópia consistente do banco anterior foram preservados em `/srv/overtrip/retorno-bc26620-20261122-025124`.
+- Dez migrações foram ensaiadas antes em cópia privada do banco e aplicadas com API parada; Prisma informou 27 migrações atualizadas e `PRAGMA integrity_check` retornou `ok`. As contas existentes foram preservadas; não foi criada empresa ou conta de demonstração. A consulta agregada após publicação indicou zero empresas cadastradas.
+- Após publicar: API e Caddy ativos; `/health`, `/admin/` e `/api/public/trips` retornaram 200, e `/api/auth/me` sem sessão retornou 401. Não foi feito login real nem exercício autenticado em produção; o teste de migração em cópia confirmou rotas legadas com sessão sintética.
+- O worker de documentos, armazenamento de PDFs e scanner real continuam não preparados neste ambiente; não se deve anunciar processamento de PDF/IA como operacional. Extração de imagens de PDF permanece desligada por padrão e exige validação do isolamento sob o serviço real antes de habilitar.
+- O teste completo de backend terminou com 1126 aprovados, 6 pulados e um timeout de 5 segundos sob carga paralela; a suíte específica repetida isoladamente passou 15/15. Playwright: 133 aprovados e 6 pulados; builds e tipos passaram.
+- Uma restauração automática do banco após entrada de novas escritas apagaria dados posteriores. Em caso de regressão, avaliar correção em frente ou reconciliação; não restaurar o snapshot sem considerar dados criados após a publicação.
 
 ## Melhorias na revisão social (16 de novembro, 02:48 UTC)
 
