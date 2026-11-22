@@ -5,6 +5,10 @@ import { readFileSync } from 'node:fs';
 // que o login e o início não baixem o formulário de viagem, a galeria etc.
 const app = readFileSync('frontend/src/App.tsx', 'utf8');
 const layout = readFileSync('frontend/src/components/Layout.tsx', 'utf8');
+// A casca (menu/cabeçalho) é comum ao painel OVERTRIP e ao de agência; só
+// ela decide onde o Suspense entra, por isso o teste olha para lá, não para
+// Layout.tsx/OrganizationLayout.tsx individualmente.
+const panelShell = readFileSync('frontend/src/components/PanelShell.tsx', 'utf8');
 
 describe('divisão do painel por rota', () => {
   it.each(['Dashboard', 'Trips', 'TripForm', 'Visits', 'Gallery', 'Settings'])('%s é React.lazy e não import estático', (page) => {
@@ -13,6 +17,7 @@ describe('divisão do painel por rota', () => {
   });
 
   it('o conteúdo da rota fica dentro de Suspense, com o menu já visível', () => {
-    expect(layout).toMatch(/<React\.Suspense fallback=[\s\S]*?<Outlet \/>\s*<\/React\.Suspense>/);
+    expect(panelShell).toMatch(/<React\.Suspense fallback=[\s\S]*?\{children\}\s*<\/React\.Suspense>/);
+    expect(layout).toMatch(/<PanelShell[\s\S]*?<Outlet \/>\s*<\/PanelShell>/);
   });
 });

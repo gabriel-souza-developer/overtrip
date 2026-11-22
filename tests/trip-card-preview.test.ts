@@ -31,4 +31,29 @@ describe('prévia do card', () => {
     expect(html).toContain('Campina Grande (Rodoviária Nova)');
     expect(html).toContain('Realizada');
   });
+
+  it('usa previewSrc (leitura autenticada por empresa) na capa quando presente, nunca o caminho público', () => {
+    const html = renderToStaticMarkup(React.createElement(TripCardPreview, { trip: {
+      title: 'Trilha', headlineDisplay: '', category: '', description: '',
+      city: '', region: '', startDateISO: '', departureTime: '', returnTime: '',
+      scheduleInfo: '', scheduleTBD: false, priceValue: null, priceDisplay: '', priceUnit: '', free: false,
+      meetingCity: '', meetingPoint: '', meetingTBD: false,
+      media: [{ src: '/api/public/media/foto.jpg', alt: 'Capa', previewSrc: '/api/organizations/a/tourism/media/foto.jpg' }],
+      buttonLabel: '', buttonClass: '', status: 'DRAFT',
+    } }));
+    expect(html).toContain('src="/api/organizations/a/tourism/media/foto.jpg"');
+    expect(html).not.toContain('/api/public/media/foto.jpg');
+  });
+
+  it('sem previewSrc (prévia legada, sem empresa), cai de volta no caminho público de sempre', () => {
+    const html = renderToStaticMarkup(React.createElement(TripCardPreview, { trip: {
+      title: 'Trilha', headlineDisplay: '', category: '', description: '',
+      city: '', region: '', startDateISO: '', departureTime: '', returnTime: '',
+      scheduleInfo: '', scheduleTBD: false, priceValue: null, priceDisplay: '', priceUnit: '', free: false,
+      meetingCity: '', meetingPoint: '', meetingTBD: false,
+      media: [{ src: 'assets/images/foto.jpg', alt: 'Capa' }],
+      buttonLabel: '', buttonClass: '', status: 'DRAFT',
+    } }));
+    expect(html).toContain('src="/assets/images/foto.jpg"');
+  });
 });

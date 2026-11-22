@@ -108,8 +108,28 @@ export interface DocumentSuggestions {
   warnings: string[];
   sources: Record<string, { documentId: string; filename: string; page: number; excerpt: string }>;
 }
+// Prévia privada de uma foto embutida no PDF: nunca publicada, nunca salva —
+// só existe nesta resposta (ver organizationTripDocumentRoutes.ts). dataUrl
+// já vem pronto para <img src>, sem round-trip extra ao servidor.
+export interface ExtractedDocumentImage { index: number; page: number; width: number; height: number; dataUrl: string }
+// Formato comum ao operador legado (abaixo) e à API por empresa (ver
+// organizationTripDocuments.ts): permite ao componente TripDocuments.tsx
+// funcionar com as duas sem duplicar a interface. previewImages/importImage
+// são opcionais: só a API por empresa os implementa (o recurso de fotos do
+// PDF é dela), e o próprio servidor mantém esse recurso desativado por
+// padrão em todo ambiente — TripDocuments.tsx só mostra o botão quando o
+// método existe, e trata a recusa (503) do servidor como qualquer outro erro.
+export interface DocumentApi {
+  list(tripId: string): Promise<TripDocument[]>;
+  upload(tripId: string, file: File): Promise<TripDocument>;
+  remove(tripId: string, id: string): Promise<void>;
+  suggestions(tripId: string, id: string): Promise<DocumentSuggestions>;
+  download(tripId: string, doc: TripDocument): Promise<void>;
+  previewImages?(tripId: string, documentId: string): Promise<{ images: ExtractedDocumentImage[] }>;
+  importImage?(tripId: string, documentId: string, index: number): Promise<UploadedMedia>;
+}
 const documentUrl = (tripId: string, documentId = '') => `/trips/${encodeURIComponent(tripId)}/documents${documentId ? `/${encodeURIComponent(documentId)}` : ''}`;
-export const documentApi = {
+export const documentApi: DocumentApi = {
   list: (tripId: string) => request<TripDocument[]>(documentUrl(tripId)),
   upload: (tripId: string, file: File) => request<TripDocument>(documentUrl(tripId), {
     method: 'POST', headers: { 'Content-Type': 'application/pdf', 'X-Document-Filename': encodeURIComponent(file.name) }, body: file,
@@ -128,6 +148,9 @@ export const documentApi = {
 export interface UploadedMedia {
   id: string; src: string; mimeType: string; width: number; height: number; sizeBytes: number;
   variants: { width: number; src: string }[];
+  // Só presente no envio isolado por empresa (/organizations/.../tourism/media):
+  // caminho de leitura que funciona mesmo fora de PUBLIC_SITE_ORGANIZATION_IDS.
+  previewSrc?: string;
 }
 
 export const MEDIA_ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
@@ -146,9 +169,11 @@ export function mediaUploadErrorMessage(status: number, serverMessage?: string):
 
 export const mediaApi = {
   /** XMLHttpRequest para acompanhar o progresso do envio (fetch não informa). */
-  upload: (file: Blob, onProgress?: (fraction: number) => void, signal?: AbortSignal) => new Promise<UploadedMedia>((resolve, reject) => {
+  upload: (file: Blob, onProgress?: (fraction: number) => void, signal?: AbortSignal) => mediaApi.uploadTo('/media', file, onProgress, signal),
+  /** Mesmo envio, para um endpoint alternativo (ex.: mídia isolada por empresa). */
+  uploadTo: (endpoint: string, file: Blob, onProgress?: (fraction: number) => void, signal?: AbortSignal) => new Promise<UploadedMedia>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open('POST', `${API_BASE}/media`);
+    xhr.open('POST', `${API_BASE}${endpoint}`);
     xhr.withCredentials = true;
     xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
     xhr.upload.onprogress = (event) => { if (event.lengthComputable) onProgress?.(event.loaded / event.total); };

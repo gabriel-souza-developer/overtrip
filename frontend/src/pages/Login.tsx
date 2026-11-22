@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { brandUrl } from '../lib/basePath';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import Button from '../components/Button';
 import { useAuth } from '../App';
-import { authApi } from '../api';
+import './login.css';
 
 export default function Login() {
   const { login, user } = useAuth();
@@ -34,17 +34,20 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-surface-50 px-4">
-      <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <img src={brandUrl('overtrip-logo-com-fundo-laranja-192.png')} alt="OVERTRIP" width={96} height={96} className="w-24 h-24 rounded-xl mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-surface-900">Painel OVERTRIP</h1>
-          <p className="text-surface-600 mt-1">Entre para gerenciar as viagens</p>
-        </div>
-
-        {/* Login form */}
-        <div className="card p-6 sm:p-8">
+    <div className="login-shell">
+      <div className="login-frame">
+        <aside className="login-story" aria-label="Sobre a plataforma">
+          <div className="login-story-shade" />
+          <div className="login-story-top">PLATAFORMA DE GESTÃO <span> / </span> TURISMO</div>
+          <div className="login-story-copy"><span className="login-eyebrow">UM NOVO JEITO DE ORGANIZAR</span><p className="login-story-title">Sua próxima jornada começa aqui.</p><p className="login-story-description">Mais organização para o seu negócio. Mais tempo para criar experiências que ficam na memória.</p></div>
+          <div className="login-story-footer"><span>GESTÃO PARA QUEM VIVE DE VIAGENS</span><span>01 — 01</span></div>
+        </aside>
+        <main className="login-main">
+          <div className="login-mobile-brand"><img src={brandUrl('overtrip-logo-com-fundo-laranja-192.png')} alt="" width={42} height={42} /><span>OVERTRIP <small>PAINEL DE GESTÃO</small></span></div>
+          <div className="login-form-wrap">
+            <p className="login-form-eyebrow">BEM-VINDO À OVERTRIP</p>
+            <h1>Acesse sua conta</h1>
+            <p className="login-intro">Entre com seus dados para acessar o espaço da sua empresa.</p>
           {(location.state as { passwordChanged?: boolean } | null)?.passwordChanged && <p role="status" className="mb-6 text-sm text-green-800">Senha alterada. Entre novamente com sua nova senha.</p>}
           {error && (
             <div className="alert-error mb-6" role="alert">
@@ -52,7 +55,7 @@ export default function Login() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="login-form space-y-5">
             <div className="form-group">
               <label htmlFor="email" className="label">E-mail</label>
               <input
@@ -93,18 +96,16 @@ export default function Login() {
               </div>
             </div>
 
-            <Button type="submit" variant="primary" className="w-full py-3" loading={loading} loadingText="Entrando...">
-              Entrar
+            <Button type="submit" variant="primary" className="login-submit w-full py-3" loading={loading} loadingText="Entrando...">
+              Entrar <ArrowRight className="w-4 h-4" aria-hidden="true" />
             </Button>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-surface-200">
-            <p className="text-xs text-surface-600 text-center">
-              Acesso exclusivo para usuários autorizados
-            </p>
+          <p className="login-security"><ShieldCheck aria-hidden="true" /> Acesso exclusivo para usuários autorizados</p>
           </div>
+          <p className="login-bottom">OVERTRIP <span>·</span> Seu negócio em movimento</p>
+        </main>
         </div>
-      </div>
     </div>
   );
 }

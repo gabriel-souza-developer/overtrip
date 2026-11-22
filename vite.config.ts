@@ -17,8 +17,11 @@ export default defineConfig(({ command }) => ({
     port: 3100,
     strictPort: true,
     proxy: {
+      // E2E_API_PORT: só para e2e/organization-visit-gallery-real-api.spec.ts
+      // (API real isolada, porta própria para nunca colidir com um `npm run
+      // dev` já rodando na 3001). Sem a variável, comportamento igual a sempre.
       '/api': {
-        target: 'http://localhost:3001',
+        target: `http://localhost:${process.env.E2E_API_PORT || 3001}`,
         changeOrigin: true,
       },
     },

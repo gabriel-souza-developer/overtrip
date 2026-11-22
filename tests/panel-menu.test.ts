@@ -5,6 +5,9 @@ import { describe, expect, it } from 'vitest';
 // e o mesmo nome que o título da tela aberta, para quem opera não se perder.
 const read = (file: string) => readFileSync(file, 'utf8');
 const layout = read('frontend/src/components/Layout.tsx');
+// O menu (ícone decorativo + NavLink) é renderizado pela casca comum aos
+// dois painéis, não por Layout.tsx: ver PanelShell.tsx.
+const panelShell = read('frontend/src/components/PanelShell.tsx');
 const block = layout.slice(layout.indexOf('const navItems = ['), layout.indexOf('];', layout.indexOf('const navItems = [')));
 const items = [...block.matchAll(/\{ path: '([^']+)', label: '([^']+)', icon: (\w+)(, adminOnly: true)? \}/g)]
   .map(([, path, label, icon, admin]) => ({ path, label, icon, adminOnly: !!admin }));
@@ -42,9 +45,9 @@ describe('menu lateral do painel', () => {
   });
 
   it('ícones são decorativos; o nome do item é o texto do link', () => {
-    expect(layout).toContain('<Icon className="w-5 h-5 shrink-0" aria-hidden="true" />');
-    expect(layout).toContain('<NavLink');
-    expect(layout).not.toMatch(/<NavLink[^>]*aria-label/);
+    expect(panelShell).toContain('<Icon className="w-5 h-5 shrink-0" aria-hidden="true" />');
+    expect(panelShell).toContain('<NavLink');
+    expect(panelShell).not.toMatch(/<NavLink[^>]*aria-label/);
   });
 
   it('o título de cada tela é o mesmo nome do menu', () => {

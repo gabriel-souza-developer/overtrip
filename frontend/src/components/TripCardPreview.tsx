@@ -11,7 +11,7 @@ type PreviewTrip = {
   city: string; region: string; startDateISO: string; departureTime: string;
   returnTime: string; scheduleInfo: string; scheduleTBD: boolean; priceValue: number | null;
   priceDisplay: string; priceUnit: string; free: boolean; meetingCity: string;
-  meetingPoint: string; meetingTBD: boolean; media: Array<{ src: string; alt: string; type?: string }>;
+  meetingPoint: string; meetingTBD: boolean; media: Array<{ src: string; alt: string; type?: string; previewSrc?: string }>;
   buttonLabel: string; buttonClass: string;
   status: string;
   intensityClass?: string;
@@ -33,12 +33,16 @@ const buttonClass: Record<string, string> = {
   'button-outline': 'border border-surface-700 text-surface-900',
 };
 
-function PreviewCover({ src, alt }: { src: string; alt: string }) {
+// previewSrc (quando presente) é a rota de leitura autenticada por empresa
+// (ver src/routes/organizationMediaRoutes.ts); nunca trocar por
+// resolveAssetSrc(src) nesse caso — src é o caminho público/legado e pode
+// não pertencer, ou não ser servido, para quem está vendo esta prévia.
+function PreviewCover({ src, alt, previewSrc }: { src: string; alt: string; previewSrc?: string }) {
   const [failed, setFailed] = useState(false);
-  return failed ? <div className="flex h-full items-center justify-center text-sm text-surface-600">Não foi possível carregar a capa</div> : <img src={resolveAssetSrc(src.trim())} alt={alt} className="h-full w-full object-cover" onError={() => setFailed(true)} />;
+  return failed ? <div className="flex h-full items-center justify-center text-sm text-surface-600">Não foi possível carregar a capa</div> : <img src={previewSrc || resolveAssetSrc(src.trim())} alt={alt} className="h-full w-full object-cover" onError={() => setFailed(true)} />;
 }
 
-export default function TripCardPreview({ trip }: { trip: PreviewTrip }) {
+export default function TripCardPreview({ trip, illustrative = false }: { trip: PreviewTrip; illustrative?: boolean }) {
   const [includesOpen, setIncludesOpen] = useState(false);
   const cover = trip.media.find(item => item.type !== 'video') ?? trip.media[0];
   const title = trip.title.trim() || 'Nome da viagem';
@@ -51,14 +55,14 @@ export default function TripCardPreview({ trip }: { trip: PreviewTrip }) {
   const price = trip.free ? 'Gratuito' : trip.priceDisplay.trim() || (trip.priceValue ? formatBRL(trip.priceValue) : 'Consulte');
 
   return (
-    <aside className="rounded-xl border border-surface-200 bg-surface-50 p-4" aria-label="Prévia do card no site">
+    <aside className="rounded-xl border border-surface-200 bg-surface-50 p-4" aria-label={illustrative ? "Prévia ilustrativa do card" : "Prévia do card no site"}>
       <div className="mb-3 flex items-baseline justify-between gap-3">
-        <div><h3 className="font-semibold text-surface-900">Prévia do card</h3><p className="text-sm text-surface-600">Acompanhe como os dados aparecem no site.</p></div>
+        <div><h3 className="font-semibold text-surface-900">Prévia do card</h3><p className="text-sm text-surface-600">{illustrative ? 'Prévia ilustrativa; a viagem não é publicada no site.' : 'Acompanhe como os dados aparecem no site.'}</p></div>
         <span className="badge badge-info">{tripStatusLabel(trip.status || 'DRAFT')}</span>
       </div>
       <article className="site-card-preview overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-surface-200">
         <div className="aspect-[16/9] bg-surface-200 relative">
-          {cover ? <PreviewCover key={cover.src} src={cover.src} alt={cover.alt || title} /> : <div className="flex h-full items-center justify-center text-sm text-surface-600">A capa aparecerá aqui</div>}
+          {cover ? <PreviewCover key={cover.previewSrc || cover.src} src={cover.src} alt={cover.alt || title} previewSrc={cover.previewSrc} /> : <div className="flex h-full items-center justify-center text-sm text-surface-600">A capa aparecerá aqui</div>}
           {intensity && <span className="absolute right-3 bottom-3 rounded-full bg-surface-900/90 px-3 py-1 text-xs font-semibold text-white">Nível: {intensity}</span>}
         </div>
         <div className="space-y-3 p-4">

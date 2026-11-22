@@ -1,12 +1,17 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { Plus, Share2 } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useOutletContext } from 'react-router-dom';
+import { Plus, Share2, ShieldAlert } from 'lucide-react';
 import { request, tripApi, type Trip } from '../api';
 import { tripDay } from '../lib/tripCalendar';
 import { socialPostsApi, type SocialPlatform, type SocialPost } from '../api/socialPosts';
+import { createOrganizationSocialPostsApi } from '../api/organizationSocialPosts';
+import { organizationApi, type OrgTrip } from '../api/organizations';
+import type { OrganizationOutletContext } from './OrganizationLayout';
 import PageHeader from '../components/PageHeader';
 import Button from '../components/Button';
 import Field from '../components/Field';
 import Modal from '../components/Modal';
+import EmptyState from '../components/EmptyState';
 import ErrorState from '../components/ErrorState';
 import SocialArtCreator from '../components/SocialArtCreator';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -16,8 +21,27 @@ const platforms: { value: SocialPlatform; label: string }[] = [
 ];
 const blank = (): Record<SocialPlatform, string> => ({ INSTAGRAM: '', FACEBOOK: '', TIKTOK: '' });
 const blankImages = (): Record<SocialPlatform, string | null> => ({ INSTAGRAM: null, FACEBOOK: null, TIKTOK: null });
+const CAN_MANAGE_SOCIAL = (role: string) => role === 'OWNER' || role === 'ADMIN';
+type TripLike = Pick<Trip | OrgTrip, 'title' | 'city' | 'region' | 'description' | 'startDateISO'>;
 
+// Mesma página/experiência da rota legada (/social-posts, só administradores)
+// e da rota por empresa (/empresa/:organizationId/social-posts): o contexto
+// de organização, presente só na segunda, decide o adaptador de API, o
+// controle de papel e a fonte dos dados de viagem — sem duplicar a
+// interface. A sugestão de legenda por IA (rota global /ai/social-caption,
+// restrita ao papel legado "admin") ainda não tem escopo por empresa
+// garantido, então fica indisponível no modo organização.
 export default function SocialPosts() {
+  const outlet = useOutletContext<OrganizationOutletContext | undefined>();
+  const organization = outlet?.organization;
+  // No modo organização, redes sociais é informação de divulgação sensível
+  // como Interessados/Reservas: MEMBER não lê nem gerencia (mesmo padrão de
+  // acesso restrito de OrganizationLeads.tsx), reforçado no servidor em
+  // organizationSocialPostRoutes.ts. No modo legado, a rota já é
+  // admin-only (AdminRoute em App.tsx), então sempre permitido aqui.
+  const canManage = organization ? CAN_MANAGE_SOCIAL(outlet!.role) : true;
+  const api = useMemo(() => (organization ? createOrganizationSocialPostsApi(organization.id) : socialPostsApi), [organization]);
+  const aiAvailable = !organization;
   const [items, setItems] = useState<SocialPost[]>([]);
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
@@ -35,9 +59,9 @@ export default function SocialPosts() {
   const [busy, setBusy] = useState(false);
   const [formError, setFormError] = useState('');
   const [pendingRemoval, setPendingRemoval] = useState<SocialPost | null>(null);
-  const [pendingConfirmation, setPendingConfirmation] = useState<{ kind: 'discard' } | { kind: 'trip'; trip: Trip } | { kind: 'suggest'; platform: SocialPlatform } | null>(null);
+  const [pendingConfirmation, setPendingConfirmation] = useState<{ kind: 'discard' } | { kind: 'trip'; trip: TripLike & { id: string } } | { kind: 'suggest'; platform: SocialPlatform } | null>(null);
   const [tripQuery, setTripQuery] = useState('');
-  const [trips, setTrips] = useState<Trip[]>([]);
+  const [trips, setTrips] = useState<(TripLike & { id: string })[]>([]);
   const [tripId, setTripId] = useState('');
   const [tripLoading, setTripLoading] = useState(false);
   const [tripError, setTripError] = useState('');
@@ -52,11 +76,12 @@ export default function SocialPosts() {
   };
 
   const load = useCallback(async () => {
+    if (!canManage) { setLoading(false); return; }
     setLoading(true); setError('');
-    try { const result = await socialPostsApi.list(page); setItems(result.data); setPages(Math.max(1, result.pagination.totalPages)); }
+    try { const result = await api.list(page); setItems(result.data); setPages(Math.max(1, result.pagination.totalPages)); }
     catch (err) { setError(err instanceof Error ? err.message : 'Não foi possível carregar os rascunhos.'); }
     finally { setLoading(false); }
-  }, [page]);
+  }, [page, canManage]);
   useEffect(() => { void load(); }, [load]);
   const edit = (post?: SocialPost) => {
     setEditing(post ?? null); setTitle(post?.title ?? '');
@@ -68,12 +93,16 @@ export default function SocialPosts() {
   const searchTrips = async () => {
     setTripLoading(true); setTripError(''); setTripId(''); setTripSearched(false);
     try {
-      const result = await tripApi.list({ page: 1, limit: 100, search: tripQuery.trim() });
+      // Viagens da própria empresa, nunca o catálogo legado inteiro, quando
+      // operando no painel de organização.
+      const result = organization
+        ? await organizationApi.trips(organization.id, { page: 1, limit: 100, search: tripQuery.trim() })
+        : await tripApi.list({ page: 1, limit: 100, search: tripQuery.trim() });
       setTrips(result.data); setTripMore(result.pagination.totalPages > 1); setTripSearched(true);
     } catch (err) { setTrips([]); setTripError(err instanceof Error ? err.message : 'Não foi possível buscar as viagens.'); }
     finally { setTripLoading(false); }
   };
-  const applyTrip = (trip: Trip) => {
+  const applyTrip = (trip: TripLike) => {
     const day = tripDay(trip.startDateISO);
     const date = /^\d{4}-\d{2}-\d{2}$/.test(day) ? day.split('-').reverse().join('/') : '';
     const destination = [trip.city, trip.region].filter(Boolean).join(' - ');
@@ -95,8 +124,8 @@ export default function SocialPosts() {
     setBusy(true); setFormError('');
     try {
       const input = { title: title.trim(), variants };
-      if (editing) await socialPostsApi.update(editing.id, { ...input, version: editing.version });
-      else await socialPostsApi.create(input);
+      if (editing) await api.update(editing.id, { ...input, version: editing.version });
+      else await api.create(input);
       setOpen(false); await load(); setNotice('Rascunho salvo. Abra novamente para revisar a versão salva.');
     } catch (err) { setFormError(err instanceof Error ? err.message : 'Não foi possível salvar o rascunho.'); }
     finally { setBusy(false); }
@@ -109,7 +138,7 @@ export default function SocialPosts() {
     }
     setUploading(platform); setFormError('');
     try {
-      const media = await socialPostsApi.uploadImage(file);
+      const media = await api.uploadImage(file);
       setImages(current => ({ ...current, [platform]: media.id }));
     } catch (err) { setFormError(err instanceof Error ? err.message : 'Não foi possível enviar a imagem.'); }
     finally { setUploading(null); }
@@ -142,17 +171,26 @@ export default function SocialPosts() {
   };
   const approve = async (post: SocialPost) => {
     setBusy(true); setError('');
-    try { await socialPostsApi.approve(post.id, post.version); await load(); setNotice('Versão marcada como revisada. A publicação nas redes ainda não está disponível.'); }
+    try { await api.approve(post.id, post.version); await load(); setNotice('Versão marcada como revisada. A publicação nas redes ainda não está disponível.'); }
     catch (err) { setError(err instanceof Error ? err.message : 'Não foi possível aprovar.'); }
     finally { setBusy(false); }
   };
   const remove = async () => {
     if (!pendingRemoval) return;
     setBusy(true); setError('');
-    try { await socialPostsApi.remove(pendingRemoval.id, pendingRemoval.version); setPendingRemoval(null); setNotice('Rascunho excluído.'); if (items.length === 1 && page > 1) setPage(page - 1); else await load(); }
+    try { await api.remove(pendingRemoval.id, pendingRemoval.version); setPendingRemoval(null); setNotice('Rascunho excluído.'); if (items.length === 1 && page > 1) setPage(page - 1); else await load(); }
     catch (err) { setError(err instanceof Error ? err.message : 'Não foi possível excluir.'); setPendingRemoval(null); }
     finally { setBusy(false); }
   };
+
+  if (!canManage) {
+    return (
+      <div className="space-y-6">
+        <PageHeader title="Redes sociais" />
+        <EmptyState icon={<ShieldAlert />} title="Acesso restrito" text="Somente proprietários e administradores desta empresa podem consultar as redes sociais." />
+      </div>
+    );
+  }
 
   return <div className="space-y-6">
     <PageHeader title="Redes sociais" description="Prepare legendas e imagens para suas redes." actions={<Button variant="primary" icon={<Plus className="w-4 h-4" />} onClick={() => edit()}>Novo post</Button>} />
@@ -172,11 +210,11 @@ export default function SocialPosts() {
     {error && <ErrorState message={error} onRetry={load} />}
     {loading ? <p role="status">Carregando posts...</p> : !error && items.length === 0 ? <div className="card p-10 text-center text-surface-600"><Share2 className="w-8 h-8 mx-auto mb-3" aria-hidden="true" />Nenhum post criado ainda.</div> : <div className="grid gap-3">{items.map(post => <article key={post.id} className="card p-5 flex flex-wrap items-start justify-between gap-4">
       <div className="min-w-0"><h2 className="font-semibold text-surface-900 break-words">{post.title}</h2><p className="mt-1 text-sm text-surface-600">{post.approvedAt ? 'Revisado' : 'Aguardando revisão'} · {post.variants.map(v => platforms.find(p => p.value === v.platform)?.label ?? v.platform).join(', ')}</p></div>
-      <div className="flex flex-wrap gap-2"><Button small onClick={() => edit(post)}>Abrir e revisar</Button><Button small variant="danger" disabled={busy} onClick={() => setPendingRemoval(post)}>Excluir</Button></div>
+      {canManage && <div className="flex flex-wrap gap-2"><Button small onClick={() => edit(post)}>Abrir e revisar</Button><Button small variant="danger" disabled={busy} onClick={() => setPendingRemoval(post)}>Excluir</Button></div>}
     </article>)}</div>}
     {pages > 1 && <div className="flex items-center gap-3"><Button small disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Anterior</Button><span className="text-sm">Página {page} de {pages}</span><Button small disabled={page >= pages} onClick={() => setPage(p => p + 1)}>Próxima</Button></div>}
-    <Modal open={!!pendingRemoval} onOpenChange={value => { if (!value && !busy) setPendingRemoval(null); }} title="Excluir post" description="O rascunho e suas legendas serão excluídos." footer={<><Button disabled={busy} onClick={() => setPendingRemoval(null)}>Cancelar</Button><Button variant="danger" loading={busy} onClick={() => void remove()}>Excluir</Button></>}><p>Excluir {pendingRemoval?.title}?</p></Modal>
-    <Modal open={open} onOpenChange={value => { if (!value) closeEditor(); }} title={editing ? 'Revisar post' : 'Novo post'} description="Preencha somente as redes que deseja usar." widthClass="max-w-2xl">
+    {canManage && <Modal open={!!pendingRemoval} onOpenChange={value => { if (!value && !busy) setPendingRemoval(null); }} title="Excluir post" description="O rascunho e suas legendas serão excluídos." footer={<><Button disabled={busy} onClick={() => setPendingRemoval(null)}>Cancelar</Button><Button variant="danger" loading={busy} onClick={() => void remove()}>Excluir</Button></>}><p>Excluir {pendingRemoval?.title}?</p></Modal>}
+    {canManage && <Modal open={open} onOpenChange={value => { if (!value) closeEditor(); }} title={editing ? 'Revisar post' : 'Novo post'} description="Preencha somente as redes que deseja usar." widthClass="max-w-2xl">
       <form className="space-y-5" onSubmit={save}>
         {!editing && <details className="rounded-xl border border-surface-200 p-4">
           <summary className="cursor-pointer font-semibold text-surface-900">Usar dados de uma viagem</summary>
@@ -188,14 +226,14 @@ export default function SocialPosts() {
         </details>}
         <Field id="social-title" label="Título interno" required><input id="social-title" className="input" value={title} onChange={e => setTitle(e.target.value)} maxLength={160} required /></Field>
         <Field id="social-briefing" label="Ideia para a legenda" hint="Descreva a viagem, o público e o que deseja comunicar. Revise sugestões antes de salvar."><textarea id="social-briefing" className="input" rows={3} maxLength={3000} value={briefing} onChange={e => setBriefing(e.target.value)} /></Field>
-        <p className="text-sm text-surface-600">Ao solicitar uma sugestão, sua descrição será enviada ao provedor de IA configurado. Não inclua dados pessoais de clientes.</p>
-        {platforms.map(({ value, label }) => <div key={value} className="space-y-3 rounded-xl border border-surface-200 p-4"><Field id={`caption-${value}`} label={`Legenda para ${label}`}><textarea id={`caption-${value}`} className="input" rows={4} maxLength={5000} value={captions[value]} onChange={e => setCaptions(c => ({ ...c, [value]: e.target.value }))} /><div className="mt-2"><Button type="button" small disabled={busy || !!generating || !!uploading} onClick={() => void suggest(value)}>{generating === value ? 'Gerando...' : 'Sugerir legenda'}</Button></div></Field><Field id={`image-${value}`} label={`Imagem para ${label}`} hint="JPEG, PNG ou WebP até 15 MB. A imagem é privada até a publicação."><input id={`image-${value}`} type="file" className="input" accept="image/jpeg,image/png,image/webp" disabled={busy || !!generating || !!uploading} onChange={e => { const file = e.target.files?.[0]; e.target.value = ''; void uploadImage(value, file); }} /></Field>{uploading === value && <p role="status" className="text-sm text-surface-600">Enviando imagem...</p>}{images[value] && <div className="space-y-2"><img src={socialPostsApi.imageUrl(images[value]!)} alt={`Imagem escolhida para ${label}`} className="max-h-60 max-w-full rounded-lg object-contain" /><Button type="button" small disabled={busy || !!uploading} onClick={() => setImages(current => ({ ...current, [value]: null }))}>Remover imagem</Button></div>}</div>)}
+        {aiAvailable && <p className="text-sm text-surface-600">Ao solicitar uma sugestão, sua descrição será enviada ao provedor de IA configurado. Não inclua dados pessoais de clientes.</p>}
+        {platforms.map(({ value, label }) => <div key={value} className="space-y-3 rounded-xl border border-surface-200 p-4"><Field id={`caption-${value}`} label={`Legenda para ${label}`}><textarea id={`caption-${value}`} className="input" rows={4} maxLength={5000} value={captions[value]} onChange={e => setCaptions(c => ({ ...c, [value]: e.target.value }))} /><div className="mt-2">{aiAvailable ? <Button type="button" small disabled={busy || !!generating || !!uploading} onClick={() => void suggest(value)}>{generating === value ? 'Gerando...' : 'Sugerir legenda'}</Button> : <p className="text-xs text-surface-600">Sugestão de legenda por IA ainda não está disponível para contas de empresa.</p>}</div></Field><Field id={`image-${value}`} label={`Imagem para ${label}`} hint="JPEG, PNG ou WebP até 15 MB. A imagem é privada até a publicação."><input id={`image-${value}`} type="file" className="input" accept="image/jpeg,image/png,image/webp" disabled={busy || !!generating || !!uploading} onChange={e => { const file = e.target.files?.[0]; e.target.value = ''; void uploadImage(value, file); }} /></Field>{uploading === value && <p role="status" className="text-sm text-surface-600">Enviando imagem...</p>}{images[value] && <div className="space-y-2"><img src={api.imageUrl(images[value]!)} alt={`Imagem escolhida para ${label}`} className="max-h-60 max-w-full rounded-lg object-contain" /><Button type="button" small disabled={busy || !!uploading} onClick={() => setImages(current => ({ ...current, [value]: null }))}>Remover imagem</Button></div>}</div>)}
         {formError && <p role="alert" className="text-sm text-red-700">{formError}</p>}
         {editing?.approvedAt && <p className="text-sm text-surface-600">Ao salvar alterações, a revisão anterior será desfeita.</p>}
         <div className="flex flex-wrap gap-2"><Button type="submit" variant="primary" loading={busy} disabled={!!generating || !!uploading}>Salvar rascunho</Button><Button type="button" disabled={busy || !!generating || !!uploading} onClick={closeEditor}>Cancelar</Button></div>
       </form>
       {editing && <div className="mt-6 border-t border-surface-200 pt-4"><p className="mb-3 text-sm text-surface-600">{editing.approvedAt ? 'Esta versão está revisada. Salvar alterações cancela a revisão.' : 'Confira as legendas e imagens. Salve qualquer alteração antes de marcar esta versão como revisada.'}</p>{!editing.approvedAt && <Button type="button" disabled={busy || !!generating || !!uploading || title !== editing.title || platforms.some(({ value }) => captions[value] !== (editing.variants.find(v => v.platform === value)?.caption ?? '') || images[value] !== (editing.variants.find(v => v.platform === value)?.socialMediaId ?? null))} onClick={() => { setOpen(false); void approve(editing); }}>Marcar versão salva como revisada</Button>}</div>}
-    </Modal>
+    </Modal>}
     <ConfirmDialog
       open={!!pendingConfirmation}
       onOpenChange={value => { if (!value) setPendingConfirmation(null); }}

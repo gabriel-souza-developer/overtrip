@@ -24,6 +24,7 @@ const OrganizationGallery = React.lazy(() => import('./pages/OrganizationGallery
 const OrganizationDashboard = React.lazy(() => import('./pages/OrganizationDashboard'));
 const OrganizationLeads = React.lazy(() => import('./pages/OrganizationLeads'));
 const OrganizationReservations = React.lazy(() => import('./pages/OrganizationReservations'));
+const OrganizationSettings = React.lazy(() => import('./pages/OrganizationSettings'));
 
 interface User {
   id: string;
@@ -145,8 +146,10 @@ const AppRoutes = () => (
         <Route path="trips" element={<OrganizationTrips />} />
         <Route path="visits" element={<OrganizationVisits />} />
         <Route path="gallery" element={<OrganizationGallery />} />
+        <Route path="social-posts" element={<SocialPosts />} />
         <Route path="leads" element={<OrganizationLeads />} />
         <Route path="reservations" element={<OrganizationReservations />} />
+        <Route path="settings" element={<OrganizationSettings />} />
       </Route>
       <Route element={<LegacyRoute />}>
         <Route element={<Layout />}>

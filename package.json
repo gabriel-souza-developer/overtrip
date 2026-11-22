@@ -19,10 +19,14 @@
     "import:data": "tsx scripts/import-data.ts",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "test:e2e:real": "E2E_REAL_API=1 E2E_API_PORT=3501 playwright test e2e/organization-visit-gallery-real-api.spec.ts",
+    "test:e2e:real:pdf-photo": "E2E_REAL_API=1 E2E_API_PORT=3502 playwright test e2e/organization-trip-pdf-photo-real-api.spec.ts",
     "test:watch": "vitest",
     "worker:documents": "node dist/documentWorker.js",
     "start:assistant-private": "node dist/assistantPrivateServer.js",
-    "dev:worker:documents": "tsx src/documentWorker.ts"
+    "dev:worker:documents": "tsx src/documentWorker.ts",
+    "check:sandbox-compat": "bash scripts/check-sandbox-compat.sh",
+    "check:sandbox-compat:probe": "tsx scripts/check-sandbox-compat.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.3.0",

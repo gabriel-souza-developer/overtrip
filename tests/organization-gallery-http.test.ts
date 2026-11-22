@@ -54,11 +54,13 @@ describe('galeria isolada por empresa', () => {
     expect((await fetch(`${base}/${orgA}/tourism/gallery`)).status).toBe(401);
     const response = await fetch(`${base}/${orgA}/tourism/gallery`, { headers: headers() });
     expect(response.status).toBe(200); expect(response.headers.get('cache-control')).toContain('no-store');
-    const body = await response.json() as { data: Array<{ title: string; images: Array<{ src: string }> }>; pagination: { total: number } };
+    const body = await response.json() as { data: Array<{ title: string; images: Array<{ src: string; previewSrc: string }> }>; pagination: { total: number } };
     expect(body.pagination.total).toBe(3);
     expect(body.data.map(entry => entry.title)).not.toContain('Memória estrangeira');
     expect(body.data.map(entry => entry.title)).not.toContain('Vínculo cruzado');
-    expect(body.data.find(entry => entry.title === 'Memória própria')?.images[0]?.src).toContain(`/gallery/media/${ownKey}.jpg`);
+    const own = body.data.find(entry => entry.title === 'Memória própria')?.images[0];
+    expect(own?.src).toBe(`/api/public/media/${ownKey}.jpg`);
+    expect(own?.previewSrc).toContain(`/gallery/media/${ownKey}.jpg`);
     expect(body.data.find(entry => entry.title === 'Imagem estrangeira')?.images).toEqual([]);
     expect(body.data.find(entry => entry.title === 'Imagem sem registro')?.images).toEqual([]);
     expect(JSON.stringify(body)).not.toContain(foreignKey); expect(JSON.stringify(body)).not.toContain(orphanKey);

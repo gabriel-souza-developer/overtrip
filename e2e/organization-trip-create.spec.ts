@@ -9,6 +9,19 @@ const draftTrip = {
   id: 'trip-1', title: 'Trilha da Serra', category: 'Trilha', description: 'Descrição atual', city: 'Lucena', region: 'PB', updatedAt: '2029-01-01T00:00:00.000Z',
   startDateISO: '2030-06-01T09:00:00.000Z', endDateISO: null, status: 'DRAFT',
 };
+// Projeção completa (GET de uma viagem) que o formulário de edição busca
+// antes de abrir: campos estendidos todos nulos/vazios, para que só o
+// título editado nesta tela apareça no diff enviado ao servidor.
+const draftTripDetail = {
+  ...draftTrip,
+  headlineDisplay: null, filterCategory: null,
+  departureTime: null, departureTolerance: null, returnTime: null, scheduleInfo: null, scheduleTBD: false,
+  priceValue: null, priceDisplay: null, priceUnit: 'por pessoa', free: false,
+  intensityClass: 'moderado', spotsLeft: null, trailDistance: null, supportPoint: null, supportPointInfo: null,
+  meetingCity: null, meetingPoint: null, meetingTBD: false, meetingDetails: null, meetingMapsQuery: null,
+  includes: [], includesHighlight: null, itinerary: [], routeNotes: [], importantInfo: [],
+  media: [], departures: [],
+};
 
 function mockOrganizationApi(page: import('@playwright/test').Page, { role, trips, onCreate, onUpdate }: {
   role: string; trips: typeof draftTrip[]; onCreate?: (body: unknown) => unknown; onUpdate?: (id: string, body: unknown) => unknown;
@@ -29,6 +42,14 @@ function mockOrganizationApi(page: import('@playwright/test').Page, { role, trip
         if (result && typeof result === 'object' && '__error' in result) return route.fulfill((result as { __error: { status: number; json: unknown } }).__error);
         return route.fulfill({ status: 201, json: result });
       }
+    }
+    if (url.pathname === '/api/organizations/a/tourism/trips/trip-1' && request.method() === 'GET') {
+      return route.fulfill({ json: draftTripDetail });
+    }
+    // PDFs do roteiro: a tela de edição sempre busca a lista ao abrir (ver
+    // TripDocuments.tsx); sem viagem alguma aqui.
+    if (url.pathname === '/api/organizations/a/tourism/trips/trip-1/documents') {
+      return route.fulfill({ json: [] });
     }
     if (url.pathname === '/api/organizations/a/tourism/trips/trip-1' && request.method() === 'PUT') {
       if (!onUpdate) return route.fulfill({ status: 403, json: { error: 'Papel insuficiente para esta operação', code: 'ORGANIZATION_ROLE_DENIED' } });
@@ -67,12 +88,16 @@ test('OWNER cria uma viagem em rascunho pelo formulário', async ({ page }) => {
 
   await page.getByRole('button', { name: 'Nova viagem' }).first().click();
   await expect(page.getByRole('heading', { name: 'Nova viagem' })).toBeVisible();
-  await page.getByLabel('Título').fill('Trilha da Serra');
-  await page.getByLabel('Categoria').fill('Trilha');
-  await page.getByLabel('Cidade').fill('Lucena');
-  await page.getByLabel('Estado').fill('PB');
-  await page.getByLabel('Data de saída').fill('2030-06-01T09:00');
-  await page.getByLabel('Descrição').fill('Caminhada guiada com paradas para observação.');
+  // Por id: o formulário ganhou campos extras (preço, embarque etc.) cujos
+  // rótulos também contêm "Cidade"/"Categoria", então a busca por rótulo
+  // deixou de ser só um resultado (mesma solução já usada em
+  // organization-visit-gallery-media.spec.ts para o campo de data).
+  await page.locator('#org-trip-title').fill('Trilha da Serra');
+  await page.locator('#org-trip-category').fill('Trilha');
+  await page.locator('#org-trip-city').fill('Lucena');
+  await page.locator('#org-trip-region').fill('PB');
+  await page.locator('#org-trip-start').fill('2030-06-01T09:00');
+  await page.locator('#org-trip-description').fill('Caminhada guiada com paradas para observação.');
   await page.getByRole('button', { name: 'Salvar' }).click();
 
   await expect(page.getByRole('heading', { name: 'Nova viagem' })).toHaveCount(0);
@@ -97,8 +122,8 @@ test('OWNER edita apenas campos alterados, preservando descrição e versão', a
 
   await page.getByRole('button', { name: /^Editar/ }).click();
   await expect(page.getByRole('heading', { name: 'Editar viagem' })).toBeVisible();
-  await expect(page.getByLabel('Descrição')).toHaveValue('Descrição atual');
-  await page.getByLabel('Título').fill('Trilha da Serra — Revisada');
+  await expect(page.locator('#org-trip-description')).toHaveValue('Descrição atual');
+  await page.locator('#org-trip-title').fill('Trilha da Serra — Revisada');
   await page.getByRole('button', { name: 'Salvar' }).click();
 
   await expect(page.getByRole('heading', { name: 'Editar viagem' })).toHaveCount(0);
@@ -117,10 +142,10 @@ test('conflito preserva rascunho digitado e mantém formulário aberto', async (
   });
   await login(page);
   await page.getByRole('button', { name: /^Editar/ }).click();
-  await page.getByLabel('Título').fill('Alteração ainda não salva');
+  await page.locator('#org-trip-title').fill('Alteração ainda não salva');
   await page.getByRole('button', { name: 'Salvar' }).click();
   await expect(page.getByRole('alert')).toContainText('alterada por outra pessoa');
-  await expect(page.getByLabel('Título')).toHaveValue('Alteração ainda não salva');
+  await expect(page.locator('#org-trip-title')).toHaveValue('Alteração ainda não salva');
   await expect(page.getByRole('heading', { name: 'Editar viagem' })).toBeVisible();
 });
 
@@ -131,12 +156,12 @@ test('erro de validação do servidor aparece no formulário e não fecha o moda
   });
   await login(page);
   await page.getByRole('button', { name: 'Nova viagem' }).first().click();
-  await page.getByLabel('Título').fill('Trilha da Serra');
-  await page.getByLabel('Categoria').fill('Trilha');
-  await page.getByLabel('Cidade').fill('Lucena');
-  await page.getByLabel('Estado').fill('PB');
-  await page.getByLabel('Data de saída').fill('2030-06-01T09:00');
-  await page.getByLabel('Descrição').fill('Descrição qualquer.');
+  await page.locator('#org-trip-title').fill('Trilha da Serra');
+  await page.locator('#org-trip-category').fill('Trilha');
+  await page.locator('#org-trip-city').fill('Lucena');
+  await page.locator('#org-trip-region').fill('PB');
+  await page.locator('#org-trip-start').fill('2030-06-01T09:00');
+  await page.locator('#org-trip-description').fill('Descrição qualquer.');
   await page.getByRole('button', { name: 'Salvar' }).click();
 
   await expect(page.getByRole('alert')).toBeVisible();

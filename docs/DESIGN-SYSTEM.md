@@ -29,4 +29,13 @@ Antes de incorporar código, conferir termos e licença da versão exata, inclus
 
 | Componente | Origem e versão/data | Licença e atribuição | Arquivos adaptados |
 | --- | --- | --- | --- |
-| Nenhum incorporado até agora | — | — | — |
+| Nenhum incorporado atualmente | — | — | — |
+
+## Acesso comum: fundamentos visuais
+
+- Marca: `#ff5a00`, extraído da logo OVERTRIP; ação primária usa texto branco em tamanho grande e peso forte, conforme a identidade solicitada. Estados de hover e foco precisam continuar perceptíveis.
+- Texto principal: `#231a15`; texto de apoio: `#6c625b`; bordas de campos: `#ded8d2`. Não usar a cor de marca como única indicação de erro ou foco.
+- Tipografia: Inter com fallback de sistema; títulos com hierarquia clara, corpo legível e rótulos sempre visíveis.
+- Controles: campos e ação principal com altura mínima de 54 px, cantos de 9 px, foco visível e estados de carregamento e desabilitado.
+- Composição responsiva: formulário priorizado em telas pequenas, sem rolagem horizontal; transições respeitam a preferência por movimento reduzido.
+- Os tokens estão limitados à tela de acesso enquanto a identidade do painel é revisada; não alterar globalmente a paleta das empresas sem validar seus contextos.

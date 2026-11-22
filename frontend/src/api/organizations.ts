@@ -1,18 +1,50 @@
 import { request } from './index';
 
 export interface OrganizationSummary { id: string; name: string; slug: string; role: string }
-export interface OrganizationContext { organization: { id: string; name: string; slug: string; status: string }; role: string }
+export interface OrganizationContext { organization: { id: string; name: string; slug: string; status: string; defaultPriceUnit: string | null; brandColor: string | null }; role: string }
 
 export type OrgTripStatus = 'DRAFT' | 'REVIEW' | 'OPEN' | 'COMPLETED' | 'CANCELLED' | 'SOLD_OUT' | 'CLOSED';
 export interface OrgTrip {
   id: string; title: string; category: string; description: string; city: string; region: string; updatedAt: string;
   startDateISO: string; endDateISO: string | null; status: OrgTripStatus;
 }
-// Só os dados essenciais aceitos pela rota: nunca organizationId, status,
-// mídia ou storedIdentity — o servidor deriva/gera tudo isso por conta própria.
+export type OrgTripIntensity = 'leve' | 'moderado' | 'intenso' | 'extremo';
+// `src` é o caminho canônico a reenviar ao salvar sem trocar a foto;
+// `previewSrc` é a rota de leitura autenticada por empresa, para exibir a
+// miniatura mesmo fora de PUBLIC_SITE_ORGANIZATION_IDS — usar nos `<img>`.
+export interface OrgTripMediaItem { src: string; previewSrc: string; alt: string; focus?: string }
+// O que a rota aceita ao salvar: nunca previewSrc (é só leitura).
+export interface OrgTripMediaInput { src: string; alt: string; focus?: string }
+export interface OrgTripDeparture { id: string; time: string; place: string; city: string; mapsUrl: string | null; mapsQuery: string | null; orderIndex: number }
+// Viagem completa, só devolvida pelo próprio GET/POST/PUT do painel de
+// empresa. Mídia já vem com as duas URLs (ver organizationOwnedMedia.ts).
+export interface OrgTripDetail extends OrgTrip {
+  headlineDisplay: string | null; filterCategory: string | null;
+  departureTime: string | null; departureTolerance: string | null; returnTime: string | null;
+  scheduleInfo: string | null; scheduleTBD: boolean;
+  priceValue: number | null; priceDisplay: string | null; priceUnit: string; free: boolean;
+  intensityClass: OrgTripIntensity; spotsLeft: number | null;
+  trailDistance: string | null; supportPoint: string | null; supportPointInfo: string | null;
+  meetingCity: string | null; meetingPoint: string | null; meetingTBD: boolean; meetingDetails: string | null; meetingMapsQuery: string | null;
+  includes: string[]; includesHighlight: string | null; itinerary: string[]; routeNotes: string[]; importantInfo: string[];
+  media: OrgTripMediaItem[]; departures: OrgTripDeparture[];
+}
+// Só os dados aceitos pela rota: nunca organizationId, status ou
+// storedIdentity — o servidor deriva/gera tudo isso por conta própria.
+// Mídia só aceita fotos já enviadas e publicadas por esta empresa.
 export interface OrgTripEssentials {
   title: string; category: string; description: string; city: string; region: string;
   startDateISO: string; endDateISO?: string | null;
+  headlineDisplay?: string | null; filterCategory?: string | null;
+  departureTime?: string | null; departureTolerance?: string | null; returnTime?: string | null;
+  scheduleInfo?: string | null; scheduleTBD?: boolean;
+  priceValue?: number | null; priceDisplay?: string | null; priceUnit?: string; free?: boolean;
+  intensityClass?: OrgTripIntensity; spotsLeft?: number | null;
+  trailDistance?: string | null; supportPoint?: string | null; supportPointInfo?: string | null;
+  meetingCity?: string | null; meetingPoint?: string | null; meetingTBD?: boolean; meetingDetails?: string | null; meetingMapsQuery?: string | null;
+  includes?: string[]; includesHighlight?: string | null; itinerary?: string[]; routeNotes?: string[]; importantInfo?: string[];
+  media?: OrgTripMediaInput[];
+  departures?: Array<{ time: string; place: string; city: string; mapsUrl?: string | null; mapsQuery?: string | null }>;
 }
 
 export type OrgLeadStage = 'NEW' | 'CONTACTED' | 'NEGOTIATING' | 'WON' | 'LOST';
@@ -49,6 +81,10 @@ export interface OrgInstallmentEssentials { amountCents: number; dueDate?: strin
 
 export interface ListResult<T> { data: T[]; pagination: { page: number; limit: number; total: number; totalPages: number } }
 export interface OrganizationDashboardSummary { trips: { total: number; upcoming: number; open: number; drafts: number }; leads?: number; reservations?: number }
+// truncated nunca deve ser ignorado pela UI: se true, há mais viagens no
+// intervalo do que o servidor devolveu (limite de segurança), e a agenda
+// precisa avisar em vez de mostrar os dados como se fossem completos.
+export interface OrgCalendarResult { data: OrgTrip[]; total: number; truncated: boolean; range: { start: string; end: string } }
 
 const orgPath = (organizationId: string, suffix = '') => `/organizations/${encodeURIComponent(organizationId)}${suffix}`;
 const pageQuery = (params?: { page?: number; limit?: number; search?: string; status?: string; period?: string }) => {
@@ -65,16 +101,27 @@ export const organizationApi = {
   listMine: () => request<{ organizations: OrganizationSummary[] }>('/organizations'),
 
   get: (organizationId: string) => request<OrganizationContext>(orgPath(organizationId)),
+  updateSettings: (organizationId: string, data: { defaultPriceUnit?: string | null; brandColor?: string | null }) =>
+    request<OrganizationContext>(orgPath(organizationId, '/settings'), { method: 'PUT', body: JSON.stringify(data) }),
   dashboard: (organizationId: string) => request<OrganizationDashboardSummary>(orgPath(organizationId, '/tourism/dashboard')),
 
   trips: (organizationId: string, params?: { page?: number; limit?: number; search?: string; status?: string; period?: 'upcoming' | 'past' }) =>
     request<ListResult<OrgTrip>>(`${orgPath(organizationId, '/tourism/trips')}?${pageQuery(params)}`),
   trip: (organizationId: string, tripId: string) =>
-    request<OrgTrip>(orgPath(organizationId, `/tourism/trips/${encodeURIComponent(tripId)}`)),
+    request<OrgTripDetail>(orgPath(organizationId, `/tourism/trips/${encodeURIComponent(tripId)}`)),
+  // Intervalo de datas (não paginação): a própria rota limita o período e o
+  // total de resultados, então nunca busca a tabela inteira da empresa.
+  calendar: (organizationId: string, range: { start: string; end: string }) =>
+    request<OrgCalendarResult>(`${orgPath(organizationId, '/tourism/trips/calendar')}?${new URLSearchParams(range)}`),
   createTrip: (organizationId: string, data: OrgTripEssentials) =>
-    request<OrgTrip>(orgPath(organizationId, '/tourism/trips'), { method: 'POST', body: JSON.stringify(data) }),
+    request<OrgTripDetail>(orgPath(organizationId, '/tourism/trips'), { method: 'POST', body: JSON.stringify(data) }),
   updateTrip: (organizationId: string, tripId: string, data: Partial<OrgTripEssentials> & { expectedUpdatedAt: string }) =>
-    request<OrgTrip>(orgPath(organizationId, `/tourism/trips/${encodeURIComponent(tripId)}`), { method: 'PUT', body: JSON.stringify(data) }),
+    request<OrgTripDetail>(orgPath(organizationId, `/tourism/trips/${encodeURIComponent(tripId)}`), { method: 'PUT', body: JSON.stringify(data) }),
+  // Só a própria viagem, e só enquanto rascunho: o servidor recusa (404) se
+  // já não existir mais nesse estado, e recusa (409/400) se houver reserva,
+  // interessado, visita ou memória associada (ver organizationTripRoutes.ts).
+  deleteTrip: (organizationId: string, tripId: string) =>
+    request<void>(orgPath(organizationId, `/tourism/trips/${encodeURIComponent(tripId)}`), { method: 'DELETE' }),
 
   leads: (organizationId: string, params?: { page?: number; limit?: number; stage?: OrgLeadStage; followUp?: 'due' }) => {
     const query = new URLSearchParams(pageQuery(params));

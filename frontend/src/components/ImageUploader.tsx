@@ -28,7 +28,7 @@ export function checkImageFile(file: { type: string; size: number }): string {
  * Envia uma foto (arquivo ou colada) e só a entrega ao formulário depois que
  * o texto alternativo for preenchido.
  */
-export default function ImageUploader({ onAdd, onPendingChange, idPrefix }: { onAdd: (item: { src: string; alt: string }) => void; onPendingChange?: (pending: boolean) => void; idPrefix: string }) {
+export default function ImageUploader({ onAdd, onPendingChange, idPrefix, endpoint = '/media' }: { onAdd: (item: { src: string; alt: string; previewSrc?: string }) => void; onPendingChange?: (pending: boolean) => void; idPrefix: string; endpoint?: string }) {
   const [state, setState] = useState<State>({ kind: 'idle' });
   const [alt, setAlt] = useState('');
   const [error, setError] = useState('');
@@ -59,7 +59,7 @@ export default function ImageUploader({ onAdd, onPendingChange, idPrefix }: { on
     preview.current = URL.createObjectURL(file);
     setState({ kind: 'uploading', preview: preview.current, progress: 0 });
     try {
-      const asset = await mediaApi.upload(file, (progress) => setState((s) => (s.kind === 'uploading' ? { ...s, progress } : s)), controller.signal);
+      const asset = await mediaApi.uploadTo(endpoint, file, (progress) => setState((s) => (s.kind === 'uploading' ? { ...s, progress } : s)), controller.signal);
       dropPreview();
       setState({ kind: 'ready', asset });
     } catch (e) {
@@ -74,7 +74,11 @@ export default function ImageUploader({ onAdd, onPendingChange, idPrefix }: { on
   const reset = () => { abort.current?.abort(); dropPreview(); setState({ kind: 'idle' }); setAlt(''); onPendingChange?.(false); };
   const confirm = () => {
     if (state.kind !== 'ready' || !alt.trim()) return;
-    onAdd({ src: state.asset.src, alt: alt.trim() });
+    // previewSrc também vai para o formulário: sem ele, a miniatura da foto
+    // recém-enviada usaria o caminho público (`src`), que não abre para uma
+    // empresa fora de PUBLIC_SITE_ORGANIZATION_IDS antes de qualquer
+    // publicação. `src` continua o valor canônico a salvar.
+    onAdd({ src: state.asset.src, alt: alt.trim(), previewSrc: state.asset.previewSrc });
     reset();
     setNotice('Foto adicionada ao formulário. Salve para confirmar a alteração.');
   };
@@ -114,7 +118,7 @@ export default function ImageUploader({ onAdd, onPendingChange, idPrefix }: { on
       )}
       {state.kind === 'ready' && (
         <div className="flex flex-wrap items-start gap-3">
-          <img src={state.asset.src} alt="" className="w-20 h-20 object-cover rounded bg-surface-100" />
+          <img src={state.asset.previewSrc ?? state.asset.src} alt="" className="w-20 h-20 object-cover rounded bg-surface-100" />
           <div className="flex-1 min-w-[12rem] space-y-1">
             <p role="status" className="text-sm text-surface-700">Foto enviada. Conte o que aparece nela e clique em “Usar esta foto”.</p>
             <label htmlFor={altId} className="label">O que aparece nesta foto? <span className="text-red-700">(obrigatório)</span></label>

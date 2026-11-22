@@ -1,7 +1,6 @@
 import { Router, raw, type Request, type Response } from 'express';
 import { createHash, randomBytes } from 'node:crypto';
-import { lstat, mkdir, realpath, readFile, unlink, writeFile } from 'node:fs/promises';
-import { homedir, tmpdir } from 'node:os';
+import { readFile, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { prisma } from '../lib/prisma.js';
 import { authenticate, authorize, type AuthRequest } from '../middleware/auth.js';
@@ -9,34 +8,11 @@ import { AppError, asyncHandler } from '../middleware/errorHandler.js';
 import { createRateLimiter } from '../middleware/rateLimit.js';
 import { assertImageUpload, MEDIA_MAX_BYTES, MediaUploadError } from '../services/mediaUpload.js';
 import { processImage } from '../services/mediaProcessing.js';
+import { socialMediaDirectory as directory, socialMediaFilename as filename } from '../services/socialMediaStorage.js';
 
 const router = Router();
 router.use((_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
 router.use(authenticate, authorize('admin'));
-const inside = (child: string, parent: string) => child === parent || child.startsWith(parent + path.sep);
-async function directory(): Promise<string> {
-  const configured = process.env.SOCIAL_MEDIA_DIR || (process.env.NODE_ENV === 'production' ? '/var/lib/overtrip/social-media' : path.join(homedir(), '.local/share/overtrip-dev/social-media'));
-  if (!path.isAbsolute(configured)) throw new AppError(503, 'Armazenamento privado indisponível.');
-  const requested = path.resolve(configured);
-  const prohibited = ['/', '/tmp', '/var', '/var/lib', '/var/lib/overtrip', '/srv', '/srv/overtrip', '/srv/overtrip-public', '/var/lib/overtrip/uploads', path.resolve(tmpdir()), path.resolve(homedir())];
-  if (prohibited.includes(requested)) throw new AppError(503, 'Armazenamento privado deve ser um diretório dedicado.');
-  await mkdir(configured, { recursive: true, mode: 0o700 });
-  const info = await lstat(configured);
-  if (!info.isDirectory() || info.isSymbolicLink() || (info.mode & 0o7777) !== 0o700 || (typeof process.getuid === 'function' && info.uid !== process.getuid())) {
-    throw new AppError(503, 'Diretório privado deve pertencer ao serviço e ter permissão 700.');
-  }
-  const dir = await realpath(configured);
-  if (prohibited.includes(dir)) throw new AppError(503, 'Armazenamento privado deve ser um diretório dedicado.');
-  const repo = await realpath(process.cwd());
-  const publicRoot = '/srv/overtrip-public';
-  const uploadDir = process.env.UPLOADS_DIR ? path.resolve(process.env.UPLOADS_DIR) : '/var/lib/overtrip/uploads';
-  if (inside(dir, repo) || inside(repo, dir) || inside(dir, publicRoot) || inside(publicRoot, dir) || inside(dir, uploadDir) || inside(uploadDir, dir)) throw new AppError(503, 'Armazenamento privado inválido.');
-  return dir;
-}
-function filename(key: string): string {
-  if (!/^[a-f0-9]{32}\.(jpg|png)$/.test(key)) throw new AppError(500, 'Arquivo de mídia inválido.');
-  return key;
-}
 /** Verifica o conteúdo imutável antes de aprovar a versão. */
 export async function assertSocialMediaAvailable(storageKey: string, sha256: string): Promise<void> {
   try {
@@ -62,7 +38,8 @@ router.post('/', createRateLimiter({ windowMs: 60000, max: 20 }), raw({ type: ()
   }
 }));
 router.get('/:id', asyncHandler(async (req: Request, res: Response) => {
-  const asset = await prisma.socialMedia.findUnique({ where: { id: req.params.id }, select: { storageKey: true, mimeType: true } });
+  // Acervo legado: nunca serve uma imagem de empresa por este caminho.
+  const asset = await prisma.socialMedia.findFirst({ where: { id: req.params.id, organizationId: null }, select: { storageKey: true, mimeType: true } });
   if (!asset) throw AppError.notFound('Imagem não encontrada.');
   let bytes: Buffer;
   try { bytes = await readFile(path.join(await directory(), filename(asset.storageKey))); }

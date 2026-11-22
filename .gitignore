@@ -12,5 +12,8 @@ prisma/*.db-journal
 # Build output (gerado por npm run build e build:frontend)
 dist/
 
+# Materializado em runtime por pdfEmbeddedImages.ts (decodeDriverPath), nunca escrito à mão
+src/**/.pdf-image-decode-driver.generated.cjs
+
 # Fluxos n8n reais (IPs internos, IDs de grupo e credenciais); o repositório só tem as versões com marcadores.
 docs/local/

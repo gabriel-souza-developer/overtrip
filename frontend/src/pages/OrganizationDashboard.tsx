@@ -4,6 +4,7 @@ import { ArrowRight, CheckCircle2, Pencil, Plane, Ticket, UsersRound, type Lucid
 import { organizationApi, type OrganizationDashboardSummary } from '../api/organizations';
 import type { OrganizationOutletContext } from './OrganizationLayout';
 import ErrorState from '../components/ErrorState';
+import OrgTripCalendar from '../components/OrgTripCalendar';
 import { capitalizeFirst } from '../lib/tripCalendar';
 
 export default function OrganizationDashboard() {
@@ -60,6 +61,7 @@ export default function OrganizationDashboard() {
         </Link>)}
       </div>
     </section>
+    <OrgTripCalendar organizationId={organization.id} base={base} canManage={canManage} />
     <section aria-labelledby="organization-actions-title" className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm sm:p-6">
       <h2 id="organization-actions-title" className="mb-4 text-lg font-bold text-surface-900">Ações rápidas</h2>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{actions.map(({ to, icon: Icon, text, sub }) => <Link key={to} to={to} className="group flex min-h-20 items-center gap-3 rounded-xl border border-surface-200 p-4 motion-safe:transition hover:border-primary-300 hover:bg-primary-50/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-surface-100 text-surface-700"><Icon className="h-5 w-5" aria-hidden="true" /></span><span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-surface-900">{text}</span><span className="mt-0.5 block text-xs text-surface-600">{sub}</span></span><ArrowRight className="h-4 w-4 shrink-0 text-surface-400 group-hover:text-primary-600" aria-hidden="true" /></Link>)}</div>

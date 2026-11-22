@@ -8,7 +8,7 @@ export const ORGANIZATION_WRITE_ROLES = ['OWNER', 'ADMIN'];
 
 export interface OrganizationRequest extends AuthRequest {
   organizationContext?: {
-    organization: { id: string; name: string; slug: string; status: string };
+    organization: { id: string; name: string; slug: string; status: string; defaultPriceUnit: string | null; brandColor: string | null };
     membership: { id: string; role: string; status: string };
   };
 }
@@ -39,6 +39,8 @@ export async function loadActiveOrganizationMembership(
       name: membership.organization.name,
       slug: membership.organization.slug,
       status: membership.organization.status,
+      defaultPriceUnit: membership.organization.defaultPriceUnit,
+      brandColor: membership.organization.brandColor,
     },
     membership: { id: membership.id, role: membership.role, status: membership.status },
   };

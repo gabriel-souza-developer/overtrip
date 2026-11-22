@@ -66,3 +66,32 @@ test('menu lateral no celular (360 px)', async ({ page }) => {
   await nav.getByRole('link', { name: 'Reservas', exact: true }).click();
   await expect(page.getByRole('heading', { level: 1, name: 'Reservas', exact: true })).toBeVisible();
 });
+
+test('menu móvel: o fundo fica inert e o foco não escapa dele enquanto aberto', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 780 });
+  await mockApi(page);
+  await page.goto('/dashboard');
+  await page.getByRole('button', { name: 'Abrir menu' }).click();
+  await page.waitForTimeout(300);
+
+  // O conteúdo por trás (cabeçalho + área principal) some do Tab/leitor de
+  // tela enquanto o menu está aberto, como um diálogo modal.
+  expect(await page.evaluate(() => document.querySelector('header')?.closest('[inert]') != null)).toBe(true);
+  expect(await page.evaluate(() => {
+    const btn = Array.from(document.querySelectorAll('button')).find((el) => el.textContent?.trim() === 'Trocar senha');
+    return btn ? btn.closest('[inert]') != null : null;
+  })).toBe(true);
+
+  // Tab a partir do último item focável do menu volta para o primeiro, sem
+  // sair para o conteúdo por trás.
+  const focusable = page.getByRole('complementary', { name: 'Menu principal' }).locator('button, a[href]');
+  const count = await focusable.count();
+  await focusable.first().focus();
+  for (let i = 0; i < count; i++) await page.keyboard.press('Tab');
+  await expect(focusable.first()).toBeFocused();
+
+  // Esc fecha e devolve o foco ao botão que abriu o menu.
+  await page.keyboard.press('Escape');
+  await expect(page.locator('[aria-label="Menu principal"]')).toHaveAttribute('inert', '');
+  await expect(page.getByRole('button', { name: 'Abrir menu' })).toBeFocused();
+});

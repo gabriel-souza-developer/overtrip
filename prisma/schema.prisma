@@ -14,12 +14,18 @@ datasource db {
 // Rascunhos privados; aprovação apenas registra revisão, não publica.
 model SocialPost {
   id         String              @id @default(cuid())
+  // Nullable during the staged migration; legacy (pre-organization) rows
+  // remain unassigned and stay reachable only through the legacy routes.
+  organizationId String?
+  organization   Organization?   @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   title      String
   version    Int                 @default(1)
   approvedAt DateTime?
   createdAt  DateTime            @default(now())
   updatedAt  DateTime            @updatedAt
   variants   SocialPostVariant[]
+
+  @@index([organizationId])
 }
 
 model SocialPostVariant {
@@ -37,6 +43,10 @@ model SocialPostVariant {
 // Arquivos imutáveis e privados, fora da pasta de imagens públicas.
 model SocialMedia {
   id          String @id @default(cuid())
+  // Nullable during the staged migration; legacy (pre-organization) rows
+  // remain unassigned and stay reachable only through the legacy routes.
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   storageKey  String @unique
   sha256      String
   mimeType    String
@@ -46,6 +56,8 @@ model SocialMedia {
   createdById String
   createdAt   DateTime @default(now())
   variants    SocialPostVariant[]
+
+  @@index([organizationId])
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -432,6 +444,15 @@ model Organization {
   name        String
   slug        String   @unique
   status      String   @default("ACTIVE") // ACTIVE, INACTIVE
+  // Preenche a unidade de preço ao abrir "Nova viagem" nesta empresa; não
+  // é usado pelo site público (Trip guarda o próprio priceUnit, igual ao
+  // legado) e nunca se aplica a outra empresa ou ao acervo legado.
+  defaultPriceUnit String?
+  // Cor própria do painel da empresa (#RRGGBB, validada e revalidada no
+  // servidor em organizationController.ts). null = sem identidade
+  // configurada, usa a paleta verde fixa (ver src/validators/
+  // organizationBrand.ts); nunca derivada do id.
+  brandColor  String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   memberships Membership[]
@@ -441,6 +462,8 @@ model Organization {
   visits      Visit[]
   galleryEntries GalleryEntry[]
   mediaAssets    MediaAsset[]
+  socialPosts    SocialPost[]
+  socialMedia    SocialMedia[]
 
   @@index([status])
 }
