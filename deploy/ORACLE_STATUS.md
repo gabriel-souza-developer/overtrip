@@ -8,6 +8,16 @@
 > registro de 10 de novembro, mas os fluxos e limites descritos nessa entrada
 > não significam que o estado atual da instância foi novamente verificado.
 
+## Histórico de reservas por empresa (22 de novembro de 2026, UTC)
+
+- Publicado backend e painel do commit `542c7dc`; backup consistente do banco, aplicação e painel anterior em `/srv/overtrip/retorno-542c7dc-20261122-040902`. Migração aditiva `20261122030947_reservation_audit_log` ensaiada em cópia antes da aplicação; Prisma confirmou 28 migrações atualizadas.
+- Após a troca: site, painel, saúde e API pública retornaram 200; `/api/auth/me` sem sessão retornou 401; API e Caddy ativos e `integrity_check` do banco retornou `ok`. Não houve login real ou cadastro de agência; contagem de empresas permaneceu zero.
+- Histórico registra eventos a partir da ativação e não recompõe alterações anteriores. Backup de banco só é restaurável sem perda se não houver escritas posteriores; caso contrário, avaliar reconciliação/correção em frente.
+
+## Ajuste no site público (22 de novembro de 2026, UTC)
+
+- Publicado somente `js/render.js` do commit `81b5855`, ocultando o controle de detalhes quando não há conteúdo. Arquivo anterior em `/srv/overtrip/retorno-site-81b5855-20261122-030437/render.js`; hash servido conferido contra o arquivo versionado.
+
 ## Plataforma multiagência (22 de novembro de 2026, UTC)
 
 - Publicado o commit `bc26620` da branch `gabriel-souza-developer/turismo-multiagencia`, com frontend e backend compilados na VM ARM64. Código, painel e cópia consistente do banco anterior foram preservados em `/srv/overtrip/retorno-bc26620-20261122-025124`.
