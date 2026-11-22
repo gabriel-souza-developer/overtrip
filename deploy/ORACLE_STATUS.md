@@ -8,6 +8,11 @@
 > registro de 10 de novembro, mas os fluxos e limites descritos nessa entrada
 > não significam que o estado atual da instância foi novamente verificado.
 
+## Ação de senha no menu da conta (22 de novembro de 2026, 23:23 UTC)
+
+- Publicado somente o painel do commit `296f92c`. A troca de senha ficou apenas no dropdown “Minha conta” nos painéis de agência, incluindo as telas de seleção e erro; os botões avulsos foram removidos. A versão anterior foi preservada em `/srv/overtrip/retorno-user-menu-296f92c-20261122-232312/admin`.
+- O painel e `/health` responderam HTTP 200 após a publicação; Caddy e API estavam ativos. `typecheck:frontend`, build e 12 testes Playwright focados passaram. Nenhuma API ou migração foi alterada nesta publicação.
+
 ## Link de recuperação de senha (22 de novembro de 2026, 22:23 UTC)
 
 - Publicado somente o painel do commit `6a0bf44`. O link “Esqueci minha senha” agora aparece logo abaixo do campo de senha, alinhado à direita, com contraste reforçado, sublinhado e área clicável de 44 px. O pacote anterior foi preservado em `/srv/overtrip/retorno-login-link-6a0bf44-20261122-222349/admin`.
