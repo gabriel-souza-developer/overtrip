@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { brandUrl } from '../lib/basePath';
-import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowRight, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import Button from '../components/Button';
 import { useAuth } from '../App';
@@ -100,6 +100,8 @@ export default function Login() {
               Entrar <ArrowRight className="w-4 h-4" aria-hidden="true" />
             </Button>
           </form>
+
+          <Link to="/esqueci-senha" className="login-forgot">Esqueci minha senha</Link>
 
           <p className="login-security"><ShieldCheck aria-hidden="true" /> Acesso exclusivo para usuários autorizados</p>
           </div>

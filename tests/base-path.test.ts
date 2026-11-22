@@ -4,6 +4,7 @@ import { resolveAssetSrc } from '../frontend/src/lib/assetUrl';
 import { buildConfig } from '../src/config.js';
 
 const STRONG = 'x'.repeat(48);
+const PROD_RESET_ENV = { CORS_ORIGIN: 'https://overtrip.com.br', PASSWORD_RESET_URL_BASE: 'https://overtrip.com.br/admin' };
 
 describe('base do painel', () => {
   it('dev: raiz', () => {
@@ -22,10 +23,10 @@ describe('base do painel', () => {
 describe('trust proxy / CORS', () => {
   it('só liga em produção, 1 salto por padrão', () => {
     expect(buildConfig({ NODE_ENV: 'development' }).trustProxy).toBe(0);
-    expect(buildConfig({ NODE_ENV: 'production', JWT_SECRET: STRONG }).trustProxy).toBe(1);
+    expect(buildConfig({ NODE_ENV: 'production', JWT_SECRET: STRONG, ...PROD_RESET_ENV }).trustProxy).toBe(1);
   });
   it('TRUST_PROXY=0 desliga; fora de produção ignora', () => {
-    expect(buildConfig({ NODE_ENV: 'production', JWT_SECRET: STRONG, TRUST_PROXY: '0' }).trustProxy).toBe(0);
+    expect(buildConfig({ NODE_ENV: 'production', JWT_SECRET: STRONG, TRUST_PROXY: '0', ...PROD_RESET_ENV }).trustProxy).toBe(0);
     expect(buildConfig({ NODE_ENV: 'development', TRUST_PROXY: '2' }).trustProxy).toBe(0);
   });
   it('CORS_ORIGIN vem do ambiente', () => {
@@ -35,8 +36,8 @@ describe('trust proxy / CORS', () => {
 
 describe('HOST de escuta', () => {
   it('produção: 127.0.0.1 por padrão; HOST sobrescreve; dev sem host fixo', () => {
-    expect(buildConfig({ NODE_ENV: 'production', JWT_SECRET: STRONG }).host).toBe('127.0.0.1');
-    expect(buildConfig({ NODE_ENV: 'production', JWT_SECRET: STRONG, HOST: '0.0.0.0' }).host).toBe('0.0.0.0');
+    expect(buildConfig({ NODE_ENV: 'production', JWT_SECRET: STRONG, ...PROD_RESET_ENV }).host).toBe('127.0.0.1');
+    expect(buildConfig({ NODE_ENV: 'production', JWT_SECRET: STRONG, HOST: '0.0.0.0', ...PROD_RESET_ENV }).host).toBe('0.0.0.0');
     expect(buildConfig({ NODE_ENV: 'development' }).host).toBeUndefined();
   });
 });

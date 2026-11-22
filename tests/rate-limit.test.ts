@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import type { Request, Response } from 'express';
 import { EventEmitter } from 'node:events';
-import { createLoginFailureLimiter, createRateLimiter } from '../src/middleware/rateLimit.js';
+import { createLoginFailureLimiter, createRateLimiter, createForgotPasswordLimiter } from '../src/middleware/rateLimit.js';
 
 function mockRes() {
   const res = {
@@ -97,5 +97,41 @@ describe('limite de falhas de login', () => {
     expect(call(limiter, 'outra@example.test').res.statusCode).toBe(429);
     clock = 1001;
     expect(call(limiter, 'outra@example.test', 200).next).toHaveBeenCalledOnce();
+  });
+});
+
+describe('limite de "esqueci minha senha"', () => {
+  const reqFromEmail = (ip: string, email: string) => ({ ip, body: { email } }) as Request;
+
+  it('bloqueia depois do teto por e-mail, mesmo com outro IP', () => {
+    const limiter = createForgotPasswordLimiter({ maxPerIp: 50, maxPerEmail: 2 });
+    const next = vi.fn();
+    limiter(reqFromEmail('1.1.1.1', 'alguem@example.test'), mockRes(), next);
+    limiter(reqFromEmail('2.2.2.2', 'ALGUEM@example.test'), mockRes(), next);
+    expect(next).toHaveBeenCalledTimes(2);
+    const blocked = mockRes();
+    limiter(reqFromEmail('3.3.3.3', 'alguem@example.test'), blocked, next);
+    expect(next).toHaveBeenCalledTimes(2);
+    expect(blocked.statusCode).toBe(429);
+  });
+
+  it('bloqueia depois do teto por IP, mesmo com e-mails diferentes', () => {
+    const limiter = createForgotPasswordLimiter({ maxPerIp: 2, maxPerEmail: 50 });
+    const next = vi.fn();
+    limiter(reqFromEmail('9.9.9.9', 'a@example.test'), mockRes(), next);
+    limiter(reqFromEmail('9.9.9.9', 'b@example.test'), mockRes(), next);
+    expect(next).toHaveBeenCalledTimes(2);
+    const blocked = mockRes();
+    limiter(reqFromEmail('9.9.9.9', 'c@example.test'), blocked, next);
+    expect(next).toHaveBeenCalledTimes(2);
+    expect(blocked.statusCode).toBe(429);
+  });
+
+  it('não afeta contas em IPs diferentes dentro do teto de cada um', () => {
+    const limiter = createForgotPasswordLimiter({ maxPerIp: 50, maxPerEmail: 1 });
+    const next = vi.fn();
+    limiter(reqFromEmail('1.1.1.1', 'x@example.test'), mockRes(), next);
+    limiter(reqFromEmail('2.2.2.2', 'y@example.test'), mockRes(), next);
+    expect(next).toHaveBeenCalledTimes(2);
   });
 });

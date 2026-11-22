@@ -57,6 +57,20 @@ export const authApi = {
       body: JSON.stringify({ currentPassword, newPassword }),
     });
   },
+
+  forgotPassword: async (email: string) => {
+    return request<{ success: true; message: string }>('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  },
+
+  resetPassword: async (token: string, newPassword: string) => {
+    return request<{ success: true; message: string }>('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, newPassword }),
+    });
+  },
 };
 
 export const knowledgeApi = {

@@ -5,18 +5,26 @@ import bcrypt from 'bcryptjs';
 import app from '../src/app.js';
 import { prisma } from '../src/lib/prisma.js';
 import { generateToken } from '../src/middleware/auth.js';
+import { hashToken } from '../src/services/passwordResetService.js';
 
 let server: Server;
 let base: string;
 const users: string[] = [];
-async function account() {
+async function accountWithId() {
   const user = await prisma.user.create({ data: { email: `pw-${Date.now()}-${Math.random().toString(16).slice(2)}@example.test`, passwordHash: await bcrypt.hash('senha-atual', 4), role: 'editor' } });
   users.push(user.id);
-  return generateToken(user);
+  return { userId: user.id, token: generateToken(user) };
+}
+async function account() {
+  return (await accountWithId()).token;
 }
 const change = (token: string, currentPassword: string, newPassword: string) => fetch(`${base}/api/auth/change-password`, {
   method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
   body: JSON.stringify({ currentPassword, newPassword }),
+});
+const resetPassword = (resetToken: string, newPassword: string) => fetch(`${base}/api/auth/reset-password`, {
+  method: 'POST', headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ token: resetToken, newPassword }),
 });
 
 beforeAll(async () => {
@@ -45,5 +53,27 @@ describe('proteções da troca de senha', () => {
     expect(limited.status).toBe(429);
     expect(limited.headers.get('retry-after')).toBeTruthy();
     expect((await change(other, 'senha-incorreta', 'senha-nova-123')).status).toBe(401);
+  });
+
+  it('troca de senha autenticada invalida qualquer token de "esqueci minha senha" emitido antes dela', async () => {
+    const { userId, token } = await accountWithId();
+    const beforeChange = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
+    const rawResetToken = 'token-emitido-antes-da-troca-' + Math.random().toString(16).slice(2);
+    await prisma.passwordResetToken.create({
+      data: {
+        userId, tokenHash: hashToken(rawResetToken), expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+        issuedForUpdatedAt: beforeChange.updatedAt,
+      },
+    });
+
+    expect((await change(token, 'senha-atual', 'senha-trocada-123')).status).toBe(200);
+
+    // O token de reset emitido ANTES da troca não pode mais redefinir a senha.
+    const attempt = await resetPassword(rawResetToken, 'senha-via-token-velho-456');
+    expect(attempt.status).toBe(400);
+    expect((await attempt.json()).code).toBe('INVALID_RESET_TOKEN');
+
+    const row = await prisma.passwordResetToken.findUnique({ where: { tokenHash: hashToken(rawResetToken) } });
+    expect(row?.usedAt).toBeTruthy();
   });
 });

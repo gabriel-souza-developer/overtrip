@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import Layout from './components/Layout';
 import Login from './pages/Login';
+const ForgotPassword = React.lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = React.lazy(() => import('./pages/ResetPassword'));
 import { ApiRequestError, authApi } from './api';
 import { ToastProvider } from './hooks/useToast';
 
@@ -138,6 +140,8 @@ const LoadingScreen = () => (
 const AppRoutes = () => (
   <Routes>
     <Route path="/login" element={<Login />} />
+    <Route path="/esqueci-senha" element={<React.Suspense fallback={<LoadingScreen />}><ForgotPassword /></React.Suspense>} />
+    <Route path="/redefinir-senha" element={<React.Suspense fallback={<LoadingScreen />}><ResetPassword /></React.Suspense>} />
     <Route element={<ProtectedRoute />}>
       <Route path="/empresa" element={<React.Suspense fallback={<LoadingScreen />}><OrganizationSelect /></React.Suspense>} />
       <Route path="/empresa/:organizationId" element={<React.Suspense fallback={<LoadingScreen />}><OrganizationLayout /></React.Suspense>}>

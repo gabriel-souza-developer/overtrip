@@ -461,8 +461,36 @@ model User {
   updatedAt DateTime @updatedAt
   approvedKnowledge AssistantKnowledgeVersion[]
   memberships Membership[]
+  passwordResetTokens PasswordResetToken[]
 
   @@index([email])
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// PASSWORD RESET: token de uso único para "esqueci minha senha".
+// Guarda só o hash (sha256) do token enviado por e-mail, nunca o valor
+// bruto. Expiração curta (ver config.passwordResetTokenTtlMinutes) e
+// usedAt marca consumo; a troca de senha e o consumo do token são
+// atômicos (ver passwordResetService). Vale para qualquer User, de
+// qualquer organização ou do painel legado — não é escopado por empresa.
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  // User.updatedAt no instante da emissão (lido e gravado na mesma
+  // transação). Comparado ao User.updatedAt atual no consumo: fecha a
+  // corrida em que a emissão lê o usuário antes de uma troca de senha
+  // concorrente, mas só grava o token depois que a varredura de invalidação
+  // dessa troca já rodou (ela não via um token que ainda não existia).
+  issuedForUpdatedAt DateTime
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

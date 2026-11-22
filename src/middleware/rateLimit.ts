@@ -98,3 +98,39 @@ export const createLoginFailureLimiter = ({
 };
 
 export const loginRateLimiter = createLoginFailureLimiter();
+
+/**
+ * "Esqueci minha senha": limite por IP (laxo) e, dentro dele, por e-mail
+ * normalizado via HMAC efêmero (igual ao login: e-mail não fica em texto no
+ * mapa). Mais estrito por conta do que por IP, para não permitir martelar
+ * repetidamente a caixa de entrada de uma mesma pessoa.
+ */
+export const createForgotPasswordLimiter = ({
+  windowMs = 15 * 60 * 1000,
+  maxPerIp = 30,
+  maxPerEmail = 5,
+  now = Date.now,
+}: { windowMs?: number; maxPerIp?: number; maxPerEmail?: number; now?: () => number } = {}) => {
+  const secret = randomBytes(32);
+  const ipLimiter = createRateLimiter({ windowMs, max: maxPerIp, now });
+  const emailLimiter = createRateLimiter({
+    windowMs,
+    max: maxPerEmail,
+    now,
+    keyOf: (req) => {
+      const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase().slice(0, 512) : '';
+      return createHmac('sha256', secret).update(email).digest('hex');
+    },
+  });
+  return (req: Request, res: Response, next: NextFunction): void => {
+    ipLimiter(req, res, () => emailLimiter(req, res, next));
+  };
+};
+
+export const forgotPasswordLimiter = createForgotPasswordLimiter();
+
+/**
+ * Redefinir senha: o token em si já é alta entropia e de uso único; o
+ * limite por IP só reduz tentativas automatizadas de adivinhação.
+ */
+export const resetPasswordLimiter = createRateLimiter({ windowMs: 15 * 60 * 1000, max: 20 });
