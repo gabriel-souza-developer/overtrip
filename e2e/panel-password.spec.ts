@@ -21,10 +21,16 @@ async function mockApi(page: Page, reject = false) {
   });
 }
 
-test('administrador troca a senha pelo botão do cabeçalho, igual ao painel de agência', async ({ page }) => {
+async function openPasswordMenuItem(page: Page) {
+  await expect(page.getByRole('button', { name: 'Trocar senha', exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Minha conta' }).click();
+  await page.getByRole('menuitem', { name: 'Trocar senha' }).click();
+}
+
+test('administrador troca a senha pelo dropdown Minha conta, igual ao painel de agência', async ({ page }) => {
   await mockApi(page);
   await page.goto('/dashboard');
-  await page.getByRole('button', { name: 'Trocar senha' }).click();
+  await openPasswordMenuItem(page);
   await expect(page.getByRole('dialog', { name: 'Trocar senha' })).toBeVisible();
   await page.getByLabel('Senha atual').fill('senha-antiga');
   await page.locator('#new-password').fill('nova-senha-123');
@@ -34,18 +40,17 @@ test('administrador troca a senha pelo botão do cabeçalho, igual ao painel de 
   await expect(page.getByRole('status')).toHaveText('Senha alterada. Entre novamente com sua nova senha.');
 });
 
-test('também é possível trocar a senha pelo menu da conta', async ({ page }) => {
+test('a troca de senha está disponível no menu da conta', async ({ page }) => {
   await mockApi(page);
   await page.goto('/dashboard');
-  await page.getByRole('button', { name: 'Minha conta' }).click();
-  await page.getByRole('menuitem', { name: 'Trocar senha' }).click();
+  await openPasswordMenuItem(page);
   await expect(page.getByRole('dialog', { name: 'Trocar senha' })).toBeVisible();
 });
 
 test('senha atual incorreta mantém o diálogo aberto e o administrador conectado', async ({ page }) => {
   await mockApi(page, true);
   await page.goto('/dashboard');
-  await page.getByRole('button', { name: 'Trocar senha' }).click();
+  await openPasswordMenuItem(page);
   await page.getByLabel('Senha atual').fill('senha-errada');
   await page.locator('#new-password').fill('nova-senha-123');
   await page.getByLabel('Confirmar nova senha').fill('nova-senha-123');
@@ -54,11 +59,11 @@ test('senha atual incorreta mantém o diálogo aberto e o administrador conectad
   await expect(page).toHaveURL(/\/dashboard$/);
 });
 
-test('cabeçalho no celular (360 px) não ultrapassa a tela com o botão extra', async ({ page }) => {
+test('menu da conta no celular (360 px) abre troca de senha sem alargar o cabeçalho', async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 780 });
   await mockApi(page);
   await page.goto('/dashboard');
-  await page.getByRole('button', { name: 'Trocar senha' }).click();
+  await openPasswordMenuItem(page);
   await expect(page.getByRole('dialog', { name: 'Trocar senha' })).toBeVisible();
   await page.getByRole('button', { name: 'Cancelar', exact: true }).click();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);

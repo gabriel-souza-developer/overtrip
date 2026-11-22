@@ -27,6 +27,11 @@ async function login(page: Page) {
   await page.getByRole('button', { name: 'Entrar' }).click();
 }
 
+async function logoutFromAccountMenu(page: Page) {
+  await page.getByRole('button', { name: 'Minha conta' }).click();
+  await page.getByRole('menuitem', { name: 'Sair' }).click();
+}
+
 test('uma empresa abre automaticamente, mas trocar empresa não redireciona em ciclo', async ({ page }) => {
   await setup(page, organizations.slice(0, 1));
   await login(page);
@@ -34,7 +39,7 @@ test('uma empresa abre automaticamente, mas trocar empresa não redireciona em c
   await page.getByRole('link', { name: 'Trocar empresa' }).click();
   await expect(page).toHaveURL(/\/empresa$/);
   await expect(page.getByRole('button', { name: /Agência A/ })).toBeVisible();
-  await page.getByRole('button', { name: 'Sair' }).click();
+  await logoutFromAccountMenu(page);
   await expect(page).toHaveURL(/\/login$/);
   await login(page);
   await expect(page).toHaveURL(/\/empresa\/a\/dashboard$/);
@@ -52,7 +57,7 @@ test('conta sem empresa mantém estado vazio e saída disponível', async ({ pag
   await setup(page, []);
   await login(page);
   await expect(page.getByText('Nenhuma empresa vinculada')).toBeVisible();
-  await page.getByRole('button', { name: 'Sair' }).click();
+  await logoutFromAccountMenu(page);
   await expect(page).toHaveURL(/\/login$/);
 });
 
@@ -60,6 +65,6 @@ test('erro ao carregar empresas mostra mensagem e permite sair', async ({ page }
   await setup(page, [], true);
   await login(page);
   await expect(page.getByText('Falha ao carregar empresas')).toBeVisible();
-  await page.getByRole('button', { name: 'Sair' }).click();
+  await logoutFromAccountMenu(page);
   await expect(page).toHaveURL(/\/login$/);
 });

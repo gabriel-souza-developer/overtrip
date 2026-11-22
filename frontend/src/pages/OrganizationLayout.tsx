@@ -5,9 +5,8 @@ import { organizationApi, type OrganizationContext } from '../api/organizations'
 import { useAuth } from '../App';
 import { useToast } from '../hooks/useToast';
 import { getOrganizationPalette } from '../lib/organizationBrand';
-import Button from '../components/Button';
 import ErrorState from '../components/ErrorState';
-import ChangePasswordDialog from '../components/ChangePasswordDialog';
+import UserAccountMenu from '../components/UserAccountMenu';
 import PanelShell, { type PanelShellNavGroup } from '../components/PanelShell';
 import './organization-theme.css';
 
@@ -28,7 +27,6 @@ export default function OrganizationLayout() {
   const [context, setContext] = useState<OrganizationContext | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
-  const [passwordOpen, setPasswordOpen] = useState(false);
   const requestVersion = useRef(0);
   const updateOrganization = useCallback((next: OrganizationContext['organization']) => {
     setContext((prev) => (prev ? { ...prev, organization: next } : prev));
@@ -61,10 +59,9 @@ export default function OrganizationLayout() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-surface-50 px-4">
         <div className="w-full max-w-md space-y-4">
+          <div className="flex justify-end"><UserAccountMenu user={user} onLogout={handleLogout} /></div>
           <ErrorState message={error || 'Empresa não encontrada.'} onRetry={() => void load()} />
-          <Button onClick={() => setPasswordOpen(true)} className="w-full justify-center">Trocar senha</Button>
           <Link to="/empresa" state={{ selectOrganization: true }} className="btn-secondary w-full justify-center">Voltar para a lista de empresas</Link>
-          <ChangePasswordDialog open={passwordOpen} onClose={() => setPasswordOpen(false)} />
         </div>
       </div>
     );

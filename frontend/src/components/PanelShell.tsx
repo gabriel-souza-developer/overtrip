@@ -1,9 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import * as Menu from '@radix-ui/react-dropdown-menu';
-import { ChevronDown, LogOut, Menu as MenuIcon, User, X, type LucideIcon } from 'lucide-react';
-import Button from './Button';
-import ChangePasswordDialog from './ChangePasswordDialog';
+import { LogOut, Menu as MenuIcon, User, X, type LucideIcon } from 'lucide-react';
+import UserAccountMenu from './UserAccountMenu';
 
 export interface PanelShellNavItem { path: string; label: string; icon: LucideIcon }
 export interface PanelShellNavGroup { label: string; items: PanelShellNavItem[] }
@@ -31,14 +29,11 @@ export interface PanelShellProps {
 }
 
 // Casca comum aos dois painéis (OVERTRIP e agência): menu lateral,
-// cabeçalho, responsividade e foco/acessibilidade. "Trocar senha" é
-// universal aqui porque a rota /api/auth/change-password já vale para
-// qualquer usuário autenticado, sem dado nenhum de empresa ou plataforma.
+// cabeçalho, responsividade e foco/acessibilidade.
 export default function PanelShell({ rootClassName, rootStyle, brand, navGroups, navAriaLabel, currentPageLabel, sidebarFooterExtra, user, onLogout, children }: PanelShellProps) {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(() => window.matchMedia('(min-width: 1024px)').matches);
-  const [passwordOpen, setPasswordOpen] = useState(false);
   const asideRef = useRef<HTMLElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
@@ -131,18 +126,7 @@ export default function PanelShell({ rootClassName, rootStyle, brand, navGroups,
           <div className="flex items-center justify-between h-16 px-4 sm:px-6 gap-1">
             <button ref={menuButtonRef} type="button" className="btn-icon lg:hidden" onClick={() => setSidebarOpen(true)} aria-label="Abrir menu" aria-expanded={sidebarOpen}><MenuIcon className="w-6 h-6" aria-hidden="true" /></button>
             <div className="flex-1 min-w-0 pl-2 lg:pl-0"><p className="text-sm font-semibold text-surface-900 truncate">{currentPageLabel}</p></div>
-            <Button small onClick={() => setPasswordOpen(true)}>Trocar senha</Button>
-            <Menu.Root>
-              <Menu.Trigger className="flex items-center gap-2 px-2 py-1.5 min-h-[44px] rounded-lg text-surface-700 hover:bg-surface-100" aria-label="Minha conta">
-                <span className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center"><User className="w-5 h-5 text-primary-500" aria-hidden="true" /></span>
-                <span className="hidden sm:block text-sm font-medium">{user?.name}</span><ChevronDown className="w-4 h-4 hidden sm:block" aria-hidden="true" />
-              </Menu.Trigger>
-              <Menu.Portal><Menu.Content className="menu-content" align="end" sideOffset={4}>
-                <div className="px-3 py-2 border-b border-surface-200 mb-1"><p className="text-sm font-medium text-surface-900">{user?.name}</p><p className="text-xs text-surface-600 break-all">{user?.email}</p></div>
-                <Menu.Item className="menu-item" onSelect={() => setPasswordOpen(true)}>Trocar senha</Menu.Item>
-                <Menu.Item className="menu-item" onSelect={handleLogout}><LogOut className="w-4 h-4" aria-hidden="true" /> Sair</Menu.Item>
-              </Menu.Content></Menu.Portal>
-            </Menu.Root>
+            <UserAccountMenu user={user} onLogout={handleLogout} />
           </div>
         </header>
         <main id="conteudo" ref={mainRef} tabIndex={-1} className="p-4 sm:p-6 lg:p-8 max-w-7xl outline-none">
@@ -151,7 +135,6 @@ export default function PanelShell({ rootClassName, rootStyle, brand, navGroups,
           </React.Suspense>
         </main>
       </div>
-      <ChangePasswordDialog open={passwordOpen} onClose={() => setPasswordOpen(false)} />
     </div>
   );
 }

@@ -1,5 +1,11 @@
 import { expect, test, type Page } from '@playwright/test';
 
+async function openPasswordMenuItem(page: Page) {
+  await expect(page.getByRole('button', { name: 'Trocar senha', exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Minha conta' }).click();
+  await page.getByRole('menuitem', { name: 'Trocar senha' }).click();
+}
+
 async function setup(page: Page, reject = false) {
   let logouts = 0;
   await page.route(url => url.pathname.startsWith('/api/'), route => {
@@ -11,7 +17,7 @@ async function setup(page: Page, reject = false) {
     return route.fulfill({ json: { data: [], pagination: { page: 1, limit: 20, total: 0, totalPages: 0 } } });
   });
   await page.goto('/empresa/a/trips');
-  await page.getByRole('button', { name: 'Trocar senha' }).click();
+  await openPasswordMenuItem(page);
   return () => logouts;
 }
 
@@ -40,7 +46,7 @@ test('recusa confirmação incorreta e preserva campos ao cancelar descarte', as
   await expect(page.getByLabel('Senha atual')).toHaveValue('senha-antiga');
   await page.getByRole('button', { name: 'Cancelar', exact: true }).click();
   await confirm.getByRole('button', { name: 'Descartar' }).click();
-  await page.getByRole('button', { name: 'Trocar senha' }).click();
+  await openPasswordMenuItem(page);
   await expect(page.getByLabel('Senha atual')).toHaveValue('');
 });
 
@@ -65,7 +71,7 @@ test('conta sem empresa ativa pode trocar a senha no celular', async ({ page }) 
   });
   await page.goto('/empresa');
   await expect(page.getByText('Nenhuma empresa vinculada')).toBeVisible();
-  await page.getByRole('button', { name: 'Trocar senha' }).click();
+  await openPasswordMenuItem(page);
   await expect(page.getByRole('dialog', { name: 'Trocar senha' })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
 });

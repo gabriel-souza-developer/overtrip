@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Building2, LogOut, UserRound } from 'lucide-react';
+import { Building2 } from 'lucide-react';
 import { brandUrl } from '../lib/basePath';
 import { organizationApi, type OrganizationSummary } from '../api/organizations';
 import { useAuth } from '../App';
-import Button from '../components/Button';
 import ErrorState from '../components/ErrorState';
 import EmptyState from '../components/EmptyState';
-import ChangePasswordDialog from '../components/ChangePasswordDialog';
+import UserAccountMenu from '../components/UserAccountMenu';
 
 const ROLE_LABELS: Record<string, string> = { OWNER: 'Proprietário', ADMIN: 'Administrador', MEMBER: 'Membro' };
 
@@ -19,7 +18,6 @@ export default function OrganizationSelect() {
   const [organizations, setOrganizations] = useState<OrganizationSummary[] | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
-  const [passwordOpen, setPasswordOpen] = useState(false);
 
   const load = async () => {
     setLoading(true); setError('');
@@ -48,11 +46,7 @@ export default function OrganizationSelect() {
             <img src={brandUrl('overtrip-logo-com-fundo-laranja-192.png')} alt="" width={36} height={36} className="w-9 h-9 rounded-lg shrink-0" />
             <p className="truncate text-sm font-bold text-surface-900">OVERTRIP · Área da empresa</p>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
-            <span className="hidden sm:flex items-center gap-2 text-sm text-surface-600"><UserRound className="w-4 h-4" aria-hidden="true" />{user?.name || user?.email}</span>
-            <Button small onClick={() => setPasswordOpen(true)}>Trocar senha</Button>
-            <Button small onClick={() => void handleLogout()} icon={<LogOut className="w-4 h-4" aria-hidden="true" />}>Sair</Button>
-          </div>
+          <UserAccountMenu user={user} onLogout={handleLogout} />
         </div>
       </header>
 
@@ -95,7 +89,6 @@ export default function OrganizationSelect() {
           </div>
         ) : null}
       </main>
-      <ChangePasswordDialog open={passwordOpen} onClose={() => setPasswordOpen(false)} />
     </div>
   );
 }
