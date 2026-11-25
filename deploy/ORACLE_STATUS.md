@@ -1,5 +1,13 @@
 # Estado da produção na Oracle
 
+## Setas modernas e paridade do formulário do site (25 de novembro de 2026, 18:49 UTC)
+
+- Publicados API e painel do commit `04c714d` (acima de `fd399a4`), mesmo processo: compilado na VM em `/srv/overtrip/stage-04c714d-20261125-184826`, pacote SHA-256 `fd04bf34e3cb726e416767cbe3db51070a00401b70eb5816338e9245d9ebcf3c` conferido. Sem migração de banco.
+- O triângulo nativo do `<details>` foi trocado por um chevron animado em todo o painel/site (uma única regra CSS global). O formulário de viagens do site (`TripForm.tsx`, usado no dia a dia da OVERTRIP) ganhou paridade com o que já estava no painel de agência: o bloco "Colar texto e sugerir com IA" agora sempre aparece, e a seção "O essencial" foi renomeada para "Informações principais".
+- Backup do banco validado antes da troca (`gzip -t` ok): `/var/backups/overtrip/overtrip-20261125-184906.db.gz`. Código e painel anteriores preservados em `/srv/overtrip/retorno-04c714d-20261125-184826/{app,admin}`.
+- Após a troca: `overtrip-api`, `caddy`, `tailscaled` e os temporizadores ativos; reinício limpo, sem erros no journal. `/`, `/admin/`, `/health` e `/api/public/trips` responderam 200; o bundle do formulário contém "Informações principais". Não foi feito login real em produção.
+- Limpeza nesta sessão: removidas em `/srv/overtrip/` as cópias de retorno já superadas `retorno-09ca5e9-20261122-221754`, `retorno-542c7dc-20261122-040902` e `retorno-bc26620-20261122-025124`, mais duas pastas `stage-e430d78-*` órfãs de 11/11 que nunca tinham sido limpas. Backups de banco (`/var/backups/overtrip/*.db.gz`) não foram tocados: são pequenos e já têm retenção automática de 14 dias pelo próprio serviço.
+
 ## Sugestão de viagem por texto (IA) e cores da marca (25 de novembro de 2026, 18:27 UTC)
 
 - Publicados API e painel do commit `fd399a4` (acima de `c1dc8b2`), compilados na VM ARM64 em área de preparo isolada (`/srv/overtrip/stage-fd399a4-20261125-182454`), sem afetar o app ativo até a troca. Pacote transferido por `git archive`, SHA-256 `22afbd92cfe435b78c6282ab309884a8441526d222c9c9163f2effa24d3c0634` conferido na VM. Sem migração de banco (mudança só de rotas e painel).
