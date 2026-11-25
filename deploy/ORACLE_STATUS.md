@@ -1,5 +1,18 @@
 # Estado da produção na Oracle
 
+## IA por texto ativada: Groq (principal) + xAI/Grok (reserva, 25 de novembro de 2026, 19:30 UTC)
+
+- Ativada a ajuda de IA (bloco "Colar texto e sugerir com IA") em produção, pela primeira vez. `/etc/overtrip/env` recebeu `GROQ_API_KEY`, `XAI_API_KEY` e `AI_PROVIDER_ORDER=groq,xai` (arquivo root:600, igual às outras chaves já lá). `overtrip-api` reiniciado.
+- Publicados, em sequência, 3 ajustes sobre o commit `04c714d` — todos só na API, sem mudança de painel:
+  - `130d610`: adiciona os provedores Groq e xAI (API compatível com a da OpenAI) e `createFallbackProvider` (a principal tenta primeiro; se falhar — rede, limite, chave —, tenta a reserva com o próprio modelo padrão dela). `createProviderFromEnv` só encadeia quando `AI_PROVIDER_ORDER` existe; sem ela, continua exatamente como antes (Gemini > Anthropic > nenhum).
+  - `6734e41`: o modelo padrão do Groq (`llama-3.3-70b-versatile`) não existe mais na conta (404 `model_not_found`); testado contra a conta real e troquei para `openai/gpt-oss-120b`, que está no catálogo atual.
+  - `cb49e65`: o prompt mandava o JSON Schema completo (`$schema`/`type`/`properties`) para Groq/xAI, que não têm saída estruturada forçada como a do Gemini — o modelo devolvia os dados aninhados dentro de `"properties"` em vez de na raiz, e tudo saía `null` depois da validação. Corrigido para mandar só a lista de campos, com instrução explícita de que vão na raiz.
+  - Também corrigido (ainda em `130d610`, antes mesmo do primeiro teste real): como Groq/xAI não forçam o formato, o modelo pode devolver um objeto sem todas as chaves — como todas são anuláveis, agora completa com `null`/`[]` antes de validar, em vez de reprovar a resposta inteira.
+- Cada publicação seguiu o processo de sempre (pacote por `git archive`, SHA-256 conferido, build na própria VM, backup do banco validado, cópia de retorno preservada, `overtrip-api` reiniciado e verificado). Nenhuma delas mudou o painel nem pediu migração de banco.
+- **Testado de ponta a ponta com a conta real**: chamada direta ao serviço (fora do processo da API, lendo a mesma `/etc/overtrip/env`) com um texto de exemplo em português — Groq extraiu corretamente título, cidade, horário, preço e vagas. `createProviderFromEnv()` confirma `provider: groq` (a ordem configurada).
+- **xAI (Grok) continua sem funcionar**: a API respondeu `403 permission-denied`, "sua equipe não tem créditos ou licenças ainda" — é cobrança pendente na conta xAI (console.x.ai), não um problema no código. Enquanto isso, ele só fica parado como reserva: se o Groq falhar, a tentativa de reserva falha também e o erro relatado ao usuário é o do Groq (comportamento esperado do `createFallbackProvider`).
+- Scripts de teste usados (`test-ai-provider*.cjs`, `list-groq-models.cjs`) eram arquivos temporários fora do repositório; todos removidos da VM e do scratchpad local ao final.
+
 ## Setas modernas e paridade do formulário do site (25 de novembro de 2026, 18:49 UTC)
 
 - Publicados API e painel do commit `04c714d` (acima de `fd399a4`), mesmo processo: compilado na VM em `/srv/overtrip/stage-04c714d-20261125-184826`, pacote SHA-256 `fd04bf34e3cb726e416767cbe3db51070a00401b70eb5816338e9245d9ebcf3c` conferido. Sem migração de banco.
