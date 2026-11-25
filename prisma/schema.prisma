@@ -13,49 +13,49 @@ datasource db {
 
 // Rascunhos privados; aprovação apenas registra revisão, não publica.
 model SocialPost {
-  id         String              @id @default(cuid())
+  id             String              @id @default(cuid())
   // Nullable during the staged migration; legacy (pre-organization) rows
   // remain unassigned and stay reachable only through the legacy routes.
   organizationId String?
-  organization   Organization?   @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  title      String
-  version    Int                 @default(1)
-  approvedAt DateTime?
-  createdAt  DateTime            @default(now())
-  updatedAt  DateTime            @updatedAt
-  variants   SocialPostVariant[]
+  organization   Organization?       @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  title          String
+  version        Int                 @default(1)
+  approvedAt     DateTime?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  variants       SocialPostVariant[]
 
   @@index([organizationId])
 }
 
 model SocialPostVariant {
-  id       String     @id @default(cuid())
-  postId   String
-  platform String
-  caption  String
+  id            String       @id @default(cuid())
+  postId        String
+  platform      String
+  caption       String
   socialMediaId String?
-  socialMedia SocialMedia? @relation(fields: [socialMediaId], references: [id], onDelete: Restrict)
-  post     SocialPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  socialMedia   SocialMedia? @relation(fields: [socialMediaId], references: [id], onDelete: Restrict)
+  post          SocialPost   @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@unique([postId, platform])
 }
 
 // Arquivos imutáveis e privados, fora da pasta de imagens públicas.
 model SocialMedia {
-  id          String @id @default(cuid())
+  id             String              @id @default(cuid())
   // Nullable during the staged migration; legacy (pre-organization) rows
   // remain unassigned and stay reachable only through the legacy routes.
   organizationId String?
-  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  storageKey  String @unique
-  sha256      String
-  mimeType    String
-  width       Int
-  height      Int
-  sizeBytes   Int
-  createdById String
-  createdAt   DateTime @default(now())
-  variants    SocialPostVariant[]
+  organization   Organization?       @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  storageKey     String              @unique
+  sha256         String
+  mimeType       String
+  width          Int
+  height         Int
+  sizeBytes      Int
+  createdById    String
+  createdAt      DateTime            @default(now())
+  variants       SocialPostVariant[]
 
   @@index([organizationId])
 }
@@ -64,93 +64,98 @@ model SocialMedia {
 // TRIP: Viagens e experiências comerciais da OVERTRIP
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 model Trip {
-  id        String   @id @default(cuid())
+  id             String        @id @default(cuid())
   // Nullable during the staged migration; legacy records remain untouched.
   organizationId String?
-  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
   // Identificação
-  title             String
-  headlineDisplay   String?
-  category          String
-  filterCategory    String?  // Categoria escolhida para o filtro do site
-  description       String
-  city              String
-  region            String
-  
+  title           String
+  headlineDisplay String?
+  category        String
+  filterCategory  String? // Categoria escolhida para o filtro do site
+  description     String
+  city            String
+  region          String
+
   // Datas (ISO 8601 com timezone)
-  startDateISO      DateTime
-  endDateISO        DateTime?
-  
+  startDateISO DateTime
+  endDateISO   DateTime?
+
   // Horários
-  departureTime     String?
+  departureTime      String?
   departureTolerance String?
-  returnTime        String?
-  scheduleInfo      String?
-  scheduleTBD       Boolean   @default(false)
-  
+  returnTime         String?
+  scheduleInfo       String?
+  scheduleTBD        Boolean @default(false)
+
   // Preços
-  priceValue        Float?  // Decimal stored as Float for SQLite
-  priceDisplay      String?
-  priceUnit         String    @default("por pessoa")
-  free              Boolean   @default(false)
-  
+  priceValue   Float? // Decimal stored as Float for SQLite
+  priceDisplay String?
+  priceUnit    String  @default("por pessoa")
+  free         Boolean @default(false)
+
   // Características
-  intensityClass    String
-  spotsLeft         Int?
-  trailDistance     String?
-  supportPoint      String?
-  supportPointInfo  String?
-  
+  intensityClass   String
+  spotsLeft        Int?
+  trailDistance    String?
+  supportPoint     String?
+  supportPointInfo String?
+
   // Embarque (ponto único - legacy)
-  meetingCity       String?
-  meetingPoint      String?
-  meetingTBD        Boolean   @default(false)
-  meetingDetails    String?
-  meetingMapsQuery  String?
+  meetingCity      String?
+  meetingPoint     String?
+  meetingTBD       Boolean @default(false)
+  meetingDetails   String?
+  meetingMapsQuery String?
   // Coordenadas confirmadas pela equipe (pesquisa no Photon + seleção manual).
   // NULLABLE: viagens antigas não têm; nunca preenchidas automaticamente.
-  meetingLat        Float?
-  meetingLng        Float?
+  meetingLat       Float?
+  meetingLng       Float?
 
   // Conteúdo (JSON stored as String)
-  includes          String      // JSON string: ["Banho de rio", ...]
+  includes          String // JSON string: ["Banho de rio", ...]
   includesHighlight String?
-  includedServices  String?     // JSON string
-  itinerary         String?     // JSON string
-  routeNotes        String?     // JSON string
-  importantInfo     String?     // JSON string
-  media             String      // JSON string: [{src, alt, focus, type}, ...]
-  
+  includedServices  String? // JSON string
+  itinerary         String? // JSON string
+  routeNotes        String? // JSON string
+  importantInfo     String? // JSON string
+  media             String // JSON string: [{src, alt, focus, type}, ...]
+
   // CTA
-  buttonLabel       String    @default("Quero viajar")
-  buttonClass       String    @default("button-dark")
-  
+  buttonLabel String @default("Quero viajar")
+  buttonClass String @default("button-dark")
+
   // Status e SEO
-  status            String    @default("DRAFT") // DRAFT, REVIEW, OPEN, COMPLETED, CANCELLED, SOLD_OUT, CLOSED
-  availabilitySchema String    @default("https://schema.org/InStock")
-  
+  status             String @default("DRAFT") // DRAFT, REVIEW, OPEN, COMPLETED, CANCELLED, SOLD_OUT, CLOSED
+  availabilitySchema String @default("https://schema.org/InStock")
+
   // Rastreabilidade de importação
-  storedIdentity    String    @unique  // "trips_json:0", "trips_json:1", etc.
-  
+  storedIdentity String @unique // "trips_json:0", "trips_json:1", etc.
+
   // Busca normalizada (case/accent-insensitive)
-  titleSearch       String    @default("")
-  citySearch        String    @default("")
-  categorySearch    String    @default("")
-  
+  titleSearch    String @default("")
+  citySearch     String @default("")
+  categorySearch String @default("")
+
   // Metadados
-  createdAt         DateTime   @default(now())
-  updatedAt         DateTime   @updatedAt
-  publishedAt       DateTime?
-  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  publishedAt DateTime?
+
   // Relações
-  departures        TripDeparture[]
-  documents         TripDocument[]
-  visits            Visit[]
-  galleryEntries    GalleryEntry[]
-  reservations      Reservation[]
-  leads             Lead[]
-  
+  departures     TripDeparture[]
+  documents      TripDocument[]
+  visits         Visit[]
+  galleryEntries GalleryEntry[]
+  reservations   Reservation[]
+  leads          Lead[]
+
+  // Destino do banco privado (ver Destination). Opcional; nunca exposto no
+  // site (mapPublicTrip escolhe os campos um a um).
+  destinationId String?
+  destination   Destination? @relation(fields: [destinationId], references: [id], onDelete: SetNull)
+
   @@index([status])
   @@index([startDateISO])
   @@index([storedIdentity])
@@ -158,26 +163,27 @@ model Trip {
   @@index([citySearch])
   @@index([categorySearch])
   @@index([organizationId])
+  @@index([destinationId])
 }
 
 // Reservas são registros internos; não alteram vagas nem processam pagamentos.
 model Reservation {
-  id            String   @id @default(cuid())
+  id             String                   @id @default(cuid())
   organizationId String?
-  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  tripId        String
-  trip          Trip     @relation(fields: [tripId], references: [id], onDelete: Restrict)
-  leadId        String?
-  lead          Lead?    @relation(fields: [leadId], references: [id], onDelete: Restrict)
-  customerName  String
-  customerPhone String?
-  seats         Int      @default(1)
-  status        String   @default("PENDING")
-  totalCents    Int
-  notes         String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  installments  ReservationInstallment[]
+  organization   Organization?            @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  tripId         String
+  trip           Trip                     @relation(fields: [tripId], references: [id], onDelete: Restrict)
+  leadId         String?
+  lead           Lead?                    @relation(fields: [leadId], references: [id], onDelete: Restrict)
+  customerName   String
+  customerPhone  String?
+  seats          Int                      @default(1)
+  status         String                   @default("PENDING")
+  totalCents     Int
+  notes          String?
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+  installments   ReservationInstallment[]
 
   @@index([tripId, status])
   @@index([leadId])
@@ -185,14 +191,14 @@ model Reservation {
 }
 
 model ReservationInstallment {
-  id            String   @id @default(cuid())
+  id            String      @id @default(cuid())
   reservationId String
   reservation   Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
   amountCents   Int
   dueDate       DateTime?
   paidAt        DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 
   @@index([reservationId])
 }
@@ -234,32 +240,32 @@ model ReservationAuditLog {
 // O arquivo físico nunca fica no banco, em assets/ ou em URL pública. storageKey
 // é uma chave opaca gerada pelo servidor para o diretório privado configurado.
 model TripDocument {
-  id               String   @id @default(cuid())
-  tripId           String
-  trip             Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  tripId String
+  trip   Trip   @relation(fields: [tripId], references: [id], onDelete: Cascade)
 
   originalFilename String
-  storageKey       String   @unique
+  storageKey       String @unique
   mimeType         String
   sizeBytes        Int
   sha256           String
   createdById      String
 
   // PENDING_SCAN, CLEAN, INFECTED, ERROR, DELETED
-  scanStatus       String   @default("PENDING_SCAN")
+  scanStatus          String             @default("PENDING_SCAN")
   // PENDING, PROCESSING, READY, FAILED, SKIPPED
-  extractionStatus String   @default("PENDING")
+  extractionStatus    String             @default("PENDING")
   extractionStartedAt DateTime?
-  extractedAt       DateTime?
-  extractionError   String?
-  pages             TripDocumentPage[]
+  extractedAt         DateTime?
+  extractionError     String?
+  pages               TripDocumentPage[]
 
   // Retenção vale para o arquivo físico e para os metadados. Após excluir o
   // arquivo, deletedAt preserva uma trilha mínima de auditoria até a limpeza.
   retentionUntil DateTime
   deletedAt      DateTime?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   @@index([tripId])
   @@index([scanStatus])
@@ -274,23 +280,23 @@ model TripDocument {
 // reprocessados e sem EXIF. storageKey é gerado pelo servidor; o nome do
 // arquivo enviado não é guardado. path é o src público da versão principal.
 model MediaAsset {
-  id            String   @id @default(cuid())
+  id             String        @id @default(cuid())
   organizationId String?
-  organization  Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  storageKey    String   @unique
-  path          String   @unique
-  mimeType      String
-  width         Int
-  height        Int
-  sizeBytes     Int      // versão principal reprocessada
-  originalBytes Int      // arquivo recebido
-  sha256        String   // do arquivo recebido; evita duplicar o mesmo envio
-  createdById   String
-  createdAt     DateTime @default(now())
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  storageKey     String        @unique
+  path           String        @unique
+  mimeType       String
+  width          Int
+  height         Int
+  sizeBytes      Int // versão principal reprocessada
+  originalBytes  Int // arquivo recebido
+  sha256         String // do arquivo recebido; evita duplicar o mesmo envio
+  createdById    String
+  createdAt      DateTime      @default(now())
   // null = registro pendente: criado antes de gravar os arquivos, ainda não
   // confirmado. A rota pública nunca serve um registro pendente (fecha a
   // janela em que o arquivo existe em disco sem publicação confirmada).
-  publishedAt   DateTime?
+  publishedAt    DateTime?
   // JSON (string) com [{name, sizeBytes, sha256}] de cada arquivo esperado
   // (principal + variantes), gravado ANTES de escrever qualquer arquivo. A
   // mera existência de um arquivo não prova que a gravação terminou antes de
@@ -298,7 +304,7 @@ model MediaAsset {
   // pendente se o conteúdo real de cada arquivo bater exatamente com isto.
   // Nulo em registro antigo (anterior a este campo): tratado como "não
   // verificável", nunca publicado automaticamente.
-  fileIntegrity String?
+  fileIntegrity  String?
 
   @@index([sha256])
   @@index([organizationId])
@@ -319,10 +325,10 @@ model TripDocumentPage {
 // TRIP_DEPARTURE: Múltiplos pontos de embarque
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 model TripDeparture {
-  id         String   @id @default(cuid())
-  tripId     String
-  trip       Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
-  
+  id     String @id @default(cuid())
+  tripId String
+  trip   Trip   @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
   time       String
   place      String
   city       String
@@ -334,8 +340,8 @@ model TripDeparture {
   lng        Float?
   orderIndex Int
 
-  createdAt  DateTime @default(now())
-  
+  createdAt DateTime @default(now())
+
   @@index([tripId])
   @@index([orderIndex])
 }
@@ -348,50 +354,56 @@ model TripDeparture {
 // - Múltiplas visitas ao mesmo lugar são ESPERADAS
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 model Visit {
-  id          String    @id @default(cuid())
+  id String @id @default(cuid())
 
   // Nullable durante a migração escalonada; registros legados permanecem intocados.
   organizationId String?
-  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
 
   // Relação OPCIONAL com Trip
-  tripId      String?   // NULLABLE - visita pode não ter trip
-  trip        Trip?     @relation(fields: [tripId], references: [id], onDelete: SetNull)
-  
+  tripId String? // NULLABLE - visita pode não ter trip
+  trip   Trip?   @relation(fields: [tripId], references: [id], onDelete: SetNull)
+
   // Dados da visita
   title       String
   description String?
   date        DateTime? // NULLABLE - visitas antigas podem não ter data
-  
+
   // Localização
-  city        String
-  region      String
-  lat         Float?    // NULLABLE - sem coordenadas fictícias
-  lng         Float?    // NULLABLE - sem coordenadas fictícias
-  
+  city   String
+  region String
+  lat    Float? // NULLABLE - sem coordenadas fictícias
+  lng    Float? // NULLABLE - sem coordenadas fictícias
+
   // Mídia (JSON string)
-  images      String?   // JSON string: [{src, alt}, ...]
-  
+  images String? // JSON string: [{src, alt}, ...]
+
   // Rastreabilidade de importação
-  storedIdentity String  @unique  // "visited_places_hardcoded:5", "gallery_hardcoded:2"
-  source      String?   // "visited_places_hardcoded" | "gallery_hardcoded" | "manual"
-  needsReview Boolean   @default(true)
-  notes       String?
-  
+  storedIdentity String  @unique // "visited_places_hardcoded:5", "gallery_hardcoded:2"
+  source         String? // "visited_places_hardcoded" | "gallery_hardcoded" | "manual"
+  needsReview    Boolean @default(true)
+  notes          String?
+
   // Busca normalizada (case/accent-insensitive)
-  titleSearch   String    @default("")
-  citySearch    String    @default("")
-  regionSearch  String    @default("")
-  sourceSearch  String    @default("")
-  
+  titleSearch  String @default("")
+  citySearch   String @default("")
+  regionSearch String @default("")
+  sourceSearch String @default("")
+
   // Relações
   galleryEntries GalleryEntry[]
-  
+
+  // Destino do banco privado (ver Destination). Opcional; nunca exposto no
+  // site (mapPublicDestination escolhe os campos um a um).
+  destinationId String?
+  destination   Destination? @relation(fields: [destinationId], references: [id], onDelete: SetNull)
+
   // Metadados
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([tripId])
+  @@index([destinationId])
   @@index([organizationId])
   @@index([lat, lng])
   @@index([date])
@@ -404,47 +416,116 @@ model Visit {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// DESTINATION: banco PRIVADO de destinos para planejar viagens
+// - Reúne destinos já visitados e possíveis destinos futuros, com
+//   distância desde a origem, nível da trilha, melhor época, links de
+//   referência (Maps, Wikiloc, redes) e anotações da equipe.
+// - Diferente de Visit ("Destinos visitados"), que alimenta o mapa do site:
+//   Destination NUNCA é lido por rotas públicas, assistente ou site.
+// - organizationId nullable, mesmo escopo legado de Trip/Visit (ver
+//   legacyTourismScope.ts).
+// - links: JSON string [{label, url}] — só http(s), validado na rota.
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+model Destination {
+  id             String        @id @default(cuid())
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  name       String
+  city       String?
+  region     String? // UF
+  category   String? // Cachoeira, Praia, Rio, Mirante, Trilha, Camping, Balneário, Gruta, Outro
+  status     String  @default("IDEA") // IDEA, PRIORITY, DISCARDED
+  originCity String?
+  distanceKm Int?
+  trailLevel String? // EASY, MODERATE, HARD
+  bestSeason String?
+  notes      String?
+  links      String  @default("[]")
+
+  // Rastreabilidade de importação (planilha antiga); null em cadastro manual.
+  importKey String? @unique
+
+  nameSearch String @default("")
+  citySearch String @default("")
+
+  outings DestinationOuting[]
+  // Registros do site ligados a este destino (Sincronizar com o site).
+  visits  Visit[]
+  trips   Trip[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([nameSearch])
+  @@index([citySearch])
+}
+
+// DESTINATION_OUTING: histórico de uma saída já realizada para o destino.
+// Valores em centavos, lançados à mão (nunca processam pagamento). Receita,
+// despesa e resultado são CALCULADOS na leitura, não armazenados.
+// supplier é o transporte contratado: dado interno, só para administradores.
+model DestinationOuting {
+  id                  String      @id @default(cuid())
+  destinationId       String
+  destination         Destination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+  date                DateTime?
+  passengers          Int?
+  pricePerPersonCents Int?
+  transportCostCents  Int?
+  extraCostCents      Int?
+  supplier            String?
+  notes               String?
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  @@index([destinationId, date])
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // GALLERY_ENTRY: Memória editorial curada para a galeria do site
 // - NÃO é automática de Trip ou Visit
 // - Curadoria manual: título, descrição, seleção de fotos, ordenação
 // - Associações OPCIONAIS a Trip e/ou Visit
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 model GalleryEntry {
-  id        String   @id @default(cuid())
+  id String @id @default(cuid())
 
   // Nullable durante a migração escalonada; registros legados permanecem intocados.
   organizationId String?
-  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
 
   // Conteúdo editorial (OBRIGATÓRIO)
-  title     String
-  date      DateTime  // Para ordenação
-  dateDisplay String  // "28 de maio de 2023" (legível)
+  title       String
+  date        DateTime // Para ordenação
+  dateDisplay String // "28 de maio de 2023" (legível)
   description String
-  images    String    // JSON string: [{src, alt}, ...] - mínimo 1
-  
+  images      String // JSON string: [{src, alt}, ...] - mínimo 1
+
   // Associações OPCIONAIS (para rastreabilidade)
-  tripId    String?   // Trip que gerou esta memória
-  trip      Trip?     @relation(fields: [tripId], references: [id], onDelete: SetNull)
-  visitId   String?   // Visit específica (se aplicável)
-  visit     Visit?    @relation(fields: [visitId], references: [id], onDelete: SetNull)
-  
+  tripId  String? // Trip que gerou esta memória
+  trip    Trip?   @relation(fields: [tripId], references: [id], onDelete: SetNull)
+  visitId String? // Visit específica (se aplicável)
+  visit   Visit?  @relation(fields: [visitId], references: [id], onDelete: SetNull)
+
   // Curadoria
-  isFeatured Boolean  @default(false)  // Primeiro card (destaque)
-  orderIndex Int      // Ordem manual se necessário
-  
+  isFeatured Boolean @default(false) // Primeiro card (destaque)
+  orderIndex Int // Ordem manual se necessário
+
   // Rastreabilidade
-  storedIdentity String  @unique  // "gallery_hardcoded:0"
-  source    String?   // "gallery_hardcoded" | "manual"
-  
+  storedIdentity String  @unique // "gallery_hardcoded:0"
+  source         String? // "gallery_hardcoded" | "manual"
+
   // Busca normalizada (case/accent-insensitive)
-  titleSearch       String    @default("")
-  descriptionSearch String    @default("")
-  
+  titleSearch       String @default("")
+  descriptionSearch String @default("")
+
   // Metadados
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([date])
   @@index([isFeatured])
   @@index([tripId])
@@ -459,20 +540,20 @@ model GalleryEntry {
 // USER: Autenticação administrativa (single user MVP)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  passwordHash String
-  mustChangePassword Boolean @default(false)
-  credentialVersion Int @default(0)
-  role      String   @default("admin")
-  legacyAccess Boolean @default(false) // acesso explícito ao painel global de turismo
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  approvedKnowledge AssistantKnowledgeVersion[]
-  memberships Membership[]
+  id                  String                      @id @default(cuid())
+  email               String                      @unique
+  name                String?
+  passwordHash        String
+  mustChangePassword  Boolean                     @default(false)
+  credentialVersion   Int                         @default(0)
+  role                String                      @default("admin")
+  legacyAccess        Boolean                     @default(false) // acesso explícito ao painel global de turismo
+  createdAt           DateTime                    @default(now())
+  updatedAt           DateTime                    @updatedAt
+  approvedKnowledge   AssistantKnowledgeVersion[]
+  memberships         Membership[]
   passwordResetTokens PasswordResetToken[]
-  avatar UserAvatar?
+  avatar              UserAvatar?
 
   @@index([email])
 }
@@ -493,17 +574,17 @@ model UserAvatar {
 // qualquer organização ou do painel legado — não é escopado por empresa.
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 model PasswordResetToken {
-  id        String    @id @default(cuid())
-  userId    String
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tokenHash String    @unique
-  expiresAt DateTime
-  usedAt    DateTime?
+  id                      String    @id @default(cuid())
+  userId                  String
+  user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash               String    @unique
+  expiresAt               DateTime
+  usedAt                  DateTime?
   // Campo legado da primeira migração de reset; não valida credenciais.
-  issuedForUpdatedAt DateTime
+  issuedForUpdatedAt      DateTime
   // Versão da senha, independente da versão de sessão alterada no logout.
-  issuedCredentialVersion Int @default(0)
-  createdAt DateTime  @default(now())
+  issuedCredentialVersion Int       @default(0)
+  createdAt               DateTime  @default(now())
 
   @@index([userId])
   @@index([expiresAt])
@@ -518,12 +599,12 @@ model PasswordResetToken {
 // `niche`.
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 model Organization {
-  id          String   @id @default(cuid())
-  name        String
-  slug        String   @unique
+  id               String            @id @default(cuid())
+  name             String
+  slug             String            @unique
   // Vertical de negócio desta empresa: "turismo", "pousada", "restaurante".
-  niche       String   @default("turismo")
-  status      String   @default("ACTIVE") // ACTIVE, INACTIVE
+  niche            String            @default("turismo")
+  status           String            @default("ACTIVE") // ACTIVE, INACTIVE
   // Preenche a unidade de preço ao abrir "Nova viagem" nesta empresa; não
   // é usado pelo site público (Trip guarda o próprio priceUnit, igual ao
   // legado) e nunca se aplica a outra empresa ou ao acervo legado.
@@ -532,20 +613,21 @@ model Organization {
   // servidor em organizationController.ts). null = sem identidade
   // configurada, usa a paleta verde fixa (ver src/validators/
   // organizationBrand.ts); nunca derivada do id.
-  brandColor  String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  memberships Membership[]
-  trips       Trip[]
-  leads       Lead[]
-  reservations Reservation[]
-  visits      Visit[]
-  galleryEntries GalleryEntry[]
-  mediaAssets    MediaAsset[]
-  socialPosts    SocialPost[]
-  socialMedia    SocialMedia[]
+  brandColor       String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  memberships      Membership[]
+  trips            Trip[]
+  leads            Lead[]
+  reservations     Reservation[]
+  visits           Visit[]
+  galleryEntries   GalleryEntry[]
+  mediaAssets      MediaAsset[]
+  socialPosts      SocialPost[]
+  socialMedia      SocialMedia[]
   lodgingUnits     LodgingUnit[]
   restaurantTables RestaurantTable[]
+  destinations     Destination[]
 
   @@index([status])
 }
@@ -568,11 +650,11 @@ model Membership {
 
 // Reservas da nova plataforma, independentes do turismo legado.
 model LodgingUnit {
-  id             String       @id @default(cuid())
+  id             String               @id @default(cuid())
   organizationId String
   name           String
-  createdAt      DateTime     @default(now())
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  createdAt      DateTime             @default(now())
+  organization   Organization         @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   reservations   LodgingReservation[]
   blocks         LodgingBlock[]
 
@@ -581,15 +663,15 @@ model LodgingUnit {
 }
 
 model LodgingReservation {
-  id             String   @id @default(cuid())
+  id             String         @id @default(cuid())
   organizationId String
   unitId         String
   guestName      String
   checkIn        String
   checkOut       String
-  status         String   @default("CONFIRMED")
-  createdAt      DateTime @default(now())
-  unit           LodgingUnit @relation(fields: [unitId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  status         String         @default("CONFIRMED")
+  createdAt      DateTime       @default(now())
+  unit           LodgingUnit    @relation(fields: [unitId, organizationId], references: [id, organizationId], onDelete: Restrict)
   nights         LodgingNight[]
 
   @@unique([id, unitId])
@@ -602,7 +684,7 @@ model LodgingNight {
   unitId        String
   night         String
   reservation   LodgingReservation? @relation(fields: [reservationId, unitId], references: [id, unitId], onDelete: Cascade)
-  block         LodgingBlock? @relation(fields: [blockId, unitId], references: [id, unitId], onDelete: Cascade)
+  block         LodgingBlock?       @relation(fields: [blockId, unitId], references: [id, unitId], onDelete: Cascade)
 
   @@id([unitId, night])
   @@index([reservationId])
@@ -610,15 +692,15 @@ model LodgingNight {
 }
 
 model LodgingBlock {
-  id             String @id @default(cuid())
+  id             String         @id @default(cuid())
   organizationId String
   unitId         String
   start          String
   end            String
   reason         String?
-  status         String @default("ACTIVE")
-  createdAt      DateTime @default(now())
-  unit           LodgingUnit @relation(fields: [unitId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  status         String         @default("ACTIVE")
+  createdAt      DateTime       @default(now())
+  unit           LodgingUnit    @relation(fields: [unitId, organizationId], references: [id, organizationId], onDelete: Restrict)
   nights         LodgingNight[]
 
   @@unique([id, unitId])
@@ -628,12 +710,12 @@ model LodgingBlock {
 // Reservas de restaurante, independentes da pousada. Uma mesa aceita no
 // máximo um grupo por turno: sem duração nem combinação de mesas ainda.
 model RestaurantTable {
-  id             String   @id @default(cuid())
+  id             String                  @id @default(cuid())
   organizationId String
   name           String
   capacity       Int
-  createdAt      DateTime @default(now())
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  createdAt      DateTime                @default(now())
+  organization   Organization            @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   reservations   RestaurantReservation[]
 
   @@unique([id, organizationId])
@@ -641,7 +723,7 @@ model RestaurantTable {
 }
 
 model RestaurantReservation {
-  id             String   @id @default(cuid())
+  id             String                @id @default(cuid())
   organizationId String
   tableId        String
   guestName      String
@@ -649,9 +731,9 @@ model RestaurantReservation {
   date           String
   shift          String
   time           String
-  status         String   @default("CONFIRMED")
-  createdAt      DateTime @default(now())
-  table          RestaurantTable @relation(fields: [tableId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  status         String                @default("CONFIRMED")
+  createdAt      DateTime              @default(now())
+  table          RestaurantTable       @relation(fields: [tableId, organizationId], references: [id, organizationId], onDelete: Restrict)
   occupancy      RestaurantOccupancy[]
 
   @@unique([id, tableId])
@@ -673,46 +755,46 @@ model RestaurantOccupancy {
 
 // Cada registro é uma versão aprovada completa; o serviço não altera versões.
 model AssistantKnowledgeVersion {
-  version      Int      @id @default(autoincrement())
-  entries      String   // JSON validado pelo serviço
-  approvedById String
-  approvedBy   User     @relation(fields: [approvedById], references: [id], onDelete: Restrict)
-  approvedAt   DateTime @default(now())
+  version        Int                      @id @default(autoincrement())
+  entries        String // JSON validado pelo serviço
+  approvedById   String
+  approvedBy     User                     @relation(fields: [approvedById], references: [id], onDelete: Restrict)
+  approvedAt     DateTime                 @default(now())
   responseAudits AssistantResponseAudit[]
 }
 
 // Metadados mínimos, sem texto de conversa ou identificadores de clientes.
 model AssistantResponseAudit {
-  id               String   @id @default(cuid())
+  id               String                     @id @default(cuid())
   knowledgeVersion Int?
   knowledge        AssistantKnowledgeVersion? @relation(fields: [knowledgeVersion], references: [version], onDelete: Restrict)
   outcome          String
-  createdAt        DateTime @default(now())
+  createdAt        DateTime                   @default(now())
 
   @@index([createdAt])
   @@index([knowledgeVersion])
 }
 
 model AssistantConversationState {
-  id        String   @id
-  state     String   @default("ASSISTANT")
-  revision  Int      @default(0)
-  updatedAt DateTime @updatedAt
+  id        String                       @id
+  state     String                       @default("ASSISTANT")
+  revision  Int                          @default(0)
+  updatedAt DateTime                     @updatedAt
   events    AssistantConversationEvent[]
   notices   AssistantHandoffNotice[]
 }
 
 model AssistantHandoffNotice {
-  id             String   @id @default(cuid())
+  id             String                     @id @default(cuid())
   conversationId String
   requestEventId String
-  status         String   @default("PENDING")
-  attempts       Int      @default(0)
+  status         String                     @default("PENDING")
+  attempts       Int                        @default(0)
   leaseToken     String?
   leaseUntil     DateTime?
   nextAttemptAt  DateTime?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime                   @default(now())
+  updatedAt      DateTime                   @updatedAt
   conversation   AssistantConversationState @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@unique([conversationId, requestEventId])
@@ -720,14 +802,14 @@ model AssistantHandoffNotice {
 }
 
 model AssistantConversationEvent {
-  conversationId String
-  eventId        String
-  event          String
+  conversationId   String
+  eventId          String
+  event            String
   expectedRevision Int
-  resultState    String
-  resultRevision Int
-  createdAt      DateTime @default(now())
-  conversation   AssistantConversationState @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  resultState      String
+  resultRevision   Int
+  createdAt        DateTime                   @default(now())
+  conversation     AssistantConversationState @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@id([conversationId, eventId])
 }
@@ -738,7 +820,7 @@ model AssistantConversationEvent {
 model Setting {
   id        String   @id @default(cuid())
   key       String   @unique
-  value     String   // JSON string
+  value     String // JSON string
   updatedAt DateTime @updatedAt
 }
 
@@ -747,31 +829,31 @@ model Setting {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 model ImportSnapshot {
   id            String   @id @default(cuid())
-  label         String   // "import-2026-10-29T10:00:00.000Z"
-  tripsJson     String   // JSON string
-  visitedPlaces String   // JSON string
-  gallery       String   // JSON string
+  label         String // "import-2026-10-29T10:00:00.000Z"
+  tripsJson     String // JSON string
+  visitedPlaces String // JSON string
+  gallery       String // JSON string
   createdAt     DateTime @default(now())
-  
+
   @@index([createdAt])
 }
 
 // CRM interno: informações de interessados não são expostas no catálogo público.
 model Lead {
-  id             String      @id @default(cuid())
+  id             String        @id @default(cuid())
   organizationId String?
   organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   name           String
   phone          String?
   email          String?
-  stage          String      @default("NEW")
+  stage          String        @default("NEW")
   tripId         String?
-  trip           Trip?       @relation(fields: [tripId], references: [id], onDelete: Restrict)
+  trip           Trip?         @relation(fields: [tripId], references: [id], onDelete: Restrict)
   responsible    String?
   nextFollowUpAt DateTime?
   notes          String?
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
   events         LeadEvent[]
   reservations   Reservation[]
 

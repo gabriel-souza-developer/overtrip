@@ -140,7 +140,7 @@ describe('GET /api/public/trips', () => {
   it('não expõe campos internos', async () => {
     const { mine } = await listPublic();
     const text = JSON.stringify(mine);
-    for (const key of ['id', 'publishedAt', 'createdAt', 'updatedAt', 'storedIdentity', 'titleSearch', 'citySearch', 'categorySearch']) {
+    for (const key of ['id', 'publishedAt', 'createdAt', 'updatedAt', 'storedIdentity', 'titleSearch', 'citySearch', 'categorySearch', 'destinationId']) {
       for (const t of mine) expect(Object.keys(t)).not.toContain(key);
     }
     expect(text).not.toContain('"userId"');

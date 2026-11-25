@@ -20,7 +20,7 @@ export default function FilterBar({ searchLabel, searchPlaceholder, searchValue,
       <form
         key={searchValue}
         role="search"
-        className="flex flex-col lg:flex-row gap-3"
+        className="flex flex-col lg:flex-row lg:items-start gap-3"
         onSubmit={(e) => {
           e.preventDefault();
           onSearch(String(new FormData(e.currentTarget).get('search') ?? '').trim());

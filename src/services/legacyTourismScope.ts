@@ -38,6 +38,14 @@ export function legacyVisitOrganizationFilter(legacyOrganizationId: string | nul
   return organizationScopeFilter(legacyOrganizationId);
 }
 
+export function legacyDestinationOrganizationFilter(legacyOrganizationId: string | null): Prisma.DestinationWhereInput {
+  return organizationScopeFilter(legacyOrganizationId);
+}
+
+export function currentLegacyDestinationFilter(): Prisma.DestinationWhereInput {
+  return legacyDestinationOrganizationFilter(config.legacyTourismOrganizationId);
+}
+
 export function legacyGalleryOrganizationFilter(legacyOrganizationId: string | null): Prisma.GalleryEntryWhereInput {
   return organizationScopeFilter(legacyOrganizationId);
 }

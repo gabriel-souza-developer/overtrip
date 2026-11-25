@@ -514,6 +514,13 @@ HSTS:        1 ano (sem preload por segurança)
 ✅ Vantagem: Espaço de cor perceptual, melhor consistência visual
 ❌ Trade-off: Alguns navegadores antigos não suportam
 
+### **6. Banco de destinos (privado)**
+- Tela "Banco de destinos" do painel OVERTRIP (`/destination-bank`, só administradores) e API `/api/destinations` atrás do `legacyGate`, no mesmo escopo legado de viagens e visitas.
+- Modelos `Destination` (destinos visitados e possíveis: distância desde a origem, nível da trilha, melhor época, links http(s), notas e situação Na lista/Prioridade/Descartado) e `DestinationOuting` (saídas realizadas: data, passageiros, valor por pessoa, transporte, taxas extras e transporte contratado, em centavos). Receita, despesa e resultado são calculados na leitura.
+- Diferente de `Visit` ("Destinos visitados"), que alimenta o mapa público: nada do banco de destinos é lido pelo site, assistente ou rotas públicas.
+- Sincronização com o site (`destinationSiteSync.ts`, botão "Sincronizar com o site" e fim da importação): `Trip.destinationId` e `Visit.destinationId` (colunas opcionais) ligam viagens e pontos do mapa ao destino, reconhecido pelo nome (`destinationNames.ts`, com apelidos como "Olheiro de Pureza"). O banco lê esses registros na hora (nada é copiado), só completa campos vazios do destino e cria a saída do dia de cada visita/viagem já realizada. Vínculo existente nunca é trocado; viagem futura só é vinculada.
+- `scripts/import-destinations-xlsx.ts` importa a aba "DESTINOS VISITADOS" da planilha antiga da empresa (simulação por padrão; `--apply` grava; idempotente por `importKey`). A planilha tem dados internos e não deve entrar no repositório.
+
 ---
 
 ## Extensibilidade & Manutenção

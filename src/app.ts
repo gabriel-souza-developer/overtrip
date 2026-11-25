@@ -23,6 +23,7 @@ import socialPostRoutes from './routes/socialPostRoutes.js';
 import socialMediaRoutes from './routes/socialMediaRoutes.js';
 import organizationRoutes from './routes/organizationRoutes.js';
 import userManagementRoutes from './routes/userManagementRoutes.js';
+import destinationRoutes from './routes/destinationRoutes.js';
 import { authenticate, requireLegacyAccess } from './middleware/auth.js';
 
 const app = express();
@@ -62,6 +63,7 @@ app.use('/api/reservations', legacyGate, reservationRoutes);
 app.use('/api/social-posts', legacyGate, socialPostRoutes);
 app.use('/api/system', legacyGate, systemRoutes);
 app.use('/api/visits', legacyGate, visitRoutes);
+app.use('/api/destinations', legacyGate, destinationRoutes);
 app.use('/api/gallery', legacyGate, galleryRoutes);
 app.use('/api/dashboard', legacyGate, dashboardRoutes);
 app.use('/api/settings', legacyGate, settingsRoutes);
