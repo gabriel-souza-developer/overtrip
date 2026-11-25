@@ -38,7 +38,7 @@ export async function request<T>(endpoint: string, options: RequestInit = {}): P
 
 export const authApi = {
   login: async (email: string, password: string) => {
-    const data = await request<{ user: { id: string; email: string; name: string; role: string; legacyAccess: boolean } }>(
+    const data = await request<{ user: { id: string; email: string; name: string; role: string; legacyAccess: boolean; mustChangePassword: boolean } }>(
       '/auth/login',
       { method: 'POST', body: JSON.stringify({ email, password }) }
     );
@@ -46,7 +46,7 @@ export const authApi = {
   },
 
   me: async () => {
-    return request<{ id: string; email: string; name: string; role: string; legacyAccess: boolean }>('/auth/me');
+    return request<{ id: string; email: string; name: string; role: string; legacyAccess: boolean; mustChangePassword: boolean }>('/auth/me');
   },
 
   logout: async () => request<void>('/auth/logout', { method: 'POST' }),

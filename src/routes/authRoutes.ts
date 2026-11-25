@@ -30,8 +30,8 @@ router.post('/forgot-password', requireSameOrigin, forgotPasswordLimiter, asyncH
 router.post('/reset-password', requireSameOrigin, resetPasswordLimiter, asyncHandler(authController.resetPassword));
 
 // Protected routes
-router.get('/me', authenticate, asyncHandler(authController.me));
-router.post('/logout', (req, res, next) => authenticate(req, res, next, { optional: true }), asyncHandler(authController.logout));
-router.post('/change-password', authenticate, passwordChangeLimiter, asyncHandler(authController.changePassword));
+router.get('/me', (req, res, next) => authenticate(req, res, next, { allowPasswordChange: true }), asyncHandler(authController.me));
+router.post('/logout', (req, res, next) => authenticate(req, res, next, { optional: true, allowPasswordChange: true }), asyncHandler(authController.logout));
+router.post('/change-password', (req, res, next) => authenticate(req, res, next, { allowPasswordChange: true }), passwordChangeLimiter, asyncHandler(authController.changePassword));
 
 export default router;

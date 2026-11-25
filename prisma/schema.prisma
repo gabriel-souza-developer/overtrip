@@ -463,6 +463,7 @@ model User {
   email     String   @unique
   name      String?
   passwordHash String
+  mustChangePassword Boolean @default(false)
   credentialVersion Int @default(0)
   role      String   @default("admin")
   legacyAccess Boolean @default(false) // acesso explícito ao painel global de turismo
@@ -471,8 +472,16 @@ model User {
   approvedKnowledge AssistantKnowledgeVersion[]
   memberships Membership[]
   passwordResetTokens PasswordResetToken[]
+  avatar UserAvatar?
 
   @@index([email])
+}
+
+model UserAvatar {
+  userId    String   @id
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  data      Bytes
+  updatedAt DateTime @updatedAt
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

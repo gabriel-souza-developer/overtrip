@@ -25,7 +25,7 @@ export const authenticate = async (
   req: AuthRequest,
   res: Response,
   next: NextFunction,
-  options: { optional?: boolean } = {},
+  options: { optional?: boolean; allowPasswordChange?: boolean } = {},
 ): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
@@ -60,12 +60,17 @@ export const authenticate = async (
     // Verify user still exists and is active
     const user = await prisma.user.findUnique({
       where: { id: decoded.id },
-      select: { id: true, email: true, role: true, legacyAccess: true, updatedAt: true },
+      select: { id: true, email: true, role: true, legacyAccess: true, updatedAt: true, mustChangePassword: true },
     });
 
     if (!user || !Number.isSafeInteger(decoded.sv) || decoded.sv !== user.updatedAt.getTime()) {
       if (options.optional) { next(); return; }
       res.status(401).json({ error: 'Sessão inválida ou encerrada. Entre novamente.', code: 'SESSION_INVALID' });
+      return;
+    }
+
+    if (user.mustChangePassword && !options.allowPasswordChange) {
+      res.status(403).json({ error: 'Altere sua senha para continuar.', code: 'PASSWORD_CHANGE_REQUIRED' });
       return;
     }
 

@@ -20,7 +20,7 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  if (user) return <Navigate to={platformMode ? destination : (user.legacyAccess ? '/dashboard' : '/empresa')} replace />;
+  if (user) return <Navigate to={user.mustChangePassword ? '/primeiro-acesso' : (platformMode ? destination : (user.legacyAccess ? '/dashboard' : '/empresa'))} replace />;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,7 +29,7 @@ export default function Login() {
 
     try {
       const loggedInUser = await login(email, password);
-      navigate(platformMode ? destination : (loggedInUser.legacyAccess ? '/dashboard' : '/empresa'));
+      navigate(loggedInUser.mustChangePassword ? '/primeiro-acesso' : (platformMode ? destination : (loggedInUser.legacyAccess ? '/dashboard' : '/empresa')));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Não foi possível entrar. Confira o e-mail e a senha.');
     } finally {

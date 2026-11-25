@@ -56,6 +56,7 @@ export const authController = {
         name: user.name,
         role: user.role,
         legacyAccess: user.legacyAccess,
+        mustChangePassword: user.mustChangePassword,
       },
     });
   },
@@ -67,7 +68,7 @@ export const authController = {
 
     const user = await prisma.user.findUnique({
       where: { id: req.user.id },
-      select: { id: true, email: true, name: true, role: true, legacyAccess: true, createdAt: true },
+      select: { id: true, email: true, name: true, role: true, legacyAccess: true, mustChangePassword: true, createdAt: true },
     });
 
     if (!user) {
@@ -98,6 +99,10 @@ export const authController = {
       throw AppError.unauthorized('Senha atual incorreta');
     }
 
+    if (await bcrypt.compare(newPassword, user.passwordHash)) {
+      throw AppError.badRequest('Escolha uma senha diferente da senha atual.');
+    }
+
     const newPasswordHash = await bcrypt.hash(newPassword, 12);
     const userId = req.user.id;
     const sessionVersion = req.user.sessionVersion;
@@ -109,7 +114,7 @@ export const authController = {
       const now = new Date();
       const updated = await tx.user.updateMany({
         where: { id: userId, updatedAt: sessionVersion },
-        data: { passwordHash: newPasswordHash, credentialVersion: { increment: 1 }, updatedAt: new Date(Math.max(Date.now(), user.updatedAt.getTime() + 1)) },
+        data: { passwordHash: newPasswordHash, mustChangePassword: false, credentialVersion: { increment: 1 }, updatedAt: new Date(Math.max(Date.now(), user.updatedAt.getTime() + 1)) },
       });
       if (updated.count !== 1) throw AppError.unauthorized('Sessão encerrada. Entre novamente.');
       await invalidatePendingResetTokens(tx, userId, now);

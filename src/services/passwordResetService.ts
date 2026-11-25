@@ -201,6 +201,9 @@ export async function resetPassword(rawToken: string, newPassword: string): Prom
     const user = await tx.user.findUnique({ where: { id: tokenRow.userId } });
     if (!user) return 'invalid';
 
+    // Não use a recuperação para confirmar a mesma senha inicial conhecida.
+    if (user.mustChangePassword && await bcrypt.compare(newPassword, user.passwordHash)) return 'invalid';
+
     if (tokenRow.issuedCredentialVersion !== user.credentialVersion) {
       return 'invalid';
     }
@@ -218,6 +221,7 @@ export async function resetPassword(rawToken: string, newPassword: string): Prom
       where: { id: user.id },
       data: {
         passwordHash: newPasswordHash,
+        mustChangePassword: false,
         credentialVersion: { increment: 1 },
         updatedAt: new Date(Math.max(Date.now(), user.updatedAt.getTime() + 1, now.getTime() + 1)),
       },

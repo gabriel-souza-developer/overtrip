@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import Layout from './components/Layout';
 import Login from './pages/Login';
+import FirstPassword from './pages/FirstPassword';
 const ForgotPassword = React.lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = React.lazy(() => import('./pages/ResetPassword'));
 import { ApiRequestError, authApi } from './api';
@@ -38,6 +39,7 @@ interface User {
   name: string;
   role: string;
   legacyAccess: boolean;
+  mustChangePassword: boolean;
 }
 
 interface AuthContextType {
@@ -112,7 +114,7 @@ const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
 const ProtectedRoute: React.FC = () => {
   const { user, loading } = useAuth();
   if (loading) return <LoadingScreen />;
-  return user ? <Outlet /> : <Navigate to="/login" replace />;
+  return user ? (user.mustChangePassword ? <Navigate to="/primeiro-acesso" replace /> : <Outlet />) : <Navigate to="/login" replace />;
 };
 
 // O backend já recusa (403); aqui evitamos mostrar telas que só dariam erro.
@@ -132,6 +134,7 @@ const RootRedirect: React.FC = () => {
   const { user, loading } = useAuth();
   if (loading) return <LoadingScreen />;
   if (!user) return <Navigate to="/login" replace />;
+  if (user.mustChangePassword) return <Navigate to="/primeiro-acesso" replace />;
   return <Navigate to={user.legacyAccess ? '/dashboard' : '/empresa'} replace />;
 };
 
@@ -146,6 +149,7 @@ const PlatformWorkspace = () => <React.Suspense fallback={<LoadingScreen />}>{Wo
 const AppRoutes = () => platformMode ? (
   <Routes>
     <Route path="/login" element={<Login />} />
+    <Route path="/primeiro-acesso" element={<FirstPassword />} />
     <Route path="/esqueci-senha" element={<React.Suspense fallback={<LoadingScreen />}><ForgotPassword /></React.Suspense>} />
     <Route path="/redefinir-senha" element={<React.Suspense fallback={<LoadingScreen />}><ResetPassword /></React.Suspense>} />
     <Route element={<ProtectedRoute />}>
@@ -156,6 +160,7 @@ const AppRoutes = () => platformMode ? (
 ) : (
   <Routes>
     <Route path="/login" element={<Login />} />
+    <Route path="/primeiro-acesso" element={<FirstPassword />} />
     <Route element={<ProtectedRoute />}>
       {Workspace && <Route path="/espaco" element={<React.Suspense fallback={<LoadingScreen />}><Workspace /></React.Suspense>} />}
       <Route path="/empresa" element={<React.Suspense fallback={<LoadingScreen />}><OrganizationSelect /></React.Suspense>} />

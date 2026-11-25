@@ -3,6 +3,7 @@ import cors from 'cors';
 import { config } from './config.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import authRoutes from './routes/authRoutes.js';
+import profileAvatarRoutes from './routes/profileAvatarRoutes.js';
 import tripRoutes from './routes/tripRoutes.js';
 import visitRoutes from './routes/visitRoutes.js';
 import galleryRoutes from './routes/galleryRoutes.js';
@@ -43,6 +44,7 @@ app.use('/api/trips/:tripId/documents', legacyGate, documentRoutes);
 // Envio de imagens: corpo bruto, montado antes do express.json.
 app.use('/api/media', legacyGate, mediaRoutes);
 app.use('/api/social-media', legacyGate, socialMediaRoutes);
+app.use('/api/profile/avatar', profileAvatarRoutes);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
