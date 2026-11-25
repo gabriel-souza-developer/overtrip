@@ -44,10 +44,10 @@ export default function OrganizationDashboard() {
   ];
 
   return <div className="space-y-7 pb-6">
-    <header className="relative overflow-hidden rounded-2xl border border-primary-200 border-l-4 border-l-primary-600 bg-gradient-to-br from-white via-primary-50 to-primary-100 px-5 py-6 shadow-sm sm:px-7 sm:py-7">
+    <header className="relative overflow-hidden rounded-2xl bg-primary-600 px-5 py-6 text-white shadow-sm sm:px-7 sm:py-7">
       <div className="relative flex flex-wrap items-end justify-between gap-5">
-        <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-primary-800">Painel {organization.name}</p><h1 className="mt-1 text-3xl font-bold tracking-tight text-surface-900">Visão geral</h1><p className="mt-1 text-sm text-surface-600">{today}</p></div>
-        <Link to={`${base}/trips`} className="btn-primary min-h-11"><Plane className="h-4 w-4" aria-hidden="true" /> Ver viagens</Link>
+        <div><p className="text-xs font-bold uppercase tracking-[0.16em]">Painel {organization.name}</p><h1 className="mt-1 text-3xl font-bold tracking-tight">Visão geral</h1><p className="mt-1 text-sm">{today}</p></div>
+        <Link to={`${base}/trips`} className="btn min-h-11 bg-white text-primary-800 hover:bg-primary-50"><Plane className="h-4 w-4" aria-hidden="true" /> Ver viagens</Link>
       </div>
     </header>
     {error && <ErrorState message={error} onRetry={() => void load()} />}

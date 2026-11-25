@@ -26,6 +26,7 @@ import TripDocuments from '../components/TripDocuments';
 import TripCardPreview from '../components/TripCardPreview';
 import TripProposalPreview from '../components/TripProposalPreview';
 import StatusBadge from '../components/StatusBadge';
+import AiDraftBlock from '../components/AiDraftBlock';
 
 const CAN_MANAGE_TRIPS = (role: string) => role === 'OWNER' || role === 'ADMIN';
 const INTENSITY_OPTIONS: OrgTripIntensity[] = ['leve', 'moderado', 'intenso', 'extremo'];
@@ -282,8 +283,13 @@ export default function OrganizationTrips() {
   // Isolado por empresa no servidor (organizationTripDocumentRoutes.ts);
   // aqui é só o cliente HTTP usado pelo componente compartilhado abaixo.
   const orgDocumentApi = useMemo(() => createOrganizationDocumentApi(organization.id), [organization.id]);
+  const orgAiApi = useMemo(() => ({
+    status: () => organizationApi.aiStatus(organization.id),
+    tripDraft: (text: string) => organizationApi.aiTripDraft(organization.id, text),
+  }), [organization.id]);
+  const draftDefaults = creating && !templateSource ? { ...emptyForm, priceUnit: organization.defaultPriceUnit?.trim() || emptyForm.priceUnit } : {};
   const applyAiDraft = (draft: TripDraft, chosen: DraftKey[], overwrite: DraftKey[]) => {
-    const next = applySuggestions(form as unknown as Record<string, unknown>, draft, chosen, overwrite, {}) as unknown as TripForm & { includedServices?: string[] };
+    const next = applySuggestions(form as unknown as Record<string, unknown>, draft, chosen, overwrite, draftDefaults) as unknown as TripForm & { includedServices?: string[] };
     if (chosen.includes('startDateISO') && typeof draft.startDateISO === 'string' && draft.startDateISO) {
       next.startDateISO = mergeSuggestedDate(form.startDateISO, draft.startDateISO);
     }
@@ -488,9 +494,10 @@ export default function OrganizationTrips() {
             )}
             {formError && <div className="alert-error" role="alert">{formError}</div>}
 
-            <section className="rounded-xl border border-surface-200 p-4 space-y-4" aria-label="Preencher automaticamente">
+            <section className="rounded-xl border border-surface-200 border-l-4 border-l-primary-600 p-4 space-y-4" aria-label="Preencher automaticamente">
               <h2 className="text-lg font-semibold text-surface-900">Preencher automaticamente</h2>
-              <p className="text-sm text-surface-600">Após salvar o rascunho, você pode usar um PDF para sugerir campos e, quando disponível, fotos. Revise tudo antes de salvar.</p>
+              <p className="text-sm text-surface-600">Cole um texto para receber sugestões. Após salvar o rascunho, você também pode usar um PDF. Revise tudo antes de salvar.</p>
+              <AiDraftBlock api={orgAiApi} showUnavailable form={form as unknown as Record<string, unknown>} defaults={draftDefaults} onApply={applyAiDraft} />
             {editing && (
               <TripDocuments
                 key={editing.id}
@@ -510,8 +517,8 @@ export default function OrganizationTrips() {
 
             </section>
 
-            <section className="rounded-xl border border-surface-200 p-4 space-y-4" aria-label="O essencial">
-              <h2 className="text-lg font-semibold text-surface-900">O essencial</h2>
+            <section className="rounded-xl border border-surface-200 border-l-4 border-l-primary-600 p-4 space-y-4" aria-label="Dados da viagem">
+              <h2 className="text-lg font-semibold text-surface-900">Dados da viagem</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field id="org-trip-title" label="Título" required>
                 <input id="org-trip-title" className="input" value={form.title} onChange={(e) => patch({ title: e.target.value })} />
@@ -570,7 +577,7 @@ export default function OrganizationTrips() {
               </details>
             </section>
 
-            <section className="rounded-xl border border-surface-200 p-4 space-y-4" aria-label="Embarque e horários">
+            <section className="rounded-xl border border-surface-200 border-l-4 border-l-primary-600 p-4 space-y-4" aria-label="Embarque e horários">
               <h2 className="text-lg font-semibold text-surface-900">Embarque e horários</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field id="org-trip-start" label="Data de saída" required>
@@ -627,7 +634,7 @@ export default function OrganizationTrips() {
               </details>
             </section>
 
-            <section className="rounded-xl border border-surface-200 p-4 space-y-4" aria-label="Como é a experiência">
+            <section className="rounded-xl border border-surface-200 border-l-4 border-l-primary-600 p-4 space-y-4" aria-label="Como é a experiência">
               <h2 className="text-lg font-semibold text-surface-900">Como é a experiência</h2>
             <Field id="org-trip-description" label="Descrição" required>
               <textarea id="org-trip-description" className="input" rows={4} value={form.description} onChange={(e) => patch({ description: e.target.value })} />
@@ -683,7 +690,7 @@ export default function OrganizationTrips() {
               </details>
             </section>
 
-            <section className="rounded-xl border border-surface-200 p-4 space-y-4" aria-label="Roteiro e orientações">
+            <section className="rounded-xl border border-surface-200 border-l-4 border-l-primary-600 p-4 space-y-4" aria-label="Roteiro e orientações">
               <h2 className="text-lg font-semibold text-surface-900">Roteiro e orientações</h2>
                 <div className="form-group !mb-0">
                   <span className="label">Itinerário (opcional)</span>
@@ -728,7 +735,7 @@ export default function OrganizationTrips() {
               </details>
             </section>
 
-            <section className="rounded-xl border border-surface-200 p-4 space-y-4" aria-label="Revisão e salvamento">
+            <section className="rounded-xl border border-surface-200 border-l-4 border-l-primary-600 p-4 space-y-4" aria-label="Revisão e salvamento">
               <h2 className="text-lg font-semibold text-surface-900">Revisão e salvamento</h2>
               <p className="text-sm text-surface-600">Confira a prévia antes de salvar. A viagem ficará visível apenas para esta empresa.</p>
             {/* Reaproveita os componentes de prévia do site (legado), nunca

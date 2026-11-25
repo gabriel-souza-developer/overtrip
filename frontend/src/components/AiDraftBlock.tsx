@@ -11,11 +11,13 @@ interface Props {
   defaults: Record<string, unknown>;
   /** Recebe as escolhas; o pai coloca no formulário. Nada é salvo aqui. */
   onApply: (draft: TripDraft, chosen: DraftKey[], overwrite: DraftKey[]) => void;
+  api?: typeof aiApi;
+  showUnavailable?: boolean;
 }
 
 /** "Preencher com IA": só aparece se o servidor tiver a chave. Falha aqui nunca atrapalha o formulário. */
-export default function AiDraftBlock({ form, defaults, onApply }: Props) {
-  const [enabled, setEnabled] = useState(false);
+export default function AiDraftBlock({ form, defaults, onApply, api = aiApi, showUnavailable = false }: Props) {
+  const [enabled, setEnabled] = useState<boolean | null>(null);
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -26,18 +28,23 @@ export default function AiDraftBlock({ form, defaults, onApply }: Props) {
 
   useEffect(() => {
     let alive = true;
-    aiApi.status().then(s => { if (alive) setEnabled(!!s.enabled); }).catch(() => { if (alive) setEnabled(false); });
+    api.status().then(s => { if (alive) setEnabled(!!s.enabled); }).catch(() => { if (alive) setEnabled(false); });
     return () => { alive = false; };
-  }, []);
+  }, [api]);
 
-  if (!enabled) return null;
+  if (!enabled) return showUnavailable ? (
+    <details className="rounded-lg border border-surface-200 p-4">
+      <summary className="flex items-center gap-2 cursor-pointer"><Sparkles className="w-5 h-5 text-surface-700" aria-hidden="true" /><span className="font-semibold text-surface-900">Colar texto e sugerir com IA</span></summary>
+      <p className="hint mt-3" role="status">{enabled === null ? 'Verificando disponibilidade da IA…' : 'A sugestão por texto está indisponível neste ambiente. Você pode preencher os campos manualmente.'}</p>
+    </details>
+  ) : null;
 
   const suggest = async () => {
     setError('');
     setDraft(null);
     setLoading(true);
     try {
-      const result = await aiApi.tripDraft(text);
+      const result = await api.tripDraft(text);
       const clean: TripDraft = {};
       for (const key of DRAFT_KEYS) if (key !== 'includedServices' && key in result.draft) (clean as Record<string, unknown>)[key] = result.draft[key];
       clean.includes = mergeUnique(
@@ -79,7 +86,7 @@ export default function AiDraftBlock({ form, defaults, onApply }: Props) {
     <details className="rounded-lg border border-surface-200 p-4">
       <summary className="flex items-center gap-2 cursor-pointer">
         <Sparkles className="w-5 h-5 text-surface-700" aria-hidden="true" />
-        <span className="font-semibold text-surface-900">Ajudar a preencher com IA (opcional)</span>
+        <span className="font-semibold text-surface-900">{showUnavailable ? 'Colar texto e sugerir com IA' : 'Ajudar a preencher com IA (opcional)'}</span>
       </summary>
       <div className="space-y-3 mt-4">
       <p className="hint">Cole a conversa ou o roteiro. A IA sugere os campos; nada é salvo até você clicar em Salvar. O que não estiver no texto fica vazio.</p>

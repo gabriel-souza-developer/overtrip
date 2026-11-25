@@ -114,6 +114,8 @@ export const organizationApi = {
   updateSettings: (organizationId: string, data: { defaultPriceUnit?: string | null; brandColor?: string | null }) =>
     request<OrganizationContext>(orgPath(organizationId, '/settings'), { method: 'PUT', body: JSON.stringify(data) }),
   dashboard: (organizationId: string) => request<OrganizationDashboardSummary>(orgPath(organizationId, '/tourism/dashboard')),
+  aiStatus: (organizationId: string) => request<{ enabled: boolean }>(orgPath(organizationId, '/tourism/ai/status')),
+  aiTripDraft: (organizationId: string, text: string) => request<{ draft: Record<string, string | number | boolean | string[]>; warnings: string[] }>(orgPath(organizationId, '/tourism/ai/trip-draft'), { method: 'POST', body: JSON.stringify({ text }) }),
 
   trips: (organizationId: string, params?: { page?: number; limit?: number; search?: string; status?: string; period?: 'upcoming' | 'past' }) =>
     request<ListResult<OrgTrip>>(`${orgPath(organizationId, '/tourism/trips')}?${pageQuery(params)}`),

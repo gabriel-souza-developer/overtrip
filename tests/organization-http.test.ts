@@ -63,6 +63,20 @@ afterAll(async () => {
 });
 
 describe('Fundação de empresas (Organization/Membership)', () => {
+  it('autoriza IA de texto apenas a gestores ativos da própria empresa', async () => {
+    const path = `${base}/${orgActive.id}/tourism/ai`;
+    expect((await fetch(`${path}/status`)).status).toBe(401);
+    expect((await fetch(`${path}/status`, { headers: headers(tokenOther) })).status).toBe(403);
+    expect((await fetch(`${path}/status`, { headers: headers(memberToken) })).status).toBe(403);
+    const status = await fetch(`${path}/status`, { headers: headers(tokenA) });
+    expect(status.status).toBe(200);
+    expect(status.headers.get('cache-control')).toContain('no-store');
+    expect(typeof (await status.json() as { enabled: boolean }).enabled).toBe('boolean');
+    const forbidden = await fetch(`${path}/trip-draft`, { method: 'POST', headers: headers(tokenOther), body: JSON.stringify({ text: 'viagem' }) });
+    expect(forbidden.status).toBe(403);
+    const outsideScope = await fetch(`${path}/social-caption`, { method: 'POST', headers: headers(tokenA), body: '{}' });
+    expect(outsideScope.status).toBe(404);
+  });
   it('exige autenticação para listar e consultar empresas', async () => {
     const anonymous = await fetch(base);
     expect(anonymous.status).toBe(401);

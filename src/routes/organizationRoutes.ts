@@ -12,6 +12,7 @@ import organizationGalleryRoutes from './organizationGalleryRoutes.js';
 import organizationMediaRoutes from './organizationMediaRoutes.js';
 import organizationSocialMediaRoutes from './organizationSocialMediaRoutes.js';
 import organizationSocialPostRoutes from './organizationSocialPostRoutes.js';
+import { createAiRouter } from './aiRoutes.js';
 
 // Fundação isolada: nenhuma rota legada (trips, leads, reservas, site público)
 // é montada ou alterada aqui. Primeira etapa de multiempresa — não implica
@@ -28,6 +29,15 @@ router.use('/:organizationId/tourism/gallery', organizationGalleryRoutes);
 router.use('/:organizationId/tourism/media', organizationMediaRoutes);
 router.use('/:organizationId/tourism/social-media', organizationSocialMediaRoutes);
 router.use('/:organizationId/tourism/social-posts', organizationSocialPostRoutes);
+// A ajuda por texto não consulta dados da empresa: recebe apenas o texto
+// enviado por seu operador. Nunca encaminhar para a rota legada, cujo acesso
+// é reservado a operadores globais. Limitar também os caminhos expostos pelo
+// roteador compartilhado, que possui outros recursos fora deste escopo.
+const organizationTripAi = createAiRouter();
+router.use('/:organizationId/tourism/ai', requireOrganizationMembership('OWNER', 'ADMIN'), (req, res, next) => {
+  if (!((req.method === 'GET' && req.path === '/status') || (req.method === 'POST' && req.path === '/trip-draft'))) return next();
+  organizationTripAi(req, res, next);
+});
 router.use('/:organizationId/tourism/trips', organizationTripRoutes);
 router.use('/:organizationId/tourism/leads', organizationLeadRoutes);
 router.use('/:organizationId/tourism/reservations', organizationReservationRoutes);

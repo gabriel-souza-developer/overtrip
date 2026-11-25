@@ -1,5 +1,10 @@
 # Estado da produção na Oracle
 
+## Formulário e cores da agência (25 de novembro de 2026, 17:09 UTC)
+
+- Publicado somente o painel do commit `c1dc8b2`, com os blocos no formulário de viagens da agência e a cor da empresa mais visível no menu e no início. Pacote SHA-256 `c3491eff98b9cd47b596bed222df0004da7f14ae00396107132de9a9cecca76b` conferido na VM. Painel anterior preservado em `/srv/overtrip/retorno-painel-c1dc8b2-20261125-170900/admin`; API e banco não foram alterados.
+- `/admin/`, `/health` e `/api/public/trips` responderam 200; API e Caddy estavam ativos. Os hashes do HTML e do componente de viagens servidos corresponderam à build; o componente servido contém os títulos dos novos blocos. Não foi feito login real em produção.
+
 ## Publicação do formulário e identidade visual (25 de novembro de 2026, 16:45 UTC)
 
 - Publicado o commit `82a5f96`: API e painel compilados na VM ARM64 e arquivos públicos `js/render.js` e `css/trips.css`. O pacote transferido teve SHA-256 `5e9460968e62efca705a73debdebe88788946c9877b67bcdf3638a56ba1faef5` conferido na VM.

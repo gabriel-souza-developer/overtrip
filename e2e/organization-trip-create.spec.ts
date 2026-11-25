@@ -182,10 +182,10 @@ test('formulário da agência apresenta blocos e mantém opções abertas durant
   await page.getByRole('button', { name: 'Nova viagem' }).first().click();
   const dialog = page.getByRole('dialog', { name: 'Nova viagem' });
   await expect(dialog.locator('#org-trip-form > section > h2')).toHaveText([
-    'Preencher automaticamente', 'O essencial', 'Embarque e horários',
+    'Preencher automaticamente', 'Dados da viagem', 'Embarque e horários',
     'Como é a experiência', 'Roteiro e orientações', 'Revisão e salvamento',
   ]);
-  const essential = dialog.getByRole('region', { name: 'O essencial' });
+  const essential = dialog.getByRole('region', { name: 'Dados da viagem' });
   const optional = essential.locator('details');
   await page.locator('#org-trip-price').fill('100');
   await expect(optional).not.toHaveAttribute('open', '');
@@ -198,6 +198,29 @@ test('formulário da agência apresenta blocos e mantém opções abertas durant
   await optional.locator('summary').click();
   await page.locator('#org-trip-price').fill('200');
   await expect(optional).not.toHaveAttribute('open', '');
+});
+
+test('texto para IA permite revisar sugestões antes de preencher sem salvar viagem', async ({ page }) => {
+  let submitted = '';
+  let saves = 0;
+  await mockOrganizationApi(page, { role: 'OWNER', trips: [], onCreate: () => { saves++; return draftTrip; } });
+  await page.route('**/api/organizations/a/tourism/ai/**', route => {
+    if (route.request().method() === 'GET') return route.fulfill({ json: { enabled: true } });
+    submitted = route.request().postDataJSON().text;
+    return route.fulfill({ json: { draft: { title: 'Passeio sugerido', city: 'Areia' }, warnings: [] } });
+  });
+  await login(page);
+  await page.getByRole('button', { name: 'Nova viagem' }).first().click();
+  await page.getByText('Colar texto e sugerir com IA').click();
+  await page.getByLabel('Texto da viagem').fill('Passeio em Areia');
+  await page.getByRole('button', { name: 'Sugerir campos' }).click();
+  await expect(page.getByText('Sugerido: Passeio sugerido')).toBeVisible();
+  expect(submitted).toBe('Passeio em Areia');
+  await expect(page.locator('#org-trip-title')).toHaveValue('');
+  await page.getByRole('button', { name: /Usar selecionados/ }).click();
+  await expect(page.locator('#org-trip-title')).toHaveValue('Passeio sugerido');
+  await expect(page.locator('#org-trip-city')).toHaveValue('Areia');
+  expect(saves).toBe(0);
 });
 
 test('editar viagem mostra as opções avançadas que já contêm dados', async ({ page }) => {

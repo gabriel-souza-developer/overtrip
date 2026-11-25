@@ -225,11 +225,24 @@ test('paleta padrão e navegação com marca amarela mantêm estilos e contraste
   expect(channelsToHex(root.surface)).toBe('#0d0d0d');
   expect(root.success).toBe('#dcfce7');
 
+  const hero = page.locator('main header').first();
+  const heroColors = await hero.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return { background: style.backgroundColor, text: style.color, primary: getComputedStyle(element.closest('.agency-panel')!).getPropertyValue('--color-primary-600').trim().split(/\s+/).map(Number) };
+  });
+  expect(heroColors.background).toBe(`rgb(${heroColors.primary.join(', ')})`);
+  expect(heroColors.text).toBe('rgb(255, 255, 255)');
+
   const active = page.getByRole('link', { name: 'Configurações', exact: true });
   await active.click();
   await expect(active).toHaveAttribute('aria-current', 'page');
   await page.keyboard.press('Tab');
   await active.focus();
+  // O outline de foco só reflete a cor da marca depois que o navegador recalcula
+  // o estilo; ler no mesmo tick captura às vezes o valor ainda não repintado
+  // (outline-color cai para currentColor nesse instante). Esperar a largura
+  // (2px) assentar garante que outline-color também já assentou.
+  await expect(active).toHaveCSS('outline-width', '2px');
   const colors = await active.evaluate((element) => {
     const style = getComputedStyle(element);
     const primary = getComputedStyle(element.closest('.agency-panel')!).getPropertyValue('--color-primary-600').trim().split(/\s+/).map(Number);

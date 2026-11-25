@@ -70,7 +70,7 @@ test('presets de "o que inclui" e de informações importantes se combinam com i
   await page.locator('#org-trip-important-info').fill('Idade mínima de 12 anos');
   await page.locator('#org-trip-important-info').press('Enter');
 
-  await page.getByRole('region', { name: 'O essencial' }).getByText('Mais opções').click();
+  await page.getByRole('region', { name: 'Dados da viagem' }).getByText('Mais opções').click();
   await page.locator('#org-trip-filter-category').selectOption('Trilha');
 
   await page.getByRole('button', { name: 'Salvar' }).click();
