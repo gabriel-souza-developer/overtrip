@@ -119,7 +119,7 @@ export default function Login() {
           <div className="login-story-shade" />
           <div className="login-story-top">PLATAFORMA DE GESTÃO <span> / </span> TURISMO</div>
           <div className="login-story-copy"><span className="login-eyebrow">UM NOVO JEITO DE ORGANIZAR</span><p className="login-story-title">Sua próxima jornada começa aqui.</p><p className="login-story-description">Mais organização para o seu negócio. Mais tempo para criar experiências que ficam na memória.</p></div>
-          <div className="login-story-footer"><span>GESTÃO PARA QUEM VIVE DE VIAGENS</span><span>01 — 01</span></div>
+          <div className="login-story-footer"><span>GESTÃO PARA QUEM VIVE DE VIAGENS</span></div>
         </aside>
         <main className="login-main">
           <div className="login-mobile-brand"><img src={brandUrl('overtrip-logo-com-fundo-laranja-192.png')} alt="" width={42} height={42} /><span>OVERTRIP <small>PAINEL DE GESTÃO</small></span></div>

@@ -162,6 +162,9 @@ const AppRoutes = () => platformMode ? (
   <Routes>
     <Route path="/login" element={<Login />} />
     <Route path="/primeiro-acesso" element={<FirstPassword />} />
+    {/* Públicas no painel padrão também: o link do login e o do e-mail levam para cá. */}
+    <Route path="/esqueci-senha" element={<React.Suspense fallback={<LoadingScreen />}><ForgotPassword /></React.Suspense>} />
+    <Route path="/redefinir-senha" element={<React.Suspense fallback={<LoadingScreen />}><ResetPassword /></React.Suspense>} />
     <Route element={<ProtectedRoute />}>
       {Workspace && <Route path="/espaco" element={<React.Suspense fallback={<LoadingScreen />}><Workspace /></React.Suspense>} />}
       <Route path="/empresa" element={<React.Suspense fallback={<LoadingScreen />}><OrganizationSelect /></React.Suspense>} />
