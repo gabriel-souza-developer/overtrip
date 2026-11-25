@@ -408,7 +408,7 @@ function createOpenAiCompatibleProvider(config: {
     name: config.name,
     defaultModel: config.defaultModel,
     async generate({ system, userText, model, schema }) {
-      const jsonSchema = z.toJSONSchema(schema ?? aiDraftOutputSchema);
+      const { properties } = z.toJSONSchema(schema ?? aiDraftOutputSchema) as { properties?: Record<string, unknown> };
       const res = await fetch(`${config.baseUrl}/chat/completions`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${config.apiKey}`, 'Content-Type': 'application/json' },
@@ -418,7 +418,10 @@ function createOpenAiCompatibleProvider(config: {
           max_tokens: MAX_TOKENS,
           response_format: { type: 'json_object' },
           messages: [
-            { role: 'system', content: `${system}\n\nResponda só com um JSON válido, usando exatamente estas chaves (schema): ${JSON.stringify(jsonSchema)}` },
+            {
+              role: 'system',
+              content: `${system}\n\nResponda só com um JSON válido. As chaves abaixo (com o tipo de cada uma) devem ficar direto na raiz do objeto de resposta — não aninhe dentro de "properties" nem devolva o próprio esquema: ${JSON.stringify(properties)}`,
+            },
             { role: 'user', content: userText },
           ],
         }),
