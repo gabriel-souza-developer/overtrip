@@ -8,7 +8,7 @@ export const DEFAULT_AI_MODEL = 'claude-opus-5-5'; // padrão da Anthropic
 /** Modelo Flash com plano gratuito (ai.google.dev/gemini-api/docs/pricing). */
 export const DEFAULT_GEMINI_MODEL = 'gemini-3.5-flash-lite';
 /** Modelo com camada gratuita (console.groq.com/docs/models); ajustável via GROQ_MODEL. */
-export const DEFAULT_GROQ_MODEL = 'llama-3.3-70b-versatile';
+export const DEFAULT_GROQ_MODEL = 'openai/gpt-oss-120b';
 /** Ver modelos e preços em docs.x.ai/docs/models; ajustável via XAI_MODEL. */
 export const DEFAULT_XAI_MODEL = 'grok-4-fast';
 const REQUEST_TIMEOUT_MS = 60_000;
