@@ -1,5 +1,11 @@
 # Estado da produção na Oracle
 
+## Remoção da faixa preta "Campina Grande / Pocinhos" (25 de novembro de 2026, 22:35 UTC)
+
+- Publicados apenas `index.html`, `css/header.css` e `css/responsive.css` do commit `2a24d56`. Um commit anterior (`d7b6e5b`, de outra sessão) já tinha comentado o texto, mas a faixa (`.agency-strip`, fundo preto, `min-height: 2rem`) continuava visível vazia; removida a marcação e o CSS morto associado, não só o texto.
+- Backup dos 3 arquivos anteriores em `/srv/overtrip/retorno-agency-strip-20261125-223507`. Hash SHA-256 conferido depois da cópia; dono/permissão mantidos (`root:root`, 644). `responsive.css` recebeu nova versão (`?v=no-agency-strip-20261125`) para evitar cache antigo.
+- Depois da publicação: `/` e os dois CSS responderam 200; `caddy` ativo; a faixa preta não aparece mais no HTML servido. Só arquivos públicos foram trocados — painel e API não foram tocados nesta publicação.
+
 ## Limpeza de disco solicitada (25 de novembro de 2026, 22:26 UTC)
 
 - A pedido do usuário, removidas 28 cópias de retorno superadas em `/srv/overtrip/` (lista completa: `retorno-{04c714d,130d610,30b8ff2,4bf46a4,6734e41,82a5f96,c57b8b2,cb49e65}-*`, `retorno-candidate-20261125-211354-418920`, `retorno-csp-health-20261113-152052`, `retorno-destaque-feriados-20261115-200546`, `retorno-e430d78-20261111-{082531,083356}`, `retorno-fd399a4-20261125-182454`, `retorno-feriados-azul-20261115-201217`, `retorno-healthui-20261113-062332`, `retorno-login-link-6a0bf44-20261122-222349`, `retorno-painel-{19b25d3-20261115-195212,22053fe-20261122-183315,7ea5cee-20261110-203526,9f7e64b-20261110-201727,c1dc8b2-20261125-170900,feriados-20261115-195730,info-Rg4wJfJx}`, `retorno-site-81b5855-20261122-030437`, `retorno-social-20261116-023930`, `retorno-social-ui-20261116-024808`, `retorno-user-menu-296f92c-20261122-232312`). Liberou cerca de 4,3 GB.
