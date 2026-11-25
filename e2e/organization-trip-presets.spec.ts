@@ -62,7 +62,6 @@ test('presets de "o que inclui" e de informações importantes se combinam com i
   await page.getByRole('button', { name: 'Nova viagem' }).first().click();
   await fillEssentials(page);
 
-  await page.getByText('O que está incluso e itinerário').click();
   await page.getByRole('checkbox', { name: 'Guia' }).check();
   await page.locator('#org-trip-includes').fill('Banho de rio');
   await page.locator('#org-trip-includes').press('Enter');
@@ -71,7 +70,7 @@ test('presets de "o que inclui" e de informações importantes se combinam com i
   await page.locator('#org-trip-important-info').fill('Idade mínima de 12 anos');
   await page.locator('#org-trip-important-info').press('Enter');
 
-  await page.getByText('Configurações adicionais').click();
+  await page.getByRole('region', { name: 'O essencial' }).getByText('Mais opções').click();
   await page.locator('#org-trip-filter-category').selectOption('Trilha');
 
   await page.getByRole('button', { name: 'Salvar' }).click();
@@ -94,7 +93,6 @@ test('desmarcar um preset de "o que inclui" o remove sem afetar os itens própri
   await page.getByRole('button', { name: 'Nova viagem' }).first().click();
   await fillEssentials(page);
 
-  await page.getByText('O que está incluso e itinerário').click();
   await page.getByRole('checkbox', { name: 'Guia' }).check();
   await page.getByRole('checkbox', { name: 'Transporte' }).check();
   await page.locator('#org-trip-includes').fill('Banho de rio');
@@ -118,7 +116,6 @@ test('texto ainda não confirmado em qualquer lista bloqueia salvar, com aviso c
   await page.getByRole('button', { name: 'Nova viagem' }).first().click();
   await fillEssentials(page);
 
-  await page.getByText('O que está incluso e itinerário').click();
   // Digita mas nunca confirma (nem Enter, nem o botão Adicionar).
   await page.locator('#org-trip-includes').fill('Banho de rio');
 

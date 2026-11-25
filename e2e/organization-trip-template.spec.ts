@@ -86,9 +86,7 @@ test('OWNER usa uma viagem já concluída como modelo: dados úteis vêm copiado
   await expect(page.locator('#org-trip-title')).toHaveValue('Trilha do Pico (já rodada)');
   await expect(page.locator('#org-trip-city')).toHaveValue('Areia');
   await expect(page.locator('#org-trip-start')).toHaveValue('');
-  await page.getByText('Preço e vagas').click();
   await expect(page.locator('#org-trip-spots')).toHaveValue('');
-  await page.getByText('Ponto de encontro').click();
   // Embarque antigo (horário da execução anterior) não aparece na lista.
   await expect(page.getByText('Shopping', { exact: true })).toHaveCount(0);
 

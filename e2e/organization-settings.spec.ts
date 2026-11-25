@@ -214,6 +214,7 @@ test('salvar a cor não sobrescreve uma unidade de preço alterada por outro adm
 });
 
 test('paleta padrão e navegação com marca amarela mantêm estilos e contraste no navegador', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await mockOrganizationApi(page, { role: 'OWNER', initialBrandColor: '#ffff00' });
   await login(page);
   const root = await page.evaluate(() => {
@@ -227,11 +228,14 @@ test('paleta padrão e navegação com marca amarela mantêm estilos e contraste
   const active = page.getByRole('link', { name: 'Configurações', exact: true });
   await active.click();
   await expect(active).toHaveAttribute('aria-current', 'page');
+  await page.keyboard.press('Tab');
   await active.focus();
   const colors = await active.evaluate((element) => {
     const style = getComputedStyle(element);
-    return { text: style.color, background: style.backgroundColor, outline: style.outlineColor };
+    const primary = getComputedStyle(element.closest('.agency-panel')!).getPropertyValue('--color-primary-600').trim().split(/\s+/).map(Number);
+    return { text: style.color, background: style.backgroundColor, outline: style.outlineColor, primary };
   });
+  expect(colors.background).toBe(`rgb(${colors.primary.join(', ')})`);
   const luminance = (rgb: string) => {
     const channels = rgb.match(/\d+/g)!.slice(0, 3).map(Number).map((channel) => {
       const value = channel / 255;

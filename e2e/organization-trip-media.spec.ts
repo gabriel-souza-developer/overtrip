@@ -70,12 +70,10 @@ test('OWNER cadastra preço, foto própria e um embarque pelo formulário de via
   await page.getByLabel('O que aparece nesta foto? (obrigatório)').fill('Vista do mirante');
   await page.getByRole('button', { name: 'Usar esta foto' }).click();
 
-  // Preço, dentro da seção "Preço e vagas".
-  await page.getByText('Preço e vagas').click();
+  // Preço fica visível no bloco essencial.
   await page.locator('#org-trip-price').fill('149,90');
 
-  // Embarque, dentro da seção "Ponto de encontro".
-  await page.getByText('Ponto de encontro').click();
+  // Embarque fica visível no bloco de horários.
   await page.getByLabel('Horário da saída').fill('06h00');
   await page.getByLabel('Local da saída').fill('Praça Central');
   await page.getByLabel('Cidade da saída').fill('Areia');

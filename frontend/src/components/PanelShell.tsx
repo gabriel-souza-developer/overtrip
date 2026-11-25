@@ -103,7 +103,7 @@ export default function PanelShell({ rootClassName, rootStyle, brand, navGroups,
                 <div key={groupLabel} className="mb-6 space-y-1">
                   <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-surface-600">{groupLabel}</p>
                   {items.map(({ path, label, icon: Icon }) => (
-                    <NavLink key={path} to={path} className={({ isActive }) => `flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium motion-safe:transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary-600 ${isActive ? 'bg-primary-50 text-primary-800' : 'text-surface-600 hover:bg-surface-100 hover:text-surface-900'}`} onClick={() => setSidebarOpen(false)}>
+                    <NavLink key={path} to={path} className={({ isActive }) => `flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium motion-safe:transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600 ${isActive ? (rootClassName === 'agency-panel' ? 'bg-primary-600 text-white shadow-sm' : 'bg-primary-50 text-primary-800') : 'text-surface-600 hover:bg-surface-100 hover:text-surface-900'}`} onClick={() => setSidebarOpen(false)}>
                       <Icon className="w-5 h-5 shrink-0" aria-hidden="true" />{label}
                     </NavLink>
                   ))}

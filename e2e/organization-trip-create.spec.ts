@@ -175,3 +175,43 @@ test('MEMBER só tem leitura: sem botão de criar e sem ação de editar', async
   await expect(page.getByRole('button', { name: 'Nova viagem' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: /^Editar/ })).toHaveCount(0);
 });
+
+test('formulário da agência apresenta blocos e mantém opções abertas durante a edição', async ({ page }) => {
+  await mockOrganizationApi(page, { role: 'OWNER', trips: [] });
+  await login(page);
+  await page.getByRole('button', { name: 'Nova viagem' }).first().click();
+  const dialog = page.getByRole('dialog', { name: 'Nova viagem' });
+  await expect(dialog.locator('#org-trip-form > section > h2')).toHaveText([
+    'Preencher automaticamente', 'O essencial', 'Embarque e horários',
+    'Como é a experiência', 'Roteiro e orientações', 'Revisão e salvamento',
+  ]);
+  const essential = dialog.getByRole('region', { name: 'O essencial' });
+  const optional = essential.locator('details');
+  await page.locator('#org-trip-price').fill('100');
+  await expect(optional).not.toHaveAttribute('open', '');
+  await optional.locator('summary').click();
+  const headline = page.locator('#org-trip-headline');
+  await headline.fill('Título alternativo');
+  await headline.fill('');
+  await expect(headline).toBeVisible();
+  await expect(headline).toBeFocused();
+  await optional.locator('summary').click();
+  await page.locator('#org-trip-price').fill('200');
+  await expect(optional).not.toHaveAttribute('open', '');
+});
+
+test('editar viagem mostra as opções avançadas que já contêm dados', async ({ page }) => {
+  await mockOrganizationApi(page, { role: 'OWNER', trips: [draftTrip] });
+  await page.route('**/api/organizations/a/tourism/trips/trip-1', route => route.fulfill({ json: {
+    ...draftTripDetail, headlineDisplay: 'Serra especial', scheduleInfo: 'Manhã', includesHighlight: 'Guia incluso', trailDistance: '5 km',
+  } }));
+  await login(page);
+  await page.getByRole('button', { name: 'Editar Trilha da Serra' }).click();
+  await expect(page.locator('#org-trip-headline')).toBeVisible();
+  await expect(page.locator('#org-trip-schedule-info')).toHaveValue('Manhã');
+  await expect(page.locator('#org-trip-includes-highlight')).toBeVisible();
+  await expect(page.locator('#org-trip-trail-distance')).toBeVisible();
+  await page.locator('#org-trip-headline').fill('');
+  await expect(page.locator('#org-trip-headline')).toBeVisible();
+  await expect(page.locator('#org-trip-headline')).toBeFocused();
+});

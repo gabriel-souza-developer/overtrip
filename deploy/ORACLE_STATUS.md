@@ -1,5 +1,12 @@
 # Estado da produção na Oracle
 
+## Publicação do formulário e identidade visual (25 de novembro de 2026, 16:45 UTC)
+
+- Publicado o commit `82a5f96`: API e painel compilados na VM ARM64 e arquivos públicos `js/render.js` e `css/trips.css`. O pacote transferido teve SHA-256 `5e9460968e62efca705a73debdebe88788946c9877b67bcdf3638a56ba1faef5` conferido na VM.
+- Cinco migrações pendentes foram ensaiadas em cópia consistente do banco e aplicadas com a API parada. Prisma confirmou 35 migrações atualizadas; `integrity_check` retornou `ok`, sem violações de chaves estrangeiras. A cópia de segurança validada está em `/var/backups/overtrip/pre-82a5f96-20261125-164426.db.gz`.
+- Aplicação, painel e arquivos públicos anteriores estão em `/srv/overtrip/retorno-82a5f96-20261125-164426`. Retornar o código não restaura o banco: uma restauração após novas escritas pode perdê-las e exige avaliação de reconciliação.
+- API, Caddy e temporizadores de backup e saúde estavam ativos; `/`, `/admin/`, `/health` e `/api/public/trips` retornaram 200 e `/api/auth/me` sem sessão retornou 401. O hash do bundle do painel servido correspondeu ao arquivo instalado. Não houve teste de login real nem de processamento de PDF em produção.
+
 > Este arquivo é um diário de alterações e verificações, não um monitor em
 > tempo real. O registro mais recente abaixo não
 > confirma que serviços, DNS, dados ou configurações continuam iguais hoje.

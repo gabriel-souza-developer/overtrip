@@ -4,7 +4,7 @@ import { CopyPlus, Pencil, Plane, Plus, Trash2, X } from 'lucide-react';
 import { organizationApi, type OrgTrip, type OrgTripDetail, type OrgTripEssentials, type OrgTripIntensity } from '../api/organizations';
 import { createOrganizationDocumentApi } from '../api/organizationTripDocuments';
 import { TRIP_STATUS_LABELS, tripStatusLabel, tripStatusTone, parsePriceInput, formatPriceInput } from '../lib/panelHelpers';
-import { syncPriceDisplay } from '../lib/formHelpers';
+import { formatBRL, syncPriceDisplay } from '../lib/formHelpers';
 import { toLocalDateTime, fromLocalDateTime } from '../lib/organizationDateTime';
 import { prepareOrgTripTemplate } from '../lib/tripTemplate';
 import type { OrganizationOutletContext } from './OrganizationLayout';
@@ -108,6 +108,13 @@ export default function OrganizationTrips() {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
   const [form, setForm] = useState<TripForm>(emptyForm);
+  const [optionsOpen, setOptionsOpen] = useState({ essential: false, departure: false, experience: false, trail: false });
+  const optionsFor = (value: TripForm) => ({
+    essential: !!value.headlineDisplay.trim() || !!value.filterCategory.trim() || (!!value.priceDisplay.trim() && value.priceDisplay.trim() !== (value.priceValue ? formatBRL(value.priceValue) : '')),
+    departure: !!value.scheduleInfo.trim() || !!value.meetingMapsQuery.trim(),
+    experience: !!value.includesHighlight.trim(),
+    trail: !!value.trailDistance.trim() || !!value.supportPoint.trim() || !!value.supportPointInfo.trim(),
+  });
   const [priceText, setPriceText] = useState('');
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
@@ -151,7 +158,7 @@ export default function OrganizationTrips() {
     // igual ao formulário legado lendo os padrões globais: só o valor
     // inicial muda, viagens já criadas não são alteradas.
     const initial = organization.defaultPriceUnit?.trim() ? { ...emptyForm, priceUnit: organization.defaultPriceUnit.trim() } : emptyForm;
-    setEditing(null); setTemplateSource(null); setCreating(true); setForm(initial); setPriceText(''); setFormError(''); setPendingItems({}); initialFormRef.current = JSON.stringify(initial);
+    setEditing(null); setTemplateSource(null); setCreating(true); setOptionsOpen(optionsFor(initial)); setForm(initial); setPriceText(''); setFormError(''); setPendingItems({}); initialFormRef.current = JSON.stringify(initial);
   };
   const openEdit = async (trip: OrgTrip) => {
     if (editorOpen && dirty) { setFormError('Salve ou descarte as alterações antes de abrir outra viagem.'); return; }
@@ -162,6 +169,7 @@ export default function OrganizationTrips() {
       if (version !== editRequestVersion.current) return;
       const nextForm = formFromDetail(detail);
       setCreating(false); setEditing(detail); setTemplateSource(null); setFormError(''); setPendingItems({});
+      setOptionsOpen(optionsFor(nextForm));
       setForm(nextForm);
       initialFormRef.current = JSON.stringify(nextForm);
       setPriceText(formatPriceInput(detail.priceValue));
@@ -189,6 +197,7 @@ export default function OrganizationTrips() {
       if (version !== editRequestVersion.current) return;
       const templated = prepareOrgTripTemplate(formFromDetail(detail));
       setCreating(true); setEditing(null); setTemplateSource(trip); setFormError(''); setPendingItems({});
+      setOptionsOpen(optionsFor(templated));
       setForm(templated);
       // Nada foi salvo ainda: qualquer tentativa de fechar deve avisar, por
       // isso a base de comparação é o formulário vazio (igual ao padrão já
@@ -295,6 +304,7 @@ export default function OrganizationTrips() {
       next.priceDisplay = syncPriceDisplay(form.priceValue, next.priceValue, form.priceDisplay);
       setPriceText(formatPriceInput(next.priceValue));
     }
+    setOptionsOpen(previous => { const filled = optionsFor(next); return { essential: previous.essential || filled.essential, departure: previous.departure || filled.departure, experience: previous.experience || filled.experience, trail: previous.trail || filled.trail }; });
     setForm(next);
   };
 
@@ -478,22 +488,36 @@ export default function OrganizationTrips() {
             )}
             {formError && <div className="alert-error" role="alert">{formError}</div>}
 
+            <section className="rounded-xl border border-surface-200 p-4 space-y-4" aria-label="Preencher automaticamente">
+              <h2 className="text-lg font-semibold text-surface-900">Preencher automaticamente</h2>
+              <p className="text-sm text-surface-600">Após salvar o rascunho, você pode usar um PDF para sugerir campos e, quando disponível, fotos. Revise tudo antes de salvar.</p>
+            {editing && (
+              <TripDocuments
+                key={editing.id}
+                tripId={editing.id}
+                api={orgDocumentApi}
+                form={form as unknown as Record<string, unknown>}
+                defaults={{}}
+                onApply={applyAiDraft}
+                // Mesmo contrato do onAdd de ImageUploader: só preenche o
+                // formulário (vira a próxima foto, ou a capa se for a
+                // primeira) — nunca salva ou publica a viagem por conta
+                // própria. alt chega já confirmado pela pessoa em
+                // TripDocuments.tsx (o mesmo texto obrigatório do envio comum).
+                onImportPhoto={(media, alt) => patch({ media: [...form.media, { src: media.src, alt, previewSrc: media.previewSrc }] })}
+              />
+            )}
+
+            </section>
+
+            <section className="rounded-xl border border-surface-200 p-4 space-y-4" aria-label="O essencial">
+              <h2 className="text-lg font-semibold text-surface-900">O essencial</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field id="org-trip-title" label="Título" required>
                 <input id="org-trip-title" className="input" value={form.title} onChange={(e) => patch({ title: e.target.value })} />
               </Field>
               <Field id="org-trip-category" label="Categoria" required>
                 <input id="org-trip-category" className="input" value={form.category} onChange={(e) => patch({ category: e.target.value })} />
-              </Field>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Field id="org-trip-headline" label="Nome de exibição (opcional)" hint="Usado no lugar do título em destaques, se preenchido.">
-                <input id="org-trip-headline" className="input" value={form.headlineDisplay} onChange={(e) => patch({ headlineDisplay: e.target.value })} />
-              </Field>
-              <Field id="org-trip-intensity" label="Intensidade da atividade">
-                <select id="org-trip-intensity" className="select" value={form.intensityClass} onChange={(e) => patch({ intensityClass: e.target.value as OrgTripIntensity })}>
-                  {INTENSITY_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
-                </select>
               </Field>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -504,6 +528,50 @@ export default function OrganizationTrips() {
                 <input id="org-trip-region" className="input" value={form.region} onChange={(e) => patch({ region: e.target.value })} />
               </Field>
             </div>
+              <Field id="org-trip-intensity" label="Intensidade da atividade">
+                <select id="org-trip-intensity" className="select" value={form.intensityClass} onChange={(e) => patch({ intensityClass: e.target.value as OrgTripIntensity })}>
+                  {INTENSITY_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
+                </select>
+              </Field>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Field id="org-trip-price" label="Valor (R$)" hint={form.free ? 'Viagem gratuita: sem valor.' : 'Ex.: 109,99 ou 1.250,00'}>
+                    <input id="org-trip-price" type="text" inputMode="decimal" className="input" value={priceText} onChange={handlePriceChange} placeholder="109,99" disabled={form.free} autoComplete="off" />
+                  </Field>
+                  <Field id="org-trip-price-unit" label="Unidade do preço">
+                    <input id="org-trip-price-unit" className="input" value={form.priceUnit} onChange={(e) => patch({ priceUnit: e.target.value })} disabled={form.free} />
+                  </Field>
+                </div>
+                <label htmlFor="org-trip-free" className="checkbox-label min-h-[32px]">
+                  <input id="org-trip-free" type="checkbox" className="checkbox-input" checked={form.free} onChange={(e) => patch({ free: e.target.checked })} />
+                  <span className="text-sm text-surface-700">Viagem gratuita</span>
+                </label>
+                <Field id="org-trip-spots" label="Vagas restantes (opcional)">
+                  <input id="org-trip-spots" type="number" min={0} className="input" value={form.spotsLeft} onChange={(e) => patch({ spotsLeft: e.target.value })} />
+                </Field>
+              <details className="rounded-lg border border-surface-200 p-3" open={optionsOpen.essential} onToggle={(event) => { const open = event.currentTarget.open; setOptionsOpen((previous) => previous.essential === open ? previous : { ...previous, essential: open }); }}>
+                <summary className="cursor-pointer text-sm font-semibold text-surface-800">Mais opções</summary>
+                <div className="mt-3 space-y-3">
+              <Field id="org-trip-headline" label="Nome de exibição (opcional)" hint="Usado no lugar do título em destaques, se preenchido.">
+                <input id="org-trip-headline" className="input" value={form.headlineDisplay} onChange={(e) => patch({ headlineDisplay: e.target.value })} />
+              </Field>
+                <Field id="org-trip-price-display" label="Preço como aparece no site (opcional)">
+                  <input id="org-trip-price-display" className="input" value={form.priceDisplay} onChange={(e) => patch({ priceDisplay: e.target.value })} placeholder="Ex.: A partir de R$ 109,99" disabled={form.free} />
+                </Field>
+                <Field id="org-trip-filter-category" label="Filtro no site (opcional)" hint="Esta categoria aparece nos filtros do site. Se não escolher uma, a viagem ficará em Todas as categorias.">
+                  <select id="org-trip-filter-category" className="select" value={form.filterCategory} onChange={(e) => patch({ filterCategory: e.target.value })}>
+                    <option value="">Selecione uma categoria</option>
+                    {form.filterCategory && !FILTER_CATEGORY_OPTIONS.some((option) => option.toLocaleLowerCase('pt-BR') === form.filterCategory.trim().toLocaleLowerCase('pt-BR')) && (
+                      <option value={form.filterCategory}>{form.filterCategory} (personalizada)</option>
+                    )}
+                    {FILTER_CATEGORY_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
+                  </select>
+                </Field>
+                </div>
+              </details>
+            </section>
+
+            <section className="rounded-xl border border-surface-200 p-4 space-y-4" aria-label="Embarque e horários">
+              <h2 className="text-lg font-semibold text-surface-900">Embarque e horários</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field id="org-trip-start" label="Data de saída" required>
                 <input id="org-trip-start" type="datetime-local" className="input" value={form.startDateISO} onChange={(e) => patch({ startDateISO: e.target.value })} />
@@ -512,6 +580,55 @@ export default function OrganizationTrips() {
                 <input id="org-trip-end" type="datetime-local" className="input" value={form.endDateISO} onChange={(e) => patch({ endDateISO: e.target.value })} />
               </Field>
             </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Field id="org-trip-departure-time" label="Horário de saída (opcional)">
+                    <input id="org-trip-departure-time" className="input" value={form.departureTime} onChange={(e) => patch({ departureTime: e.target.value })} placeholder="Ex.: 06h00" />
+                  </Field>
+                  <Field id="org-trip-return-time" label="Horário de retorno (opcional)">
+                    <input id="org-trip-return-time" className="input" value={form.returnTime} onChange={(e) => patch({ returnTime: e.target.value })} placeholder="Ex.: 20h00" />
+                  </Field>
+                </div>
+                <Field id="org-trip-departure-tolerance" label="Tolerância de atraso (opcional)">
+                  <input id="org-trip-departure-tolerance" className="input" value={form.departureTolerance} onChange={(e) => patch({ departureTolerance: e.target.value })} placeholder="Ex.: 15 minutos" />
+                </Field>
+                <label htmlFor="org-trip-schedule-tbd" className="checkbox-label min-h-[32px]">
+                  <input id="org-trip-schedule-tbd" type="checkbox" className="checkbox-input" checked={form.scheduleTBD} onChange={(e) => patch({ scheduleTBD: e.target.checked })} />
+                  <span className="text-sm text-surface-700">Horário ainda não definido</span>
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Field id="org-trip-meeting-city" label="Município de embarque (opcional)">
+                    <input id="org-trip-meeting-city" className="input" value={form.meetingCity} onChange={(e) => patch({ meetingCity: e.target.value })} />
+                  </Field>
+                  <Field id="org-trip-meeting-point" label="Local de embarque (opcional)">
+                    <input id="org-trip-meeting-point" className="input" value={form.meetingPoint} onChange={(e) => patch({ meetingPoint: e.target.value })} />
+                  </Field>
+                </div>
+                <label htmlFor="org-trip-meeting-tbd" className="checkbox-label min-h-[32px]">
+                  <input id="org-trip-meeting-tbd" type="checkbox" className="checkbox-input" checked={form.meetingTBD} onChange={(e) => patch({ meetingTBD: e.target.checked })} />
+                  <span className="text-sm text-surface-700">Embarque a confirmar</span>
+                </label>
+                <Field id="org-trip-meeting-details" label="Detalhes do embarque (opcional)">
+                  <textarea id="org-trip-meeting-details" className="input" rows={2} value={form.meetingDetails} onChange={(e) => patch({ meetingDetails: e.target.value })} />
+                </Field>
+                <div className="form-group !mb-0">
+                  <span className="label">Pontos de partida (opcional)</span>
+                  <DeparturesInput value={form.departures} onPendingChange={(pending) => setPendingItem('embarque', pending)} onChange={(departures) => patch({ departures })} />
+                </div>
+              <details className="rounded-lg border border-surface-200 p-3" open={optionsOpen.departure} onToggle={(event) => { const open = event.currentTarget.open; setOptionsOpen((previous) => previous.departure === open ? previous : { ...previous, departure: open }); }}>
+                <summary className="cursor-pointer text-sm font-semibold text-surface-800">Mais opções</summary>
+                <div className="mt-3 space-y-3">
+                <Field id="org-trip-schedule-info" label="Observação sobre o horário (opcional)">
+                  <input id="org-trip-schedule-info" className="input" value={form.scheduleInfo} onChange={(e) => patch({ scheduleInfo: e.target.value })} />
+                </Field>
+                <Field id="org-trip-meeting-maps" label="Endereço para o Google Maps (opcional)">
+                  <input id="org-trip-meeting-maps" className="input" value={form.meetingMapsQuery} onChange={(e) => patch({ meetingMapsQuery: e.target.value })} />
+                </Field>
+                </div>
+              </details>
+            </section>
+
+            <section className="rounded-xl border border-surface-200 p-4 space-y-4" aria-label="Como é a experiência">
+              <h2 className="text-lg font-semibold text-surface-900">Como é a experiência</h2>
             <Field id="org-trip-description" label="Descrição" required>
               <textarea id="org-trip-description" className="input" rows={4} value={form.description} onChange={(e) => patch({ description: e.target.value })} />
             </Field>
@@ -538,114 +655,6 @@ export default function OrganizationTrips() {
               )}
             </div>
 
-            {editing && (
-              <TripDocuments
-                key={editing.id}
-                tripId={editing.id}
-                api={orgDocumentApi}
-                form={form as unknown as Record<string, unknown>}
-                defaults={{}}
-                onApply={applyAiDraft}
-                // Mesmo contrato do onAdd de ImageUploader: só preenche o
-                // formulário (vira a próxima foto, ou a capa se for a
-                // primeira) — nunca salva ou publica a viagem por conta
-                // própria. alt chega já confirmado pela pessoa em
-                // TripDocuments.tsx (o mesmo texto obrigatório do envio comum).
-                onImportPhoto={(media, alt) => patch({ media: [...form.media, { src: media.src, alt, previewSrc: media.previewSrc }] })}
-              />
-            )}
-
-            <details className="rounded-lg border border-surface-200 p-3">
-              <summary className="cursor-pointer text-sm font-semibold text-surface-800">Preço e vagas</summary>
-              <div className="mt-3 space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Field id="org-trip-price" label="Valor (R$)" hint={form.free ? 'Viagem gratuita: sem valor.' : 'Ex.: 109,99 ou 1.250,00'}>
-                    <input id="org-trip-price" type="text" inputMode="decimal" className="input" value={priceText} onChange={handlePriceChange} placeholder="109,99" disabled={form.free} autoComplete="off" />
-                  </Field>
-                  <Field id="org-trip-price-unit" label="Unidade do preço">
-                    <input id="org-trip-price-unit" className="input" value={form.priceUnit} onChange={(e) => patch({ priceUnit: e.target.value })} disabled={form.free} />
-                  </Field>
-                </div>
-                <label htmlFor="org-trip-free" className="checkbox-label min-h-[32px]">
-                  <input id="org-trip-free" type="checkbox" className="checkbox-input" checked={form.free} onChange={(e) => patch({ free: e.target.checked })} />
-                  <span className="text-sm text-surface-700">Viagem gratuita</span>
-                </label>
-                <Field id="org-trip-price-display" label="Preço como aparece no site (opcional)">
-                  <input id="org-trip-price-display" className="input" value={form.priceDisplay} onChange={(e) => patch({ priceDisplay: e.target.value })} placeholder="Ex.: A partir de R$ 109,99" disabled={form.free} />
-                </Field>
-                <Field id="org-trip-spots" label="Vagas restantes (opcional)">
-                  <input id="org-trip-spots" type="number" min={0} className="input" value={form.spotsLeft} onChange={(e) => patch({ spotsLeft: e.target.value })} />
-                </Field>
-              </div>
-            </details>
-
-            <details className="rounded-lg border border-surface-200 p-3">
-              <summary className="cursor-pointer text-sm font-semibold text-surface-800">Horários e deslocamento</summary>
-              <div className="mt-3 space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Field id="org-trip-departure-time" label="Horário de saída (opcional)">
-                    <input id="org-trip-departure-time" className="input" value={form.departureTime} onChange={(e) => patch({ departureTime: e.target.value })} placeholder="Ex.: 06h00" />
-                  </Field>
-                  <Field id="org-trip-return-time" label="Horário de retorno (opcional)">
-                    <input id="org-trip-return-time" className="input" value={form.returnTime} onChange={(e) => patch({ returnTime: e.target.value })} placeholder="Ex.: 20h00" />
-                  </Field>
-                </div>
-                <Field id="org-trip-departure-tolerance" label="Tolerância de atraso (opcional)">
-                  <input id="org-trip-departure-tolerance" className="input" value={form.departureTolerance} onChange={(e) => patch({ departureTolerance: e.target.value })} placeholder="Ex.: 15 minutos" />
-                </Field>
-                <Field id="org-trip-schedule-info" label="Observação sobre o horário (opcional)">
-                  <input id="org-trip-schedule-info" className="input" value={form.scheduleInfo} onChange={(e) => patch({ scheduleInfo: e.target.value })} />
-                </Field>
-                <label htmlFor="org-trip-schedule-tbd" className="checkbox-label min-h-[32px]">
-                  <input id="org-trip-schedule-tbd" type="checkbox" className="checkbox-input" checked={form.scheduleTBD} onChange={(e) => patch({ scheduleTBD: e.target.checked })} />
-                  <span className="text-sm text-surface-700">Horário ainda não definido</span>
-                </label>
-                <Field id="org-trip-trail-distance" label="Distância da trilha (opcional)">
-                  <input id="org-trip-trail-distance" className="input" value={form.trailDistance} onChange={(e) => patch({ trailDistance: e.target.value })} />
-                </Field>
-                <Field id="org-trip-support-point" label="Ponto de apoio (opcional)">
-                  <input id="org-trip-support-point" className="input" value={form.supportPoint} onChange={(e) => patch({ supportPoint: e.target.value })} />
-                </Field>
-                <Field id="org-trip-support-point-info" label="Informações do ponto de apoio (opcional)">
-                  <textarea id="org-trip-support-point-info" className="input" rows={2} value={form.supportPointInfo} onChange={(e) => patch({ supportPointInfo: e.target.value })} />
-                </Field>
-              </div>
-            </details>
-
-            <details className="rounded-lg border border-surface-200 p-3">
-              <summary className="cursor-pointer text-sm font-semibold text-surface-800">Ponto de encontro</summary>
-              <div className="mt-3 space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Field id="org-trip-meeting-city" label="Município de embarque (opcional)">
-                    <input id="org-trip-meeting-city" className="input" value={form.meetingCity} onChange={(e) => patch({ meetingCity: e.target.value })} />
-                  </Field>
-                  <Field id="org-trip-meeting-point" label="Local de embarque (opcional)">
-                    <input id="org-trip-meeting-point" className="input" value={form.meetingPoint} onChange={(e) => patch({ meetingPoint: e.target.value })} />
-                  </Field>
-                </div>
-                <label htmlFor="org-trip-meeting-tbd" className="checkbox-label min-h-[32px]">
-                  <input id="org-trip-meeting-tbd" type="checkbox" className="checkbox-input" checked={form.meetingTBD} onChange={(e) => patch({ meetingTBD: e.target.checked })} />
-                  <span className="text-sm text-surface-700">Embarque a confirmar</span>
-                </label>
-                <Field id="org-trip-meeting-details" label="Detalhes do embarque (opcional)">
-                  <textarea id="org-trip-meeting-details" className="input" rows={2} value={form.meetingDetails} onChange={(e) => patch({ meetingDetails: e.target.value })} />
-                </Field>
-                <Field id="org-trip-meeting-maps" label="Endereço para o Google Maps (opcional)">
-                  <input id="org-trip-meeting-maps" className="input" value={form.meetingMapsQuery} onChange={(e) => patch({ meetingMapsQuery: e.target.value })} />
-                </Field>
-                <div className="form-group !mb-0">
-                  <span className="label">Pontos de partida (opcional)</span>
-                  <DeparturesInput value={form.departures} onPendingChange={(pending) => setPendingItem('embarque', pending)} onChange={(departures) => patch({ departures })} />
-                </div>
-              </div>
-            </details>
-
-            <details className="rounded-lg border border-surface-200 p-3">
-              <summary className="cursor-pointer text-sm font-semibold text-surface-800">O que está incluso e itinerário</summary>
-              <div className="mt-3 space-y-3">
-                <Field id="org-trip-includes-highlight" label="Destaque do que está incluso (opcional)">
-                  <input id="org-trip-includes-highlight" className="input" value={form.includesHighlight} onChange={(e) => patch({ includesHighlight: e.target.value })} />
-                </Field>
                 <div className="form-group !mb-0">
                   <span className="label">O que está incluso (opcional)</span>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3" role="group" aria-label="Serviços padrão incluídos">
@@ -664,6 +673,18 @@ export default function OrganizationTrips() {
                     placeholder="Ex.: Banho de rio, almoço"
                   />
                 </div>
+              <details className="rounded-lg border border-surface-200 p-3" open={optionsOpen.experience} onToggle={(event) => { const open = event.currentTarget.open; setOptionsOpen((previous) => previous.experience === open ? previous : { ...previous, experience: open }); }}>
+                <summary className="cursor-pointer text-sm font-semibold text-surface-800">Mais opções</summary>
+                <div className="mt-3 space-y-3">
+                <Field id="org-trip-includes-highlight" label="Destaque do que está incluso (opcional)">
+                  <input id="org-trip-includes-highlight" className="input" value={form.includesHighlight} onChange={(e) => patch({ includesHighlight: e.target.value })} />
+                </Field>
+                </div>
+              </details>
+            </section>
+
+            <section className="rounded-xl border border-surface-200 p-4 space-y-4" aria-label="Roteiro e orientações">
+              <h2 className="text-lg font-semibold text-surface-900">Roteiro e orientações</h2>
                 <div className="form-group !mb-0">
                   <span className="label">Itinerário (opcional)</span>
                   <ArrayInput id="org-trip-itinerary" value={form.itinerary} onPendingChange={(pending) => setPendingItem('roteiro', pending)} onChange={(itinerary) => patch({ itinerary })} placeholder="Ex.: 06h00 - Saída do ponto de encontro" />
@@ -691,24 +712,25 @@ export default function OrganizationTrips() {
                     placeholder="Ex.: Idade mínima de 12 anos"
                   />
                 </div>
-              </div>
-            </details>
-
-            <details className="rounded-lg border border-surface-200 p-3">
-              <summary className="cursor-pointer text-sm font-semibold text-surface-800">Configurações adicionais</summary>
-              <div className="mt-3 space-y-3">
-                <Field id="org-trip-filter-category" label="Filtro no site (opcional)" hint="Esta categoria aparece nos filtros do site. Se não escolher uma, a viagem ficará em Todas as categorias.">
-                  <select id="org-trip-filter-category" className="select" value={form.filterCategory} onChange={(e) => patch({ filterCategory: e.target.value })}>
-                    <option value="">Selecione uma categoria</option>
-                    {form.filterCategory && !FILTER_CATEGORY_OPTIONS.some((option) => option.toLocaleLowerCase('pt-BR') === form.filterCategory.trim().toLocaleLowerCase('pt-BR')) && (
-                      <option value={form.filterCategory}>{form.filterCategory} (personalizada)</option>
-                    )}
-                    {FILTER_CATEGORY_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
-                  </select>
+              <details className="rounded-lg border border-surface-200 p-3" open={optionsOpen.trail} onToggle={(event) => { const open = event.currentTarget.open; setOptionsOpen((previous) => previous.trail === open ? previous : { ...previous, trail: open }); }}>
+                <summary className="cursor-pointer text-sm font-semibold text-surface-800">Mais opções</summary>
+                <div className="mt-3 space-y-3">
+                <Field id="org-trip-trail-distance" label="Distância da trilha (opcional)">
+                  <input id="org-trip-trail-distance" className="input" value={form.trailDistance} onChange={(e) => patch({ trailDistance: e.target.value })} />
                 </Field>
-              </div>
-            </details>
+                <Field id="org-trip-support-point" label="Ponto de apoio (opcional)">
+                  <input id="org-trip-support-point" className="input" value={form.supportPoint} onChange={(e) => patch({ supportPoint: e.target.value })} />
+                </Field>
+                <Field id="org-trip-support-point-info" label="Informações do ponto de apoio (opcional)">
+                  <textarea id="org-trip-support-point-info" className="input" rows={2} value={form.supportPointInfo} onChange={(e) => patch({ supportPointInfo: e.target.value })} />
+                </Field>
+                </div>
+              </details>
+            </section>
 
+            <section className="rounded-xl border border-surface-200 p-4 space-y-4" aria-label="Revisão e salvamento">
+              <h2 className="text-lg font-semibold text-surface-900">Revisão e salvamento</h2>
+              <p className="text-sm text-surface-600">Confira a prévia antes de salvar. A viagem ficará visível apenas para esta empresa.</p>
             {/* Reaproveita os componentes de prévia do site (legado), nunca
                 reimplementados: mesma lógica de card/proposta, sem salvar,
                 publicar ou enviar nada por conta própria. */}
@@ -719,6 +741,7 @@ export default function OrganizationTrips() {
               </div>
             </details>
             <TripProposalPreview trip={form} dirty={dirty} defaultOrganizer={organization.name} />
+            </section>
           </form>
         </Modal>
       )}

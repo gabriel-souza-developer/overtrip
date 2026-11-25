@@ -104,7 +104,7 @@ export default function OrganizationLayout() {
       rootClassName="agency-panel"
       rootStyle={palette as React.CSSProperties}
       brand={<>
-        <span className="w-12 h-12 rounded-xl bg-primary-50 text-primary-800 flex items-center justify-center shrink-0"><span className="text-lg font-bold tracking-tight" aria-hidden="true">{initials || <Building2 className="w-6 h-6" />}</span></span>
+        <span className="w-12 h-12 rounded-xl bg-primary-600 text-white flex items-center justify-center shrink-0"><span className="text-lg font-bold tracking-tight" aria-hidden="true">{initials || <Building2 className="w-6 h-6" />}</span></span>
         <div className="min-w-0"><p className="text-sm font-bold tracking-wide text-surface-900 truncate" title={context.organization.name}>{context.organization.name}</p><p className="mt-0.5 text-xs text-surface-600">Painel de gestão</p></div>
       </>}
       navGroups={navGroups}

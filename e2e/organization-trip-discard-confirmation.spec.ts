@@ -130,7 +130,6 @@ test('texto ainda não confirmado em uma lista também conta como alteração ao
   await mockOrganizationApi(page);
   await login(page);
   await page.getByRole('button', { name: 'Nova viagem' }).first().click();
-  await page.getByText('O que está incluso e itinerário').click();
   // Digita mas nunca confirma (nem Enter, nem o botão Adicionar).
   await page.locator('#org-trip-includes').fill('Transporte incluso');
 
