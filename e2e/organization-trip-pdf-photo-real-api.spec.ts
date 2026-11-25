@@ -241,7 +241,7 @@ async function openEditAndUploadPdf(page: import('@playwright/test').Page, title
   await page.locator('#trip-document').setInputFiles({ name: 'roteiro.pdf', mimeType: 'application/pdf', buffer: pdf });
   // clamscan sem daemon carrega a base de vírus do zero a cada chamada:
   // mais lento que um mock, de propósito (é a varredura real).
-  await expect(page.getByText('roteiro.pdf')).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText('roteiro.pdf')).toBeVisible({ timeout: 45_000 });
 }
 
 /**

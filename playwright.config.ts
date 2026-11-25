@@ -9,7 +9,7 @@ export default defineConfig({
     ...devices['Desktop Chrome'],
   },
   webServer: {
-    command: 'OVERTRIP_E2E_MOCKS=1 npm run dev:frontend -- --host 127.0.0.1 --port 4300',
+    command: `${process.env.E2E_REAL_API === '1' ? '' : 'OVERTRIP_E2E_MOCKS=1 '}npm run dev:frontend -- --host 127.0.0.1 --port 4300`,
     url: 'http://127.0.0.1:4300',
     // Não reutilizar um processo que possa ter proxy para uma API real.
     reuseExistingServer: false,
