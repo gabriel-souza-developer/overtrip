@@ -2,7 +2,8 @@ import type { Prisma, PrismaClient } from '@prisma/client';
 import type { Response } from 'express';
 import { AppError } from '../middleware/errorHandler.js';
 import { MEDIA_FILE_PATTERN, mediaDirectory, mediaStorageKeyFromFilename, readMediaFileForServing } from './mediaStorage.js';
-import { MEDIA_PUBLIC_PREFIX } from '../validators/imageSrc.js';
+import { serveVideoFromDisk } from './serveVideo.js';
+import { isUploadedVideoSrc, MEDIA_PUBLIC_PREFIX } from '../validators/imageSrc.js';
 
 export interface OwnedImageInput { src: string; alt: string }
 type MediaAssetClient = Pick<PrismaClient | Prisma.TransactionClient, 'mediaAsset'>;
@@ -11,6 +12,15 @@ function filenameFromPublicSrc(src: string): string | null {
   if (!src.startsWith(MEDIA_PUBLIC_PREFIX)) return null;
   const filename = src.slice(MEDIA_PUBLIC_PREFIX.length);
   return MEDIA_FILE_PATTERN.test(filename) ? filename : null;
+}
+
+export async function assertOwnedVideos(client: MediaAssetClient, organizationId: string | null, media: { src: string }[] = []) {
+  const paths = [...new Set(media.map(item => item.src).filter(isUploadedVideoSrc))];
+  if (!paths.length) return;
+  const count = await client.mediaAsset.count({ where: {
+    path: { in: paths }, organizationId, publishedAt: { not: null }, mimeType: 'video/mp4',
+  } });
+  if (count !== paths.length) throw AppError.badRequest('Vídeo não encontrado nesta empresa. Envie o arquivo novamente.');
 }
 
 /**
@@ -23,10 +33,12 @@ function filenameFromPublicSrc(src: string): string | null {
  * legada — a mesma convenção que a leitura (abaixo) espera. Genérica sobre
  * campos extras (ex.: `focus` da capa de viagem): só o `src` é validado.
  */
-export async function assertOwnedImages<T extends { src: string }>(client: MediaAssetClient, organizationId: string, images: T[]): Promise<string> {
+export async function assertOwnedImages<T extends { src: string }>(client: MediaAssetClient, organizationId: string, images: T[], allowVideo = false): Promise<string> {
   if (images.length === 0) return '[]';
+  if (allowVideo) await assertOwnedVideos(client, organizationId, images);
   const filenames = images.map((image) => {
     const filename = filenameFromPublicSrc(image.src);
+    if (filename?.endsWith('.mp4') && (!allowVideo || (image as {type?: string}).type !== 'video')) throw AppError.badRequest('Vídeo inválido para este campo.');
     if (!filename) throw AppError.badRequest('Foto inválida. Envie a foto novamente.');
     return filename;
   });
@@ -85,11 +97,11 @@ export async function filterOwnedImages(
   const owned = keys.length ? await client.mediaAsset.findMany({ where: { storageKey: { in: keys }, organizationId, publishedAt: { not: null } }, select: { storageKey: true } }) : [];
   const ownedKeys = new Set(owned.map((asset) => asset.storageKey));
   return parsedPerRow.map((row) => row.filter((image) => ownedKeys.has(image.key)).map((image) => ({
-    src: `${MEDIA_PUBLIC_PREFIX}${image.filename}`, previewSrc: rewriteSrc(image.filename), alt: image.alt, ...(image.focus ? { focus: image.focus } : {}),
+    src: `${MEDIA_PUBLIC_PREFIX}${image.filename}`, previewSrc: rewriteSrc(image.filename), alt: image.alt, ...(image.filename.endsWith('.mp4') ? { type: 'video' as const } : {}), ...(image.focus ? { focus: image.focus } : {}),
   })));
 }
 
-const MEDIA_CONTENT_TYPES: Record<string, string> = { jpg: 'image/jpeg', png: 'image/png', webp: 'image/webp' };
+const MEDIA_CONTENT_TYPES: Record<string, string> = { jpg: 'image/jpeg', png: 'image/png', webp: 'image/webp', mp4: 'video/mp4' };
 
 /**
  * Serve um arquivo de mídia já enviado por ESTA empresa — mesmo padrão de
@@ -100,8 +112,9 @@ const MEDIA_CONTENT_TYPES: Record<string, string> = { jpg: 'image/jpeg', png: 'i
  */
 export async function serveOwnedMediaFile(res: Response, client: MediaAssetClient, organizationId: string, filename: string): Promise<void> {
   if (!MEDIA_FILE_PATTERN.test(filename)) throw AppError.notFound('Imagem não encontrada');
-  const asset = await client.mediaAsset.findFirst({ where: { storageKey: mediaStorageKeyFromFilename(filename), organizationId, publishedAt: { not: null } }, select: { id: true } });
+  const asset = await client.mediaAsset.findFirst({ where: { storageKey: mediaStorageKeyFromFilename(filename), ...(filename.endsWith('.mp4') ? { path: MEDIA_PUBLIC_PREFIX + filename, mimeType: 'video/mp4' } : {}), organizationId, publishedAt: { not: null } }, select: { id: true } });
   if (!asset) throw AppError.notFound('Imagem não encontrada');
+  if (filename.endsWith('.mp4')) return serveVideoFromDisk(res, await mediaDirectory(), filename, 'private, no-store');
   try {
     const { buffer } = await readMediaFileForServing(await mediaDirectory(), filename);
     const contentType = MEDIA_CONTENT_TYPES[filename.slice(filename.lastIndexOf('.') + 1)];

@@ -5,6 +5,7 @@ import { dashboardApi, DashboardStats, tripApi } from '../api';
 import ErrorState from '../components/ErrorState';
 import TripCalendar from '../components/TripCalendar';
 import { capitalizeFirst } from '../lib/tripCalendar';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 type Tone = 'primary' | 'success' | 'warning' | 'danger';
 const statsConfig: { key: keyof DashboardStats | 'tripsUpcoming'; label: string; icon: LucideIcon; tone: Tone; to: string; detail: string }[] = [
@@ -19,6 +20,7 @@ const toneClass: Record<Tone, string> = {
 };
 
 export default function Dashboard() {
+  useDocumentTitle('Dashboard');
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [upcomingTrips, setUpcomingTrips] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);

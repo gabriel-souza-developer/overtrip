@@ -17,6 +17,7 @@ import RowMenu from '../components/RowMenu';
 import ConfirmDialog from '../components/ConfirmDialog';
 import Button from '../components/Button';
 import StatusBadge from '../components/StatusBadge';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 const formatDate = formatDateBR;
 
@@ -30,6 +31,8 @@ const PERIODS: Array<{ value: Period; label: string; hint: string }> = [
 const readPeriod = (value: string): Period => (value === 'past' || value === 'all' ? value : 'upcoming');
 
 export default function Trips() {
+  useDocumentTitle('Viagens');
+  const [shadeDrafts, setShadeDrafts] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
   const isAdmin = canChangeTripStatus(user?.role);
@@ -163,6 +166,10 @@ export default function Trips() {
           <option value="">Todas as situações</option>
           {Object.entries(TRIP_STATUS_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select>
+        <label className="inline-flex min-h-10 items-center gap-2 text-sm text-surface-800">
+          <input type="checkbox" checked={shadeDrafts} onChange={event => setShadeDrafts(event.target.checked)} />
+          Escurecer rascunhos
+        </label>
       </FilterBar>
 
       {error ? <ErrorState message={error} onRetry={loadTrips} /> : null}
@@ -201,7 +208,7 @@ export default function Trips() {
                   const canPublish = action === 'publish';
                   const busy = publishingId === trip.id;
                   return (
-                    <tr key={trip.id}>
+                    <tr key={trip.id} className={shadeDrafts && trip.status === 'DRAFT' ? 'bg-surface-200' : undefined}>
                       <td className="max-w-[16rem]">
                         <Link to={`/trips/${trip.id}/edit`} className="font-medium text-surface-900 hover:text-primary-800 hover:underline">{trip.title}</Link>
                         <p className="md:hidden text-xs text-surface-600 mt-0.5">{formatDate(trip.startDateISO)} · {trip.city}/{trip.region}</p>

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { isValidImageSrc, IMAGE_SRC_MESSAGE, hasRequiredAlt, UPLOADED_ALT_MESSAGE } from './imageSrc.js';
+import { isUploadedVideoSrc, isValidTripMediaSrc, isValidImageSrc, IMAGE_SRC_MESSAGE, hasRequiredAlt, UPLOADED_ALT_MESSAGE } from './imageSrc.js';
 
 export const imageSrcSchema = z.string().refine(isValidImageSrc, { message: IMAGE_SRC_MESSAGE });
 const requireUploadedAlt = { message: UPLOADED_ALT_MESSAGE, path: ['alt'] };
@@ -43,11 +43,11 @@ export const tripCreateSchema = z.object({
   routeNotes: z.array(z.string()).optional().nullable(),
   importantInfo: z.array(z.string()).optional().nullable(),
   media: z.array(z.object({
-    src: imageSrcSchema,
+    src: z.string().refine(isValidTripMediaSrc, IMAGE_SRC_MESSAGE),
     alt: z.string(),
     focus: z.string().optional(),
     type: z.enum(['image', 'video']).optional(),
-  }).refine(hasRequiredAlt, requireUploadedAlt)).default([]),
+  }).refine(item => !isUploadedVideoSrc(item.src) || item.type === 'video', 'Tipo de vídeo inválido').refine(hasRequiredAlt, requireUploadedAlt)).default([]),
   buttonLabel: z.string().trim().min(1, 'Texto do botão é obrigatório').optional(),
   buttonClass: z.string().trim().min(1, 'Estilo do botão é obrigatório').optional(),
   status: z.enum(['DRAFT', 'REVIEW', 'OPEN', 'COMPLETED', 'CANCELLED', 'SOLD_OUT', 'CLOSED']).default('DRAFT'),

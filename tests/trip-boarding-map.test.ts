@@ -85,6 +85,19 @@ describe('buildTripMapHTML', () => {
 });
 
 describe('mapa no card da viagem (buildTripCardHTML)', () => {
+  it('mostra todos os pontos e horários adicionados à lista, inclusive o principal copiado', () => {
+    const trip = {
+      ...base, meetingCity: 'Campina Grande', meetingPoint: 'Rodoviária Nova',
+      departures: [
+        { time: '05h', city: 'Campina Grande', place: 'Rodoviária Nova', orderIndex: 0 },
+        { time: '06h', city: 'Pocinhos', place: 'Igreja Matriz', orderIndex: 1 },
+      ],
+    };
+    const html = buildTripCardHTML(trip, 0);
+    for (const value of ['Rodoviária Nova', 'Campina Grande', '05h', 'Igreja Matriz', 'Pocinhos', '06h']) expect(html).toContain(value);
+    expect(html).toContain('Embarque em 2 pontos');
+  });
+
   it('viagem antiga sem coordenadas não inclui o container do mapa', () => {
     expect(buildTripCardHTML(base, 0)).not.toContain('trip-boarding-map');
   });

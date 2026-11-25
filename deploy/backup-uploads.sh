@@ -48,5 +48,5 @@ while IFS= read -r -d '' file; do
   mv "$DEST/.tmp-$name" "$DEST/$name"
   copied=$((copied + 1))
 done < <(find "$SRC" -maxdepth 1 -type f -regextype posix-extended \
-  -regex '.*/[0-9a-f]{32}(\.(jpg|png)|-w(640|960|1280)\.webp)' -print0)
-echo "Imagens copiadas: $copied (destino: $DEST)"
+  -regex '.*/[0-9a-f]{32}(\.(jpg|png|mp4)|-w(640|960|1280)\.webp)' -print0)
+echo "Arquivos de mídia copiados: $copied (destino: $DEST)"

@@ -1,14 +1,16 @@
+import { Prisma } from '@prisma/client';
 import { Router } from 'express';
 import cors from 'cors';
 import { prisma } from '../lib/prisma.js';
 import { config } from '../config.js';
-import { publicTripsService } from '../services/publicTrips.js';
+import { PUBLIC_STATUSES, publicTripsService } from '../services/publicTrips.js';
 import { publicSiteService, isPubliclyVisibleOrganization } from '../services/publicSite.js';
 import { settingsService } from '../services/settingsService.js';
 import {
-  MEDIA_FILE_PATTERN, mediaDirectory, mediaStorageKeyFromFilename,
+  MEDIA_FILE_PATTERN, mediaDirectory, mediaPublicSrc, mediaStorageKeyFromFilename,
   MediaFileMissingError, MediaSymlinkRejectedError, readMediaFileForServing,
 } from '../services/mediaStorage.js';
+import { serveVideoFromDisk } from '../services/serveVideo.js';
 import { loadLegacyMediaAllowlist } from '../services/mediaLegacyAllowlist.js';
 import { publicFaqService } from '../services/publicFaq.js';
 
@@ -60,7 +62,7 @@ router.get('/destinations', async (_req, res, next) => {
 
 // Imagens enviadas pelo painel. O nome contém 128 bits aleatórios, mas isso
 // não é mais o único controle: a titularidade decide se o arquivo é servido.
-const MEDIA_TYPES: Record<string, string> = { jpg: 'image/jpeg', png: 'image/png', webp: 'image/webp' };
+const MEDIA_TYPES: Record<string, string> = { jpg: 'image/jpeg', png: 'image/png', webp: 'image/webp', mp4: 'video/mp4' };
 router.get('/media/:file', async (req, res, next) => {
   try {
     const { file } = req.params;
@@ -79,6 +81,30 @@ router.get('/media/:file', async (req, res, next) => {
     // variante (sufixo -w640/-w960/-w1280) segue o mesmo registro do arquivo
     // principal, pelo mesmo storageKey.
     const storageKey = mediaStorageKeyFromFilename(file);
+    if (file.endsWith('.mp4')) {
+      // Upload completion and trip publication are independent. Recheck both
+      // in the same snapshot on every request, including byte ranges.
+      const organizations = config.publicSiteOrganizationIds;
+      const organizationVisible = organizations.length
+        ? Prisma.sql`(a.organizationId IS NULL OR (a.organizationId IN (${Prisma.join(organizations)}) AND o.status = 'ACTIVE'))`
+        : Prisma.sql`a.organizationId IS NULL`;
+      const visible = await prisma.$queryRaw<{ id: string }[]>`
+        SELECT a.id FROM MediaAsset a
+        LEFT JOIN Organization o ON o.id = a.organizationId
+        WHERE a.storageKey = ${storageKey} AND a.path = ${mediaPublicSrc(file)}
+          AND a.mimeType = 'video/mp4' AND a.publishedAt IS NOT NULL AND ${organizationVisible}
+          AND EXISTS (
+            SELECT 1 FROM Trip t,
+              json_each(CASE WHEN json_valid(t.media) THEN
+                CASE WHEN json_type(t.media) = 'array' THEN t.media ELSE '[]' END ELSE '[]' END) m
+            WHERE t.organizationId IS a.organizationId AND t.status IN (${Prisma.join(PUBLIC_STATUSES)})
+              AND CASE WHEN m.type = 'object' THEN json_extract(m.value, '$.src') END = a.path
+          )
+        LIMIT 1`;
+      if (!visible.length) { notFound(); return; }
+      await serveVideoFromDisk(res, await mediaDirectory(), file, 'no-cache');
+      return;
+    }
     const asset = await prisma.mediaAsset.findFirst({
       where: { storageKey },
       select: { publishedAt: true, organizationId: true, organization: { select: { status: true } } },

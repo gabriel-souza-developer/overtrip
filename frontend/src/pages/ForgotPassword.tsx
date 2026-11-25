@@ -4,9 +4,11 @@ import { brandUrl } from '../lib/basePath';
 import { ArrowLeft, Mail } from 'lucide-react';
 import Button from '../components/Button';
 import { authApi, ApiRequestError } from '../api';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import './login.css';
 
 export default function ForgotPassword() {
+  useDocumentTitle('Recuperar senha');
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [sent, setSent] = useState(false);

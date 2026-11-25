@@ -95,6 +95,7 @@ const mediaItem = z.object({
   src: z.string().trim().min(1).max(300),
   alt: z.string().trim().min(1, 'Descreva o que aparece na foto').max(300),
   focus: z.string().trim().max(80).optional(),
+  type: z.enum(['image', 'video']).optional(),
 }).strict();
 const departureItem = z.object({
   time: z.string().trim().min(1, 'Horário é obrigatório').max(40),
@@ -218,7 +219,7 @@ router.post('/', asyncHandler(async (req: OrganizationRequest, res: Response) =>
     await assertOrganizationWriteAccess(tx, organizationId, req.user!.id);
     // Só mídia já enviada e publicada por esta empresa (nunca link externo
     // ou arquivo de assets/ do site legado).
-    const media = data.media ? await assertOwnedImages(tx, organizationId, data.media) : '[]';
+    const media = data.media ? await assertOwnedImages(tx, organizationId, data.media, true) : '[]';
     // free é só uma marcação de exibição (como na tela legada): o valor
     // digitado continua guardado mesmo com a viagem marcada como gratuita,
     // para não se perder se a marcação for desfeita depois.
@@ -303,7 +304,7 @@ router.put('/:tripId', asyncHandler(async (req: OrganizationRequest, res: Respon
     const nextEnd = data.endDateISO === undefined ? current.endDateISO : (data.endDateISO ? new Date(data.endDateISO) : null);
     if (nextEnd && nextEnd <= nextStart) throw AppError.badRequest('A data de retorno deve ser depois da data de saída');
 
-    const media = data.media === undefined ? undefined : await assertOwnedImages(tx, organizationId, data.media);
+    const media = data.media === undefined ? undefined : await assertOwnedImages(tx, organizationId, data.media, true);
 
     // A própria escrita exige id+organizationId (nunca só id): mesmo que
     // algo tivesse mudado entre a consulta acima e agora, esta instrução

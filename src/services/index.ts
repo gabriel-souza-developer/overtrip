@@ -13,6 +13,7 @@ import {
   GalleryQueryInput,
 } from '../validators/index.js';
 import { normalizeForSearch, normalizeForSearchRegion, applySearchFilter, applyDirectFilter } from '../utils/searchUtils.js';
+import { assertOwnedVideos } from './organizationOwnedMedia.js';
 import { publicationProblems } from './tripReadiness.js';
 import { settingsService } from './settingsService.js';
 import { tripPeriodWhere } from '../utils/tripPeriod.js';
@@ -180,14 +181,17 @@ export const tripService = {
       categorySearch: normalizeForSearch(tripWithDefaults.category || ''),
     };
 
-    const trip = await prisma.trip.create({
+    const organizationId = legacyTourismOrganizationIdForNewRecord();
+    const trip = await prisma.$transaction(async tx => {
+      await assertOwnedVideos(tx, organizationId, tripData.media);
+      return tx.trip.create({
       data: {
         ...stringifyJsonFields(tripWithDefaults, TRIP_JSON_FIELDS),
         ...searchData,
         storedIdentity,
         // Nunca aceita organizationId do corpo da requisição (ausente do schema de
         // validação); a operação legada só pode criar dentro do próprio escopo.
-        organizationId: legacyTourismOrganizationIdForNewRecord(),
+        organizationId,
         publishedAt: tripWithDefaults.status === 'OPEN' ? new Date() : undefined,
         departures: departures?.length ? {
           create: departures.map(d => ({
@@ -200,6 +204,7 @@ export const tripService = {
       include: {
         departures: { orderBy: { orderIndex: 'asc' } },
       },
+      });
     });
 
     return parseJsonFields(trip, TRIP_JSON_FIELDS);
@@ -214,6 +219,7 @@ export const tripService = {
     // "existe em geral" seguido de checagem separada de organização).
     const row = await tx.trip.findFirst({ where: { id, ...currentLegacyTourismFilter() }, include: { departures: { orderBy: { orderIndex: 'asc' } } } });
     if (!row) throw AppError.notFound('Viagem não encontrada');
+    await assertOwnedVideos(tx, row.organizationId, tripData.media);
     const current = parseJsonFields(row, TRIP_JSON_FIELDS);
 
     // Uma viagem aberta continua precisando atender aos requisitos quando é

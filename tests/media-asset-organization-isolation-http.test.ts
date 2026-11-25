@@ -172,3 +172,75 @@ describe('GET /api/public/media/:file: autorização por organização', () => {
     await prisma.mediaAsset.delete({ where: { id: asset.id } });
   });
 });
+
+describe('vídeos de viagens no site público', () => {
+  it('revalida a situação, a empresa e a referência exata antes de servir o MP4', async () => {
+    const storageKey = randomKey();
+    const filename = storageKey + '.mp4';
+    const src = '/api/public/media/' + filename;
+    const bytes = Buffer.from('video fixture');
+    await writeMediaFile(filename, bytes);
+    const get = () => fetch(baseUrl + src, { headers: { Range: 'bytes=0-4' } });
+    expect((await get()).status).toBe(404);
+    const asset = await prisma.mediaAsset.create({ data: {
+      organizationId: orgAId, storageKey, path: src, mimeType: 'video/mp4', publishedAt: new Date(),
+      width: 10, height: 10, sizeBytes: bytes.length, originalBytes: bytes.length, sha256: 'x'.repeat(64), createdById: userId,
+    } });
+    const media = JSON.stringify([{ src, type: 'video', alt: 'Vídeo de viagem' }]);
+    const trip = await prisma.trip.create({ data: {
+      organizationId: orgAId, storedIdentity: TAG + ':video', title: 'Viagem com vídeo', category: 'Trilha',
+      city: 'Lucena', region: 'PB', description: 'Passeio', startDateISO: new Date(), intensityClass: 'leve',
+      includes: '[]', media, status: 'DRAFT',
+    } });
+    try {
+      const headers = { Authorization: 'Bearer ' + token, Range: 'bytes=0-4' };
+      const legacyPreview = baseUrl + '/api/media/' + filename;
+      const orgPreview = (id: string) => baseUrl + '/api/organizations/' + id + '/tourism/media/' + filename;
+      expect((await fetch(legacyPreview)).status).toBe(401);
+      config.legacyTourismOrganizationId = null;
+      expect((await fetch(legacyPreview, { headers })).status).toBe(404);
+      const membership = await prisma.membership.create({ data: { organizationId: orgAId, userId, role: 'OWNER' } });
+      try {
+        expect((await fetch(orgPreview(orgBId), { headers })).status).toBe(403);
+        const preview = await fetch(orgPreview(orgAId), { headers });
+        expect(preview.status).toBe(206);
+        expect(preview.headers.get('cache-control')).toContain('private');
+        expect(await preview.text()).toBe('video');
+      } finally {
+        await prisma.membership.delete({ where: { id: membership.id } });
+      }
+      config.publicSiteOrganizationIds = [orgAId, orgBId];
+      expect((await get()).status).toBe(404);
+      await prisma.trip.update({ where: { id: trip.id }, data: { status: 'REVIEW' } });
+      expect((await get()).status).toBe(404);
+      await prisma.trip.update({ where: { id: trip.id }, data: { status: 'OPEN', organizationId: orgBId } });
+      expect((await get()).status).toBe(404);
+      await prisma.trip.update({ where: { id: trip.id }, data: { organizationId: orgAId, media: JSON.stringify([{ src: 'outra.jpg', alt: src }]) } });
+      expect((await get()).status).toBe(404);
+      await prisma.trip.update({ where: { id: trip.id }, data: { media } });
+      config.publicSiteOrganizationIds = [orgBId];
+      expect((await get()).status).toBe(404);
+      config.publicSiteOrganizationIds = [orgAId];
+      const visible = await get();
+      expect(visible.status).toBe(206);
+      expect(await visible.text()).toBe('video');
+      await prisma.trip.update({ where: { id: trip.id }, data: { status: 'DRAFT' } });
+      const unpublished = await get();
+      expect(unpublished.status).toBe(404);
+      expect(unpublished.headers.get('cache-control')).toBe('no-store');
+      config.publicSiteOrganizationIds = [];
+      await prisma.mediaAsset.update({ where: { id: asset.id }, data: { organizationId: null } });
+      expect((await fetch(legacyPreview, { headers })).status).toBe(206);
+      await prisma.trip.update({ where: { id: trip.id }, data: { status: 'OPEN' } });
+      expect((await get()).status).toBe(404);
+      await prisma.trip.update({ where: { id: trip.id }, data: { organizationId: null } });
+      expect((await get()).status).toBe(206);
+      await prisma.mediaAsset.update({ where: { id: asset.id }, data: { publishedAt: null } });
+      expect((await get()).status).toBe(404);
+    } finally {
+      config.publicSiteOrganizationIds = [];
+      await prisma.trip.delete({ where: { id: trip.id } });
+      await prisma.mediaAsset.delete({ where: { id: asset.id } });
+    }
+  });
+});

@@ -130,7 +130,7 @@ Regras:
 - "region" é a sigla do estado com 2 letras (ex.: PB), só se o texto indicar.
 - "city" é o nome do MUNICÍPIO. Nome de praia, trilha, mirante ou outro ponto turístico (ex.: "Praia de Coqueirinho") não é cidade: não repita esse nome em "city". Só preencha "city" se o texto citar o município explicitamente (ex.: "Conde - PB"); senão, deixe null.
 - priceValue é o número em reais (ex.: 109.9), sem símbolo.
-- Você pode redigir "description" (texto atraente de 2 a 4 frases) e "headlineDisplay" (título curto de card) a partir do texto, sem acrescentar fatos novos.
+- Você pode redigir "description" como um resumo curto de uma frase sobre a experiência, sem repetir preço ou serviços inclusos, e "headlineDisplay" como título curto para outros canais. Não acrescente fatos novos.
 - Listas (includes, itinerary etc.): um item curto por linha, só com o que o texto diz.
 - "warnings": frases curtas em português simples sobre o que ficou de fora por falta de informação ou ambiguidade (no máximo 5).
 - Escreva tudo em português do Brasil.`;

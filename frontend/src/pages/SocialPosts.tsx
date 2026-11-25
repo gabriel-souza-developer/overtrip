@@ -15,6 +15,7 @@ import EmptyState from '../components/EmptyState';
 import ErrorState from '../components/ErrorState';
 import SocialArtCreator from '../components/SocialArtCreator';
 import ConfirmDialog from '../components/ConfirmDialog';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 const platforms: { value: SocialPlatform; label: string }[] = [
   { value: 'INSTAGRAM', label: 'Instagram' }, { value: 'FACEBOOK', label: 'Facebook' }, { value: 'TIKTOK', label: 'TikTok' },
@@ -32,6 +33,7 @@ type TripLike = Pick<Trip | OrgTrip, 'title' | 'city' | 'region' | 'description'
 // restrita ao papel legado "admin") ainda não tem escopo por empresa
 // garantido, então fica indisponível no modo organização.
 export default function SocialPosts() {
+  useDocumentTitle('Redes sociais');
   const outlet = useOutletContext<OrganizationOutletContext | undefined>();
   const organization = outlet?.organization;
   // No modo organização, redes sociais é informação de divulgação sensível

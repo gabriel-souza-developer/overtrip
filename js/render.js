@@ -114,7 +114,7 @@ const safeHttpUrl = (value) => {
   try { const url = new URL(value); return ["http:", "https:"].includes(url.protocol) && !url.username && !url.password ? value : ""; } catch { return ""; }
 };
 // Fotos enviadas pelo painel (API). Mesma regra de src/validators/imageSrc.ts.
-const UPLOADED_MEDIA_SRC = /^\/api\/public\/media\/[0-9a-f]{32}\.(?:jpg|png)$/;
+const UPLOADED_MEDIA_SRC = /^\/api\/public\/media\/[0-9a-f]{32}\.(?:jpg|png|mp4)$/;
 const safeMediaUrl = (value) => {
   if (typeof value === "string" && UPLOADED_MEDIA_SRC.test(value)) return value;
   if (typeof value !== "string" || /[\u0000-\u0020\u007f]/.test(value)) return "";
@@ -325,7 +325,7 @@ const buildTripCardHTML = (rawTrip, tripIndex) => {
   const departure = trip.departureTime || (trip.scheduleTBD ? "" : formatTripTime(trip.startDateISO));
   const levelWord = trip.intensityLabel.replace(/^Intensidade\s*/i, "");
 
-  const cover = trip.media.find((item) => item.type !== "video") || trip.media[0] || null;
+  const cover = trip.media.find((item) => item.type !== "video") || null;
   const photos = trip.media.filter((item) => item.type !== "video");
   const mediaCount = photos.length;
   const photoBadge = mediaCount > 1
@@ -357,7 +357,7 @@ const buildTripCardHTML = (rawTrip, tripIndex) => {
 
   return `
     <article class="trip-card reveal" data-month="${formatTripMonth(trip.startDateISO)}" data-category="${escapeHtml(trip.filterCategory)}">
-      <div class="trip-media-wrapper">
+      <div class="trip-media-wrapper" data-trip-slides="${escapeHtml(tripIndex)}">
       <button
         type="button"
         class="trip-media${cover ? "" : " trip-media--empty"}"${cover ? "" : ' style="background: var(--moss)"'}
@@ -365,11 +365,11 @@ const buildTripCardHTML = (rawTrip, tripIndex) => {
         aria-label="Abrir galeria de ${escapeHtml(trip.title)}"
       >
         ${cover ? `<img src="${escapeHtml(cover.src)}"${getHeroSrcset(cover.src) ? ` srcset="${escapeHtml(getHeroSrcset(cover.src))}" sizes="${TRIP_CARD_IMG_SIZES}"` : ""} alt="${escapeHtml(cover.alt)}" loading="lazy" decoding="async" fetchpriority="low">` : ""}
+        ${!cover && trip.media.some((item) => item.type === "video") ? "<span>Ver vídeo</span>" : ""}
         <span class="trip-media-category">${escapeHtml(trip.category)}</span>
         ${intensityHTML}
         ${photoBadge}
       </button>
-      ${mediaCount > 1 ? `<button type="button" class="trip-media-motion" data-trip-motion="${escapeHtml(tripIndex)}" aria-label="Pausar fotos de ${escapeHtml(trip.title)}" aria-pressed="false">Pausar fotos</button>` : ""}
       </div>
       <div class="trip-body">
         ${buildClosedNoticeHTML(closedNotice)}<h3 id="trip-title-${escapeHtml(tripIndex)}">${escapeHtml(trip.title)}</h3>
@@ -818,29 +818,22 @@ const buildTripCardsHTML = (listedTrips) => listedTrips
   .map(({ trip, index }) => safely("card", trip, () => buildTripCardHTML(trip, index), ""))
   .join("");
 
-// Troca apenas fotos dos cards visíveis; o usuário pode pausar a animação.
+// Troca apenas fotos dos cards visíveis, respeitando a preferência de movimento reduzido.
 const setupTripCardSlides = (grid, trips) => {
   const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)");
-  grid.querySelectorAll("[data-trip-motion]").forEach((control) => {
-    const entry = trips.find(({ index }) => String(index) === control.dataset.tripMotion);
+  grid.querySelectorAll("[data-trip-slides]").forEach((wrapper) => {
+    const entry = trips.find(({ index }) => String(index) === wrapper.dataset.tripSlides);
     const photos = normalizeTrip(entry?.trip || {}).media.filter((item) => item.type !== "video");
-    const wrapper = control.closest(".trip-media-wrapper");
     const image = wrapper?.querySelector(".trip-media img");
     const dots = wrapper?.querySelectorAll(".gallery-photo-dots i");
     if (!image || photos.length < 2) return;
 
     let current = 0;
-    let paused = Boolean(reducedMotion?.matches);
     let visible = !("IntersectionObserver" in window);
     let timer;
-    const syncControl = () => {
-      control.setAttribute("aria-pressed", String(paused));
-      control.textContent = paused ? "Reproduzir fotos" : "Pausar fotos";
-      control.setAttribute("aria-label", `${control.textContent} da viagem`);
-    };
     const schedule = () => {
       window.clearTimeout(timer);
-      if (!paused && visible && !document.hidden) timer = window.setTimeout(advance, 6000);
+      if (!reducedMotion?.matches && visible && !document.hidden) timer = window.setTimeout(advance, 6000);
     };
     const advance = () => {
       const next = (current + 1) % photos.length;
@@ -849,7 +842,7 @@ const setupTripCardSlides = (grid, trips) => {
       const srcset = getHeroSrcset(item.src);
       let triedOriginal = !srcset;
       preload.onload = () => {
-        if (paused || !visible || document.hidden) return;
+        if (reducedMotion?.matches || !visible || document.hidden) return;
         if (!triedOriginal) {
           image.sizes = TRIP_CARD_IMG_SIZES;
           image.srcset = srcset;
@@ -883,7 +876,7 @@ const setupTripCardSlides = (grid, trips) => {
       }
       preload.src = item.src;
     };
-    control.addEventListener("click", () => { paused = !paused; syncControl(); schedule(); });
+    reducedMotion?.addEventListener?.("change", schedule);
     document.addEventListener("visibilitychange", schedule);
     if ("IntersectionObserver" in window) {
       new IntersectionObserver((entries) => {
@@ -891,7 +884,6 @@ const setupTripCardSlides = (grid, trips) => {
         schedule();
       }, { threshold: 0.1 }).observe(wrapper);
     }
-    syncControl();
     schedule();
   });
 };

@@ -4,6 +4,7 @@ import PageHeader from '../components/PageHeader';
 import Button from '../components/Button';
 import { systemApi } from '../api';
 import { aggregateHealthPoints, healthChartPoints, healthSummary, type HealthChartPoint, type SystemHealth, type SystemHealthHistoryPoint } from '../lib/systemHealth';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 // Cor própria do gráfico (não é botão/CTA): só precisa se distinguir da cor da
 // outra série. Antes acompanhava o laranja da marca (primary-500); o painel
@@ -117,6 +118,7 @@ const toneClass = {
 } as const;
 
 export default function SystemHealthPage() {
+  useDocumentTitle('Saúde do servidor');
   const [health, setHealth] = useState<SystemHealth | null>(null);
   const [history, setHistory] = useState<SystemHealthHistoryPoint[]>([]);
   const [loading, setLoading] = useState(true);

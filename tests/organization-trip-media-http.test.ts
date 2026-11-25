@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import sharp from 'sharp';
@@ -98,6 +98,42 @@ describe('POST /api/organizations/:organizationId/tourism/trips — campos esten
     const row = await prisma.trip.findUniqueOrThrow({ where: { id: created.id } });
     expect(row.status).toBe('DRAFT');
     expect(row.publishedAt).toBeNull();
+  });
+
+  it('envia MP4 real, preserva vídeo no rascunho e restringe leituras parciais à empresa', async () => {
+    // Synthetic two-frame 64x48 red video (lavfi color, libx264).
+    const bytes = await readFile(join(__dirname, 'fixtures/trip-video.mp4'));
+    const post = (body: Buffer) => fetch(`${base}/${orgA}/tourism/media`, {
+      method: 'POST', headers: { Authorization: `Bearer ${ownerToken}`, 'Content-Type': 'video/mp4' }, body,
+    });
+    const invalid = await post(Buffer.from('<html>not an MP4</html>'));
+    expect(invalid.status).toBe(415);
+    const fake = Buffer.alloc(32);
+    fake.write('ftyp', 4);
+    expect((await post(fake)).status).toBe(400);
+    const uploaded = await post(bytes);
+    expect(uploaded.status).toBe(201);
+    const asset = await uploaded.json();
+    expect(asset).toMatchObject({ mimeType: 'video/mp4', width: 64, height: 48, variants: [] });
+    expect((await post(bytes)).status).toBe(200);
+    const origin = new URL(base).origin;
+    const headers = { ...auth(ownerToken), Range: 'bytes=4-7' };
+    const preview = await fetch(origin + asset.previewSrc, { headers });
+    expect(preview.status).toBe(206);
+    expect(await preview.text()).toBe('ftyp');
+    expect(preview.headers.get('content-range')).toBe(`bytes 4-7/${asset.sizeBytes}`);
+    expect(preview.headers.get('cache-control')).toContain('private');
+    const denied = await fetch(origin + asset.previewSrc.replace(orgA, orgB), { headers });
+    expect(denied.status).toBe(404);
+    expect((await fetch(origin + asset.src)).status).toBe(404);
+    const save = (organizationId: string) => fetch(`${base}/${organizationId}/tourism/trips`, {
+      method: 'POST', headers: auth(ownerToken),
+      body: JSON.stringify({ ...essentialBody, media: [{ src: asset.src, type: 'video', alt: 'Cena de teste' }] }),
+    });
+    expect((await save(orgB)).status).toBe(400);
+    const saved = await save(orgA);
+    expect(saved.status).toBe(201);
+    expect((await saved.json()).media[0]).toMatchObject({ src: asset.src, previewSrc: asset.previewSrc, type: 'video' });
   });
 
   it('recusa foto de outra empresa na criação, sem criar a viagem', async () => {

@@ -20,6 +20,7 @@ import Button from '../components/Button';
 import Field from '../components/Field';
 import FormSection from '../components/FormSection';
 import ImageThumb from '../components/ImageThumb';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 interface EntryForm {
   title: string;
@@ -46,6 +47,7 @@ const blankForm = (position: number): EntryForm => ({
 });
 
 export default function Gallery() {
+  useDocumentTitle('Galeria de memórias');
   const list = useListParams();
   const { toast } = useToast();
   const [entries, setEntries] = useState<GalleryEntry[]>([]);
@@ -152,7 +154,7 @@ export default function Gallery() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (photoPending) { setFormError('Conclua ou descarte o envio da foto antes de salvar.'); return; }
+    if (photoPending) { setFormError('Conclua ou descarte os envios de fotos antes de salvar.'); return; }
     const problem = validate();
     setFormError(problem);
     if (problem) return;
@@ -365,11 +367,15 @@ export default function Gallery() {
           <fieldset className="space-y-2">
             <legend className="label">Fotos <span className="text-red-700" aria-hidden="true">*</span></legend>
             <p className="hint">Envie a foto ou cole o link de cada uma. A primeira é a capa.</p>
-            <ImageUploader idPrefix="g-upload" onPendingChange={setPhotoPending} onAdd={(item) => {
-              const empty = form.images.findIndex((img) => !img.src.trim());
-              patch({ images: empty >= 0 ? form.images.map((img, i) => (i === empty ? item : img)) : [...form.images, item] });
-            }} />
-            {photoPending && <p className="hint" role="status">Conclua ou descarte a foto antes de salvar.</p>}
+            <ImageUploader idPrefix="g-upload" onPendingChange={setPhotoPending} onAdd={({ src, alt }) => setForm((previous) => {
+              const empty = previous.images.findIndex((image) => !image.src.trim());
+              const item = { src, alt };
+              const images = empty >= 0
+                ? previous.images.map((image, index) => index === empty ? item : image)
+                : [...previous.images, item];
+              return { ...previous, images };
+            })} />
+            {photoPending && <p className="hint" role="status">Conclua ou descarte os envios de fotos antes de salvar.</p>}
             {form.images.map((img, idx) => (
               <div key={idx} className="flex flex-wrap items-center gap-2">
                 <ImageThumb src={img.src} className="w-10 h-10" />

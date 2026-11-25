@@ -15,7 +15,7 @@ describe('textos do cadastro e da prévia da viagem', () => {
   it('segue a ordem dos blocos (essencial, embarque, experiência, roteiro, publicação) e deixa ajudas opcionais discretas', () => {
     const order = [
       'label="Nome da viagem"', 'label="Data de saída"', 'label="Valor (R$)"',
-      'label="Horário de saída"', 'Embarque</span>',
+      'label="Horário da viagem"', 'Embarque</span>',
       'label="Resumo da experiência"', 'Fotos da viagem', 'label="Texto de destaque no card"', 'label="Intensidade da atividade"', 'label="O que inclui"',
       'label="Roteiro"', 'label="Informações importantes"', 'label="Observações do percurso"',
     ].map(text => form.indexOf(text));
@@ -30,7 +30,10 @@ describe('textos do cadastro e da prévia da viagem', () => {
   });
 
   it('descreve horários e opções com linguagem de viagem', () => {
-    expect(form).toContain('label="Horário como texto (opcional)"');
+    expect(form).toContain('label="Horário da viagem"');
+    expect(form).not.toContain('label="Horário como texto (opcional)"');
+    expect(form).not.toContain('label="Horário de saída"');
+    expect(form).not.toContain('label="Horário de volta"');
     expect(form).not.toContain('Outros detalhes da viagem');
     expect(form).toContain('label="Distância do percurso"');
     expect(form).not.toContain('label="Horário em texto livre"');

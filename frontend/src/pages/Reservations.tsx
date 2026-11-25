@@ -11,6 +11,7 @@ import Field from '../components/Field';
 import EmptyState from '../components/EmptyState';
 import ErrorState from '../components/ErrorState';
 import Pagination from '../components/Pagination';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 type ReservationStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED';
 interface Installment { id: string; amountCents: number; dueDate: string | null; paidAt: string | null }
@@ -76,6 +77,7 @@ const withSelected = (items: Option[], ...selected: (Option | null)[]) => {
 };
 
 export default function Reservations() {
+  useDocumentTitle('Reservas');
   const { user } = useAuth();
   const { toast } = useToast();
   const isAdmin = user?.role === 'admin';

@@ -45,6 +45,12 @@ export function displayTime(value: string | null | undefined): string {
   return inputToTime(trimmed) || trimmed;
 }
 
+/** Texto único exibido no formulário para horários antigos com campos separados. */
+export function scheduleText(schedule: StoredSchedule): string {
+  const fields = scheduleToFields(schedule);
+  return [displayTime(schedule.departureTime) || displayTime(fields.startTime), displayTime(schedule.returnTime) || displayTime(fields.endTime)].filter(Boolean).join(' às ');
+}
+
 const datePart = (iso: string | null | undefined) => isoToLocalInput(iso).slice(0, 10);
 
 // Hora de um momento: a hora guardada (05h30) ou, na falta dela, a hora real do instante.
@@ -93,4 +99,16 @@ export function fieldsToSchedule(fields: ScheduleFields, original?: StoredSchedu
   const start = momentToStored(fields.startDate, fields.startTime, base.startDateISO, base.departureTime, { date: was.startDate, time: was.startTime });
   const end = momentToStored(fields.endDate, fields.endTime, base.endDateISO, base.returnTime, { date: was.endDate, time: was.endTime });
   return { startDateISO: start.iso, departureTime: start.time, endDateISO: end.iso, returnTime: end.time };
+}
+
+/** Alterar a faixa livre substitui os horários legados, inclusive os embutidos no ISO. */
+export function fieldsToScheduleWithText(fields: ScheduleFields, original: StoredSchedule, textChanged: boolean) {
+  const result = fieldsToSchedule(fields, original);
+  if (!textChanged) return result;
+  return {
+    startDateISO: fields.startDate ? dateOnlyIso(fields.startDate) : null,
+    endDateISO: fields.endDate ? dateOnlyIso(fields.endDate) : null,
+    departureTime: null,
+    returnTime: null,
+  };
 }

@@ -1,5 +1,12 @@
 # Estado da produção na Oracle
 
+## Publicação de interface e mídia (25 de novembro de 2026, 21:13 UTC)
+
+- Publicados o painel, site e API preparados da árvore `c8d006595271aa8543543d0bc8a497c695788642`; pacote SHA-256 `5adb6a02e69d18465dda10fa8d294dd45b70a6eb532b3f4a88bce94d2d5fedd5`. Sem migração de banco. Retorno de código e painel em `/srv/overtrip/retorno-candidate-20261125-211354-418920`; backup SQLite validado em `/var/backups/overtrip/overtrip-20261125-211354.db.gz`.
+- Instalados FFmpeg e Bubblewrap, com perfil AppArmor específico fornecido pelo pacote Ubuntu, sem desativar a restrição global de namespaces. O processamento de um MP4 sintético passou na VM com as proteções da unidade da API. MP4 aceita H.264 e áudio AAC opcional, até 15 MiB e cinco minutos. A cópia dos uploads foi conferida byte a byte; o backup incremental passou a incluir MP4.
+- API, assistente, Caddy e timer de backup ativos; `/`, `/admin/`, `/health` e `/api/public/trips` verificados. Nenhum upload autenticado real ou pagamento Pix real foi realizado em produção. A viagem de Coqueirinho teve resumo e unidade de preço corrigidos, preservando os demais campos.
+- Testes locais: frontend e API compilados; suíte completa teve 1289 testes aprovados, seis ignorados e quatro falhas (três expectativas atualizadas e aprovadas, um teste temporal de sandbox aprovado isoladamente). Testes direcionados de vídeo e isolamento, e de navegador para seleção múltipla, passaram.
+
 ## IA por texto ativada: Groq (principal) + xAI/Grok (reserva, 25 de novembro de 2026, 19:30 UTC)
 
 - Ativada a ajuda de IA (bloco "Colar texto e sugerir com IA") em produção, pela primeira vez. `/etc/overtrip/env` recebeu `GROQ_API_KEY`, `XAI_API_KEY` e `AI_PROVIDER_ORDER=groq,xai` (arquivo root:600, igual às outras chaves já lá). `overtrip-api` reiniciado.

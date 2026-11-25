@@ -1,12 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ImagePlus, Plus, Star, X } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
-import { isValidImageSrc, IMAGE_SRC_MESSAGE, isUploadedMediaSrc } from '../lib/imageSrc';
+import { isValidTripMediaSrc, IMAGE_SRC_MESSAGE, isUploadedVideoSrc, isUploadedMediaSrc } from '../lib/imageSrc';
 import { locationMapUrl, LocationResult, parseLocationResults } from '../lib/locationSearch';
 import ImageThumb from './ImageThumb';
 import ImageUploader from './ImageUploader';
 import Button from './Button';
 import { imageSourceLabel } from '../lib/assetUrl';
+import { DEPARTURE_PRESETS } from '../lib/tripFormOptions';
 
 /** Pesquisa um endereço no Photon (serviço de geocodificação de terceiro, sem chave de API). */
 async function searchPhoton(query: string, signal: AbortSignal): Promise<LocationResult[]> {
@@ -137,7 +138,7 @@ export function MediaInput({ value, onChange, inputId, onPendingChange, onLinkPe
   const handleAdd = () => {
     const src = newSrc.trim();
     if (!src) return;
-    if (!isValidImageSrc(src)) { toast.error(IMAGE_SRC_MESSAGE); return; }
+    if (!isValidTripMediaSrc(src)) { toast.error(IMAGE_SRC_MESSAGE); return; }
     onChange([...value, { src, alt: '', type: VIDEO_EXT.test(src) ? 'video' : 'image' }]);
     setNewSrc('');
     onLinkPendingChange?.(false);
@@ -148,22 +149,23 @@ export function MediaInput({ value, onChange, inputId, onPendingChange, onLinkPe
 
   return (
     <div className="space-y-3">
-      <ImageUploader idPrefix={`${inputId}-upload`} onPendingChange={onPendingChange} onAdd={(item) => onChange([...value, { ...item, type: 'image' }])} />
+      <ImageUploader allowVideo idPrefix={`${inputId}-upload`} onPendingChange={onPendingChange} onAdd={(item) => onChange([...value, item])} />
       <div className="flex gap-2">
         <input
           id={inputId}
           type="text"
           className="input flex-1 min-w-0"
-          placeholder="Cole o endereço público da foto"
-          aria-label="Endereço público da foto"
+          placeholder="Cole o endereço público da foto ou vídeo"
+          aria-label="Endereço público da foto ou vídeo"
           value={newSrc}
           onChange={(e) => { setNewSrc(e.target.value); onLinkPendingChange?.(!!e.target.value.trim()); }}
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAdd(); } }}
         />
         <Button variant="primary" onClick={handleAdd} icon={<ImagePlus className="w-4 h-4" aria-hidden="true" />}>
-          <span className="hidden sm:inline">Adicionar foto</span><span className="sm:hidden">Adicionar</span>
+          <span className="hidden sm:inline">Adicionar foto ou vídeo</span><span className="sm:hidden">Adicionar</span>
         </Button>
       </div>
+      <p className="hint">Envie um vídeo MP4 H.264 de até 15 MiB e 5 minutos, ou adicione o link direto de um arquivo MP4, WebM ou MOV.</p>
       {value.length === 0 ? (
         <p className="text-sm text-surface-600">Nenhuma foto ainda. A primeira que você adicionar vira a capa.</p>
       ) : (
@@ -171,36 +173,36 @@ export function MediaInput({ value, onChange, inputId, onPendingChange, onLinkPe
           {value.map((item, index) => (
             <li key={index} className="p-2 bg-surface-50 rounded-lg border border-surface-200">
               <div className="flex items-center gap-2">
-                <ImageThumb src={item.src} />
+                {item.type === 'video' ? <video controls preload="metadata" src={isUploadedVideoSrc(item.src) ? item.src.replace('/api/public/media/', '/api/media/') : item.src} aria-label={item.alt || 'Prévia do vídeo'} className="w-24 h-16 rounded shrink-0" /> : <ImageThumb src={item.src} />}
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-surface-800">{imageSourceLabel(item.src)}</p>
                   <button type="button" className="mt-1 text-xs font-semibold text-surface-700 hover:underline" aria-expanded={editingSrcIndex === index} onClick={() => setEditingSrcIndex(editingSrcIndex === index ? null : index)}>
-                    {editingSrcIndex === index ? 'Fechar endereço' : 'Alterar endereço da foto'}
+                    {editingSrcIndex === index ? 'Fechar endereço' : `Alterar endereço ${item.type === 'video' ? 'do vídeo' : 'da foto'}`}
                   </button>
                 </div>
-                {index === 0 ? (
+                {item.type !== 'video' && (index === value.findIndex(media => media.type !== 'video') ? (
                   <span className="badge badge-info shrink-0">Capa</span>
                 ) : (
                   <button type="button" className="btn-icon shrink-0" onClick={() => onChange([value[index], ...value.filter((_, i) => i !== index)])} aria-label={`Usar a foto ${index + 1} como capa`} title="Usar como capa">
                     <Star className="w-4 h-4" aria-hidden="true" />
                   </button>
-                )}
+                ))}
                 {item.type === 'video' && <span className="badge badge-info shrink-0">Vídeo</span>}
-                <button type="button" className="btn-icon text-red-700 hover:bg-red-50 shrink-0" onClick={() => onChange(value.filter((_, i) => i !== index))} aria-label={`Remover foto ${index + 1}`}>
+                <button type="button" className="btn-icon text-red-700 hover:bg-red-50 shrink-0" onClick={() => onChange(value.filter((_, i) => i !== index))} aria-label={`Remover ${item.type === 'video' ? 'vídeo' : 'foto'} ${index + 1}`}>
                   <X className="w-4 h-4" aria-hidden="true" />
                 </button>
               </div>
-              {editingSrcIndex === index && <input type="text" className="input mt-2" value={item.src} onChange={(e) => update(index, { src: e.target.value })} aria-label={`Endereço da foto ${index + 1}`} />}
-              {isUploadedMediaSrc(item.src) ? (
+              {editingSrcIndex === index && <input type="text" className="input mt-2" value={item.src} onChange={(e) => update(index, { src: e.target.value, type: VIDEO_EXT.test(e.target.value) ? 'video' : 'image' })} aria-label={`Endereço ${item.type === 'video' ? 'do vídeo' : 'da foto'} ${index + 1}`} />}
+              {(isUploadedMediaSrc(item.src) || isUploadedVideoSrc(item.src)) ? (
                 <div className="mt-1 ml-14 text-sm">
-                  <label className="label" htmlFor={`${inputId}-alt-${index}`}>O que aparece nesta foto? <span className="text-red-700">(obrigatório)</span></label>
-                  <input id={`${inputId}-alt-${index}`} type="text" className={`input ${item.alt.trim() ? '' : 'border-red-500'}`} value={item.alt} aria-required="true" aria-invalid={!item.alt.trim()} onChange={(e) => update(index, { alt: e.target.value })} placeholder="Ex.: Grupo atravessando o rio na trilha" aria-label={`O que aparece na foto ${index + 1}? (obrigatório)`} />
+                  <label className="label" htmlFor={`${inputId}-alt-${index}`}>O que aparece {item.type === 'video' ? 'neste vídeo' : 'nesta foto'}? <span className="text-red-700">(obrigatório)</span></label>
+                  <input id={`${inputId}-alt-${index}`} type="text" className={`input ${item.alt.trim() ? '' : 'border-red-500'}`} value={item.alt} aria-required="true" aria-invalid={!item.alt.trim()} onChange={(e) => update(index, { alt: e.target.value })} placeholder="Ex.: Grupo atravessando o rio na trilha" aria-label={`O que aparece ${item.type === 'video' ? 'no vídeo' : 'na foto'} ${index + 1}? (obrigatório)`} />
                   <p className="hint mt-1">Ajuda pessoas que usam leitor de tela a entender a imagem.</p>
                 </div>
               ) : (
               <div className="mt-2 ml-14 text-sm">
-                <label className="label" htmlFor={`${inputId}-alt-${index}`}>O que aparece nesta foto? <span className="font-normal text-surface-500">(opcional)</span></label>
-                <input id={`${inputId}-alt-${index}`} type="text" className="input" value={item.alt} onChange={(e) => update(index, { alt: e.target.value })} placeholder="Ex.: Rio cercado por árvores" aria-label={`O que aparece na foto ${index + 1}? (opcional)`} />
+                <label className="label" htmlFor={`${inputId}-alt-${index}`}>O que aparece {item.type === 'video' ? 'neste vídeo' : 'nesta foto'}? <span className="font-normal text-surface-500">(opcional)</span></label>
+                <input id={`${inputId}-alt-${index}`} type="text" className="input" value={item.alt} onChange={(e) => update(index, { alt: e.target.value })} placeholder="Ex.: Rio cercado por árvores" aria-label={`O que aparece ${item.type === 'video' ? 'no vídeo' : 'na foto'} ${index + 1}? (opcional)`} />
                 <p className="hint mt-1">Se deixar em branco, o site usa o nome da viagem para descrever a imagem.</p>
                 {item.focus !== undefined && (
                   <input type="text" className="input mt-2" value={item.focus} onChange={(e) => update(index, { focus: e.target.value })} placeholder="Parte da foto em destaque" aria-label={`Parte da foto ${index + 1} em destaque`} />
@@ -218,7 +220,7 @@ export function MediaInput({ value, onChange, inputId, onPendingChange, onLinkPe
 export type Departure = { time: string; place: string; city: string; mapsUrl?: string | null; mapsQuery?: string | null; lat?: number | null; lng?: number | null; orderIndex: number };
 
 /** Lugares de onde o grupo sai, cada um com seu horário. */
-export function DeparturesInput({ value, onChange, onPendingChange }: { value: Departure[]; onChange: (val: Departure[]) => void; onPendingChange?: (pending: boolean) => void }) {
+export function DeparturesInput({ value, onChange, onPendingChange, seed }: { value: Departure[]; onChange: (val: Departure[]) => void; onPendingChange?: (pending: boolean) => void; seed?: { place: string; city: string; mapsQuery: string; lat: number | null; lng: number | null; requestId: number } | null }) {
   const [time, setTime] = useState('');
   const [place, setPlace] = useState('');
   const [city, setCity] = useState('');
@@ -227,6 +229,15 @@ export function DeparturesInput({ value, onChange, onPendingChange }: { value: D
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [locationPickerVersion, setLocationPickerVersion] = useState(0);
   const [missing, setMissing] = useState(false);
+
+  useEffect(() => {
+    if (!seed) return;
+    setTime(''); setPlace(seed.place); setCity(seed.city); setMapsQuery(seed.mapsQuery); setMapsUrl('');
+    setCoords(seed.lat != null && seed.lng != null ? { lat: seed.lat, lng: seed.lng } : null);
+    setLocationPickerVersion(version => version + 1);
+    setMissing(false);
+    onPendingChange?.(true);
+  }, [seed]);
 
   const updatePlaceText = (setter: (value: string) => void, value: string) => {
     setter(value);
@@ -247,6 +258,19 @@ export function DeparturesInput({ value, onChange, onPendingChange }: { value: D
 
   return (
     <div className="space-y-3">
+      <label className="block text-sm font-medium text-surface-700">
+        Local frequente
+        <select className="input mt-1" value="" onChange={(event) => {
+          const preset = DEPARTURE_PRESETS.find(item => item.label === event.target.value);
+          if (!preset) return;
+          setPlace(preset.point); setCity(preset.city); setMapsQuery(preset.mapsQuery);
+          setMapsUrl(''); setCoords(null); setLocationPickerVersion(version => version + 1);
+          onPendingChange?.(true);
+        }}>
+          <option value="">Escolha um local ou preencha abaixo</option>
+          {DEPARTURE_PRESETS.map(preset => <option key={preset.label} value={preset.label}>{preset.label}</option>)}
+        </select>
+      </label>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2" onInput={(event) => onPendingChange?.(Array.from(event.currentTarget.querySelectorAll('input')).some((input) => !!input.value.trim()))}>
         <input type="text" className="input" placeholder="Horário (ex.: 06h00)" aria-label="Horário da saída" value={time} onChange={(e) => setTime(e.target.value)} onKeyDown={onEnter} />
         <input type="text" className="input" placeholder="Local (ex.: Shopping)" aria-label="Local da saída" value={place} onChange={(e) => updatePlaceText(setPlace, e.target.value)} onKeyDown={onEnter} />
@@ -256,6 +280,11 @@ export function DeparturesInput({ value, onChange, onPendingChange }: { value: D
       </div>
       <LocationPicker key={locationPickerVersion} coords={coords} onConfirm={(result) => setCoords({ lat: result.lat, lng: result.lng })} onClear={() => setCoords(null)} />
       <Button variant="primary" onClick={handleAdd} icon={<Plus className="w-4 h-4" aria-hidden="true" />}>Adicionar saída</Button>
+      {(time || place || city || mapsUrl || mapsQuery || coords) && <button type="button" className="btn-secondary btn-sm ml-2" onClick={() => {
+        setTime(''); setPlace(''); setCity(''); setMapsUrl(''); setMapsQuery(''); setCoords(null); setMissing(false);
+        setLocationPickerVersion(version => version + 1);
+        onPendingChange?.(false);
+      }}>Descartar preenchimento</button>}
       {missing && <p className="field-error" role="alert">Preencha horário, local e cidade para adicionar.</p>}
       {value.length > 0 && (
         <ul className="space-y-1">

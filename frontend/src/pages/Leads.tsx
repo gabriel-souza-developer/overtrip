@@ -8,6 +8,7 @@ import Button from '../components/Button';
 import Modal from '../components/Modal';
 import Field from '../components/Field';
 import { followUpDateKey, followUpDateLabel } from '../lib/leadFollowUp';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 const STAGES: Record<LeadStage, string> = { NEW: 'Novo', CONTACTED: 'Contato realizado', NEGOTIATING: 'Em negociação', WON: 'Convertido', LOST: 'Encerrado' };
 const empty = (): LeadInput => ({ name: '', phone: '', email: '', stage: 'NEW', tripId: '', responsible: '', nextFollowUpAt: null, notes: '' });
@@ -15,6 +16,7 @@ const dateInput = (v: string | null) => followUpDateKey(v);
 
 
 export default function Leads() {
+  useDocumentTitle('Interessados');
   const { user } = useAuth();
   const [items, setItems] = useState<Lead[]>([]); const [trips, setTrips] = useState<Pick<Trip, 'id' | 'title'>[]>([]);
   const [tripLoading, setTripLoading] = useState(false); const [tripError, setTripError] = useState('');

@@ -17,6 +17,7 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import Button from '../components/Button';
 import Field from '../components/Field';
 import StatusBadge, { type StatusTone } from '../components/StatusBadge';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 const STATUS_LABELS: Record<OrgReservationStatus, string> = { PENDING: 'Pendente', CONFIRMED: 'Confirmada', CANCELLED: 'Cancelada' };
 // Mesma lógica de pages/Trips.tsx: cores fixas por estado, nunca derivadas da marca.
@@ -47,6 +48,7 @@ interface InstallmentForm { amountText: string; dueDate: string }
 const emptyInstallmentForm: InstallmentForm = { amountText: '', dueDate: '' };
 
 export default function OrganizationReservations() {
+  useDocumentTitle('Reservas');
   const { organization, role } = useOutletContext<OrganizationOutletContext>();
   const allowed = role === 'OWNER' || role === 'ADMIN';
   const [rows, setRows] = useState<OrgReservation[]>([]);

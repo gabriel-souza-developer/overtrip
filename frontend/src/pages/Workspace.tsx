@@ -5,6 +5,7 @@ import { useAuth } from '../App';
 import WorkspaceLodging from './WorkspaceLodging';
 import WorkspaceRestaurant from './WorkspaceRestaurant';
 import WorkspaceOverview from './WorkspaceOverview';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import './workspace.css';
 
 interface Organization { id: string; name: string; slug: string; niche: string; role: string }
@@ -14,6 +15,7 @@ const roleLabel = (role: string) => ({ OWNER: 'Proprietário', ADMIN: 'Administr
 
 /** Espaço isolado: todas as operações usam apenas APIs da plataforma. */
 export default function Workspace() {
+  useDocumentTitle('Espaço');
   const { user, logout } = useAuth();
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [current, setCurrent] = useState<Organization | null>(null);

@@ -52,3 +52,24 @@ test('o resumo destaca próximas viagens e separa as concluídas', async ({ page
   await expect(page.getByText('De hoje em diante')).toBeVisible();
   await expect(page.getByRole('link', { name: /Viagens abertas/ })).toHaveAttribute('href', '/trips?status=OPEN&period=all');
 });
+
+test('escurecer rascunhos altera apenas o fundo das linhas em rascunho', async ({ page }) => {
+  const data = [
+    trip('draft', 'Passeio em preparação', '2026-12-10', 'DRAFT'),
+    trip('open', 'Passeio publicado', '2026-12-10'),
+  ];
+  await page.route(url => url.pathname === '/api/trips', route => route.fulfill({
+    json: { data, pagination: { page: 1, limit: 20, total: 2, totalPages: 1 } },
+  }));
+  await page.goto('/trips');
+  const draft = page.getByRole('row').filter({ hasText: 'Passeio em preparação' });
+  const published = page.getByRole('row').filter({ hasText: 'Passeio publicado' });
+  const toggle = page.getByRole('checkbox', { name: 'Escurecer rascunhos' });
+  await expect(draft).toBeVisible();
+  const background = await draft.evaluate(row => getComputedStyle(row).backgroundColor);
+  await toggle.check();
+  await expect(draft).not.toHaveCSS('background-color', background);
+  await expect(published).toHaveCSS('background-color', background);
+  await toggle.uncheck();
+  await expect(draft).toHaveCSS('background-color', background);
+});

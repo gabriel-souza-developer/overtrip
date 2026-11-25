@@ -4,9 +4,11 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowRight, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import Button from '../components/Button';
 import { useAuth } from '../App';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import './login.css';
 
 export default function Login() {
+  useDocumentTitle('Entrar');
   const platformMode = import.meta.env.VITE_PLATFORM_MODE === 'true';
   const destination = platformMode ? '/espaco' : '/dashboard';
   const { login, user } = useAuth();

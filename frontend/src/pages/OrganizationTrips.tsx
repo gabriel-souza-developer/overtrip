@@ -27,6 +27,7 @@ import TripCardPreview from '../components/TripCardPreview';
 import TripProposalPreview from '../components/TripProposalPreview';
 import StatusBadge from '../components/StatusBadge';
 import AiDraftBlock from '../components/AiDraftBlock';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 const CAN_MANAGE_TRIPS = (role: string) => role === 'OWNER' || role === 'ADMIN';
 const INTENSITY_OPTIONS: OrgTripIntensity[] = ['leve', 'moderado', 'intenso', 'extremo'];
@@ -34,8 +35,8 @@ const INTENSITY_OPTIONS: OrgTripIntensity[] = ['leve', 'moderado', 'intenso', 'e
 // previewSrc opcional (não no tipo de leitura da API, que sempre o traz):
 // uma foto recém-adicionada pelo ImageUploader já chega com previewSrc, mas
 // o tipo precisa aceitar os dois casos antes de salvar.
-type TripMediaForm = { src: string; alt: string; previewSrc?: string; focus?: string };
-const stripPreview = ({ src, alt, focus }: TripMediaForm): { src: string; alt: string; focus?: string } => ({ src, alt, ...(focus ? { focus } : {}) });
+type TripMediaForm = { type?: 'image' | 'video'; src: string; alt: string; previewSrc?: string; focus?: string };
+const stripPreview = ({ src, alt, focus, type }: TripMediaForm) => ({ src, alt, ...(type === 'video' ? { type } : {}), ...(focus ? { focus } : {}) });
 
 // A IA sugere só a data (AAAA-MM-DD, ver aiTripDraft.ts); o campo desta tela
 // é datetime-local (data e hora juntas). Mantém a hora já digitada, ou meia-noite
@@ -83,6 +84,8 @@ const formFromDetail = (trip: OrgTripDetail): TripForm => ({
 });
 
 export default function OrganizationTrips() {
+  useDocumentTitle('Viagens');
+  const [shadeDrafts, setShadeDrafts] = useState(false);
   const { organization, role } = useOutletContext<OrganizationOutletContext>();
   const navigate = useNavigate();
   const [urlParams] = useSearchParams();
@@ -425,6 +428,10 @@ export default function OrganizationTrips() {
           <option value="">Todas as situações</option>
           {Object.entries(TRIP_STATUS_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select>
+        <label className="inline-flex min-h-10 items-center gap-2 text-sm text-surface-800">
+          <input type="checkbox" checked={shadeDrafts} onChange={event => setShadeDrafts(event.target.checked)} />
+          Escurecer rascunhos
+        </label>
       </FilterBar>
       {error && <ErrorState message={error} onRetry={() => void load(pagination.page)} />}
       {error ? null : loading ? (
@@ -439,7 +446,7 @@ export default function OrganizationTrips() {
       ) : (
         <div className="grid gap-3">
           {trips.map((trip) => (
-            <article key={trip.id} className="card p-4 sm:p-5 flex flex-wrap gap-3 items-start justify-between">
+            <article key={trip.id} className={`card p-4 sm:p-5 flex flex-wrap gap-3 items-start justify-between ${shadeDrafts && trip.status === 'DRAFT' ? '!bg-surface-200' : ''}`}>
               <div className="min-w-0 space-y-1">
                 <h2 className="font-semibold text-surface-900 break-words">{trip.title}</h2>
                 <p className="text-sm text-surface-600">{trip.category} · {trip.city} - {trip.region}</p>
@@ -641,15 +648,15 @@ export default function OrganizationTrips() {
             </Field>
 
             <div className="form-group !mb-0">
-              <span className="label">Fotos (opcional)</span>
+              <span className="label">Fotos e vídeos (opcional)</span>
               <p className="hint mb-2">A primeira foto é a capa. Visível só para esta empresa.</p>
               {form.media.length > 0 && (
                 <ul className="space-y-2 mb-2">
                   {form.media.map((item, index) => (
                     <li key={`${item.src}-${index}`} className="flex items-start gap-2 p-2 bg-surface-50 rounded-lg border border-surface-200">
-                      <img src={item.previewSrc ?? item.src} alt={item.alt} className="h-16 w-16 shrink-0 rounded-lg object-cover" />
+                      {item.type === 'video' ? <video controls preload="metadata" aria-label={item.alt} src={item.previewSrc ?? item.src} className="h-16 w-24 shrink-0" /> : <img src={item.previewSrc ?? item.src} alt={item.alt} className="h-16 w-16 shrink-0 rounded-lg object-cover" />}
                       <div className="min-w-0 flex-1">
-                        {index === 0 && <span className="badge badge-info mb-1 inline-block">Capa</span>}
+                        {index === form.media.findIndex(m => m.type !== 'video') && <span className="badge badge-info mb-1 inline-block">Capa</span>}
                         <input className={`input ${item.alt.trim() ? '' : 'border-red-500'}`} value={item.alt} onChange={(e) => updateMediaAlt(index, e.target.value)} placeholder="O que aparece nesta foto? (obrigatório)" aria-label={`O que aparece na foto ${index + 1}? (obrigatório)`} />
                       </div>
                       <button type="button" className="btn-icon text-red-700 hover:bg-red-50 shrink-0" onClick={() => removeMedia(index)} aria-label={`Remover foto ${index + 1}`}><X className="w-4 h-4" aria-hidden="true" /></button>
@@ -658,7 +665,7 @@ export default function OrganizationTrips() {
                 </ul>
               )}
               {form.media.length < 20 && (
-                <ImageUploader idPrefix="org-trip-photo" endpoint={`/organizations/${encodeURIComponent(organization.id)}/tourism/media`} onPendingChange={(pending) => setPendingItem('foto', pending)} onAdd={(item) => patch({ media: [...form.media, { ...item, alt: item.alt || '' }] })} />
+                <ImageUploader allowVideo maxPhotos={20 - form.media.length} idPrefix="org-trip-photo" endpoint={`/organizations/${encodeURIComponent(organization.id)}/tourism/media`} onPendingChange={(pending) => setPendingItem('foto', pending)} onAdd={(item) => patch({ media: [...form.media, { ...item, alt: item.alt || '' }] })} />
               )}
             </div>
 

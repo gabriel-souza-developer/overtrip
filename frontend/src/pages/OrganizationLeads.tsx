@@ -11,6 +11,7 @@ import Pagination from '../components/Pagination';
 import Modal from '../components/Modal';
 import Button from '../components/Button';
 import Field from '../components/Field';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 const STAGE_LABELS: Record<OrgLeadStage, string> = { NEW: 'Novo', CONTACTED: 'Contato realizado', NEGOTIATING: 'Em negociação', WON: 'Convertido', LOST: 'Encerrado' };
 const STAGE_OPTIONS = Object.keys(STAGE_LABELS) as OrgLeadStage[];
@@ -19,6 +20,7 @@ interface LeadForm { name: string; phone: string; email: string; stage: OrgLeadS
 const emptyForm: LeadForm = { name: '', phone: '', email: '', stage: 'NEW', notes: '', responsible: '', followUpDate: '' };
 
 export default function OrganizationLeads() {
+  useDocumentTitle('Interessados');
   const { organization, role } = useOutletContext<OrganizationOutletContext>();
   const allowed = role === 'OWNER' || role === 'ADMIN';
   const [leads, setLeads] = useState<OrgLead[]>([]);

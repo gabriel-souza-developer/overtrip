@@ -1,3 +1,4 @@
+import { extname as pathExtension } from 'node:path';
 import { Router, raw, type Response } from 'express';
 import { createHash } from 'node:crypto';
 import { access } from 'node:fs/promises';
@@ -5,8 +6,9 @@ import { prisma } from '../lib/prisma.js';
 import { asyncHandler, AppError } from '../middleware/errorHandler.js';
 import { assertOrganizationWriteAccess, requireOrganizationMembership, type OrganizationRequest } from '../middleware/organizationContext.js';
 import { createRateLimiter } from '../middleware/rateLimit.js';
-import { assertImageUpload, MEDIA_MAX_BYTES, MediaUploadError } from '../services/mediaUpload.js';
-import { MEDIA_VARIANT_WIDTHS, processImage } from '../services/mediaProcessing.js';
+import { MEDIA_MAX_BYTES, MediaUploadError } from '../services/mediaUpload.js';
+import { MEDIA_VARIANT_WIDTHS } from '../services/mediaProcessing.js';
+import { assertTripUpload, processTripUpload } from '../services/tripMediaUpload.js';
 import { describeExpectedFiles, mediaDirectory, mediaFilePath, mediaFilenames, mediaPublicSrc, MediaWriteCleanupError, removeMediaFiles, reserveStorageKey, writeImageFiles } from '../services/mediaStorage.js';
 import { serveOwnedMediaFile } from '../services/organizationOwnedMedia.js';
 
@@ -35,8 +37,8 @@ type AssetRow = MediaAssetRow;
 export const presentMediaAsset = (organizationId: string, { storageKey, ...asset }: AssetRow) => ({
   ...asset,
   src: asset.path,
-  previewSrc: `/api/organizations/${encodeURIComponent(organizationId)}/tourism/media/${storageKey}${asset.mimeType === 'image/png' ? '.png' : '.jpg'}`,
-  variants: MEDIA_VARIANT_WIDTHS.map((width) => ({ width, src: mediaPublicSrc(`${storageKey}-w${width}.webp`) })),
+  previewSrc: `/api/organizations/${encodeURIComponent(organizationId)}/tourism/media/${storageKey}${pathExtension(asset.path)}`,
+  variants: asset.mimeType === 'video/mp4' ? [] : MEDIA_VARIANT_WIDTHS.map((width) => ({ width, src: mediaPublicSrc(`${storageKey}-w${width}.webp`) })),
 });
 const asHttpError = (error: unknown) => (error instanceof MediaUploadError ? new AppError(error.status, error.message) : error);
 
@@ -49,9 +51,10 @@ router.post('/', requireOrganizationMembership('OWNER', 'ADMIN'),
   raw({ type: () => true, limit: MEDIA_MAX_BYTES, inflate: false }),
   asyncHandler(async (req: OrganizationRequest, res: Response) => {
     const organizationId = req.organizationContext!.organization.id;
-    let body: Buffer;
-    try { body = assertImageUpload(req.get('Content-Type'), req.body).body; }
+    let upload: ReturnType<typeof assertTripUpload>;
+    try { upload = assertTripUpload(req.get('Content-Type'), req.body); }
     catch (error) { throw asHttpError(error); }
+    const { body } = upload;
     const sha256 = createHash('sha256').update(body).digest('hex');
 
     // Mesmo arquivo enviado de novo: reaproveita, mas só dentro do escopo
@@ -60,21 +63,21 @@ router.post('/', requireOrganizationMembership('OWNER', 'ADMIN'),
     const existing = await prisma.mediaAsset.findFirst({ where: { sha256, originalBytes: body.length, publishedAt: { not: null }, organizationId }, select });
     if (existing) {
       const directory = await mediaDirectory();
-      const ext = existing.mimeType === 'image/png' ? 'png' : 'jpg';
-      const files = mediaFilenames(existing.storageKey, ext, MEDIA_VARIANT_WIDTHS);
+      const ext = existing.mimeType === 'video/mp4' ? 'mp4' : existing.mimeType === 'image/png' ? 'png' : 'jpg';
+      const files = mediaFilenames(existing.storageKey, ext, ext === 'mp4' ? [] : MEDIA_VARIANT_WIDTHS);
       const complete = await Promise.all(files.map((f) => access(mediaFilePath(directory, f)).then(() => true, () => false)));
       if (complete.every(Boolean)) { res.status(200).json(presentMediaAsset(organizationId, existing)); return; }
     }
 
     let processed;
-    try { processed = await processImage(body); }
+    try { processed = await processTripUpload(upload); }
     catch (error) { throw asHttpError(error); }
 
     // Mesma sequência pendente -> grava -> publica usada em mediaRoutes.ts
     // (rota legada): o registro existe antes de qualquer arquivo em disco,
     // nunca ao contrário.
     const storageKey = reserveStorageKey();
-    const ext = processed.mimeType === 'image/png' ? 'png' : 'jpg';
+    const ext = processed.ext;
     const fileIntegrity = JSON.stringify(describeExpectedFiles(processed, storageKey));
     const pending = await prisma.mediaAsset.create({ data: {
       storageKey, path: mediaPublicSrc(`${storageKey}.${ext}`), mimeType: processed.mimeType,

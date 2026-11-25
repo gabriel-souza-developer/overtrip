@@ -5,6 +5,19 @@ import { buildSuggestionRows, DRAFT_KEYS, type DraftKey, type SuggestionRow, typ
 import Button from './Button';
 import { mergeUnique } from '../lib/includesServices';
 
+const DRAFT_GROUPS = ['Identificação', 'Local e data', 'Preço', 'Detalhes da viagem', 'Conteúdo e roteiro'] as const;
+const DRAFT_GROUP_BY_KEY: Record<DraftKey, typeof DRAFT_GROUPS[number]> = {
+  title: 'Identificação', headlineDisplay: 'Identificação', category: 'Identificação',
+  region: 'Local e data', city: 'Local e data', startDateISO: 'Local e data', endDateISO: 'Local e data',
+  departureTime: 'Local e data', departureTolerance: 'Local e data', returnTime: 'Local e data', scheduleInfo: 'Local e data',
+  meetingCity: 'Local e data', meetingPoint: 'Local e data', meetingDetails: 'Local e data',
+  priceValue: 'Preço', priceUnit: 'Preço', free: 'Preço',
+  intensityClass: 'Detalhes da viagem', spotsLeft: 'Detalhes da viagem', trailDistance: 'Detalhes da viagem',
+  supportPoint: 'Detalhes da viagem', supportPointInfo: 'Detalhes da viagem',
+  description: 'Conteúdo e roteiro', includes: 'Conteúdo e roteiro', includedServices: 'Conteúdo e roteiro',
+  itinerary: 'Conteúdo e roteiro', routeNotes: 'Conteúdo e roteiro', importantInfo: 'Conteúdo e roteiro',
+};
+
 interface Props {
   form: Record<string, unknown>;
   /** Valores padrão do formulário novo (contam como "vazio"). */
@@ -111,20 +124,34 @@ export default function AiDraftBlock({ form, defaults, onApply, api = aiApi, sho
               {allChecked ? 'Desmarcar todos' : 'Marcar todos'}
             </Button>
           </div>
-          <ul className="divide-y divide-surface-200 border border-surface-200 rounded-lg">
-            {rows.map(r => (
-              <li key={r.key} className="p-3">
-                <label className="checkbox-label items-start">
-                  <input type="checkbox" className="checkbox-input mt-1" checked={checked.has(r.key)} onChange={() => toggle(r.key)} />
-                  <span className="text-sm min-w-0">
-                    <span className="font-semibold text-surface-900">{r.label}{r.hasCurrent ? ' (já preenchido — marque para substituir)' : ''}</span>
-                    <span className="block text-surface-600 break-words">Atual: {r.current}</span>
-                    <span className="block text-surface-900 break-words">Sugerido: {r.suggested}</span>
-                  </span>
-                </label>
-              </li>
-            ))}
-          </ul>
+          <div className="space-y-3">
+            {DRAFT_GROUPS.map(group => {
+              const groupRows = rows.filter(r => DRAFT_GROUP_BY_KEY[r.key] === group);
+              if (groupRows.length === 0) return null;
+              return (
+                <section key={group} className="overflow-hidden rounded-lg border border-surface-200" aria-label={group}>
+                  <h3 className="border-b border-surface-200 bg-surface-50 px-4 py-3 text-sm font-semibold text-surface-900">{group}</h3>
+                  <ul className="divide-y divide-surface-200">
+                    {groupRows.map(r => (
+                      <li key={r.key} className={r.hasCurrent ? 'bg-amber-50 p-4' : 'p-4'}>
+                        <label className="checkbox-label items-start">
+                          <input type="checkbox" className="checkbox-input mt-1" checked={checked.has(r.key)} onChange={() => toggle(r.key)} />
+                          <span className="text-sm min-w-0 flex-1">
+                            <span className="flex flex-wrap items-center gap-2">
+                              <span className="font-semibold text-surface-900">{r.label}</span>
+                              <span className={r.hasCurrent ? 'badge badge-warning' : 'badge badge-success'}>{r.hasCurrent ? 'Já preenchido — marque para substituir' : 'Campo vazio'}</span>
+                            </span>
+                            <span className="block mt-2 text-surface-600 break-words">Atual: {r.current}</span>
+                            <span className="block mt-1 text-surface-900 break-words"><span className="font-medium">Sugerido:</span> {r.suggested}</span>
+                          </span>
+                        </label>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              );
+            })}
+          </div>
           <Button variant="primary" onClick={apply} disabled={checked.size === 0}>Usar selecionados ({checked.size})</Button>
         </div>
       )}

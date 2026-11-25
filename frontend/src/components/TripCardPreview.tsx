@@ -44,7 +44,7 @@ function PreviewCover({ src, alt, previewSrc }: { src: string; alt: string; prev
 
 export default function TripCardPreview({ trip, illustrative = false }: { trip: PreviewTrip; illustrative?: boolean }) {
   const [includesOpen, setIncludesOpen] = useState(false);
-  const cover = trip.media.find(item => item.type !== 'video') ?? trip.media[0];
+  const cover = trip.media.find(item => item.type !== 'video');
   const title = trip.title.trim() || 'Nome da viagem';
   const intensity = ({ leve: 'leve', moderado: 'moderada', intenso: 'intensa', extremo: 'extrema' } as Record<string, string>)[trip.intensityClass?.trim().toLowerCase() || ''] || trip.intensityClass?.trim();
   // Mesmas regras do site (js/render.js): hora no formato '05h30' e embarque "Cidade (Local)".

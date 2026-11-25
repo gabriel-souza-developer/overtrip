@@ -1,4 +1,6 @@
-import { TRIPS } from "./data.js";
+// A URL deve coincidir com a usada pela página e pelos cards: módulos com
+// parâmetros diferentes têm instâncias separadas no navegador.
+import { TRIPS } from "./data.js?v=status-finalizadas-20261110-v2";
 import { trackPixClick } from "./analytics.js";
 
 const PIX_KEY = "contato@overtrip.com.br";

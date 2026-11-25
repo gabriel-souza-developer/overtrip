@@ -5,13 +5,13 @@ import { homedir } from 'node:os';
 import path from 'node:path';
 import { AppError } from '../middleware/errorHandler.js';
 import { MEDIA_PUBLIC_PREFIX } from '../validators/imageSrc.js';
-import type { ProcessedImage } from './mediaProcessing.js';
+import type { ProcessedTripMedia } from './tripMediaUpload.js';
 
 /** Pasta publicada pelo Caddy: as imagens nunca são gravadas lá. */
 const PUBLIC_SITE_ROOT = '/srv/overtrip-public';
 
 /** Nome de arquivo gerado pelo servidor: 32 hex + versão principal ou variante WebP. */
-export const MEDIA_FILE_PATTERN = /^[0-9a-f]{32}(?:\.(?:jpg|png)|-w(?:640|960|1280)\.webp)$/;
+export const MEDIA_FILE_PATTERN = /^[0-9a-f]{32}(?:\.(?:jpg|png|mp4)|-w(?:640|960|1280)\.webp)$/;
 
 export function defaultUploadsDir(env: NodeJS.ProcessEnv = process.env): string {
   if (env.UPLOADS_DIR) return env.UPLOADS_DIR;
@@ -45,7 +45,7 @@ export function mediaStorageKeyFromFilename(filename: string): string {
   return filename.slice(0, 32);
 }
 
-export function mediaFilenames(key: string, ext: 'jpg' | 'png', widths: readonly number[]): string[] {
+export function mediaFilenames(key: string, ext: 'jpg' | 'png' | 'mp4', widths: readonly number[]): string[] {
   return [`${key}.${ext}`, ...widths.map((width) => `${key}-w${width}.webp`)];
 }
 
@@ -72,7 +72,7 @@ export interface FileIntegrityEntry { name: string; sizeBytes: number; sha256: s
  * gravado, não apenas que um arquivo com aquele nome existe (pode estar
  * truncado por uma queda no meio da escrita).
  */
-export function describeExpectedFiles(image: ProcessedImage, key: string): FileIntegrityEntry[] {
+export function describeExpectedFiles(image: ProcessedTripMedia, key: string): FileIntegrityEntry[] {
   const filenames = mediaFilenames(key, image.ext, image.variants.map((v) => v.width));
   const buffers = [image.main, ...image.variants.map((v) => v.buffer)];
   return filenames.map((name, index) => ({
@@ -132,7 +132,7 @@ export async function readMediaFileForServing(directory: string, filename: strin
   }
 }
 
-export async function writeImageFiles(image: ProcessedImage, key: string): Promise<{ directory: string; filenames: string[] }> {
+export async function writeImageFiles(image: ProcessedTripMedia, key: string): Promise<{ directory: string; filenames: string[] }> {
   const directory = await mediaDirectory();
   const filenames = mediaFilenames(key, image.ext, image.variants.map((v) => v.width));
   const buffers = [image.main, ...image.variants.map((v) => v.buffer)];

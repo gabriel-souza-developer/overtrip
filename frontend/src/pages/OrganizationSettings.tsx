@@ -14,6 +14,7 @@ import PageHeader from '../components/PageHeader';
 import EmptyState from '../components/EmptyState';
 import Field from '../components/Field';
 import Button from '../components/Button';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 const FALLBACK_PRICE_UNIT = 'por pessoa';
 
@@ -40,6 +41,7 @@ const effectivePriceUnit = (value: string | null) => value ?? FALLBACK_PRICE_UNI
 const effectiveBrandColor = (value: string | null) => value ?? FALLBACK_BRAND_COLOR;
 
 export default function OrganizationSettings() {
+  useDocumentTitle('Configurações');
   const { organization, role, updateOrganization } = useOutletContext<OrganizationOutletContext>();
   const allowed = role === 'OWNER' || role === 'ADMIN';
   const { toast } = useToast();

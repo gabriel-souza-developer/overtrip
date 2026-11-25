@@ -50,7 +50,7 @@ test.beforeEach(async ({ page }) => {
 
 async function openTripPhotos(page: Page) {
   await page.goto('/trips/new');
-  await expect(page.getByText('Enviar foto')).toBeVisible();
+  await expect(page.locator('label[for="media-link-upload-file"]')).toBeVisible();
   expect(await page.evaluate(() => localStorage.getItem('auth_token'))).toBeNull();
 }
 
@@ -140,4 +140,39 @@ test('galeria aceita foto enviada no lugar do link', async ({ page }) => {
   await expect(page.getByLabel('Endereço da foto 1')).toHaveValue(SRC);
   await expect(page.getByLabel('O que aparece na foto 1? (obrigatório)')).toHaveValue('Pôr do sol no mirante');
   await page.screenshot({ path: `${SHOTS}/painel-upload-galeria.png` });
+});
+
+test('envia várias fotos e mantém descrição e erros separados por arquivo', async ({ page }) => {
+  const secondSrc = SRC.replace(KEY, 'fedcba9876543210fedcba9876543210');
+  await mockApi(page, {
+    'POST /api/media': (route) => {
+      const mimeType = route.request().headers()['content-type'];
+      if (mimeType === 'image/png') return route.fulfill({ status: 413, json: { error: 'A imagem é grande demais.' } });
+      const src = mimeType === 'image/webp' ? secondSrc : SRC;
+      return route.fulfill({ status: 201, json: { id: src, src, mimeType, width: 320, height: 200, sizeBytes: photo.length, variants: [] } });
+    },
+  });
+  await openTripPhotos(page);
+
+  await page.locator('#media-link-upload-file').setInputFiles([
+    { name: 'trilha.jpg', mimeType: 'image/jpeg', buffer: photo },
+    { name: 'mapa.gif', mimeType: 'image/gif', buffer: Buffer.from('GIF89a') },
+    { name: 'cachoeira.webp', mimeType: 'image/webp', buffer: photo },
+    { name: 'grande.png', mimeType: 'image/png', buffer: photo },
+  ]);
+  const row = (name: string) => page.getByRole('listitem').filter({ hasText: name });
+  const save = page.getByRole('button', { name: 'Salvar viagem' });
+  const description = 'O que aparece nesta foto? (obrigatório)';
+  await expect(row('mapa.gif').getByRole('alert')).toContainText('Formato não aceito');
+  await expect(row('grande.png').getByRole('alert')).toContainText('A imagem é grande demais');
+  await expect(save).toBeDisabled();
+
+  await row('trilha.jpg').getByLabel(description).fill('Grupo na trilha');
+  await row('cachoeira.webp').getByLabel(description).fill('Cachoeira vista do mirante');
+  await row('trilha.jpg').getByRole('button', { name: 'Usar esta foto' }).click();
+  await expect(save).toBeDisabled();
+  await expect(row('cachoeira.webp').getByLabel(description)).toHaveValue('Cachoeira vista do mirante');
+  await row('cachoeira.webp').getByRole('button', { name: 'Usar esta foto' }).click();
+  await expect(save).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Alterar endereço da foto' })).toHaveCount(2);
 });

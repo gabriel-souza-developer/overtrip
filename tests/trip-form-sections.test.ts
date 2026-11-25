@@ -28,9 +28,9 @@ describe('TripForm: seções', () => {
   });
 
   it.each([
-    ['Preencher automaticamente', ['Usar como modelo', 'Sugerir preenchimento com PDF e IA', 'AiDraftBlock']],
+    ['Preencher automaticamente', ['Sugerir preenchimento com PDF e IA', 'AiDraftBlock']],
     ['Informações principais', ['id="title"', 'id="region"', 'id="city"', 'id="startDateISO"', 'id="endDateISO"', 'id="priceValue"', 'id="free"', 'id="spotsLeft"', 'id="filterCategory"', 'id="headlineDisplay"', 'id="priceDisplay"']],
-    ['Embarque e horários', ['id="departureTime"', 'id="returnTime"', 'id="scheduleTBD"', 'id="meetingCity"', 'id="meetingPoint"', 'id="meetingTBD"', 'DeparturesInput', 'id="meetingDetails"', 'id="departureTolerance"', 'id="scheduleInfo"', 'id="meetingMapsQuery"']],
+    ['Embarque e horários', ['id="scheduleTBD"', 'id="meetingCity"', 'id="meetingPoint"', 'id="meetingTBD"', 'DeparturesInput', 'id="meetingDetails"', 'id="departureTolerance"', 'id="scheduleInfo"', 'id="meetingMapsQuery"']],
     ['Como é a experiência', ['id="description"', 'MediaInput', 'id="category"', 'id="intensityClass"', 'id="includes-custom-input"', 'id="includesHighlight"']],
     ['Roteiro e orientações', ['id="itinerary-input"', 'id="important-info-input"', 'id="trailDistance"', 'id="supportPoint"', 'id="supportPointInfo"', 'id="route-notes-input"']],
     ['Publicação', ['PublicationReadinessPanel', 'id="status"']],
@@ -42,7 +42,7 @@ describe('TripForm: seções', () => {
   });
 
   it('esconde os campos raros atrás de um "Mais opções" por bloco, que abre quando já há dado preenchido', () => {
-    expect(form.match(/Mais opções/g)?.length).toBe(3);
+    expect(form.match(/>Mais opções<\/summary>/g)?.length).toBe(3);
     expect(form).toContain('open={essentialMoreOpen}');
     expect(form).toContain('open={departureMoreOpen}');
     expect(form).toContain('open={experienceMoreOpen}');
@@ -68,11 +68,12 @@ describe('TripForm: seções', () => {
     }
   });
 
-  it('usa um campo de data e um de horário por saída e retorno', () => {
+  it('usa datas separadas e um único campo de horário para o site', () => {
     expect(form).toContain('type="date"');
-    expect(form).toContain('type="time"');
     expect(form).not.toContain('type="datetime-local"');
-    expect(form.match(/<input id="departureTime"/g)).toHaveLength(1);
+    expect(form.match(/<input id="scheduleInfo"/g)).toHaveLength(1);
+    expect(form).not.toContain('<input id="departureTime"');
+    expect(form).not.toContain('<input id="returnTime"');
   });
 
   it('migra serviços antigos para a lista única do formulário', () => {

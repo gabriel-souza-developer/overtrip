@@ -5,6 +5,7 @@ import { ArrowLeft, KeyRound } from 'lucide-react';
 import Button from '../components/Button';
 import { authApi } from '../api';
 import { extractTokenFromHash } from '../lib/resetPasswordToken';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import './login.css';
 
 function validatePassword(value: string): string | null {
@@ -15,6 +16,7 @@ function validatePassword(value: string): string | null {
 }
 
 export default function ResetPassword() {
+  useDocumentTitle('Nova senha');
   const [token] = useState(() => extractTokenFromHash(window.location.hash));
   const navigate = useNavigate();
   const [newPassword, setNewPassword] = useState('');

@@ -1,7 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import { displayTime, fieldsToSchedule, scheduleToFields } from '../frontend/src/lib/tripSchedule';
+import { displayTime, fieldsToSchedule, fieldsToScheduleWithText, scheduleText, scheduleToFields } from '../frontend/src/lib/tripSchedule';
 
 describe('datas e horários da viagem', () => {
+  it('mostra horários antigos juntos e preserva os dados ao salvar sem editar', () => {
+    const original = { startDateISO: '2026-11-21T00:00:00.000Z', departureTime: '05h', endDateISO: null, returnTime: '17h' };
+    expect(scheduleText(original)).toBe('05h às 17h');
+    expect(fieldsToScheduleWithText(scheduleToFields(original), original, false)).toEqual(original);
+  });
+
+  it('ao editar ou apagar a faixa remove horários legados, inclusive o embutido na data', () => {
+    const original = { startDateISO: '2026-11-21T12:30:00.000Z', departureTime: null, endDateISO: null, returnTime: '17h' };
+    const fields = scheduleToFields(original);
+    expect(fieldsToScheduleWithText(fields, original, true)).toEqual({
+      startDateISO: `${fields.startDate}T00:00:00.000Z`, departureTime: null, endDateISO: null, returnTime: null,
+    });
+  });
   it('divide os valores salvos em campos de data e hora', () => {
     expect(scheduleToFields({
       startDateISO: '2026-11-21T09:30:00.000Z', departureTime: null,

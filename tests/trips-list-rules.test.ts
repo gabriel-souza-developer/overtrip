@@ -24,7 +24,7 @@ describe('lista de viagens', () => {
     expect(trips).not.toContain('toLocaleDateString');
     expect(trips).toContain('formatDateBR');
     expect(form).toContain('scheduleToFields(');
-    expect(form).toContain('fieldsToSchedule({');
+    expect(form).toContain('fieldsToScheduleWithText({');
   });
 });
 

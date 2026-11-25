@@ -7,6 +7,9 @@ export const MEDIA_PUBLIC_PREFIX = '/api/public/media/';
 /** Só a versão principal gerada pelo servidor: 32 hex + .jpg ou .png. Nada além disso. */
 const UPLOADED_MEDIA_SRC = /^\/api\/public\/media\/[0-9a-f]{32}\.(?:jpg|png)$/;
 
+export const isUploadedVideoSrc = (src: string) => /^\/api\/public\/media\/[0-9a-f]{32}\.mp4$/.test(src);
+export const isValidTripMediaSrc = (src: string) => isUploadedVideoSrc(src) || isValidImageSrc(src);
+
 const CONTROL_CHARS = /[\u0000-\u001f\u007f]/;
 
 /** Imagem enviada pelo painel (e não um link externo ou arquivo de assets/). */
@@ -44,5 +47,5 @@ export const UPLOADED_ALT_MESSAGE = 'Descreva a foto enviada (texto alternativo 
 
 /** Foto enviada pelo painel exige texto alternativo; as demais seguem a regra antiga. */
 export function hasRequiredAlt(item: { src: string; alt?: string }): boolean {
-  return !isUploadedMediaSrc(item.src) || (typeof item.alt === 'string' && item.alt.trim() !== '');
+  return (!isUploadedMediaSrc(item.src) && !isUploadedVideoSrc(item.src)) || (typeof item.alt === 'string' && item.alt.trim() !== '');
 }

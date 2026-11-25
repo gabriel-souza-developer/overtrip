@@ -175,7 +175,7 @@ export function mediaUploadErrorMessage(status: number, serverMessage?: string):
   if (status === 401) return 'Sua sessão expirou. Entre de novo para enviar fotos.';
   if (status === 403) return 'Seu perfil não pode enviar fotos.';
   if (status === 413) return serverMessage || 'A imagem é grande demais (até 15 MiB e 8000 px de lado).';
-  if (status === 415) return 'Formato não aceito. Envie uma foto JPEG, PNG ou WebP.';
+  if (status === 415) return serverMessage || 'Formato não aceito. Envie uma foto JPEG, PNG ou WebP.';
   if (status === 429) return serverMessage || 'Muitos envios em sequência. Aguarde um minuto.';
   if (status === 0) return 'Sem conexão com o servidor. Confira a internet e tente de novo.';
   return serverMessage || 'Não foi possível enviar a foto. Tente novamente.';

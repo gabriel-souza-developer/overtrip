@@ -1,17 +1,17 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Copy, Save } from 'lucide-react';
 import { tripApi, settingsApi, documentApi, TripFormData } from '../api';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../App';
 import { CityAutocomplete, UfSelect } from '../components/LocationFields';
 import { nextCityOnRegionChange } from '../lib/locationCombobox';
-import { isValidImageSrc, IMAGE_SRC_MESSAGE, hasRequiredAlt, UPLOADED_ALT_MESSAGE } from '../lib/imageSrc';
+import { isValidTripMediaSrc, IMAGE_SRC_MESSAGE, hasRequiredAlt, UPLOADED_ALT_MESSAGE } from '../lib/imageSrc';
 import { isoToLocalInput } from '../lib/dateInput';
-import { fieldsToSchedule, scheduleToFields, type StoredSchedule } from '../lib/tripSchedule';
+import { fieldsToScheduleWithText, scheduleText, scheduleToFields, type StoredSchedule } from '../lib/tripSchedule';
 import { prepareTripTemplate } from '../lib/tripTemplate';
 import { customItems, hasItem, INCLUDE_PRESETS, mergeUnique, togglePreset } from '../lib/includesServices';
-import { customImportantInfo, FILTER_CATEGORY_OPTIONS, hasImportantInfoPreset, IMPORTANT_INFO_PRESETS, toggleImportantInfoPreset } from '../lib/tripFormOptions';
+import { customImportantInfo, DEPARTURE_PRESETS, type DeparturePreset, FILTER_CATEGORY_OPTIONS, hasImportantInfoPreset, IMPORTANT_INFO_PRESETS, toggleImportantInfoPreset } from '../lib/tripFormOptions';
 import { fillMissingAlt, formatBRL, syncPriceDisplay } from '../lib/formHelpers';
 import { canChangeTripStatus } from '../lib/permissions';
 import { applyTripDefaults, formatPriceInput, parsePriceInput, parseWholeNumber, TRIP_STATUS_LABELS, validateTripMinimum } from '../lib/panelHelpers';
@@ -25,6 +25,7 @@ import TripCardPreview from '../components/TripCardPreview';
 import TripProposalPreview from '../components/TripProposalPreview';
 import { applySuggestions, type DraftKey, type TripDraft } from '../lib/aiDraft';
 import { ArrayInput, DeparturesInput, LocationPicker, MediaInput } from '../components/TripFormInputs';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 const intensityOptions = ['leve', 'moderado', 'intenso', 'extremo'] as const;
 
@@ -68,6 +69,7 @@ const emptyForm = (): FormState => ({
 
 export default function TripForm() {
   const { id } = useParams<{ id: string }>();
+  useDocumentTitle(id ? 'Editar viagem' : 'Nova viagem');
   const [searchParams] = useSearchParams();
   const templateId = !id ? searchParams.get('modelo') : null;
   const navigate = useNavigate();
@@ -85,18 +87,22 @@ export default function TripForm() {
   const [formData, setFormData] = useState<FormState>(emptyForm);
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [priceText, setPriceText] = useState('');
+  const [departureSeed, setDepartureSeed] = useState<{ place: string; city: string; mapsQuery: string; lat: number | null; lng: number | null; requestId: number } | null>(null);
   // Abertura inicial apenas ao carregar uma viagem; depois o usuário controla os detalhes.
   const [initialOptions, setInitialOptions] = useState({ essential: false, departure: false, experience: false, trail: false });
   // Datas como vieram da API: se a pessoa não mexe na data, o valor guardado não muda.
   const originalSchedule = useRef<StoredSchedule>({ startDateISO: null, departureTime: null, endDateISO: null, returnTime: null });
+  const originalScheduleText = useRef('');
   const initialRef = useRef(JSON.stringify(formData));
   const summaryRef = useRef<HTMLDivElement>(null);
+  const departureMoreRef = useRef<HTMLDetailsElement>(null);
 
   // Valores do formulário novo: contam como "vazio" para a IA não pedir confirmação à toa.
   const defaultsRef = useRef<Record<string, unknown>>(isEditing ? {} : { ...emptyForm() });
 
   const applyAiDraft = (draft: TripDraft, chosen: DraftKey[], overwrite: DraftKey[]) => {
     const next = applySuggestions(formData as Record<string, unknown>, draft, chosen, overwrite, defaultsRef.current) as FormState;
+    if (next.title) next.title = next.title.toLocaleUpperCase('pt-BR');
     if (['meetingCity', 'meetingPoint', 'meetingMapsQuery'].some(key => next[key] !== formData[key])) {
       next.meetingLat = null;
       next.meetingLng = null;
@@ -115,6 +121,9 @@ export default function TripForm() {
     next.departureTime = schedule.startTime;
     next.endDateISO = schedule.endDate;
     next.returnTime = schedule.endTime;
+    if (!next.scheduleInfo && (chosen.includes('departureTime') || chosen.includes('returnTime'))) {
+      next.scheduleInfo = scheduleText({ startDateISO: null, departureTime: next.departureTime, endDateISO: null, returnTime: next.returnTime });
+    }
     next.includes = mergeUnique(next.includes, next.includedServices);
     next.includedServices = [];
     setFormData(next);
@@ -148,7 +157,7 @@ export default function TripForm() {
         endDateISO: schedule.endDate,
         returnTime: schedule.endTime,
         departureTolerance: trip.departureTolerance || '',
-        scheduleInfo: trip.scheduleInfo || '',
+        scheduleInfo: trip.scheduleInfo || scheduleText({ startDateISO: trip.startDateISO, departureTime: trip.departureTime, endDateISO: trip.endDateISO, returnTime: trip.returnTime }),
         scheduleTBD: trip.scheduleTBD,
         priceValue: trip.priceValue,
         priceDisplay: trip.priceDisplay || '',
@@ -197,6 +206,7 @@ export default function TripForm() {
       });
       initialRef.current = useAsTemplate ? JSON.stringify(emptyForm()) : JSON.stringify(next);
       originalSchedule.current = useAsTemplate ? { startDateISO: null, departureTime: null, endDateISO: null, returnTime: null } : { startDateISO: trip.startDateISO, departureTime: trip.departureTime, endDateISO: trip.endDateISO, returnTime: trip.returnTime };
+      originalScheduleText.current = next.scheduleInfo;
       setPriceText(formatPriceInput(next.priceValue));
       setFormData(next);
     } catch (err) {
@@ -233,7 +243,9 @@ export default function TripForm() {
     } else if (type === 'number') {
       setFormData(prev => ({ ...prev, [name]: value ? parseFloat(value) : null }));
     } else {
-      setFormData(prev => ({ ...prev, [name]: value, ...(locationChanged ? { meetingLat: null, meetingLng: null } : {}) }));
+      // Nome da viagem sempre em maiúsculas (ex.: "TRILHA EM LUCENA - PB"), igual ao padrão já usado.
+      const normalized = name === 'title' ? value.toLocaleUpperCase('pt-BR') : value;
+      setFormData(prev => ({ ...prev, [name]: normalized, ...(locationChanged ? { meetingLat: null, meetingLng: null } : {}) }));
     }
     clearError(name);
   };
@@ -252,7 +264,7 @@ export default function TripForm() {
 
   const validate = () => {
     const newErrors = validateTripMinimum(formData);
-    if (formData.media.some(m => !isValidImageSrc(m.src))) newErrors.media = IMAGE_SRC_MESSAGE;
+    if (formData.media.some(m => !isValidTripMediaSrc(m.src))) newErrors.media = IMAGE_SRC_MESSAGE;
     else if (!formData.media.every(hasRequiredAlt)) newErrors.media = UPLOADED_ALT_MESSAGE;
     if (priceText.trim() && parsePriceInput(priceText) === null && !formData.free) newErrors.priceValue = 'Não entendi o valor. Use números, como 109,99 ou 1.250,00.';
     setErrors(newErrors);
@@ -276,12 +288,12 @@ export default function TripForm() {
     setSaving(true);
     try {
       const withDefaults = applyTripDefaults(formData);
-      const schedule = fieldsToSchedule({
+      const schedule = fieldsToScheduleWithText({
         startDate: formData.startDateISO,
         startTime: formData.departureTime,
         endDate: formData.endDateISO,
         endTime: formData.returnTime,
-      }, originalSchedule.current);
+      }, originalSchedule.current, formData.scheduleInfo !== originalScheduleText.current);
       const payload = {
         ...withDefaults,
         media: fillMissingAlt(formData.media, formData.title).map(m => ({ ...m, focus: m.focus?.trim() || undefined })),
@@ -308,6 +320,20 @@ export default function TripForm() {
   };
 
   const leave = () => (dirty ? setLeaveOpen(true) : navigate('/trips'));
+
+  const applyDeparturePreset = (preset: DeparturePreset) => {
+    setFormData(prev => ({
+      ...prev,
+      meetingCity: preset.city,
+      meetingPoint: preset.point,
+      meetingMapsQuery: preset.mapsQuery,
+      meetingLat: null,
+      meetingLng: null,
+    }));
+    clearError('departure');
+    // Abre "Mais opções" pra já deixar a busca do mapa visível, pronta pra confirmar.
+    if (departureMoreRef.current) departureMoreRef.current.open = true;
+  };
 
   const useAsModel = () => {
     if (dirty) { toast.error('Salve as alterações antes de reutilizar os dados desta viagem.'); return; }
@@ -355,6 +381,11 @@ export default function TripForm() {
           <p className="page-description">{isEditing ? 'Edite os dados da viagem e salve as alterações.' : 'Comece pelos dados básicos. Você pode salvar e completar a publicação depois.'}</p>
         </div>
         </div>
+        {isEditing && (
+          <Button variant="secondary" small icon={<Copy className="w-4 h-4" aria-hidden="true" />} onClick={useAsModel} title="Cria uma nova viagem com os mesmos dados; esta viagem não é alterada.">
+            Usar como modelo
+          </Button>
+        )}
       </div>
 
       {templateId && <p className="alert-info" role="note">Os dados da viagem anterior foram copiados. Informe a nova data e revise os textos, horários, preços, embarques e fotos, que podem conter informações antigas. Ao salvar, será criado um novo rascunho; a viagem original não será alterada.</p>}
@@ -382,14 +413,6 @@ export default function TripForm() {
           <h2 className="text-lg font-semibold text-surface-900">Preencher automaticamente</h2>
           <p className="text-xs text-surface-500">Tudo aqui é opcional. Você também pode preencher cada campo manualmente nos blocos abaixo.</p>
 
-          {isEditing && (
-            <div className={nestedBlockClass}>
-              <p className="text-sm font-semibold text-surface-900">Usar esta viagem como modelo</p>
-              <p className="hint mb-2">Cria uma nova viagem com os mesmos dados. A viagem original não é alterada.</p>
-              <Button onClick={useAsModel}>Usar como modelo</Button>
-            </div>
-          )}
-
           {user?.role === 'admin' && (
             <details className={nestedBlockClass}>
               <summary className="cursor-pointer font-semibold text-surface-900">Sugerir preenchimento com PDF e IA (opcional)</summary>
@@ -410,7 +433,7 @@ export default function TripForm() {
           <p className="text-xs text-surface-500">Comece por aqui. Os campos necessários para publicar ficam indicados.</p>
 
           <Field id="title" label="Nome da viagem" required error={err('title')}>
-            <input id="title" name="title" className={`input ${invalid('title')}`} value={f.title} onChange={handleChange} aria-invalid={!!errors.title} aria-describedby={errors.title ? 'title-error' : undefined} placeholder="Ex.: Trilha do Pico do Jabre" autoComplete="off" />
+            <input id="title" name="title" className={`input ${invalid('title')}`} value={f.title} onChange={handleChange} aria-invalid={!!errors.title} aria-describedby={errors.title ? 'title-error' : undefined} placeholder="Ex.: TRILHA DO PICO DO JABRE" autoComplete="off" />
           </Field>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -486,15 +509,21 @@ export default function TripForm() {
           <legend className="sr-only">Embarque e horários</legend>
           <h2 className="text-lg font-semibold text-surface-900">Embarque e horários</h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field id="departureTime" label="Horário de saída"><input id="departureTime" name="departureTime" type="time" className="input" value={f.departureTime} onChange={handleChange} /></Field>
-            <Field id="returnTime" label="Horário de volta"><input id="returnTime" name="returnTime" type="time" className="input" value={f.returnTime} onChange={handleChange} /></Field>
-          </div>
+          <Field id="scheduleInfo" label="Horário da viagem" hint="Informe o horário como deve aparecer no site.">
+            <input id="scheduleInfo" name="scheduleInfo" className="input" value={f.scheduleInfo} onChange={handleChange} placeholder="Ex.: 05h às 17h" />
+          </Field>
           <label htmlFor="scheduleTBD" className="checkbox-label min-h-[32px]"><input id="scheduleTBD" name="scheduleTBD" type="checkbox" className="checkbox-input" checked={f.scheduleTBD} onChange={handleChange} /><span className="text-sm text-surface-700">Horário ainda não definido</span></label>
 
           <div>
             <span className="label">Embarque</span>
             <p className="hint mb-3">Para um único embarque, preencha cidade e local. Se ainda não sabe, marque "a confirmar".</p>
+            <div className="flex flex-wrap gap-2 mb-3" role="group" aria-label="Embarques frequentes">
+              {DEPARTURE_PRESETS.map(preset => (
+                <button key={preset.label} type="button" className="btn-secondary btn-sm" onClick={() => applyDeparturePreset(preset)}>
+                  {preset.label}
+                </button>
+              ))}
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field id="meetingCity" label="Cidade de embarque">
                 <input id="meetingCity" name="meetingCity" className="input" value={f.meetingCity} onChange={handleChange} placeholder="Ex.: Campina Grande" />
@@ -509,10 +538,15 @@ export default function TripForm() {
             </label>
             {f.meetingTBD && <p className="hint">Enquanto estiver a confirmar, os pontos cadastrados não aparecerão no site.</p>}
             <details className="mt-3" open={f.departures.length > 0 || !!errors.departure || undefined}>
-              <summary className="cursor-pointer font-semibold text-sm">Informar todos os pontos de embarque</summary>
+              <summary className="cursor-pointer font-semibold text-sm">Adicionar vários pontos de embarque</summary>
               <div className="mt-3 space-y-2">
-                <p className="hint">Ao usar esta lista, somente os pontos abaixo aparecem no site. Inclua todos os embarques, inclusive o primeiro, com horário, local e cidade.</p>
-                <DeparturesInput value={f.departures} onPendingChange={(pending) => setPendingItem('embarque', pending)} onChange={(val) => setFormData(prev => ({ ...prev, departures: val }))} />
+                <p className="hint">Ao usar esta lista, somente os pontos adicionados aqui aparecem no site. Adicione cada embarque com seu horário.</p>
+                {f.meetingCity.trim() && f.meetingPoint.trim() && !f.departures.some(point => point.city.trim().toLocaleLowerCase('pt-BR') === f.meetingCity.trim().toLocaleLowerCase('pt-BR') && point.place.trim().toLocaleLowerCase('pt-BR') === f.meetingPoint.trim().toLocaleLowerCase('pt-BR')) && (
+                  <button type="button" className="btn-secondary btn-sm" disabled={!!pendingItems.embarque} onClick={() => setDepartureSeed({ city: f.meetingCity, place: f.meetingPoint, mapsQuery: f.meetingMapsQuery, lat: f.meetingLat, lng: f.meetingLng, requestId: Date.now() })}>
+                    Usar embarque preenchido acima
+                  </button>
+                )}
+                <DeparturesInput seed={departureSeed} value={f.departures} onPendingChange={(pending) => setPendingItem('embarque', pending)} onChange={(val) => setFormData(prev => ({ ...prev, departures: val }))} />
               </div>
             </details>
             <Field id="meetingDetails" label="Orientações de embarque (opcional)">
@@ -525,13 +559,10 @@ export default function TripForm() {
             <input id="departureTolerance" name="departureTolerance" className="input" value={f.departureTolerance} onChange={handleChange} placeholder="30 minutos" />
           </Field>
 
-          <details className={nestedBlockClass} open={departureMoreOpen}>
+          <details ref={departureMoreRef} className={nestedBlockClass} open={departureMoreOpen}>
             <summary className="cursor-pointer text-sm font-semibold text-surface-700">Mais opções</summary>
             <div className="pt-4 space-y-5">
-              <Field id="scheduleInfo" label="Horário como texto (opcional)" hint="Use só para substituir os horários acima por uma faixa, como “05h às 17h”.">
-                <input id="scheduleInfo" name="scheduleInfo" className="input" value={f.scheduleInfo} onChange={handleChange} placeholder="05h às 17h" />
-              </Field>
-              <Field id="meetingMapsQuery" label="Localização do embarque no mapa (opcional)" hint="Endereço usado para gerar o link do mapa.">
+              <Field id="meetingMapsQuery" label="Localização do embarque no mapa (opcional)" hint="Endereço usado para gerar o link do mapa. Ao usar um embarque frequente acima, já vem preenchido — confirme a localização certa na busca abaixo.">
                 <input id="meetingMapsQuery" name="meetingMapsQuery" className="input" value={f.meetingMapsQuery} onChange={handleChange} placeholder="Rua, bairro, cidade/UF" />
               </Field>
               <div className="form-group">
@@ -548,7 +579,7 @@ export default function TripForm() {
           <legend className="sr-only">Como é a experiência</legend>
           <h2 className="text-lg font-semibold text-surface-900">Como é a experiência</h2>
 
-          <Field id="description" label="Resumo da experiência" required={f.status === 'OPEN'} error={err('description')} hint="Necessário para publicar. Descreva o que os viajantes vão viver.">
+          <Field id="description" label="Resumo da experiência" required={f.status === 'OPEN'} error={err('description')} hint="Necessário para publicar. Em uma frase curta, conte o que os viajantes vão viver.">
             <textarea id="description" name="description" className={`input ${invalid('description')}`} value={f.description} onChange={handleChange} rows={4} aria-invalid={!!errors.description} placeholder="Conte o que torna essa viagem especial..." />
           </Field>
 
@@ -617,9 +648,9 @@ export default function TripForm() {
 
           <Field id="important-info-input" label="Informações importantes">
             <p className="hint mb-2">Marque apenas as orientações que valem para esta viagem. Você também pode adicionar uma informação própria.</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3" role="group" aria-label="Orientações sugeridas">
-              {IMPORTANT_INFO_PRESETS.map(item => <label key={item} className="checkbox-label min-h-[40px] rounded-lg border border-surface-200 px-3">
-                <input type="checkbox" className="checkbox-input" checked={hasImportantInfoPreset(f.importantInfo, item)} onChange={() => setList('importantInfo', toggleImportantInfoPreset(f.importantInfo, item))} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4" role="group" aria-label="Orientações sugeridas">
+              {IMPORTANT_INFO_PRESETS.map(item => <label key={item} className="checkbox-label min-h-[44px] items-start rounded-lg border border-surface-200 px-3 py-2.5 leading-snug">
+                <input type="checkbox" className="checkbox-input mt-0.5" checked={hasImportantInfoPreset(f.importantInfo, item)} onChange={() => setList('importantInfo', toggleImportantInfoPreset(f.importantInfo, item))} />
                 <span className="text-sm text-surface-800">{item}</span>
               </label>)}
             </div>

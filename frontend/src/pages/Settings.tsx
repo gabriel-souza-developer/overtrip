@@ -5,8 +5,10 @@ import { settingsApi, type TripPresentationDefaults } from '../api';
 import { useToast } from '../hooks/useToast';
 import AssistantKnowledgeSettings from '../components/AssistantKnowledgeSettings';
 import PublicFaqSettings from '../components/PublicFaqSettings';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 export default function Settings() {
+  useDocumentTitle('Configurações');
   const { toast } = useToast();
   const [defaultWhatsapp, setDefaultWhatsapp] = useState('');
   const [loading, setLoading] = useState(true);

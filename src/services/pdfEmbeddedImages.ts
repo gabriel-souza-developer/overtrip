@@ -1,3 +1,4 @@
+import { sandboxArgs } from './mediaSandbox.js';
 import { execFile } from 'node:child_process';
 import { access, chmod, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
 import { constants } from 'node:fs';
@@ -28,7 +29,6 @@ const MAX_CPU_SECONDS = 12; // prlimit --cpu; bounds CPU time, not wall clock (T
 // process, before any byte reaches the host.
 const SANDBOX_TMPFS_BYTES = MAX_TOTAL_OUTPUT_BYTES * 2;
 const MAX_CONCURRENT_EXTRACTIONS = 2;
-const SANDBOX_UID = 65_534; // "nobody" — never the real uid, even remapped inside the sandbox's own user namespace.
 
 // Decode sandbox (sharp/libvips, run as its own OS process — never in this
 // main Node process; see the "decode phase" comment on extractEmbeddedImages).
@@ -251,33 +251,6 @@ function acquireDecodeSlot(): () => void {
  * access to unrelated configuration or secrets alongside the binary.
  * Required runtime dependency directories are bound exactly as specified.
  */
-function sandboxArgs(trustedFiles: string[] = [], trustedDirs: string[] = []): string[] {
-  const extraBind: string[] = [];
-  const bound = new Set<string>();
-  const bindPath = (target: string) => {
-    if (target === '/usr' || target.startsWith('/usr/')) return;
-    if (bound.has(target)) return;
-    bound.add(target);
-    extraBind.push('--ro-bind', target, target);
-  };
-  for (const file of trustedFiles) bindPath(file);
-  for (const dir of trustedDirs) bindPath(dir);
-  return [
-    '--ro-bind', '/usr', '/usr', '--symlink', 'usr/bin', '/bin', '--symlink', 'usr/lib', '/lib', '--symlink', 'usr/lib64', '/lib64',
-    ...extraBind,
-    '--proc', '/proc', '--dev', '/dev',
-    // --unshare-all includes network (no DNS/sockets reachable, verified
-    // manually), mount (its own private filesystem view — nothing outside
-    // what is explicitly bound below is visible, let alone writable), pid
-    // (its own reaper, see execute() above), ipc, uts and cgroup.
-    '--unshare-all', '--die-with-parent', '--new-session',
-    '--clearenv', '--setenv', 'PATH', '/usr/bin:/bin', '--setenv', 'LANG', 'C.UTF-8',
-    // No capability survives into the sandbox (verified manually:
-    // CapInh/Prm/Eff/Bnd/Amb all read back as zero), and the process is
-    // remapped away from the real uid even inside its own user namespace.
-    '--cap-drop', 'ALL', '--uid', String(SANDBOX_UID), '--gid', String(SANDBOX_UID),
-  ];
-}
 
 function shQuote(value: string): string {
   return `'${value.replace(/'/g, `'\\''`)}'`;

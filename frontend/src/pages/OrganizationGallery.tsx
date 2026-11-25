@@ -14,6 +14,7 @@ import Button from '../components/Button';
 import Field from '../components/Field';
 import ImageUploader from '../components/ImageUploader';
 import ConfirmDialog from '../components/ConfirmDialog';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 const CAN_MANAGE_GALLERY = (role: string) => role === 'OWNER' || role === 'ADMIN';
 
@@ -26,6 +27,7 @@ const longDatePt = (iso: string) => {
 };
 
 export default function OrganizationGallery() {
+  useDocumentTitle('Galeria');
   const { organization, role } = useOutletContext<OrganizationOutletContext>();
   const canManage = CAN_MANAGE_GALLERY(role);
   const [entries, setEntries] = useState<OrganizationGalleryEntry[]>([]);
@@ -40,6 +42,7 @@ export default function OrganizationGallery() {
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState<EntryForm>(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [photoPending, setPhotoPending] = useState(false);
   const [formError, setFormError] = useState('');
   const [toDelete, setToDelete] = useState<OrganizationGalleryEntry | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -67,6 +70,7 @@ export default function OrganizationGallery() {
   const removeImage = (index: number) => setForm((prev) => ({ ...prev, images: prev.images.filter((_, i) => i !== index) }));
 
   const save = async () => {
+    if (saving || photoPending) return;
     if (!form.title.trim() || !form.date || !form.description.trim() || form.images.length === 0) {
       setFormError('Preencha título, data e descrição, e adicione ao menos uma foto.');
       return;
@@ -137,7 +141,7 @@ export default function OrganizationGallery() {
         title={creating ? 'Nova memória' : 'Editar memória'}
         description="Visível só para esta empresa. Nunca aparece no site enquanto a empresa não estiver habilitada na vitrine pública."
         widthClass="max-w-2xl"
-        footer={<><Button onClick={closeForm} disabled={saving}>Cancelar</Button><Button variant="primary" loading={saving} loadingText="Salvando..." onClick={() => void save()}>Salvar</Button></>}
+        footer={<><Button onClick={closeForm} disabled={saving}>Cancelar</Button><Button variant="primary" disabled={photoPending} loading={saving} loadingText="Salvando..." onClick={() => void save()}>Salvar</Button></>}
       >
         <form id="org-gallery-form" onSubmit={(e) => { e.preventDefault(); void save(); }} noValidate className="space-y-4">
           {formError && <div className="alert-error" role="alert">{formError}</div>}
@@ -160,8 +164,9 @@ export default function OrganizationGallery() {
               </li>
             ))}</ul>}
             {form.images.length < 5 && (
-              <ImageUploader idPrefix="org-gallery-photo" endpoint={`/organizations/${encodeURIComponent(organization.id)}/tourism/media`} onAdd={(item) => patch({ images: [...form.images, item] })} />
+              <ImageUploader idPrefix="org-gallery-photo" maxPhotos={5 - form.images.length} onPendingChange={setPhotoPending} endpoint={`/organizations/${encodeURIComponent(organization.id)}/tourism/media`} onAdd={({ src, alt, previewSrc }) => setForm((previous) => ({ ...previous, images: [...previous.images, { src, alt, previewSrc }] }))} />
             )}
+            {photoPending && <p className="hint" role="status">Conclua ou descarte os envios de fotos antes de salvar.</p>}
           </div>
         </form>
       </Modal>

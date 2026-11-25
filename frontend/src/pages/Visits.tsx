@@ -20,10 +20,12 @@ import Modal from '../components/Modal';
 import Button from '../components/Button';
 import Field from '../components/Field';
 import FormSection from '../components/FormSection';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 const formatDate = formatDateBR;
 
 export default function Visits() {
+  useDocumentTitle('Destinos visitados');
   const list = useListParams();
   const { toast } = useToast();
   const [visits, setVisits] = useState<Visit[]>([]);

@@ -7,10 +7,12 @@ import { useAuth } from '../App';
 import ErrorState from '../components/ErrorState';
 import EmptyState from '../components/EmptyState';
 import UserAccountMenu from '../components/UserAccountMenu';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 const ROLE_LABELS: Record<string, string> = { OWNER: 'Proprietário', ADMIN: 'Administrador', MEMBER: 'Membro' };
 
 export default function OrganizationSelect() {
+  useDocumentTitle('Escolher empresa');
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();

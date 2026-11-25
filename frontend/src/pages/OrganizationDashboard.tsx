@@ -6,8 +6,10 @@ import type { OrganizationOutletContext } from './OrganizationLayout';
 import ErrorState from '../components/ErrorState';
 import OrgTripCalendar from '../components/OrgTripCalendar';
 import { capitalizeFirst } from '../lib/tripCalendar';
+import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 export default function OrganizationDashboard() {
+  useDocumentTitle('Dashboard');
   const { organization, role } = useOutletContext<OrganizationOutletContext>();
   const [summary, setSummary] = useState<OrganizationDashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);

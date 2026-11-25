@@ -5,9 +5,11 @@ import { prisma } from '../lib/prisma.js';
 import { authenticate, authorize, AuthRequest } from '../middleware/auth.js';
 import { AppError, asyncHandler } from '../middleware/errorHandler.js';
 import { createRateLimiter } from '../middleware/rateLimit.js';
-import { assertImageUpload, MEDIA_MAX_BYTES, MediaUploadError } from '../services/mediaUpload.js';
-import { MEDIA_VARIANT_WIDTHS, processImage } from '../services/mediaProcessing.js';
+import { MEDIA_MAX_BYTES, MediaUploadError } from '../services/mediaUpload.js';
+import { MEDIA_VARIANT_WIDTHS } from '../services/mediaProcessing.js';
+import { assertTripUpload, processTripUpload } from '../services/tripMediaUpload.js';
 import { describeExpectedFiles, mediaDirectory, mediaFilePath, mediaFilenames, mediaPublicSrc, MediaWriteCleanupError, removeMediaFiles, reserveStorageKey, writeImageFiles } from '../services/mediaStorage.js';
+import { serveVideoFromDisk } from '../services/serveVideo.js';
 import { currentLegacyMediaFilter, legacyTourismOrganizationIdForNewRecord } from '../services/legacyTourismScope.js';
 
 /** Perfis que já podem editar viagens e galeria no painel. */
@@ -23,34 +25,46 @@ type AssetRow = { id: string; path: string; mimeType: string; width: number; hei
 const present = ({ storageKey, ...asset }: AssetRow) => ({
   ...asset,
   src: asset.path,
-  variants: MEDIA_VARIANT_WIDTHS.map((width) => ({ width, src: mediaPublicSrc(`${storageKey}-w${width}.webp`) })),
+  ...(asset.mimeType === 'video/mp4' ? { previewSrc: `/api/media/${storageKey}.mp4` } : {}),
+  variants: asset.mimeType === 'video/mp4' ? [] : MEDIA_VARIANT_WIDTHS.map((width) => ({ width, src: mediaPublicSrc(`${storageKey}-w${width}.webp`) })),
 });
 
 const asHttpError = (error: unknown) => error instanceof MediaUploadError ? new AppError(error.status, error.message) : error;
 
+router.get('/:file', asyncHandler(async (req: AuthRequest, res: Response) => {
+  const file = req.params.file;
+  if (!/^[0-9a-f]{32}\.mp4$/.test(file)) throw AppError.notFound();
+  const asset = await prisma.mediaAsset.findFirst({ where: {
+    path: mediaPublicSrc(file), mimeType: 'video/mp4', publishedAt: { not: null }, ...currentLegacyMediaFilter(),
+  }, select: { id: true } });
+  if (!asset) throw AppError.notFound();
+  await serveVideoFromDisk(res, await mediaDirectory(), file, 'private, no-store');
+}));
+
 router.post('/', createRateLimiter({ windowMs: 60000, max: 20, message: 'Muitos envios em sequência. Aguarde um minuto.' }),
   raw({ type: () => true, limit: MEDIA_MAX_BYTES, inflate: false }),
   asyncHandler(async (req: AuthRequest, res: Response) => {
-    let body: Buffer;
-    try { body = assertImageUpload(req.get('Content-Type'), req.body).body; }
+    let upload: ReturnType<typeof assertTripUpload>;
+    try { upload = assertTripUpload(req.get('Content-Type'), req.body); }
     catch (error) { throw asHttpError(error); }
+    const { body } = upload;
     const sha256 = createHash('sha256').update(body).digest('hex');
 
     // Mesmo arquivo enviado de novo: reaproveita, se os arquivos ainda existirem.
     // Só dentro do próprio escopo — nunca reaproveita (nem revela a
     // existência de) um arquivo idêntico de outra empresa. Só considera um
     // registro já publicado: um pendente pode não ter arquivo nenhum ainda.
-    const existing = await prisma.mediaAsset.findFirst({ where: { sha256, originalBytes: body.length, publishedAt: { not: null }, ...currentLegacyMediaFilter() }, select });
+    const existing = await prisma.mediaAsset.findFirst({ where: { sha256, originalBytes: body.length, publishedAt: { not: null }, ...(upload.kind === 'mp4' ? { organizationId: legacyTourismOrganizationIdForNewRecord() } : currentLegacyMediaFilter()) }, select });
     if (existing) {
       const directory = await mediaDirectory();
-      const ext = existing.mimeType === 'image/png' ? 'png' : 'jpg';
-      const files = mediaFilenames(existing.storageKey, ext, MEDIA_VARIANT_WIDTHS);
+      const ext = existing.mimeType === 'video/mp4' ? 'mp4' : existing.mimeType === 'image/png' ? 'png' : 'jpg';
+      const files = mediaFilenames(existing.storageKey, ext, ext === 'mp4' ? [] : MEDIA_VARIANT_WIDTHS);
       const complete = await Promise.all(files.map((f) => access(mediaFilePath(directory, f)).then(() => true, () => false)));
       if (complete.every(Boolean)) { res.status(200).json(present(existing)); return; }
     }
 
     let processed;
-    try { processed = await processImage(body); }
+    try { processed = await processTripUpload(upload); }
     catch (error) { throw asHttpError(error); }
 
     // Registro criado ANTES de gravar qualquer arquivo, como pendente
@@ -60,7 +74,7 @@ router.post('/', createRateLimiter({ windowMs: 60000, max: 20, message: 'Muitos 
     // registro nenhum. scripts/reconcile-pending-media.ts resolve o que
     // ficar pendente por tempo demais.
     const storageKey = reserveStorageKey();
-    const ext = processed.mimeType === 'image/png' ? 'png' : 'jpg';
+    const ext = processed.ext;
     // Tamanho e hash de cada arquivo esperado, calculados agora (buffers já
     // em memória) e gravados ANTES de escrever qualquer arquivo: é o que
     // reconcilePendingMedia usa depois para provar que um arquivo em disco é
