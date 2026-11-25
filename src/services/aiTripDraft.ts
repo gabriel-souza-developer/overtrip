@@ -274,12 +274,26 @@ export async function generateTripDraft(
   if (response.stopReason === 'max_tokens') {
     throw new AiDraftError('O texto gerou uma resposta grande demais e ela foi cortada. Tente com um texto menor.', 422);
   }
-  const parsed = aiDraftOutputSchema.safeParse(response.object);
+  // Providers sem schema estruturado (Groq, xAI: só "modo JSON") podem devolver um objeto
+  // sem todas as chaves. Como todas são anuláveis, completamos com null/[] antes de validar;
+  // uma resposta que não é objeto (JSON inválido, resposta vazia) continua reprovando.
+  const raw = response.object;
+  const merged = raw && typeof raw === 'object' ? { ...DEFAULT_DRAFT_OBJECT, ...raw } : raw;
+  const parsed = aiDraftOutputSchema.safeParse(merged);
   if (!parsed.success) {
     throw new AiDraftError('A IA devolveu uma resposta que não consegui usar. Tente de novo.', 502);
   }
   return sanitizeDraft(parsed.data);
 }
+
+const DEFAULT_DRAFT_OBJECT: Record<string, unknown> = {
+  title: null, headlineDisplay: null, category: null, description: null, city: null, region: null,
+  startDate: null, endDate: null, departureTime: null, departureTolerance: null, returnTime: null,
+  scheduleInfo: null, priceValue: null, priceUnit: null, free: null, intensityClass: null, spotsLeft: null,
+  trailDistance: null, supportPoint: null, supportPointInfo: null, meetingCity: null, meetingPoint: null,
+  meetingDetails: null, includes: null, includedServices: null, itinerary: null, routeNotes: null,
+  importantInfo: null, warnings: [],
+};
 
 /** Só estes campos podem ir ao log: nada de mensagem do provedor, texto do agente ou chave. */
 export interface ProviderErrorInfo {

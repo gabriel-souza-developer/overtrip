@@ -126,6 +126,25 @@ describe('provedores compatíveis com a API da OpenAI (Groq e xAI)', () => {
     expect(body.messages[1].content).toContain('oi');
   });
 
+  it('objeto sem todas as chaves (modo JSON livre, sem schema estrito) é completado com null antes de validar', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ choices: [{ finish_reason: 'stop', message: { content: JSON.stringify({ title: 'Trilha' }) } }] }),
+    })));
+    const out = await generateTripDraft(createGroqProvider('k'), 'x');
+    expect(out.draft).toEqual({ title: 'Trilha' });
+  });
+
+  it('objeto totalmente ausente (JSON inválido) continua reprovando, mesmo completando chaves', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ choices: [{ finish_reason: 'stop', message: { content: 'não é json' } }] }),
+    })));
+    const e = await generateTripDraft(createGroqProvider('k'), 'x').catch((x) => x);
+    expect(e.status).toBe(502);
+    expect(e.message).toContain('não consegui usar');
+  });
+
   it('mapeia finish_reason: length -> cortada, content_filter -> recusa', async () => {
     for (const [finish, expected] of [['length', 'cortada'], ['content_filter', 'não pôde analisar']] as const) {
       vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({ choices: [{ finish_reason: finish }] }) })));
