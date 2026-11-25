@@ -1,0 +1,28 @@
+/* Identidade das agências; restrita ao painel da organização. As variáveis
+   abaixo são o valor padrão (igual ao de antes, para quando nada as
+   sobrescreve); OrganizationLayout.tsx aplica a paleta própria de cada
+   empresa (ver ../lib/organizationBrand.ts) via style inline no mesmo
+   elemento, que tem prioridade sobre esta regra de classe. */
+.agency-panel {
+  --agency-50: #edf9f7;
+  --agency-100: #d6f0eb;
+  --agency-300: #80c9bc;
+  --agency-500: #0b756b;
+  --agency-600: #09685f;
+  --agency-600-hover: #07544d;
+}
+.agency-panel :is(.text-primary-500, .text-primary-600) { color: var(--agency-600); }
+.agency-panel .bg-primary-50 { background-color: var(--agency-50); }
+.agency-panel .bg-primary-100 { background-color: var(--agency-100); }
+.agency-panel .bg-primary-500 { background-color: var(--agency-500); }
+.agency-panel .bg-primary-600 { background-color: var(--agency-600); }
+.agency-panel :is(.border-primary-500, .border-primary-600) { border-color: var(--agency-600); }
+.agency-panel .border-orange-100 { border-color: var(--agency-100); }
+.agency-panel .to-orange-50 { --tw-gradient-to: var(--agency-50) var(--tw-gradient-to-position); }
+.agency-panel .btn-primary { background-color: var(--agency-600); color: #fff; }
+.agency-panel .btn-primary:hover { background-color: var(--agency-600-hover); }
+.agency-panel .pagination-btn-active { background-color: var(--agency-600); border-color: var(--agency-600); color: #fff; }
+.agency-panel .pagination-btn-active:hover { background-color: var(--agency-600-hover); }
+.agency-panel .hover\:border-primary-300:hover { border-color: var(--agency-300); }
+.agency-panel .hover\:text-primary-600:hover,
+.agency-panel .group:hover .group-hover\:text-primary-600 { color: var(--agency-600); }

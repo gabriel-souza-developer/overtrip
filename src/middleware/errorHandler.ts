@@ -36,6 +36,10 @@ export class AppError extends Error {
   static internal(message: string = 'Erro interno do servidor'): AppError {
     return new AppError(500, message, 'INTERNAL_ERROR');
   }
+
+  static serviceUnavailable(message: string, details?: unknown): AppError {
+    return new AppError(503, message, 'SERVICE_UNAVAILABLE', details);
+  }
 }
 
 const isUnexpectedError = (err: Error): boolean =>

@@ -3,15 +3,14 @@ import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
 import { authenticate } from '../middleware/auth.js';
-import { authorizeOrganization, requireOrganization, type OrganizationRequest } from '../middleware/organizationContext.js';
-import { organizationMembershipReader } from '../services/organizationMembership.js';
+import { requireOrganizationFromHeader, type OrganizationRequest } from '../middleware/organizationContext.js';
 import { AppError, asyncHandler } from '../middleware/errorHandler.js';
 
 const router = Router();
 router.use((_req, res, next) => { res.set('Cache-Control', 'private, no-store'); next(); });
-router.use(authenticate, requireOrganization(organizationMembershipReader), authorizeOrganization('owner', 'admin', 'staff'));
+router.use(authenticate, requireOrganizationFromHeader('OWNER', 'ADMIN', 'MEMBER'));
 router.use((req: OrganizationRequest, _res, next) => {
-  if (req.organization?.niche !== 'restaurante') { next(AppError.forbidden('Este módulo é exclusivo de restaurantes.')); return; }
+  if (req.organizationContext?.organization.niche !== 'restaurante') { next(AppError.forbidden('Este módulo é exclusivo de restaurantes.')); return; }
   next();
 });
 
@@ -44,19 +43,19 @@ router.get('/tables', asyncHandler(async (req: OrganizationRequest, res: Respons
   const query = z.object(paging).strict().parse(req.query);
   if (query.page !== undefined || query.limit !== undefined) {
     const page = query.page ?? 1; const limit = query.limit ?? 20;
-    const where = { organizationId: req.organization!.id };
+    const where = { organizationId: req.organizationContext!.organization.id };
     const [tables, total] = await prisma.$transaction([
       prisma.restaurantTable.findMany({ where, select: tableSelect, orderBy: [{ name: 'asc' }, { id: 'asc' }], skip: (page - 1) * limit, take: limit }),
       prisma.restaurantTable.count({ where }),
     ]);
     res.json({ tables, pagination: paginated(page, limit, total) }); return;
   }
-  const tables = await prisma.restaurantTable.findMany({ where: { organizationId: req.organization!.id }, select: tableSelect, orderBy: [{ name: 'asc' }, { id: 'asc' }] });
+  const tables = await prisma.restaurantTable.findMany({ where: { organizationId: req.organizationContext!.organization.id }, select: tableSelect, orderBy: [{ name: 'asc' }, { id: 'asc' }] });
   res.json({ tables });
 }));
 router.post('/tables', asyncHandler(async (req: OrganizationRequest, res: Response) => {
   const input = tableInput.parse(req.body);
-  const table = await prisma.restaurantTable.create({ data: { organizationId: req.organization!.id, name: input.name, capacity: input.capacity }, select: tableSelect });
+  const table = await prisma.restaurantTable.create({ data: { organizationId: req.organizationContext!.organization.id, name: input.name, capacity: input.capacity }, select: tableSelect });
   res.status(201).json(table);
 }));
 
@@ -64,7 +63,7 @@ router.get('/reservations', asyncHandler(async (req: OrganizationRequest, res: R
   const query = z.object({ ...paging, status: statusValue.optional(), search: z.string().trim().max(150).optional() }).strict().parse(req.query);
   if (query.page !== undefined || query.limit !== undefined || query.status || query.search) {
     const page = query.page ?? 1; const limit = query.limit ?? 20;
-    const organizationId = req.organization!.id;
+    const organizationId = req.organizationContext!.organization.id;
     const where = { organizationId, ...(query.status ? { status: query.status } : {}) };
     const orderBy = [{ date: 'asc' as const }, { time: 'asc' as const }, { id: 'asc' as const }];
     const [reservations, total] = query.search ? await prisma.$transaction(async tx => {
@@ -82,7 +81,7 @@ router.get('/reservations', asyncHandler(async (req: OrganizationRequest, res: R
     res.json({ reservations, pagination: paginated(page, limit, total) }); return;
   }
   const reservations = await prisma.restaurantReservation.findMany({
-    where: { organizationId: req.organization!.id }, include: reservationInclude,
+    where: { organizationId: req.organizationContext!.organization.id }, include: reservationInclude,
     orderBy: [{ date: 'asc' }, { time: 'asc' }, { id: 'asc' }],
   });
   res.json({ reservations });
@@ -90,7 +89,7 @@ router.get('/reservations', asyncHandler(async (req: OrganizationRequest, res: R
 
 router.get('/movement', asyncHandler(async (req: OrganizationRequest, res: Response) => {
   const { date } = z.object({ date: z.iso.date() }).strict().parse(req.query);
-  const organizationId = req.organization!.id;
+  const organizationId = req.organizationContext!.organization.id;
   const [expected, arrived, overdue] = await prisma.$transaction([
     prisma.restaurantReservation.count({ where: { organizationId, status: 'CONFIRMED', date } }),
     prisma.restaurantReservation.count({ where: { organizationId, status: 'ARRIVED', date } }),
@@ -101,7 +100,7 @@ router.get('/movement', asyncHandler(async (req: OrganizationRequest, res: Respo
 
 router.post('/reservations', asyncHandler(async (req: OrganizationRequest, res: Response) => {
   const input = reservationInput.parse(req.body);
-  const organizationId = req.organization!.id;
+  const organizationId = req.organizationContext!.organization.id;
   const table = await prisma.restaurantTable.findFirst({ where: { id: input.tableId, organizationId }, select: { id: true, capacity: true } });
   if (!table) throw AppError.notFound('Mesa não encontrada.');
   if (input.partySize > table.capacity) throw AppError.badRequest('O grupo é maior do que a capacidade da mesa.');
@@ -121,7 +120,7 @@ router.post('/reservations', asyncHandler(async (req: OrganizationRequest, res: 
 
 router.post('/reservations/:id/cancel', asyncHandler(async (req: OrganizationRequest, res: Response) => {
   const id = identifier.parse(req.params.id);
-  const organizationId = req.organization!.id;
+  const organizationId = req.organizationContext!.organization.id;
   const reservation = await prisma.$transaction(async tx => {
     // O predicado de estado está na escrita: uma chegada concorrente não pode
     // ser cancelada por uma leitura anterior que ainda a via como confirmada.
@@ -141,7 +140,7 @@ router.post('/reservations/:id/cancel', asyncHandler(async (req: OrganizationReq
 function operation(to: 'ARRIVED' | 'NO_SHOW') {
   return asyncHandler(async (req: OrganizationRequest, res: Response) => {
     const id = identifier.parse(req.params.id);
-    const organizationId = req.organization!.id;
+    const organizationId = req.organizationContext!.organization.id;
     const reservation = await prisma.$transaction(async tx => {
       const updated = await tx.restaurantReservation.updateMany({ where: { id, organizationId, status: 'CONFIRMED' }, data: { status: to } });
       const current = await tx.restaurantReservation.findFirst({ where: { id, organizationId }, include: reservationInclude });

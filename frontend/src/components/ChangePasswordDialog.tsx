@@ -35,7 +35,7 @@ export default function ChangePasswordDialog({ open, onClose }: { open: boolean;
     try {
       await authApi.changePassword(current, next);
       clear();
-      // A API revoga o cookie na troca; limpar o estado em memória sem novo logout.
+      // O servidor já encerrou a sessão; limpar estado local sem novo logout.
       flushSync(() => window.dispatchEvent(new Event('overtrip:session-ended')));
       navigate('/login', { replace: true, state: { passwordChanged: true } });
     } catch (err) {

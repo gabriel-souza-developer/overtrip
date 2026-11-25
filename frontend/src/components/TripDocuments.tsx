@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { documentApi, type TripDocument } from '../api';
+import React, { useEffect, useId, useRef, useState } from 'react';
+import type { DocumentApi, ExtractedDocumentImage, TripDocument, UploadedMedia } from '../api';
 import Button from './Button';
 import ConfirmDialog from './ConfirmDialog';
 import { buildSuggestionRows, type DraftKey, type SuggestionRow, type TripDraft } from '../lib/aiDraft';
@@ -7,9 +7,17 @@ import type { DocumentSuggestions } from '../api';
 
 interface Props {
   tripId: string;
+  // Operador legado passa documentApi (api/index.ts); o painel de empresa
+  // passa createOrganizationDocumentApi(organizationId) — mesma interface,
+  // isolamento por empresa é só do lado do servidor.
+  api: DocumentApi;
   form: Record<string, unknown>;
   defaults: Record<string, unknown>;
   onApply: (draft: TripDraft, chosen: DraftKey[], overwrite: DraftKey[]) => void;
+  // Só chamado quando api.importImage existe (painel de empresa). Mesmo
+  // contrato do onAdd de ImageUploader.tsx: preenche o formulário, nunca
+  // salva ou publica a viagem por conta própria.
+  onImportPhoto?: (media: UploadedMedia, alt: string) => void;
 }
 
 const extractionLabels: Record<string, string> = {
@@ -17,7 +25,7 @@ const extractionLabels: Record<string, string> = {
   FAILED: 'Não foi possível extrair texto', SKIPPED: 'Extração não iniciada',
 };
 
-export default function TripDocuments({ tripId, form, defaults, onApply }: Props) {
+export default function TripDocuments({ tripId, api, form, defaults, onApply, onImportPhoto }: Props) {
   const [documents, setDocuments] = useState<TripDocument[]>([]);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -25,13 +33,36 @@ export default function TripDocuments({ tripId, form, defaults, onApply }: Props
   const [suggestions, setSuggestions] = useState<DocumentSuggestions | null>(null);
   const [rows, setRows] = useState<SuggestionRow[]>([]);
   const [checked, setChecked] = useState<Set<DraftKey>>(new Set());
-  const refresh = async () => setDocuments(await documentApi.list(tripId));
+  // Fotos extraídas do PDF: nunca persistidas até a pessoa escolher uma e
+  // confirmar o texto alternativo (mesma exigência de ImageUploader.tsx).
+  const [images, setImages] = useState<ExtractedDocumentImage[] | null>(null);
+  const [imagesDocId, setImagesDocId] = useState<string | null>(null);
+  const [pickedImage, setPickedImage] = useState<number | null>(null);
+  const [imageAlt, setImageAlt] = useState('');
+  const altRef = useRef<HTMLInputElement>(null);
+  const importingRef = useRef(false);
+  const altId = useId();
+  useEffect(() => { if (pickedImage !== null) altRef.current?.focus(); }, [pickedImage]);
+  const refresh = async () => setDocuments(await api.list(tripId));
   useEffect(() => { refresh().catch(() => setError('Não foi possível carregar os documentos.')); }, [tripId]);
   const run = async (action: () => Promise<unknown>) => {
     setBusy(true); setError('');
     try { await action(); await refresh(); }
     catch (e) { setError(e instanceof Error ? e.message : 'Não foi possível concluir a operação.'); }
     finally { setBusy(false); }
+  };
+  const closeImages = () => { setImages(null); setImagesDocId(null); setPickedImage(null); setImageAlt(''); };
+  const importPickedImage = async () => {
+    const alt = imageAlt.trim();
+    if (busy || importingRef.current || !alt || pickedImage === null || !imagesDocId || !api.importImage || !onImportPhoto) return;
+    importingRef.current = true;
+    try {
+      await run(async () => {
+        const media = await api.importImage!(tripId, imagesDocId, pickedImage);
+        onImportPhoto(media, alt);
+        closeImages();
+      });
+    } finally { importingRef.current = false; }
   };
   return <section className="card p-5 space-y-3" aria-labelledby="documents-title">
     <h2 id="documents-title" className="text-lg font-semibold">PDFs do roteiro</h2>
@@ -43,7 +74,7 @@ export default function TripDocuments({ tripId, form, defaults, onApply }: Props
       const input = e.currentTarget; const file = input.files?.[0]; input.value = '';
       if (!file) return;
       if (file.size > 10 * 1024 * 1024) { setError('O PDF deve ter até 10 MiB.'); return; }
-      void run(() => documentApi.upload(tripId, file));
+      void run(() => api.upload(tripId, file));
     }} />
     <Button small disabled={busy} onClick={() => void run(async () => {})}>Atualizar lista</Button>
     {documents.length === 0 && <p className="hint">Nenhum documento anexado.</p>}
@@ -53,15 +84,50 @@ export default function TripDocuments({ tripId, form, defaults, onApply }: Props
       <span className="hint">{extractionLabels[doc.extractionStatus] ?? 'Estado desconhecido'}</span>
       {doc.extractionStatus === 'READY' && <Button small disabled={busy} onClick={() => void run(async () => {
         setSuggestions(null); setRows([]); setChecked(new Set());
-        const result = await documentApi.suggestions(tripId, doc.id);
+        const result = await api.suggestions(tripId, doc.id);
         const next = buildSuggestionRows(form, result.draft as TripDraft, defaults).filter(row => !!result.sources[row.key]);
         setSuggestions(result); setRows(next);
         if (!next.length) setError('Não encontrei sugestões novas com origem verificável neste documento.');
       })}>Sugerir campos</Button>}
-      <Button small disabled={busy} onClick={() => void run(() => documentApi.download(tripId, doc))}>Baixar</Button>
+      {doc.extractionStatus === 'READY' && api.previewImages && <Button small disabled={busy} onClick={() => void run(async () => {
+        closeImages(); setImagesDocId(doc.id);
+        const result = await api.previewImages!(tripId, doc.id);
+        setImages(result.images);
+        if (!result.images.length) setError('Nenhuma foto foi encontrada neste PDF.');
+      })}>Ver fotos do PDF</Button>}
+      <Button small disabled={busy} onClick={() => void run(() => api.download(tripId, doc))}>Baixar</Button>
       <Button small variant="danger" disabled={busy} onClick={() => setSelected(doc)}>Excluir</Button>
     </li>)}</ul>
     {suggestions && suggestions.warnings.length > 0 && <ul className="alert-info list-disc pl-5" role="status">{suggestions.warnings.map((warning, i) => <li key={i}>{warning}</li>)}</ul>}
+    {images && images.length > 0 && <div className="space-y-3" aria-live="polite">
+      <p className="font-semibold">Fotos encontradas no PDF</p>
+      <p className="hint">Escolha uma foto para importar como foto da viagem. Nada é salvo até você confirmar o texto alternativo e importar.</p>
+      <ul className="flex flex-wrap gap-2" role="list">{images.map(image => <li key={image.index}>
+        <button type="button" disabled={busy}
+          className={`block rounded-lg border-2 p-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${pickedImage === image.index ? 'border-primary-500' : 'border-surface-200'}`}
+          aria-pressed={pickedImage === image.index}
+          aria-label={`Selecionar foto da página ${image.page} (${image.width}×${image.height} px)`}
+          onClick={() => { setPickedImage(image.index); setImageAlt(''); }}>
+          <img src={image.dataUrl} alt="" className="h-20 w-20 object-cover rounded bg-surface-100" />
+        </button>
+      </li>)}</ul>
+      {pickedImage !== null && <div className="rounded-lg border border-dashed border-surface-300 p-3 space-y-2">
+        <div className="flex flex-wrap items-start gap-3">
+          <img src={images.find(image => image.index === pickedImage)?.dataUrl} alt="" className="w-20 h-20 object-cover rounded bg-surface-100" />
+          <div className="flex-1 min-w-[12rem] space-y-1">
+            <label htmlFor={altId} className="label">O que aparece nesta foto? <span className="text-red-700">(obrigatório)</span></label>
+            <input id={altId} ref={altRef} type="text" className="input" value={imageAlt} aria-required="true"
+              onChange={e => setImageAlt(e.target.value)} placeholder="Ex.: Grupo no mirante"
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void importPickedImage(); } }} />
+            <p className="hint">Esse texto ajuda pessoas que usam leitor de tela a entender a imagem.</p>
+            <div className="flex flex-wrap gap-2">
+              <Button small variant="primary" disabled={busy || !imageAlt.trim()} onClick={() => void importPickedImage()}>Importar esta foto</Button>
+              <Button small disabled={busy} onClick={() => { setPickedImage(null); setImageAlt(''); }}>Cancelar</Button>
+            </div>
+          </div>
+        </div>
+      </div>}
+    </div>}
     {suggestions && rows.length > 0 && <div className="space-y-3" aria-live="polite">
       <p className="font-semibold">Revise as sugestões do documento</p>
       <p className="hint">Marque cada campo que deseja usar. A aplicação preenche o formulário; salve a viagem para confirmar.</p>
@@ -83,6 +149,6 @@ export default function TripDocuments({ tripId, form, defaults, onApply }: Props
         setSuggestions(null); setRows([]); setChecked(new Set());
       }}>Usar selecionados ({checked.size})</Button>
     </div>}
-    <ConfirmDialog open={!!selected} onOpenChange={open => { if (!open) setSelected(null); }} title="Excluir documento?" description={`O arquivo ${selected?.originalFilename ?? ''} será removido.`} confirmLabel="Excluir" busy={busy} onConfirm={() => { if (selected) void run(async () => { await documentApi.remove(tripId, selected.id); if (Object.values(suggestions?.sources ?? {}).some(source => source.documentId === selected.id)) { setSuggestions(null); setRows([]); setChecked(new Set()); } setSelected(null); }); }} />
+    <ConfirmDialog open={!!selected} onOpenChange={open => { if (!open) setSelected(null); }} title="Excluir documento?" description={`O arquivo ${selected?.originalFilename ?? ''} será removido.`} confirmLabel="Excluir" busy={busy} onConfirm={() => { if (selected) void run(async () => { await api.remove(tripId, selected.id); if (Object.values(suggestions?.sources ?? {}).some(source => source.documentId === selected.id)) { setSuggestions(null); setRows([]); setChecked(new Set()); } if (imagesDocId === selected.id) closeImages(); setSelected(null); }); }} />
   </section>;
 }

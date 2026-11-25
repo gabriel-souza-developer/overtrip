@@ -1,12 +1,76 @@
 # Estado da produção na Oracle
 
 > Este arquivo é um diário de alterações e verificações, não um monitor em
-> tempo real. O registro mais recente abaixo é de 13 de novembro de 2026; não
+> tempo real. O registro mais recente abaixo não
 > confirma que serviços, DNS, dados ou configurações continuam iguais hoje.
 > Para mudanças operacionais, obtenha evidência nova diretamente da VM e
 > preserve os limites de privacidade. CRM/reservas foram publicados segundo o
 > registro de 10 de novembro, mas os fluxos e limites descritos nessa entrada
 > não significam que o estado atual da instância foi novamente verificado.
+
+## Ação de senha no menu da conta (22 de novembro de 2026, 23:23 UTC)
+
+- Publicado somente o painel do commit `296f92c`. A troca de senha ficou apenas no dropdown “Minha conta” nos painéis de agência, incluindo as telas de seleção e erro; os botões avulsos foram removidos. A versão anterior foi preservada em `/srv/overtrip/retorno-user-menu-296f92c-20261122-232312/admin`.
+- O painel e `/health` responderam HTTP 200 após a publicação; Caddy e API estavam ativos. `typecheck:frontend`, build e 12 testes Playwright focados passaram. Nenhuma API ou migração foi alterada nesta publicação.
+
+## Link de recuperação de senha (22 de novembro de 2026, 22:23 UTC)
+
+- Publicado somente o painel do commit `6a0bf44`. O link “Esqueci minha senha” agora aparece logo abaixo do campo de senha, alinhado à direita, com contraste reforçado, sublinhado e área clicável de 44 px. O pacote anterior foi preservado em `/srv/overtrip/retorno-login-link-6a0bf44-20261122-222349/admin`.
+- Após a publicação, `/admin/` e `/health` responderam HTTP 200; Caddy e API estavam ativos. No navegador, o link foi encontrado no DOM com altura de 44 px. Tipos e build do frontend passaram antes da publicação.
+
+## Histórico de reservas por empresa (22 de novembro de 2026, UTC)
+
+- Publicado backend e painel do commit `542c7dc`; backup consistente do banco, aplicação e painel anterior em `/srv/overtrip/retorno-542c7dc-20261122-040902`. Migração aditiva `20261122030947_reservation_audit_log` ensaiada em cópia antes da aplicação; Prisma confirmou 28 migrações atualizadas.
+- Após a troca: site, painel, saúde e API pública retornaram 200; `/api/auth/me` sem sessão retornou 401; API e Caddy ativos e `integrity_check` do banco retornou `ok`. Não houve login real ou cadastro de agência; contagem de empresas permaneceu zero.
+- Histórico registra eventos a partir da ativação e não recompõe alterações anteriores. Backup de banco só é restaurável sem perda se não houver escritas posteriores; caso contrário, avaliar reconciliação/correção em frente.
+
+## Ajuste no site público (22 de novembro de 2026, UTC)
+
+- Publicado somente `js/render.js` do commit `81b5855`, ocultando o controle de detalhes quando não há conteúdo. Arquivo anterior em `/srv/overtrip/retorno-site-81b5855-20261122-030437/render.js`; hash servido conferido contra o arquivo versionado.
+
+## Plataforma multiagência (22 de novembro de 2026, UTC)
+
+- Publicado o commit `bc26620` da branch `gabriel-souza-developer/turismo-multiagencia`, com frontend e backend compilados na VM ARM64. Código, painel e cópia consistente do banco anterior foram preservados em `/srv/overtrip/retorno-bc26620-20261122-025124`.
+- Dez migrações foram ensaiadas antes em cópia privada do banco e aplicadas com API parada; Prisma informou 27 migrações atualizadas e `PRAGMA integrity_check` retornou `ok`. As contas existentes foram preservadas; não foi criada empresa ou conta de demonstração. A consulta agregada após publicação indicou zero empresas cadastradas.
+- Após publicar: API e Caddy ativos; `/health`, `/admin/` e `/api/public/trips` retornaram 200, e `/api/auth/me` sem sessão retornou 401. Não foi feito login real nem exercício autenticado em produção; o teste de migração em cópia confirmou rotas legadas com sessão sintética.
+- O worker de documentos, armazenamento de PDFs e scanner real continuam não preparados neste ambiente; não se deve anunciar processamento de PDF/IA como operacional. Extração de imagens de PDF permanece desligada por padrão e exige validação do isolamento sob o serviço real antes de habilitar.
+- O teste completo de backend terminou com 1126 aprovados, 6 pulados e um timeout de 5 segundos sob carga paralela; a suíte específica repetida isoladamente passou 15/15. Playwright: 133 aprovados e 6 pulados; builds e tipos passaram.
+- Uma restauração automática do banco após entrada de novas escritas apagaria dados posteriores. Em caso de regressão, avaliar correção em frente ou reconciliação; não restaurar o snapshot sem considerar dados criados após a publicação.
+
+## Melhorias na revisão social (16 de novembro, 02:48 UTC)
+
+- Publicado apenas o frontend do commit `41d152b`; retorno em `/srv/overtrip/retorno-social-ui-20261116-024808/admin`. Painel e saúde responderam 200; rascunhos sem sessão responderam 401; API e Caddy ativos.
+- O formulário avisa antes de descartar edições e apresenta mensagens ao salvar, revisar ou excluir. A ferramenta de inventário e a pré-verificação de publicação do mesmo commit permanecem somente no repositório, não foram instaladas na VM.
+
+## Proteção do caminho do backup social (16 de novembro)
+
+- Instalado o ajuste `0750eba`: o serviço de backup lê o mesmo arquivo de ambiente da API e usa a mesma variável `SOCIAL_MEDIA_DIR`. A configuração da API na VM não tinha variáveis adicionais por override e declarava `NODE_ENV=production`.
+- O serviço foi executado com `Result=success`; API, Caddy e temporizador ativos. Um ensaio local com banco e imagem sintéticos validou integridade, referência e hash após restauração; não equivale a restaurar os dados da VM nem a uma cópia externa.
+
+## Rascunhos para redes sociais (16 de novembro, 02:39 UTC)
+
+- Publicado o código da `main` no commit `a6e420e`; pacote SHA-256 `d132e0dc002931b6566447fade5ccf03d1f9ebb3eadc482b85748c1bcf7d0ca6`. Cópia de retorno dos arquivos anteriores em `/srv/overtrip/retorno-social-20261116-023930`.
+- As duas migrações sociais foram ensaiadas antes em cópia do banco, com `integrity_check` e `foreign_key_check`, e depois aplicadas ao banco ativo. Prisma Client foi gerado na VM ARM64.
+- API, Caddy e temporizador de backup ativos; `/admin/`, `/health` e `/api/public/trips` responderam 200 e `/api/social-posts` sem sessão respondeu 401. O menu social foi entregue no bundle. Não foi feito login real nem publicação em redes.
+- Serviço de backup atualizado e executado com sucesso: snapshot do banco, imagens públicas e mídia social privada; fonte e destino privados modo 700. Como não havia mídias sociais, não houve teste de restauração com imagens reais. Cópia externa à VM permanece pendente.
+- A tela permite rascunhos, sugestões de legenda quando houver provedor configurado, imagens privadas e revisão. Conexão OAuth, agendamento e publicação externa ainda não existem.
+
+## Destaque azul dos feriados (15 de novembro, 20:12 UTC)
+
+- Publicado apenas o painel do commit `5bdc05d`, com feriados em azul. Retorno: `/srv/overtrip/retorno-feriados-azul-20261115-201217/admin`. Painel, saúde e API pública responderam 200; Caddy e API ativos.
+- A função de redes sociais do commit posterior `7970dcc` não foi publicada; necessita integração oficial e validação antes de operar em produção.
+
+## Feriados no calendário (15 de novembro, 19:57 UTC)
+
+- Publicado o painel do commit `bf6a213`, pacote SHA-256 `a287de72b1cdbeac9e1ec2db5f2d9d28c6ab003c51f95f2b17f93b599f8f071d`. Retorno em `/srv/overtrip/retorno-painel-feriados-20261115-195730/admin`.
+- O calendário mostra feriados recorrentes nacionais, da Paraíba e de Campina Grande, com Sexta-feira da Paixão e Corpus Christi calculados por ano. São regras atuais, sujeitas a revisão legal; pontos facultativos não estão incluídos.
+- Passaram 9 testes focados, tipos e build; navegador conferiu novembro de 2026 em celular e desktop. Após publicação, painel, saúde e API pública responderam 200; Caddy e API ativos.
+
+## Atualização visual do painel (15 de novembro, 19:52 UTC)
+
+- Publicado o painel do commit `19b25d3`, pacote SHA-256 `ef553ec17658ad37ebee67ba23ab1df731f384d4b0cedade915eb6f3e2d67c2c`. A versão anterior está em `/srv/overtrip/retorno-painel-19b25d3-20261115-195212/admin`.
+- Navegação, indicadores e agenda foram simplificados; o indicador de viagens abertas informa que inclui datas passadas. Apenas arquivos do painel foram atualizados.
+- Após publicação, `/`, `/admin/`, `/health` e `/api/public/trips` responderam 200; API e Caddy estavam ativos. O HTML do painel mantém cache desativado. Compilação, tipos e 10 testes direcionados passaram.
 
 ## CSP em modo de relatório e métrica de carga (13 de novembro, 15:25 UTC)
 

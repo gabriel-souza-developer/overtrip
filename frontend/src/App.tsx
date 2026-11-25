@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import Layout from './components/Layout';
 import Login from './pages/Login';
+const ForgotPassword = React.lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = React.lazy(() => import('./pages/ResetPassword'));
 import { ApiRequestError, authApi } from './api';
 import { ToastProvider } from './hooks/useToast';
 
@@ -19,17 +21,28 @@ const Reservations = React.lazy(() => import('./pages/Reservations'));
 const SystemHealthPage = React.lazy(() => import('./pages/SystemHealth'));
 const Gallery = React.lazy(() => import('./pages/Gallery'));
 const Settings = React.lazy(() => import('./pages/Settings'));
+const SocialPosts = React.lazy(() => import('./pages/SocialPosts'));
+const OrganizationSelect = React.lazy(() => import('./pages/OrganizationSelect'));
+const OrganizationLayout = React.lazy(() => import('./pages/OrganizationLayout'));
+const OrganizationTrips = React.lazy(() => import('./pages/OrganizationTrips'));
+const OrganizationVisits = React.lazy(() => import('./pages/OrganizationVisits'));
+const OrganizationGallery = React.lazy(() => import('./pages/OrganizationGallery'));
+const OrganizationDashboard = React.lazy(() => import('./pages/OrganizationDashboard'));
+const OrganizationLeads = React.lazy(() => import('./pages/OrganizationLeads'));
+const OrganizationReservations = React.lazy(() => import('./pages/OrganizationReservations'));
+const OrganizationSettings = React.lazy(() => import('./pages/OrganizationSettings'));
 
 interface User {
   id: string;
   email: string;
   name: string;
   role: string;
+  legacyAccess: boolean;
 }
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
   logout: () => Promise<void>;
   loading: boolean;
 }
@@ -72,6 +85,7 @@ const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const login = async (email: string, password: string) => {
     const newUser = await authApi.login(email, password);
     setUser(newUser);
+    return newUser;
   };
 
   const logout = async () => {
@@ -107,6 +121,20 @@ const AdminRoute = () => {
   return user?.role === 'admin' ? <Outlet /> : <Navigate to="/dashboard" replace />;
 };
 
+// legacyAccess vem só de /auth/login e /auth/me, autenticados; o servidor
+// revalida de novo em cada rota legada, então isto é apenas conveniência de navegação.
+const LegacyRoute: React.FC = () => {
+  const { user } = useAuth();
+  return user?.legacyAccess ? <Outlet /> : <Navigate to="/empresa" replace />;
+};
+
+const RootRedirect: React.FC = () => {
+  const { user, loading } = useAuth();
+  if (loading) return <LoadingScreen />;
+  if (!user) return <Navigate to="/login" replace />;
+  return <Navigate to={user.legacyAccess ? '/dashboard' : '/empresa'} replace />;
+};
+
 const LoadingScreen = () => (
   <div className="min-h-screen flex items-center justify-center">
     <div className="spinner w-8 h-8"></div>
@@ -118,6 +146,8 @@ const PlatformWorkspace = () => <React.Suspense fallback={<LoadingScreen />}>{Wo
 const AppRoutes = () => platformMode ? (
   <Routes>
     <Route path="/login" element={<Login />} />
+    <Route path="/esqueci-senha" element={<React.Suspense fallback={<LoadingScreen />}><ForgotPassword /></React.Suspense>} />
+    <Route path="/redefinir-senha" element={<React.Suspense fallback={<LoadingScreen />}><ResetPassword /></React.Suspense>} />
     <Route element={<ProtectedRoute />}>
       <Route path="/espaco" element={<PlatformWorkspace />} />
       <Route path="*" element={<Navigate to="/espaco" replace />} />
@@ -128,23 +158,38 @@ const AppRoutes = () => platformMode ? (
     <Route path="/login" element={<Login />} />
     <Route element={<ProtectedRoute />}>
       {Workspace && <Route path="/espaco" element={<React.Suspense fallback={<LoadingScreen />}><Workspace /></React.Suspense>} />}
-      <Route element={<Layout />}>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/trips" element={<Trips />} />
-        <Route path="/trips/new" element={<TripForm />} />
-        <Route path="/trips/:id/edit" element={<TripForm />} />
-        <Route path="/visits" element={<Visits />} />
-        <Route path="/gallery" element={<Gallery />} />
-        <Route element={<AdminRoute />}>
-          <Route path="/leads" element={<Leads />} />
-          <Route path="/reservations" element={<Reservations />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/system" element={<SystemHealthPage />} />
+      <Route path="/empresa" element={<React.Suspense fallback={<LoadingScreen />}><OrganizationSelect /></React.Suspense>} />
+      <Route path="/empresa/:organizationId" element={<React.Suspense fallback={<LoadingScreen />}><OrganizationLayout /></React.Suspense>}>
+        <Route index element={<Navigate to="dashboard" replace />} />
+        <Route path="dashboard" element={<OrganizationDashboard />} />
+        <Route path="trips" element={<OrganizationTrips />} />
+        <Route path="visits" element={<OrganizationVisits />} />
+        <Route path="gallery" element={<OrganizationGallery />} />
+        <Route path="social-posts" element={<SocialPosts />} />
+        <Route path="leads" element={<OrganizationLeads />} />
+        <Route path="reservations" element={<OrganizationReservations />} />
+        <Route path="settings" element={<OrganizationSettings />} />
+      </Route>
+      <Route element={<LegacyRoute />}>
+        <Route element={<Layout />}>
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/trips" element={<Trips />} />
+          <Route path="/trips/new" element={<TripForm />} />
+          <Route path="/trips/:id/edit" element={<TripForm />} />
+          <Route path="/visits" element={<Visits />} />
+          <Route path="/gallery" element={<Gallery />} />
+          <Route element={<AdminRoute />}>
+            <Route path="/leads" element={<Leads />} />
+            <Route path="/reservations" element={<Reservations />} />
+            <Route path="/social-posts" element={<SocialPosts />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/system" element={<SystemHealthPage />} />
+          </Route>
         </Route>
       </Route>
     </Route>
-    <Route path="*" element={<Navigate to="/dashboard" replace />} />
+    <Route path="/" element={<RootRedirect />} />
+    <Route path="*" element={<RootRedirect />} />
   </Routes>
 );
 

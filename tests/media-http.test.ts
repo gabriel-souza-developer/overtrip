@@ -1,12 +1,14 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { get, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { createHash } from 'node:crypto';
 import { mkdtemp, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { PrismaClient } from '@prisma/client';
 import sharp from 'sharp';
 import app from '../src/app.js';
+import { prisma as appPrisma } from '../src/lib/prisma.js';
 import { generateToken } from '../src/middleware/auth.js';
 import { MEDIA_MAX_BYTES, MEDIA_MAX_DIMENSION } from '../src/services/mediaUpload.js';
 
@@ -32,7 +34,7 @@ beforeAll(async () => {
   await new Promise<void>((resolve) => { server = app.listen(0, resolve); });
   baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   for (const role of ['admin', 'editor', 'viewer']) {
-    const user = await prisma.user.create({ data: { email: `test:media-http:${role}:${Date.now()}@example.com`, passwordHash: 'x', role } });
+    const user = await prisma.user.create({ data: { legacyAccess: true, email: `test:media-http:${role}:${Date.now()}@example.com`, passwordHash: 'x', role } });
     users[role] = { id: user.id, token: generateToken(user) };
   }
 });
@@ -90,7 +92,10 @@ describe('POST /api/media', () => {
     const served = await fetch(baseUrl + asset.src);
     expect(served.status).toBe(200);
     expect(served.headers.get('content-type')).toBe('image/jpeg');
-    expect(served.headers.get('cache-control')).toBe('public, max-age=31536000, immutable');
+    // Sempre revalida: a organização de um arquivo pode ser desativada depois
+    // de servido, então um cache compartilhado nunca deve reservir sem
+    // consultar a origem (ver deploy/ORACLE_STATUS.md).
+    expect(served.headers.get('cache-control')).toBe('no-cache');
     expect(served.headers.get('x-content-type-options')).toBe('nosniff');
     const bytes = Buffer.from(await served.arrayBuffer());
     expect((await sharp(bytes).metadata()).exif).toBeUndefined();
@@ -110,6 +115,40 @@ describe('POST /api/media', () => {
     expect(again.status).toBe(200);
     expect((await again.json()).id).toBe(asset.id);
     expect(await readdir(directory)).toHaveLength(4);
+  });
+
+  it('se a chamada que publica falhar DEPOIS de outro processo já ter publicado o mesmo pendente concorrentemente (ex.: corrida com reconciliação, ou a própria chamada tendo sido efetivada no servidor apesar do erro), o rollback do envio NUNCA apaga o ativo já publicado nem seus arquivos', async () => {
+    // Conteúdo próprio (nunca o de jpeg()): precisa de um hash inédito para
+    // não cair no caminho de reaproveitar um upload já publicado antes de
+    // chegar na chamada que este teste precisa interceptar.
+    const input = await sharp({ create: { width: 301, height: 199, channels: 3, background: '#1A2B3C' } }).jpeg().toBuffer();
+    const sha256 = createHash('sha256').update(input).digest('hex');
+    const spy = vi.spyOn(appPrisma.mediaAsset, 'update').mockImplementationOnce(async (args: { where: { id: string } }) => {
+      // Simula outro processo publicando o MESMO pendente concorrentemente
+      // (ex.: uma futura ferramenta de publicação manual, ou a própria
+      // chamada tendo sido efetivada no banco mesmo que a promise rejeite
+      // por erro de rede na resposta) — via updateMany, nunca via update
+      // (que está mockado aqui e recursaria).
+      await appPrisma.mediaAsset.updateMany({ where: { id: args.where.id }, data: { publishedAt: new Date() } });
+      throw new Error('falha simulada depois da escrita já efetivada');
+    });
+    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    try {
+      const response = await upload(input, { token: users.admin.token });
+      expect(response.status).toBe(500);
+    } finally {
+      spy.mockRestore();
+      log.mockRestore();
+    }
+
+    const row = await prisma.mediaAsset.findFirstOrThrow({ where: { sha256, originalBytes: input.length } });
+    expect(row.publishedAt).not.toBeNull(); // continua publicado: o rollback nunca o apagou
+    const files = await readdir(directory);
+    const ext = row.mimeType === 'image/png' ? 'png' : 'jpg';
+    expect(files).toContain(`${row.storageKey}.${ext}`);
+    expect(files).toContain(`${row.storageKey}-w640.webp`);
+
+    await prisma.mediaAsset.delete({ where: { id: row.id } });
   });
 
   it('mantém a foto ao salvar e consultar novamente uma viagem em rascunho', async () => {

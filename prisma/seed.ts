@@ -6,51 +6,34 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Seeding database...');
 
-  // Create admin user if not exists
+  // A conta inicial é a única criação automática com acesso ao painel global.
+  // Não ampliar permissões de contas existentes nem criar um operador legado
+  // automaticamente em uma instalação que já tem usuários.
   const adminEmail = 'admin@overtrip.com.br';
   const adminPassword = process.env.ADMIN_PASSWORD;
-
-  if (!adminPassword) {
-    console.error('❌ ADMIN_PASSWORD environment variable is required');
-    console.error('   Set it before running seed: ADMIN_PASSWORD="sua-senha-forte" npx tsx prisma/seed.ts');
-    process.exit(1);
-  }
-
-  if (adminPassword.length < 8) {
-    console.error('❌ ADMIN_PASSWORD must be at least 8 characters');
-    process.exit(1);
-  }
-
-  const existingAdmin = await prisma.user.findUnique({
-    where: { email: adminEmail },
-  });
-
-  if (!existingAdmin) {
+  const created = await prisma.$transaction(async tx => {
+    const existingAdmin = await tx.user.findUnique({ where: { email: adminEmail }, select: { id: true } });
+    if (existingAdmin) return false;
+    if (await tx.user.count() !== 0) throw new SeedError('A instalação já possui usuários; não é possível criar automaticamente o operador legado.');
+    if (!adminPassword || adminPassword.length < 8 || Buffer.byteLength(adminPassword, 'utf8') > 72) {
+      throw new SeedError('Defina ADMIN_PASSWORD com pelo menos 8 caracteres e no máximo 72 bytes.');
+    }
     const passwordHash = await bcrypt.hash(adminPassword, 12);
-    
-    await prisma.user.create({
-      data: {
-        email: adminEmail,
-        name: 'Administrador OVERTRIP',
-        passwordHash,
-        role: 'admin',
-      },
-    });
-
-    console.log(`✅ Admin user created:`);
-    console.log(`   Email: ${adminEmail}`);
-    console.log(`   Password: [definida via ADMIN_PASSWORD]`);
-  } else {
-    console.log('ℹ️  Admin user already exists');
-  }
+    await tx.user.create({ data: { email: adminEmail, name: 'Administrador OVERTRIP', passwordHash, role: 'admin', legacyAccess: true } });
+    return true;
+  });
+  console.log(created ? '✅ Operador inicial criado.' : 'ℹ️  Operador inicial já existe; permissões preservadas.');
 
   console.log('✅ Seeding completed');
 }
 
+class SeedError extends Error {}
+
 main()
-  .catch((e) => {
-    console.error('❌ Seeding failed:', e);
-    process.exit(1);
+  .catch((error: unknown) => {
+    // Erros do banco podem incluir parâmetros; não registrar dados da consulta.
+    console.error(error instanceof SeedError ? error.message : '❌ Não foi possível inicializar o operador.');
+    process.exitCode = 1;
   })
   .finally(async () => {
     await prisma.$disconnect();

@@ -1,17 +1,21 @@
 import React, { useState } from 'react';
 import { Copy, FileText } from 'lucide-react';
-import type { TripFormData } from '../api';
 import { useToast } from '../hooks/useToast';
-import { buildTripProposal, tripProposalText } from '../lib/tripProposal';
+import { buildTripProposal, tripProposalText, type TripProposalInput } from '../lib/tripProposal';
 import { brandUrl } from '../lib/basePath';
 import Button from './Button';
 import Field from './Field';
 import Modal from './Modal';
 
-/** Prévia local, sem persistência, publicação ou compartilhamento automático. */
-export default function TripProposalPreview({ trip, dirty }: { trip: TripFormData; dirty: boolean }) {
+/**
+ * Prévia local, sem persistência, publicação ou compartilhamento automático.
+ * defaultOrganizer: nome inicial do campo "Agência ou organizador" — o
+ * painel de agências passa o nome da própria empresa (nunca "OVERTRIP",
+ * que ficaria sendo a marca de outra empresa na proposta desta).
+ */
+export default function TripProposalPreview({ trip, dirty, defaultOrganizer = 'OVERTRIP' }: { trip: TripProposalInput; dirty: boolean; defaultOrganizer?: string }) {
   const [open, setOpen] = useState(false);
-  const [organizer, setOrganizer] = useState('OVERTRIP');
+  const [organizer, setOrganizer] = useState(defaultOrganizer);
   const { toast } = useToast();
   const proposal = buildTripProposal(trip, organizer);
   const copy = async () => {
@@ -35,7 +39,7 @@ export default function TripProposalPreview({ trip, dirty }: { trip: TripFormDat
         <article className="rounded-xl border border-surface-200 overflow-hidden bg-white">
           <header className="bg-surface-900 text-white px-5 py-4 flex items-center gap-3">{proposal.organizer.toUpperCase() === 'OVERTRIP' && <img src={brandUrl('overtrip-logo-com-fundo-laranja-192.png')} alt="" className="h-10 w-10 rounded-lg" />}<div><p className="text-xs text-surface-300 uppercase tracking-wide">Proposta de viagem</p><p className="font-semibold">{proposal.organizer}</p></div></header>
           <div className="p-5 space-y-4"><h3 className="text-xl font-semibold text-surface-900">{proposal.title}</h3>{proposal.description && <p className="text-sm text-surface-700 whitespace-pre-wrap">{proposal.description}</p>}
-            <dl className="grid sm:grid-cols-2 gap-3 text-sm"><div><dt className="text-surface-500">Local da viagem</dt><dd>{proposal.destination || 'A definir'}</dd></div><div><dt className="text-surface-500">Data de saída</dt><dd>{proposal.date || 'A definir'}</dd></div><div><dt className="text-surface-500">Saída e retorno</dt><dd>{proposal.schedule || 'A definir'}</dd></div><div><dt className="text-surface-500">Valor por pessoa</dt><dd>{proposal.price || 'A definir'}</dd></div></dl>
+            <dl className="grid sm:grid-cols-2 gap-3 text-sm"><div><dt className="text-surface-500">Local da viagem</dt><dd>{proposal.destination || 'A definir'}</dd></div><div><dt className="text-surface-500">Data de saída</dt><dd>{proposal.date || 'A definir'}</dd></div><div><dt className="text-surface-500">Saída e retorno</dt><dd>{proposal.schedule || 'A definir'}</dd></div><div><dt className="text-surface-500">Valor</dt><dd>{proposal.price || 'A definir'}</dd></div></dl>
             {proposal.departures.length > 0 && <section><h4 className="font-semibold text-sm">Pontos de saída</h4><ul className="text-sm text-surface-700 mt-1 space-y-1">{proposal.departures.map((x, i) => <li key={i}>{x}</li>)}</ul></section>}
             {proposal.includes.length > 0 && <section><h4 className="font-semibold text-sm">O que está incluso</h4><ul className="text-sm text-surface-700 mt-1 list-disc pl-5">{proposal.includes.map((x, i) => <li key={i}>{x}</li>)}</ul></section>}
             {proposal.itinerary.length > 0 && <section><h4 className="font-semibold text-sm">Roteiro</h4><ul className="text-sm text-surface-700 mt-1 list-disc pl-5">{proposal.itinerary.map((x, i) => <li key={i}>{x}</li>)}</ul></section>}

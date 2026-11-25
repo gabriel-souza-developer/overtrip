@@ -24,8 +24,8 @@ beforeAll(async () => {
   const aOrg = await prisma.organization.create({ data: { name: 'A', slug: 'block-test-a', niche: 'pousada' } });
   const bOrg = await prisma.organization.create({ data: { name: 'B', slug: 'block-test-b', niche: 'pousada' } });
   orgA = aOrg.id; orgB = bOrg.id;
-  await prisma.membership.create({ data: { organizationId: orgA, userId: a.id, role: 'owner' } });
-  await prisma.membership.create({ data: { organizationId: orgB, userId: b.id, role: 'owner' } });
+  await prisma.membership.create({ data: { organizationId: orgA, userId: a.id, role: 'OWNER' } });
+  await prisma.membership.create({ data: { organizationId: orgB, userId: b.id, role: 'OWNER' } });
   unitA = (await prisma.lodgingUnit.create({ data: { organizationId: orgA, name: 'Suíte' } })).id;
   await new Promise<void>(resolve => { server = platformApp.listen(0, resolve); });
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}/api/lodging`;

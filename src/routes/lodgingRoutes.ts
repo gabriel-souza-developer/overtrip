@@ -3,15 +3,14 @@ import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
 import { authenticate } from '../middleware/auth.js';
-import { authorizeOrganization, requireOrganization, type OrganizationRequest } from '../middleware/organizationContext.js';
-import { organizationMembershipReader } from '../services/organizationMembership.js';
+import { requireOrganizationFromHeader, type OrganizationRequest } from '../middleware/organizationContext.js';
 import { AppError, asyncHandler } from '../middleware/errorHandler.js';
 
 const router = Router();
 router.use((_req, res, next) => { res.set('Cache-Control', 'private, no-store'); next(); });
-router.use(authenticate, requireOrganization(organizationMembershipReader), authorizeOrganization('owner', 'admin', 'staff'));
+router.use(authenticate, requireOrganizationFromHeader('OWNER', 'ADMIN', 'MEMBER'));
 router.use((req: OrganizationRequest, _res, next) => {
-  if (req.organization?.niche !== 'pousada') { next(AppError.forbidden('Este módulo é exclusivo de pousadas.')); return; }
+  if (req.organizationContext?.organization.niche !== 'pousada') { next(AppError.forbidden('Este módulo é exclusivo de pousadas.')); return; }
   next();
 });
 
@@ -56,26 +55,26 @@ router.get('/units', asyncHandler(async (req: OrganizationRequest, res: Response
   const query = z.object(paging).strict().parse(req.query);
   if (query.page !== undefined || query.limit !== undefined) {
     const page = query.page ?? 1; const limit = query.limit ?? 20;
-    const where = { organizationId: req.organization!.id };
+    const where = { organizationId: req.organizationContext!.organization.id };
     const [units, total] = await prisma.$transaction([
       prisma.lodgingUnit.findMany({ where, select: unitSelect, orderBy: [{ name: 'asc' }, { id: 'asc' }], skip: (page - 1) * limit, take: limit }),
       prisma.lodgingUnit.count({ where }),
     ]);
     res.json({ units, pagination: paginated(page, limit, total) }); return;
   }
-  const units = await prisma.lodgingUnit.findMany({ where: { organizationId: req.organization!.id }, select: unitSelect, orderBy: [{ name: 'asc' }, { id: 'asc' }] });
+  const units = await prisma.lodgingUnit.findMany({ where: { organizationId: req.organizationContext!.organization.id }, select: unitSelect, orderBy: [{ name: 'asc' }, { id: 'asc' }] });
   res.json({ units });
 }));
 router.post('/units', asyncHandler(async (req: OrganizationRequest, res: Response) => {
   const input = unitInput.parse(req.body);
-  const unit = await prisma.lodgingUnit.create({ data: { organizationId: req.organization!.id, name: input.name }, select: unitSelect });
+  const unit = await prisma.lodgingUnit.create({ data: { organizationId: req.organizationContext!.organization.id, name: input.name }, select: unitSelect });
   res.status(201).json(unit);
 }));
 router.get('/reservations', asyncHandler(async (req: OrganizationRequest, res: Response) => {
   const query = z.object({ ...paging, status: status.optional(), search: z.string().trim().max(150).optional() }).strict().parse(req.query);
   if (query.page !== undefined || query.limit !== undefined || query.status || query.search) {
     const page = query.page ?? 1; const limit = query.limit ?? 20;
-    const organizationId = req.organization!.id;
+    const organizationId = req.organizationContext!.organization.id;
     const where = { organizationId, ...(query.status ? { status: query.status } : {}) };
     const orderBy = [{ checkIn: 'asc' as const }, { id: 'asc' as const }];
     const [reservations, total] = query.search ? await prisma.$transaction(async tx => {
@@ -93,7 +92,7 @@ router.get('/reservations', asyncHandler(async (req: OrganizationRequest, res: R
     res.json({ reservations, pagination: paginated(page, limit, total) }); return;
   }
   const reservations = await prisma.lodgingReservation.findMany({
-    where: { organizationId: req.organization!.id }, include: reservationInclude,
+    where: { organizationId: req.organizationContext!.organization.id }, include: reservationInclude,
     orderBy: [{ checkIn: 'asc' }, { id: 'asc' }],
   });
   res.json({ reservations });
@@ -106,7 +105,7 @@ router.get('/occupancy', asyncHandler(async (req: OrganizationRequest, res: Resp
   const count = (Date.parse(`${query.end}T00:00:00.000Z`) - Date.parse(`${query.start}T00:00:00.000Z`)) / 86_400_000;
   if (!Number.isInteger(count) || count < 1 || count > 31) throw AppError.badRequest('Informe um intervalo de 1 a 31 noites.');
   const page = query.page ?? 1; const limit = query.limit ?? 20;
-  const where = { organizationId: req.organization!.id };
+  const where = { organizationId: req.organizationContext!.organization.id };
   const result = await prisma.$transaction(async tx => {
     const [units, total] = await Promise.all([
       tx.lodgingUnit.findMany({ where, select: { id: true, name: true }, orderBy: [{ name: 'asc' }, { id: 'asc' }], skip: (page - 1) * limit, take: limit }),
@@ -120,7 +119,7 @@ router.get('/occupancy', asyncHandler(async (req: OrganizationRequest, res: Resp
 
 router.get('/movement', asyncHandler(async (req: OrganizationRequest, res: Response) => {
   const { date } = z.object({ date: z.iso.date() }).strict().parse(req.query);
-  const organizationId = req.organization!.id;
+  const organizationId = req.organizationContext!.organization.id;
   const [arrivals, departures, overdueArrivals, overdueDepartures] = await prisma.$transaction([
     prisma.lodgingReservation.count({ where: { organizationId, status: 'CONFIRMED', checkIn: date } }),
     prisma.lodgingReservation.count({ where: { organizationId, status: 'CHECKED_IN', checkOut: date } }),
@@ -131,7 +130,7 @@ router.get('/movement', asyncHandler(async (req: OrganizationRequest, res: Respo
 }));
 router.post('/reservations', asyncHandler(async (req: OrganizationRequest, res: Response) => {
   const input = reservationInput.parse(req.body);
-  const organizationId = req.organization!.id;
+  const organizationId = req.organizationContext!.organization.id;
   const nights = occupiedNights(input.checkIn, input.checkOut);
   const unit = await prisma.lodgingUnit.findFirst({ where: { id: input.unitId, organizationId }, select: { id: true } });
   if (!unit) throw AppError.notFound('Acomodação não encontrada.');
@@ -152,7 +151,7 @@ router.post('/reservations', asyncHandler(async (req: OrganizationRequest, res: 
 router.get('/blocks', asyncHandler(async (req: OrganizationRequest, res: Response) => {
   const query = z.object(paging).strict().parse(req.query);
   const page = query.page ?? 1; const limit = query.limit ?? 20;
-  const where = { organizationId: req.organization!.id };
+  const where = { organizationId: req.organizationContext!.organization.id };
   const [blocks, total] = await prisma.$transaction([
     prisma.lodgingBlock.findMany({ where, include: { unit: { select: { id: true, name: true } } }, orderBy: [{ start: 'desc' }, { id: 'asc' }], skip: (page - 1) * limit, take: limit }),
     prisma.lodgingBlock.count({ where }),
@@ -162,7 +161,7 @@ router.get('/blocks', asyncHandler(async (req: OrganizationRequest, res: Respons
 
 router.post('/blocks', asyncHandler(async (req: OrganizationRequest, res: Response) => {
   const input = blockInput.parse(req.body);
-  const organizationId = req.organization!.id;
+  const organizationId = req.organizationContext!.organization.id;
   const nights = occupiedNights(input.start, input.end);
   const unit = await prisma.lodgingUnit.findFirst({ where: { id: input.unitId, organizationId }, select: { id: true } });
   if (!unit) throw AppError.notFound('Acomodação não encontrada.');
@@ -180,7 +179,7 @@ router.post('/blocks', asyncHandler(async (req: OrganizationRequest, res: Respon
 
 router.post('/blocks/:id/cancel', asyncHandler(async (req: OrganizationRequest, res: Response) => {
   const id = identifier.parse(req.params.id);
-  const organizationId = req.organization!.id;
+  const organizationId = req.organizationContext!.organization.id;
   const block = await prisma.$transaction(async tx => {
     const updated = await tx.lodgingBlock.updateMany({ where: { id, organizationId, status: 'ACTIVE' }, data: { status: 'CANCELLED' } });
     const existing = await tx.lodgingBlock.findFirst({ where: { id, organizationId }, include: { unit: { select: { id: true, name: true } } } });
@@ -193,7 +192,7 @@ router.post('/blocks/:id/cancel', asyncHandler(async (req: OrganizationRequest, 
 }));
 router.post('/reservations/:id/cancel', asyncHandler(async (req: OrganizationRequest, res: Response) => {
   const id = identifier.parse(req.params.id);
-  const organizationId = req.organization!.id;
+  const organizationId = req.organizationContext!.organization.id;
   const reservation = await prisma.$transaction(async tx => {
     // O predicado de estado está na escrita: um check-in concorrente não pode
     // ser cancelado por uma leitura anterior que ainda o via como confirmado.
@@ -213,7 +212,7 @@ router.post('/reservations/:id/cancel', asyncHandler(async (req: OrganizationReq
 function operation(from: 'CONFIRMED' | 'CHECKED_IN', to: 'CHECKED_IN' | 'CHECKED_OUT') {
   return asyncHandler(async (req: OrganizationRequest, res: Response) => {
     const id = identifier.parse(req.params.id);
-    const organizationId = req.organization!.id;
+    const organizationId = req.organizationContext!.organization.id;
     const reservation = await prisma.$transaction(async tx => {
       const updated = await tx.lodgingReservation.updateMany({ where: { id, organizationId, status: from }, data: { status: to } });
       const current = await tx.lodgingReservation.findFirst({ where: { id, organizationId }, include: reservationInclude });

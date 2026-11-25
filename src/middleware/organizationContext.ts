@@ -1,60 +1,135 @@
-import type { NextFunction, Response } from 'express';
-import type { AuthRequest } from './auth.js';
+import { Response, NextFunction } from 'express';
+import type { Prisma, PrismaClient } from '@prisma/client';
+import { prisma } from '../lib/prisma.js';
+import { AppError } from './errorHandler.js';
+import { AuthRequest } from './auth.js';
 
-/** Contexto só é confiável após consultar o vínculo atual no banco. */
-export interface OrganizationContext {
-  id: string;
-  name: string;
-  slug: string;
-  niche: string;
-  role: string;
-}
+export const ORGANIZATION_WRITE_ROLES = ['OWNER', 'ADMIN'];
 
 export interface OrganizationRequest extends AuthRequest {
-  organization?: OrganizationContext;
+  organizationContext?: {
+    organization: { id: string; name: string; slug: string; niche: string; status: string; defaultPriceUnit: string | null; brandColor: string | null };
+    membership: { id: string; role: string; status: string };
+  };
 }
 
-export interface MembershipReader {
-  findActiveMembership(userId: string, organizationId: string): Promise<OrganizationContext | null>;
-}
+type MembershipQueryClient = Pick<PrismaClient | Prisma.TransactionClient, 'membership'>;
 
 /**
- * Preparação para rotas migradas: exige autenticação anterior, resolve o ID
- * solicitado e consulta a associação a cada requisição. Não aplicar às rotas
- * legadas até que todas as consultas e arquivos tenham escopo de empresa.
+ * Único lugar que decide o que conta como vínculo utilizável: ativo, numa
+ * empresa também ativa. Recebe o client (singleton OU `tx` de uma
+ * transação) em vez de usá-lo fixo, para que uma escrita possa reconferir
+ * isto DENTRO da própria transação da escrita — nunca só confiar no que o
+ * middleware (abaixo) checou antes de abrir a transação, que pode já estar
+ * obsoleto (revogação ou desativação entre as duas chamadas).
  */
-export function requireOrganization(reader: MembershipReader) {
+export async function loadActiveOrganizationMembership(
+  client: MembershipQueryClient,
+  organizationId: string,
+  userId: string,
+): Promise<OrganizationRequest['organizationContext']> {
+  const membership = await client.membership.findUnique({
+    where: { organizationId_userId: { organizationId, userId } },
+    include: { organization: true },
+  });
+  if (!membership || membership.status !== 'ACTIVE' || membership.organization.status !== 'ACTIVE') return undefined;
+  return {
+    organization: {
+      id: membership.organization.id,
+      name: membership.organization.name,
+      slug: membership.organization.slug,
+      niche: membership.organization.niche,
+      status: membership.organization.status,
+      defaultPriceUnit: membership.organization.defaultPriceUnit,
+      brandColor: membership.organization.brandColor,
+    },
+    membership: { id: membership.id, role: membership.role, status: membership.status },
+  };
+}
+
+/** Reconfere vínculo ativo, papel e empresa ativa DENTRO da transação da escrita — nunca a partir só do que o middleware viu antes de abrir a transação. Usada por toda rota de escrita no escopo de organização (viagens, interessados, ...). */
+export async function assertOrganizationWriteAccess(tx: Prisma.TransactionClient, organizationId: string, userId: string): Promise<void> {
+  const fresh = await loadActiveOrganizationMembership(tx, organizationId, userId);
+  if (!fresh || !ORGANIZATION_WRITE_ROLES.includes(fresh.membership.role)) {
+    throw new AppError(403, 'Sem permissão para esta operação nesta empresa', 'ORGANIZATION_ROLE_DENIED');
+  }
+}
+
+function checkRole(context: NonNullable<OrganizationRequest['organizationContext']>, roles: string[]): boolean {
+  return roles.length === 0 || roles.includes(context.membership.role);
+}
+
+// Revalida vínculo e papel a cada requisição (nunca a partir do token ou de uma
+// chamada anterior): a empresa pode ter sido desativada ou o vínculo revogado
+// entre duas requisições da mesma sessão.
+export const requireOrganizationMembership = (...roles: string[]) => {
   return async (req: OrganizationRequest, res: Response, next: NextFunction): Promise<void> => {
     if (!req.user) {
       res.status(401).json({ error: 'Não autenticado' });
       return;
     }
-    const id = req.get('X-Organization-Id');
-    if (!id || id.length > 128 || !/^[a-zA-Z0-9_-]+$/.test(id)) {
-      res.status(400).json({ error: 'Selecione uma empresa válida.' });
+
+    const organizationId = req.params.organizationId;
+    if (!organizationId) {
+      res.status(400).json({ error: 'organizationId é obrigatório' });
       return;
     }
+
     try {
-      const organization = await reader.findActiveMembership(req.user.id, id);
-      if (!organization || organization.id !== id) {
-        res.status(403).json({ error: 'Acesso à empresa não autorizado.' });
+      const context = await loadActiveOrganizationMembership(prisma, organizationId, req.user.id);
+      if (!context) {
+        res.status(403).json({ error: 'Sem acesso a esta empresa', code: 'ORGANIZATION_ACCESS_DENIED' });
         return;
       }
-      req.organization = organization;
+
+      if (!checkRole(context, roles)) {
+        res.status(403).json({ error: 'Papel insuficiente para esta operação', code: 'ORGANIZATION_ROLE_DENIED' });
+        return;
+      }
+
+      req.organizationContext = context;
       next();
     } catch (error) {
       next(error);
     }
   };
-}
+};
 
-/** Autoriza pelo papel do vínculo, nunca pelo papel global da conta. */
-export function authorizeOrganization(...roles: string[]) {
-  return (req: OrganizationRequest, res: Response, next: NextFunction): void => {
-    if (!req.organization || !roles.includes(req.organization.role)) {
-      res.status(403).json({ error: 'Permissão insuficiente nesta empresa.' });
+/**
+ * Mesma revalidação de `requireOrganizationMembership`, mas para rotas
+ * montadas sem `:organizationId` na URL (API da plataforma de pousada/
+ * restaurante, processo e banco próprios — ver src/platformApp.ts). A
+ * empresa vem do cabeçalho `X-Organization-Id`, nunca do corpo.
+ */
+export const requireOrganizationFromHeader = (...roles: string[]) => {
+  return async (req: OrganizationRequest, res: Response, next: NextFunction): Promise<void> => {
+    if (!req.user) {
+      res.status(401).json({ error: 'Não autenticado' });
       return;
     }
-    next();
+
+    const organizationId = req.get('X-Organization-Id');
+    if (!organizationId || organizationId.length > 128 || !/^[a-zA-Z0-9_-]+$/.test(organizationId)) {
+      res.status(400).json({ error: 'Selecione uma empresa válida.' });
+      return;
+    }
+
+    try {
+      const context = await loadActiveOrganizationMembership(prisma, organizationId, req.user.id);
+      if (!context) {
+        res.status(403).json({ error: 'Sem acesso a esta empresa', code: 'ORGANIZATION_ACCESS_DENIED' });
+        return;
+      }
+
+      if (!checkRole(context, roles)) {
+        res.status(403).json({ error: 'Papel insuficiente para esta operação', code: 'ORGANIZATION_ROLE_DENIED' });
+        return;
+      }
+
+      req.organizationContext = context;
+      next();
+    } catch (error) {
+      next(error);
+    }
   };
-}
+};

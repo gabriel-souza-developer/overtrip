@@ -1,10 +1,30 @@
+import type { Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma.js';
+import { config } from '../config.js';
 
 // Status que o site recebe. Rascunho (DRAFT) nunca sai. COMPLETED e CANCELLED
 // continuam saindo porque js/render.js os trata (isUpcomingTrip) e a seção
 // "realizadas" depende deles; SOLD_OUT e CLOSED seguem visíveis para o
 // visitante ver a viagem encerrada em vez de ela sumir sem explicação.
 export const PUBLIC_STATUSES = ['OPEN', 'SOLD_OUT', 'CLOSED', 'COMPLETED', 'CANCELLED'] as const;
+
+/**
+ * Isolamento por empresa para o site e o assistente OVERTRIP: nunca lista
+ * viagens de outra agência. Sem organizationId (dado legado) sempre aparece;
+ * uma organização só aparece se estiver explicitamente autorizada em
+ * PUBLIC_SITE_ORGANIZATION_IDS (config.publicSiteOrganizationIds). Função pura
+ * (recebe a lista em vez de ler `config` direto) para ser testável sem variável
+ * de ambiente.
+ */
+/** Forma pura do filtro, reutilizada por publicSite.ts (visitas/galeria) com o mesmo critério. */
+export function publicOrganizationScopeFilter(authorizedOrganizationIds: readonly string[]): { organizationId: null } | { OR: [{ organizationId: null }, { organizationId: { in: string[] }; organization: { is: { status: string } } }] } {
+  if (authorizedOrganizationIds.length === 0) return { organizationId: null };
+  return { OR: [{ organizationId: null }, { organizationId: { in: [...authorizedOrganizationIds] }, organization: { is: { status: 'ACTIVE' } } }] };
+}
+
+export function publicOrganizationFilter(authorizedOrganizationIds: readonly string[]): Prisma.TripWhereInput {
+  return publicOrganizationScopeFilter(authorizedOrganizationIds);
+}
 
 const TZ_OFFSET_MS = -3 * 60 * 60 * 1000; // America/Sao_Paulo (sem horário de verão desde 2019)
 
@@ -67,7 +87,7 @@ type TripRow = NonNullable<Awaited<ReturnType<typeof findRows>>>[number];
 
 function findRows() {
   return prisma.trip.findMany({
-    where: { status: { in: [...PUBLIC_STATUSES] } },
+    where: { status: { in: [...PUBLIC_STATUSES] }, ...publicOrganizationFilter(config.publicSiteOrganizationIds) },
     include: { departures: { orderBy: { orderIndex: 'asc' } } },
   });
 }

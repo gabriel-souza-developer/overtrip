@@ -16,7 +16,7 @@ body {
 }
 
 :focus-visible {
-  outline: 2px solid #26755e;
+  outline: 2px solid #e26b1b;
   outline-offset: 2px;
 }
 
@@ -35,7 +35,7 @@ input, select, textarea {
 }
 
 .btn-primary {
-  @apply btn bg-primary-500 text-white hover:bg-primary-600;
+  @apply btn bg-primary-600 text-white hover:bg-primary-700;
 }
 
 .btn-secondary {
@@ -383,7 +383,7 @@ textarea.input {
 }
 
 .pagination-btn-active {
-  @apply bg-primary-500 text-white border-primary-500 hover:bg-primary-600;
+  @apply bg-primary-600 text-white border-primary-600 hover:bg-primary-700;
 }
 
 .dropdown {

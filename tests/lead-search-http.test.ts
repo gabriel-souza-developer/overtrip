@@ -15,7 +15,7 @@ const ids: string[] = [];
 const prefix = 'Busca-literal-e2e';
 
 beforeAll(async () => {
-  const user = await prisma.user.create({ data: { email: 'lead-search-admin@example.test', passwordHash: 'test', role: 'admin' } });
+  const user = await prisma.user.create({ data: { email: 'lead-search-admin@example.test', passwordHash: 'test', role: 'admin', legacyAccess: true } });
   userId = user.id; token = generateToken(user);
   const data = { category: 'Teste', description: 'Teste', city: 'Cidade', region: 'PB', startDateISO: new Date('2030-01-01T12:00:00Z'), intensityClass: 'light', includes: '[]', media: '[]' };
   const first = await prisma.trip.create({ data: { ...data, title: 'Busca A', storedIdentity: 'lead-search-a' } });

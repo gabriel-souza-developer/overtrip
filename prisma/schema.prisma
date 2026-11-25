@@ -11,11 +11,63 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Rascunhos privados; aprovação apenas registra revisão, não publica.
+model SocialPost {
+  id         String              @id @default(cuid())
+  // Nullable during the staged migration; legacy (pre-organization) rows
+  // remain unassigned and stay reachable only through the legacy routes.
+  organizationId String?
+  organization   Organization?   @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  title      String
+  version    Int                 @default(1)
+  approvedAt DateTime?
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+  variants   SocialPostVariant[]
+
+  @@index([organizationId])
+}
+
+model SocialPostVariant {
+  id       String     @id @default(cuid())
+  postId   String
+  platform String
+  caption  String
+  socialMediaId String?
+  socialMedia SocialMedia? @relation(fields: [socialMediaId], references: [id], onDelete: Restrict)
+  post     SocialPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, platform])
+}
+
+// Arquivos imutáveis e privados, fora da pasta de imagens públicas.
+model SocialMedia {
+  id          String @id @default(cuid())
+  // Nullable during the staged migration; legacy (pre-organization) rows
+  // remain unassigned and stay reachable only through the legacy routes.
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  storageKey  String @unique
+  sha256      String
+  mimeType    String
+  width       Int
+  height      Int
+  sizeBytes   Int
+  createdById String
+  createdAt   DateTime @default(now())
+  variants    SocialPostVariant[]
+
+  @@index([organizationId])
+}
+
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TRIP: Viagens e experiências comerciais da OVERTRIP
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 model Trip {
   id        String   @id @default(cuid())
+  // Nullable during the staged migration; legacy records remain untouched.
+  organizationId String?
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   
   // Identificação
   title             String
@@ -105,11 +157,14 @@ model Trip {
   @@index([titleSearch])
   @@index([citySearch])
   @@index([categorySearch])
+  @@index([organizationId])
 }
 
 // Reservas são registros internos; não alteram vagas nem processam pagamentos.
 model Reservation {
   id            String   @id @default(cuid())
+  organizationId String?
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   tripId        String
   trip          Trip     @relation(fields: [tripId], references: [id], onDelete: Restrict)
   leadId        String?
@@ -126,6 +181,7 @@ model Reservation {
 
   @@index([tripId, status])
   @@index([leadId])
+  @@index([organizationId])
 }
 
 model ReservationInstallment {
@@ -139,6 +195,37 @@ model ReservationInstallment {
   updatedAt     DateTime @updatedAt
 
   @@index([reservationId])
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// RESERVATION_AUDIT_LOG: trilha mínima de quem mudou o quê numa reserva
+// - Só ator, ação, entidade, empresa e quando. Nunca senha, nome/telefone de
+//   cliente, valor em centavos, observação ou conteúdo de documento.
+// - organizationId/actorUserId/reservationId/entityId são referências
+//   simples (sem relação Prisma), o mesmo padrão já usado em createdById de
+//   MediaAsset/TripDocument — propositalmente para não alterar nenhum outro
+//   modelo (Organization, User, Reservation) só para acrescentar auditoria.
+// - Só as rotas de organização (organizationReservationRoutes.ts) escrevem
+//   aqui, sempre na mesma transação da mutação. O painel legado
+//   (reservationRoutes.ts, reservas sem empresa) não grava nada aqui.
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+model ReservationAuditLog {
+  id             String   @id @default(cuid())
+  organizationId String
+  actorUserId    String
+  // RESERVATION_CREATED | RESERVATION_UPDATED | INSTALLMENT_CREATED |
+  // INSTALLMENT_UPDATED | INSTALLMENT_DELETED
+  action         String
+  // "Reservation" | "ReservationInstallment"
+  entityType     String
+  entityId       String
+  // Reserva "dona", mesmo quando entityType é uma parcela — permite listar
+  // o histórico completo de uma reserva com uma única consulta.
+  reservationId  String
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, reservationId, createdAt])
+  @@index([organizationId, createdAt])
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -188,6 +275,8 @@ model TripDocument {
 // arquivo enviado não é guardado. path é o src público da versão principal.
 model MediaAsset {
   id            String   @id @default(cuid())
+  organizationId String?
+  organization  Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   storageKey    String   @unique
   path          String   @unique
   mimeType      String
@@ -198,8 +287,21 @@ model MediaAsset {
   sha256        String   // do arquivo recebido; evita duplicar o mesmo envio
   createdById   String
   createdAt     DateTime @default(now())
+  // null = registro pendente: criado antes de gravar os arquivos, ainda não
+  // confirmado. A rota pública nunca serve um registro pendente (fecha a
+  // janela em que o arquivo existe em disco sem publicação confirmada).
+  publishedAt   DateTime?
+  // JSON (string) com [{name, sizeBytes, sha256}] de cada arquivo esperado
+  // (principal + variantes), gravado ANTES de escrever qualquer arquivo. A
+  // mera existência de um arquivo não prova que a gravação terminou antes de
+  // uma queda (pode estar truncado); reconcilePendingMedia só publica um
+  // pendente se o conteúdo real de cada arquivo bater exatamente com isto.
+  // Nulo em registro antigo (anterior a este campo): tratado como "não
+  // verificável", nunca publicado automaticamente.
+  fileIntegrity String?
 
   @@index([sha256])
+  @@index([organizationId])
 }
 
 // Texto privado, separado por página para preservar a origem das futuras sugestões.
@@ -247,7 +349,11 @@ model TripDeparture {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 model Visit {
   id          String    @id @default(cuid())
-  
+
+  // Nullable durante a migração escalonada; registros legados permanecem intocados.
+  organizationId String?
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
   // Relação OPCIONAL com Trip
   tripId      String?   // NULLABLE - visita pode não ter trip
   trip        Trip?     @relation(fields: [tripId], references: [id], onDelete: SetNull)
@@ -286,6 +392,7 @@ model Visit {
   updatedAt   DateTime  @updatedAt
   
   @@index([tripId])
+  @@index([organizationId])
   @@index([lat, lng])
   @@index([date])
   @@index([needsReview])
@@ -304,7 +411,11 @@ model Visit {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 model GalleryEntry {
   id        String   @id @default(cuid())
-  
+
+  // Nullable durante a migração escalonada; registros legados permanecem intocados.
+  organizationId String?
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
   // Conteúdo editorial (OBRIGATÓRIO)
   title     String
   date      DateTime  // Para ordenação
@@ -338,6 +449,7 @@ model GalleryEntry {
   @@index([isFeatured])
   @@index([tripId])
   @@index([visitId])
+  @@index([organizationId])
   @@index([storedIdentity])
   @@index([titleSearch])
   @@index([descriptionSearch])
@@ -351,42 +463,98 @@ model User {
   email     String   @unique
   name      String?
   passwordHash String
+  credentialVersion Int @default(0)
   role      String   @default("admin")
+  legacyAccess Boolean @default(false) // acesso explícito ao painel global de turismo
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   approvedKnowledge AssistantKnowledgeVersion[]
   memberships Membership[]
-  
+  passwordResetTokens PasswordResetToken[]
+
   @@index([email])
 }
 
-// Fundamento para múltiplas empresas. Os dados existentes ainda não estão
-// vinculados a organizações e o acesso multiempresa não está habilitado.
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// PASSWORD RESET: token de uso único para "esqueci minha senha".
+// Guarda só o hash (sha256) do token enviado por e-mail, nunca o valor
+// bruto. Expiração curta (ver config.passwordResetTokenTtlMinutes) e
+// usedAt marca consumo; a troca de senha e o consumo do token são
+// atômicos (ver passwordResetService). Vale para qualquer User, de
+// qualquer organização ou do painel legado — não é escopado por empresa.
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  // Campo legado da primeira migração de reset; não valida credenciais.
+  issuedForUpdatedAt DateTime
+  // Versão da senha, independente da versão de sessão alterada no logout.
+  issuedCredentialVersion Int @default(0)
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ORGANIZATION / MEMBERSHIP: fundação para múltiplas empresas. O turismo
+// legado (trips, leads, reservas, mídia, social, galeria, visitas) já tem
+// organizationId (nullable: ver comentários "staged migration" em cada
+// modelo). Pousada e restaurante (abaixo) nascem direto com organizationId
+// obrigatório, usando o mesmo Organization/Membership, diferenciados por
+// `niche`.
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 model Organization {
-  id          String       @id @default(cuid())
+  id          String   @id @default(cuid())
   name        String
-  slug        String       @unique
-  niche       String
-  status      String       @default("ACTIVE")
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  slug        String   @unique
+  // Vertical de negócio desta empresa: "turismo", "pousada", "restaurante".
+  niche       String   @default("turismo")
+  status      String   @default("ACTIVE") // ACTIVE, INACTIVE
+  // Preenche a unidade de preço ao abrir "Nova viagem" nesta empresa; não
+  // é usado pelo site público (Trip guarda o próprio priceUnit, igual ao
+  // legado) e nunca se aplica a outra empresa ou ao acervo legado.
+  defaultPriceUnit String?
+  // Cor própria do painel da empresa (#RRGGBB, validada e revalidada no
+  // servidor em organizationController.ts). null = sem identidade
+  // configurada, usa a paleta verde fixa (ver src/validators/
+  // organizationBrand.ts); nunca derivada do id.
+  brandColor  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
   memberships Membership[]
-  lodgingUnits LodgingUnit[]
+  trips       Trip[]
+  leads       Lead[]
+  reservations Reservation[]
+  visits      Visit[]
+  galleryEntries GalleryEntry[]
+  mediaAssets    MediaAsset[]
+  socialPosts    SocialPost[]
+  socialMedia    SocialMedia[]
+  lodgingUnits     LodgingUnit[]
   restaurantTables RestaurantTable[]
+
+  @@index([status])
 }
 
 model Membership {
   id             String       @id @default(cuid())
-  userId         String
   organizationId String
-  role           String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role           String       @default("MEMBER") // OWNER, ADMIN, MEMBER
+  status         String       @default("ACTIVE") // ACTIVE, REVOKED
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, organizationId])
-  @@index([organizationId])
+  @@unique([organizationId, userId])
+  @@index([userId, status])
+  @@index([organizationId, status])
 }
 
 // Reservas da nova plataforma, independentes do turismo legado.
@@ -582,6 +750,8 @@ model ImportSnapshot {
 // CRM interno: informações de interessados não são expostas no catálogo público.
 model Lead {
   id             String      @id @default(cuid())
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   name           String
   phone          String?
   email          String?
@@ -599,6 +769,7 @@ model Lead {
   @@index([stage])
   @@index([tripId])
   @@index([nextFollowUpAt])
+  @@index([organizationId])
 }
 
 model LeadEvent {

@@ -1,9 +1,10 @@
 import { readFile, stat } from 'node:fs/promises';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
+import { config } from '../config.js';
 import { toAssistantCatalogTrip } from './assistantCatalog.js';
 import { getAssistantKnowledge } from './assistantKnowledge.js';
-import { mapPublicTrip } from './publicTrips.js';
+import { mapPublicTrip, publicOrganizationFilter } from './publicTrips.js';
 
 /**
  * Contrato v2 do fluxo n8n (Assistente WhatsApp v35): mesmo formato do antigo
@@ -20,7 +21,7 @@ export function toN8nV2Trip(row: PublicTripRow, now = new Date()) {
 
 export async function listN8nV2Trips(now = new Date()) {
   const rows = await prisma.trip.findMany({
-    where: { status: 'OPEN' },
+    where: { status: 'OPEN', ...publicOrganizationFilter(config.publicSiteOrganizationIds) },
     include: { departures: { orderBy: { orderIndex: 'asc' } } },
   });
   return rows

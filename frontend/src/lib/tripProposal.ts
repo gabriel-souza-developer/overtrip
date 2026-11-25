@@ -1,7 +1,18 @@
-import type { TripFormData } from '../api';
 import { formatDateBR } from './dateInput';
 import { formatBRL } from './formHelpers';
 import { displayTime } from './tripSchedule';
+
+// Forma mínima que buildTripProposal lê: estrutural de propósito, para que
+// tanto o formulário legado (TripFormData) quanto o das agências (TripForm
+// em OrganizationTrips.tsx) sirvam sem conversão nem "as unknown as".
+export interface TripProposalInput {
+  title: string; description: string; city: string; region: string; startDateISO: string; endDateISO: string;
+  departureTime: string; returnTime: string; scheduleInfo: string; scheduleTBD: boolean;
+  meetingTBD: boolean; meetingPoint: string; meetingCity: string;
+  departures: Array<{ time: string; place: string; city: string }>;
+  priceDisplay: string; free: boolean; priceValue: number | null; priceUnit: string;
+  includes: string[]; itinerary: string[];
+}
 
 export interface TripProposal {
   organizer: string;
@@ -18,7 +29,7 @@ export interface TripProposal {
 const text = (value: string | null | undefined): string | null => value?.trim() || null;
 
 /** Preview only: missing or unapproved terms are never inferred. */
-export function buildTripProposal(trip: TripFormData, organizer: string): TripProposal {
+export function buildTripProposal(trip: TripProposalInput, organizer: string): TripProposal {
   const destination = [text(trip.city), text(trip.region)].filter(Boolean).join(' - ');
   const startDate = formatDateBR(trip.startDateISO);
   const endDate = formatDateBR(trip.endDateISO);

@@ -16,6 +16,14 @@ import { normalizeForSearch, normalizeForSearchRegion, applySearchFilter, applyD
 import { publicationProblems } from './tripReadiness.js';
 import { settingsService } from './settingsService.js';
 import { tripPeriodWhere } from '../utils/tripPeriod.js';
+import {
+  currentLegacyGalleryFilterWithConsistentRelations,
+  currentLegacyLeadFilterWithConsistentTrip,
+  currentLegacyTourismFilter,
+  currentLegacyVisitFilterWithConsistentTrip,
+  currentReservationCountInLegacyScope,
+  legacyTourismOrganizationIdForNewRecord,
+} from './legacyTourismScope.js';
 
 function parseJsonFields(data: any, jsonFields: string[]): any {
   const result = { ...data };
@@ -79,25 +87,27 @@ export const tripService = {
     const { page = 1, limit = 20, status, search, period } = query;
     const skip = (page - 1) * limit;
     
-    const clauses: Prisma.TripWhereInput[] = [];
+    const clauses: Prisma.TripWhereInput[] = [currentLegacyTourismFilter()];
     if (period) clauses.push(tripPeriodWhere(period));
     if (status) {
       clauses.push({ status });
     }
-    
+
     // Apply case/accent-insensitive search using normalized columns
     const searchClauses = applySearchFilter(search, ['titleSearch', 'citySearch', 'categorySearch']);
     if (searchClauses) {
       clauses.push({ OR: searchClauses });
     }
-    const where: Prisma.TripWhereInput = clauses.length ? { AND: clauses } : {};
+    const where: Prisma.TripWhereInput = { AND: clauses };
 
     const [trips, total] = await Promise.all([
       prisma.trip.findMany({
         where,
         include: {
           departures: { orderBy: { orderIndex: 'asc' } },
-          _count: { select: { visits: true, galleryEntries: true } },
+          // Contagem filtrada pelo mesmo escopo/consistência de relação: nunca
+          // soma visitas/memórias de outra organização vinculadas a esta viagem.
+          _count: { select: { visits: { where: currentLegacyVisitFilterWithConsistentTrip() }, galleryEntries: { where: currentLegacyGalleryFilterWithConsistentRelations() } } },
         },
         // Próximas: a mais perto primeiro. Demais listas: a mais recente primeiro.
         orderBy: { startDateISO: period === 'upcoming' ? 'asc' : 'desc' },
@@ -119,12 +129,17 @@ export const tripService = {
   },
 
   async findById(id: string) {
-    const trip = await prisma.trip.findUnique({
-      where: { id },
+    // O filtro de escopo entra na própria busca (não "buscar tudo e filtrar depois"):
+    // uma viagem de outra empresa não deve nem ser encontrada pelo operador legado.
+    const trip = await prisma.trip.findFirst({
+      where: { id, ...currentLegacyTourismFilter() },
       include: {
         departures: { orderBy: { orderIndex: 'asc' } },
-        visits: { where: { needsReview: false } },
-        galleryEntries: { where: { isFeatured: true } },
+        // Mesmo escopo/consistência de relação do item acima: uma visita ou
+        // memória de outra organização vinculada a esta viagem nunca aparece
+        // aqui, mesmo que a viagem em si esteja no escopo do operador.
+        visits: { where: { needsReview: false, ...currentLegacyVisitFilterWithConsistentTrip() } },
+        galleryEntries: { where: { isFeatured: true, ...currentLegacyGalleryFilterWithConsistentRelations() } },
       },
     });
 
@@ -170,6 +185,9 @@ export const tripService = {
         ...stringifyJsonFields(tripWithDefaults, TRIP_JSON_FIELDS),
         ...searchData,
         storedIdentity,
+        // Nunca aceita organizationId do corpo da requisição (ausente do schema de
+        // validação); a operação legada só pode criar dentro do próprio escopo.
+        organizationId: legacyTourismOrganizationIdForNewRecord(),
         publishedAt: tripWithDefaults.status === 'OPEN' ? new Date() : undefined,
         departures: departures?.length ? {
           create: departures.map(d => ({
@@ -192,8 +210,9 @@ export const tripService = {
 
     return prisma.$transaction(async tx => {
 
-    // Check if trip exists
-    const row = await tx.trip.findUnique({ where: { id }, include: { departures: { orderBy: { orderIndex: 'asc' } } } });
+    // Check if trip exists and is within the legacy scope (mesma consulta, não um
+    // "existe em geral" seguido de checagem separada de organização).
+    const row = await tx.trip.findFirst({ where: { id, ...currentLegacyTourismFilter() }, include: { departures: { orderBy: { orderIndex: 'asc' } } } });
     if (!row) throw AppError.notFound('Viagem não encontrada');
     const current = parseJsonFields(row, TRIP_JSON_FIELDS);
 
@@ -242,75 +261,101 @@ export const tripService = {
   },
 
   async delete(id: string) {
-    await this.findById(id);
-    
-    // Check if trip has associated visits or gallery entries that would be affected
-    const counts = await prisma.trip.findUnique({
-      where: { id },
-      select: {
-        _count: { select: { visits: true, galleryEntries: true, reservations: true, leads: true } },
-      },
-    });
+    return prisma.$transaction(async tx => {
+      // Existência e escopo checados na mesma transação da exclusão.
+      const trip = await tx.trip.findFirst({ where: { id, ...currentLegacyTourismFilter() }, select: { id: true } });
+      if (!trip) throw AppError.notFound('Viagem não encontrada');
 
-    if (counts && (counts._count.reservations > 0 || counts._count.leads > 0)) {
-      throw AppError.conflict('Não é possível excluir viagem com reservas ou interessados associados.', {
-        reservations: counts._count.reservations, leads: counts._count.leads,
-      });
-    }
+      // Duas contagens por relação: a do próprio escopo (para a mensagem
+      // informativa de sempre) e a global (sem filtro nenhum), para detectar
+      // vínculo de outra organização. tripId/leadId têm onDelete Restrict ou
+      // SetNull conforme a relação; nenhum dos dois é seguro aplicar sobre um
+      // registro de terceiros, então a exclusão nunca chega a ser tentada
+      // quando a contagem global aponta algo que a contagem do próprio
+      // escopo não via.
+      const [ownLeads, ownReservations, ownVisits, ownGallery, totalLeads, totalReservations, totalVisits, totalGallery] = await Promise.all([
+        tx.lead.count({ where: { tripId: id, ...currentLegacyLeadFilterWithConsistentTrip() } }),
+        currentReservationCountInLegacyScope(tx, { tripId: id }),
+        tx.visit.count({ where: { tripId: id, ...currentLegacyVisitFilterWithConsistentTrip() } }),
+        tx.galleryEntry.count({ where: { tripId: id, ...currentLegacyGalleryFilterWithConsistentRelations() } }),
+        tx.lead.count({ where: { tripId: id } }),
+        tx.reservation.count({ where: { tripId: id } }),
+        tx.visit.count({ where: { tripId: id } }),
+        tx.galleryEntry.count({ where: { tripId: id } }),
+      ]);
 
-    if (counts && (counts._count.visits > 0 || counts._count.galleryEntries > 0)) {
-      throw AppError.badRequest(
-        'Não é possível excluir viagem com visitas ou memórias associadas. Remova as associações primeiro.',
-        { visits: counts._count.visits, galleryEntries: counts._count.galleryEntries }
-      );
-    }
-
-    try {
-      await prisma.trip.delete({ where: { id } });
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
-        throw AppError.conflict('Não é possível excluir viagem com registros associados.');
+      if (ownReservations > 0 || ownLeads > 0) {
+        throw AppError.conflict('Não é possível excluir viagem com reservas ou interessados associados.', {
+          reservations: ownReservations, leads: ownLeads,
+        });
       }
-      throw error;
-    }
-    return { success: true };
+
+      if (ownVisits > 0 || ownGallery > 0) {
+        throw AppError.badRequest(
+          'Não é possível excluir viagem com visitas ou memórias associadas. Remova as associações primeiro.',
+          { visits: ownVisits, galleryEntries: ownGallery }
+        );
+      }
+
+      // Vínculo de outra organização (dado anterior a este escopo, ou
+      // produzido fora da API): bloqueio genérico, sem revelar quantidade nem
+      // tipo de registro de terceiros.
+      if (totalLeads > 0 || totalReservations > 0 || totalVisits > 0 || totalGallery > 0) {
+        throw AppError.conflict('Não é possível excluir viagem: existem registros vinculados.');
+      }
+
+      try {
+        await tx.trip.delete({ where: { id } });
+      } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
+          throw AppError.conflict('Não é possível excluir viagem com registros associados.');
+        }
+        throw error;
+      }
+      return { success: true };
+    });
   },
 
   async publish(id: string) {
-    // A regra de publicação vale para todos os clientes da API, não só para o formulário.
-    const trip = await prisma.trip.findUnique({
-      where: { id },
-      select: { title: true, city: true, region: true, startDateISO: true, description: true, category: true, priceValue: true, free: true, media: true, meetingCity: true, meetingPoint: true, meetingTBD: true, departures: true },
+    return prisma.$transaction(async tx => {
+      // A regra de publicação vale para todos os clientes da API, não só para o
+      // formulário. Checagem de escopo e mutação na mesma transação.
+      const trip = await tx.trip.findFirst({
+        where: { id, ...currentLegacyTourismFilter() },
+        select: { title: true, city: true, region: true, startDateISO: true, description: true, category: true, priceValue: true, free: true, media: true, meetingCity: true, meetingPoint: true, meetingTBD: true, departures: true },
+      });
+      if (!trip) throw AppError.notFound('Viagem não encontrada');
+      assertReadyForPublication({ ...trip, media: parseJsonFields(trip, ['media']).media });
+      const tripData = await tx.trip.update({
+        where: { id },
+        data: {
+          status: 'OPEN',
+          publishedAt: new Date(),
+          titleSearch: normalizeForSearch(trip.title),
+          citySearch: normalizeForSearch(trip.city),
+          categorySearch: normalizeForSearch(trip.category),
+        },
+      });
+      return parseJsonFields(tripData, TRIP_JSON_FIELDS);
     });
-    if (!trip) throw AppError.notFound('Viagem não encontrada');
-    assertReadyForPublication({ ...trip, media: parseJsonFields(trip, ['media']).media });
-    const tripData = await prisma.trip.update({
-      where: { id },
-      data: { 
-        status: 'OPEN',
-        publishedAt: new Date(),
-        titleSearch: normalizeForSearch(trip.title),
-        citySearch: normalizeForSearch(trip.city),
-        categorySearch: normalizeForSearch(trip.category),
-      },
-    });
-    return parseJsonFields(tripData, TRIP_JSON_FIELDS);
   },
 
   async unpublish(id: string) {
-    // Ensure _search columns stay in sync (defensive: they don't change here but included for consistency)
-    const trip = await prisma.trip.findUnique({ where: { id }, select: { title: true, city: true, category: true } });
-    if (!trip) throw AppError.notFound('Viagem não encontrada');
-    const tripData = await prisma.trip.update({
-      where: { id },
-      data: { 
-        status: 'DRAFT',
-        titleSearch: normalizeForSearch(trip.title),
-        citySearch: normalizeForSearch(trip.city),
-        categorySearch: normalizeForSearch(trip.category),
-      },
+    return prisma.$transaction(async tx => {
+      // Ensure _search columns stay in sync (defensive: they don't change here but included for consistency)
+      const trip = await tx.trip.findFirst({ where: { id, ...currentLegacyTourismFilter() }, select: { title: true, city: true, category: true } });
+      if (!trip) throw AppError.notFound('Viagem não encontrada');
+      const tripData = await tx.trip.update({
+        where: { id },
+        data: {
+          status: 'DRAFT',
+          titleSearch: normalizeForSearch(trip.title),
+          citySearch: normalizeForSearch(trip.city),
+          categorySearch: normalizeForSearch(trip.category),
+        },
+      });
+      return parseJsonFields(tripData, TRIP_JSON_FIELDS);
     });
-    return parseJsonFields(tripData, TRIP_JSON_FIELDS);
   },
 };
 
@@ -321,49 +366,55 @@ export const visitService = {
   async findAll(query: VisitQueryInput) {
     const { page = 1, limit = 20, needsReview, tripId, city, region, hasCoords, search } = query;
     const skip = (page - 1) * limit;
-    
-    const where: Prisma.VisitWhereInput = {};
-    
+
+    const businessWhere: Prisma.VisitWhereInput = {};
+
     if (needsReview !== undefined) {
-      where.needsReview = needsReview;
+      businessWhere.needsReview = needsReview;
     }
-    
+
     if (tripId) {
-      where.tripId = tripId;
+      businessWhere.tripId = tripId;
     }
-    
+
     // Apply case/accent-insensitive direct filters using normalized columns
     const cityFilter = applyDirectFilter(city, 'citySearch');
     if (cityFilter) {
-      where.citySearch = cityFilter.citySearch;
+      businessWhere.citySearch = cityFilter.citySearch;
     }
-    
+
     const regionFilter = applyDirectFilter(region, 'regionSearch');
     if (regionFilter) {
-      where.regionSearch = regionFilter.regionSearch;
+      businessWhere.regionSearch = regionFilter.regionSearch;
     }
-    
+
     if (hasCoords !== undefined) {
       if (hasCoords) {
-        where.lat = { not: null };
-        where.lng = { not: null };
+        businessWhere.lat = { not: null };
+        businessWhere.lng = { not: null };
       } else {
-        where.AND = [{ OR: [{ lat: null }, { lng: null }] }];
+        businessWhere.AND = [{ OR: [{ lat: null }, { lng: null }] }];
       }
     }
-    
+
     // Apply case/accent-insensitive search using normalized columns
     const searchClauses = applySearchFilter(search, ['titleSearch', 'citySearch', 'sourceSearch']);
     if (searchClauses) {
-      where.OR = searchClauses;
+      businessWhere.OR = searchClauses;
     }
+
+    // Escopo (próprio registro + viagem vinculada) combinado por AND, nunca
+    // colidindo com AND/OR já usados pelos filtros de negócio acima.
+    const where: Prisma.VisitWhereInput = { AND: [currentLegacyVisitFilterWithConsistentTrip(), businessWhere] };
 
     const [visits, total] = await Promise.all([
       prisma.visit.findMany({
         where,
         include: {
           trip: { select: { id: true, title: true, status: true } },
-          galleryEntries: { select: { id: true, title: true } },
+          // Memórias da galeria de outra empresa vinculadas a esta visita
+          // (vínculo cruzado pré-existente, ou produzido fora da API) nunca aparecem.
+          galleryEntries: { where: currentLegacyGalleryFilterWithConsistentRelations(), select: { id: true, title: true } },
         },
         orderBy: { date: 'desc' },
         skip,
@@ -384,11 +435,13 @@ export const visitService = {
   },
 
   async findById(id: string) {
-    const visit = await prisma.visit.findUnique({
-      where: { id },
+    // Mesma consulta: uma visita de outra empresa, ou cuja viagem vinculada
+    // seja inconsistente com o escopo, não deve nem ser encontrada.
+    const visit = await prisma.visit.findFirst({
+      where: { id, ...currentLegacyVisitFilterWithConsistentTrip() },
       include: {
         trip: { select: { id: true, title: true, status: true } },
-        galleryEntries: true,
+        galleryEntries: { where: currentLegacyGalleryFilterWithConsistentRelations() },
       },
     });
 
@@ -400,130 +453,153 @@ export const visitService = {
   },
 
   async create(data: VisitCreateInput) {
-    // Validate tripId if provided
-    if (data.tripId) {
-      const trip = await prisma.trip.findUnique({ where: { id: data.tripId } });
-      if (!trip) {
-        throw AppError.badRequest('Viagem referenciada não existe', { tripId: data.tripId });
+    return prisma.$transaction(async tx => {
+      // Checagem de escopo e criação na mesma transação: nunca associa a uma
+      // viagem fora do escopo legado, mesmo que o ID exista em outra empresa
+      // (comportamento idêntico a "não existe").
+      if (data.tripId) {
+        const trip = await tx.trip.findFirst({ where: { id: data.tripId, ...currentLegacyTourismFilter() } });
+        if (!trip) {
+          throw AppError.badRequest('Viagem referenciada não existe', { tripId: data.tripId });
+        }
       }
-    }
 
-    // Generate storedIdentity if not provided (for manual creation)
-    const storedIdentity = data.storedIdentity || `manual:${Date.now()}:${Math.random().toString(36).substring(7)}`;
+      // Generate storedIdentity if not provided (for manual creation)
+      const storedIdentity = data.storedIdentity || `manual:${Date.now()}:${Math.random().toString(36).substring(7)}`;
 
-    // Add normalized search columns
-    const searchData = {
-      titleSearch: normalizeForSearch(data.title || ''),
-      citySearch: normalizeForSearch(data.city || ''),
-      regionSearch: normalizeForSearchRegion(data.region || ''),
-      sourceSearch: data.source ? normalizeForSearch(data.source) : '',
-    };
+      // Add normalized search columns
+      const searchData = {
+        titleSearch: normalizeForSearch(data.title || ''),
+        citySearch: normalizeForSearch(data.city || ''),
+        regionSearch: normalizeForSearchRegion(data.region || ''),
+        sourceSearch: data.source ? normalizeForSearch(data.source) : '',
+      };
 
-    const visit = await prisma.visit.create({
-      data: {
-        ...stringifyJsonFields(data, VISIT_JSON_FIELDS),
-        ...searchData,
-        storedIdentity,
-      },
-      include: {
-        trip: { select: { id: true, title: true } },
-      },
+      const visit = await tx.visit.create({
+        data: {
+          ...stringifyJsonFields(data, VISIT_JSON_FIELDS),
+          ...searchData,
+          storedIdentity,
+          organizationId: legacyTourismOrganizationIdForNewRecord(),
+        },
+        include: {
+          trip: { select: { id: true, title: true } },
+        },
+      });
+
+      return parseJsonFields(visit, VISIT_JSON_FIELDS);
     });
-
-    return parseJsonFields(visit, VISIT_JSON_FIELDS);
   },
 
   async update(id: string, data: VisitUpdateInput) {
-    // Check if visit exists
-    await this.findById(id);
+    return prisma.$transaction(async tx => {
+      // Existência e escopo da visita checados na mesma transação da atualização.
+      const exists = await tx.visit.findFirst({ where: { id, ...currentLegacyVisitFilterWithConsistentTrip() }, select: { id: true } });
+      if (!exists) throw AppError.notFound('Visita não encontrada');
 
-    // Validate tripId if provided
-    if (data.tripId) {
-      const trip = await prisma.trip.findUnique({ where: { id: data.tripId } });
-      if (!trip) {
-        throw AppError.badRequest('Viagem referenciada não existe', { tripId: data.tripId });
+      if (data.tripId) {
+        const trip = await tx.trip.findFirst({ where: { id: data.tripId, ...currentLegacyTourismFilter() } });
+        if (!trip) {
+          throw AppError.badRequest('Viagem referenciada não existe', { tripId: data.tripId });
+        }
       }
-    }
 
-    // Update normalized search columns if relevant fields are being updated
-    const searchData: Record<string, string> = {};
-    if (data.title !== undefined) {
-      searchData.titleSearch = normalizeForSearch(data.title);
-    }
-    if (data.city !== undefined) {
-      searchData.citySearch = normalizeForSearch(data.city);
-    }
-    if (data.region !== undefined) {
-      searchData.regionSearch = normalizeForSearchRegion(data.region);
-    }
-    if (data.source !== undefined) {
-      searchData.sourceSearch = data.source ? normalizeForSearch(data.source) : '';
-    }
+      // Update normalized search columns if relevant fields are being updated
+      const searchData: Record<string, string> = {};
+      if (data.title !== undefined) {
+        searchData.titleSearch = normalizeForSearch(data.title);
+      }
+      if (data.city !== undefined) {
+        searchData.citySearch = normalizeForSearch(data.city);
+      }
+      if (data.region !== undefined) {
+        searchData.regionSearch = normalizeForSearchRegion(data.region);
+      }
+      if (data.source !== undefined) {
+        searchData.sourceSearch = data.source ? normalizeForSearch(data.source) : '';
+      }
 
-    const visit = await prisma.visit.update({
-      where: { id },
-      data: {
-        ...stringifyJsonFields(data, VISIT_JSON_FIELDS),
-        ...searchData,
-      },
-      include: {
-        trip: { select: { id: true, title: true } },
-      },
+      const visit = await tx.visit.update({
+        where: { id },
+        data: {
+          ...stringifyJsonFields(data, VISIT_JSON_FIELDS),
+          ...searchData,
+        },
+        include: {
+          trip: { select: { id: true, title: true } },
+        },
+      });
+
+      return parseJsonFields(visit, VISIT_JSON_FIELDS);
     });
-
-    return parseJsonFields(visit, VISIT_JSON_FIELDS);
   },
 
   async delete(id: string) {
-    await this.findById(id);
-    
-    // Check if visit has associated gallery entries
-    const counts = await prisma.visit.findUnique({
-      where: { id },
-      select: { _count: { select: { galleryEntries: true } } },
+    return prisma.$transaction(async tx => {
+      // Existência e escopo da visita checados na mesma transação da exclusão.
+      const exists = await tx.visit.findFirst({ where: { id, ...currentLegacyVisitFilterWithConsistentTrip() }, select: { id: true } });
+      if (!exists) throw AppError.notFound('Visita não encontrada');
+
+      // Contagem do próprio escopo (mensagem informativa) e contagem global
+      // (sem filtro, detecta vínculo de outra empresa). GalleryEntry.visitId
+      // tem onDelete SetNull: se uma memória estrangeira ainda referenciar
+      // esta visita, excluir a visita a alteraria silenciosamente — por isso
+      // a exclusão nunca é tentada quando a contagem global aponta algo que
+      // a contagem do próprio escopo não via.
+      const [ownGalleryEntries, totalGalleryEntries] = await Promise.all([
+        tx.galleryEntry.count({ where: { visitId: id, ...currentLegacyGalleryFilterWithConsistentRelations() } }),
+        tx.galleryEntry.count({ where: { visitId: id } }),
+      ]);
+
+      if (ownGalleryEntries > 0) {
+        throw AppError.badRequest(
+          'Não é possível excluir visita com memórias da galeria associadas. Remova as associações primeiro.',
+          { galleryEntries: ownGalleryEntries }
+        );
+      }
+
+      if (totalGalleryEntries > 0) {
+        throw AppError.conflict('Não é possível excluir visita: existem registros vinculados.');
+      }
+
+      await tx.visit.delete({ where: { id } });
+      return { success: true };
     });
-
-    if (counts && counts._count.galleryEntries > 0) {
-      throw AppError.badRequest(
-        'Não é possível excluir visita com memórias da galeria associadas. Remova as associações primeiro.',
-        { galleryEntries: counts._count.galleryEntries }
-      );
-    }
-
-    await prisma.visit.delete({ where: { id } });
-    return { success: true };
   },
 
   async associateWithTrip(visitId: string, tripId: string | null) {
-    // Validate trip exists if provided
-    if (tripId) {
-      const trip = await prisma.trip.findUnique({ where: { id: tripId } });
-      if (!trip) {
-        throw AppError.badRequest('Viagem referenciada não existe', { tripId });
+    return prisma.$transaction(async tx => {
+      // Checagem de escopo da viagem e atualização do vínculo na mesma transação.
+      if (tripId) {
+        const trip = await tx.trip.findFirst({ where: { id: tripId, ...currentLegacyTourismFilter() } });
+        if (!trip) {
+          throw AppError.badRequest('Viagem referenciada não existe', { tripId });
+        }
       }
-    }
 
-    // Fetch current visit data to preserve _search columns
-    const currentVisit = await prisma.visit.findUnique({ 
-      where: { id: visitId }, 
-      select: { title: true, city: true, region: true, source: true } 
+      // Fetch current visit data to preserve _search columns
+      const currentVisit = await tx.visit.findFirst({
+        where: { id: visitId, ...currentLegacyVisitFilterWithConsistentTrip() },
+        select: { title: true, city: true, region: true, source: true },
+      });
+      if (!currentVisit) throw AppError.notFound('Visita não encontrada');
+
+      const visit = await tx.visit.update({
+        where: { id: visitId },
+        data: {
+          tripId,
+          titleSearch: normalizeForSearch(currentVisit.title),
+          citySearch: normalizeForSearch(currentVisit.city),
+          regionSearch: normalizeForSearchRegion(currentVisit.region),
+          sourceSearch: currentVisit.source ? normalizeForSearch(currentVisit.source) : '',
+        },
+        include: {
+          trip: { select: { id: true, title: true } },
+        },
+      });
+
+      return parseJsonFields(visit, VISIT_JSON_FIELDS);
     });
-
-    const visit = await prisma.visit.update({
-      where: { id: visitId },
-      data: { 
-        tripId,
-        titleSearch: currentVisit ? normalizeForSearch(currentVisit.title) : undefined,
-        citySearch: currentVisit ? normalizeForSearch(currentVisit.city) : undefined,
-        regionSearch: currentVisit ? normalizeForSearchRegion(currentVisit.region) : undefined,
-        sourceSearch: currentVisit && currentVisit.source ? normalizeForSearch(currentVisit.source) : '',
-      },
-      include: {
-        trip: { select: { id: true, title: true } },
-      },
-    });
-
-    return parseJsonFields(visit, VISIT_JSON_FIELDS);
   },
 };
 
@@ -535,25 +611,29 @@ export const galleryService = {
     const { page = 1, limit = 20, isFeatured, tripId, visitId, search } = query;
     const skip = (page - 1) * limit;
     
-    const where: Prisma.GalleryEntryWhereInput = {};
-    
+    const businessWhere: Prisma.GalleryEntryWhereInput = {};
+
     if (isFeatured !== undefined) {
-      where.isFeatured = isFeatured;
+      businessWhere.isFeatured = isFeatured;
     }
-    
+
     if (tripId) {
-      where.tripId = tripId;
+      businessWhere.tripId = tripId;
     }
-    
+
     if (visitId) {
-      where.visitId = visitId;
+      businessWhere.visitId = visitId;
     }
 
     // Apply case/accent-insensitive search using normalized columns
     const searchClauses = applySearchFilter(search, ['titleSearch', 'descriptionSearch']);
     if (searchClauses) {
-      where.OR = searchClauses;
+      businessWhere.OR = searchClauses;
     }
+
+    // Escopo (próprio registro + viagem e visita vinculadas) combinado por
+    // AND, nunca colidindo com AND/OR já usados pelos filtros de negócio acima.
+    const where: Prisma.GalleryEntryWhereInput = { AND: [currentLegacyGalleryFilterWithConsistentRelations(), businessWhere] };
 
     const [entries, total] = await Promise.all([
       prisma.galleryEntry.findMany({
@@ -581,8 +661,10 @@ export const galleryService = {
   },
 
   async findById(id: string) {
-    const entry = await prisma.galleryEntry.findUnique({
-      where: { id },
+    // Mesma consulta: uma memória de outra empresa, ou cuja viagem/visita
+    // vinculada seja inconsistente com o escopo, não deve nem ser encontrada.
+    const entry = await prisma.galleryEntry.findFirst({
+      where: { id, ...currentLegacyGalleryFilterWithConsistentRelations() },
       include: {
         trip: { select: { id: true, title: true } },
         visit: { select: { id: true, title: true } },
@@ -597,121 +679,145 @@ export const galleryService = {
   },
 
   async create(data: GalleryCreateInput) {
-    // Validate references
-    if (data.tripId) {
-      const trip = await prisma.trip.findUnique({ where: { id: data.tripId } });
-      if (!trip) {
-        throw AppError.badRequest('Viagem referenciada não existe', { tripId: data.tripId });
+    return prisma.$transaction(async tx => {
+      // Checagem das referências e criação na mesma transação: nunca associa a
+      // uma viagem fora do escopo legado, mesmo que o ID exista em outra
+      // empresa (comportamento idêntico a "não existe").
+      if (data.tripId) {
+        const trip = await tx.trip.findFirst({ where: { id: data.tripId, ...currentLegacyTourismFilter() } });
+        if (!trip) {
+          throw AppError.badRequest('Viagem referenciada não existe', { tripId: data.tripId });
+        }
       }
-    }
-    
-    if (data.visitId) {
-      const visit = await prisma.visit.findUnique({ where: { id: data.visitId } });
-      if (!visit) {
-        throw AppError.badRequest('Visita referenciada não existe', { visitId: data.visitId });
-      }
-    }
 
-    // If setting as featured, unset other featured entries
-    if (data.isFeatured) {
-      await prisma.galleryEntry.updateMany({
-        where: { isFeatured: true },
-        data: { isFeatured: false },
+      if (data.visitId) {
+        const visit = await tx.visit.findFirst({ where: { id: data.visitId, ...currentLegacyVisitFilterWithConsistentTrip() } });
+        if (!visit) {
+          throw AppError.badRequest('Visita referenciada não existe', { visitId: data.visitId });
+        }
+      }
+
+      // If setting as featured, unset other featured entries — só as do
+      // próprio escopo: destacar uma memória nunca pode desmarcar o destaque
+      // de outra empresa.
+      if (data.isFeatured) {
+        await tx.galleryEntry.updateMany({
+          where: { isFeatured: true, ...currentLegacyGalleryFilterWithConsistentRelations() },
+          data: { isFeatured: false },
+        });
+      }
+
+      // Generate storedIdentity if not provided (for manual creation)
+      const storedIdentity = data.storedIdentity || `manual:${Date.now()}:${Math.random().toString(36).substring(7)}`;
+
+      // Add normalized search columns
+      const searchData = {
+        titleSearch: normalizeForSearch(data.title || ''),
+        descriptionSearch: normalizeForSearch(data.description || ''),
+      };
+
+      const entry = await tx.galleryEntry.create({
+        data: {
+          ...stringifyJsonFields(data, GALLERY_JSON_FIELDS),
+          ...searchData,
+          storedIdentity,
+          organizationId: legacyTourismOrganizationIdForNewRecord(),
+        },
+        include: {
+          trip: { select: { id: true, title: true } },
+          visit: { select: { id: true, title: true } },
+        },
       });
-    }
 
-    // Generate storedIdentity if not provided (for manual creation)
-    const storedIdentity = data.storedIdentity || `manual:${Date.now()}:${Math.random().toString(36).substring(7)}`;
-
-    // Add normalized search columns
-    const searchData = {
-      titleSearch: normalizeForSearch(data.title || ''),
-      descriptionSearch: normalizeForSearch(data.description || ''),
-    };
-
-    const entry = await prisma.galleryEntry.create({
-      data: {
-        ...stringifyJsonFields(data, GALLERY_JSON_FIELDS),
-        ...searchData,
-        storedIdentity,
-      },
-      include: {
-        trip: { select: { id: true, title: true } },
-        visit: { select: { id: true, title: true } },
-      },
+      return parseJsonFields(entry, GALLERY_JSON_FIELDS);
     });
-
-    return parseJsonFields(entry, GALLERY_JSON_FIELDS);
   },
 
   async update(id: string, data: GalleryUpdateInput) {
-    await this.findById(id);
+    return prisma.$transaction(async tx => {
+      const exists = await tx.galleryEntry.findFirst({ where: { id, ...currentLegacyGalleryFilterWithConsistentRelations() }, select: { id: true } });
+      if (!exists) throw AppError.notFound('Memória da galeria não encontrada');
 
-    // Validate references
-    if (data.tripId) {
-      const trip = await prisma.trip.findUnique({ where: { id: data.tripId } });
-      if (!trip) {
-        throw AppError.badRequest('Viagem referenciada não existe', { tripId: data.tripId });
+      // Validate references (mesma transação da atualização)
+      if (data.tripId) {
+        const trip = await tx.trip.findFirst({ where: { id: data.tripId, ...currentLegacyTourismFilter() } });
+        if (!trip) {
+          throw AppError.badRequest('Viagem referenciada não existe', { tripId: data.tripId });
+        }
       }
-    }
-    
-    if (data.visitId) {
-      const visit = await prisma.visit.findUnique({ where: { id: data.visitId } });
-      if (!visit) {
-        throw AppError.badRequest('Visita referenciada não existe', { visitId: data.visitId });
-      }
-    }
 
-    // If setting as featured, unset other featured entries
-    if (data.isFeatured) {
-      await prisma.galleryEntry.updateMany({
-        where: { isFeatured: true, id: { not: id } },
-        data: { isFeatured: false },
+      if (data.visitId) {
+        const visit = await tx.visit.findFirst({ where: { id: data.visitId, ...currentLegacyVisitFilterWithConsistentTrip() } });
+        if (!visit) {
+          throw AppError.badRequest('Visita referenciada não existe', { visitId: data.visitId });
+        }
+      }
+
+      // If setting as featured, unset other featured entries — só as do
+      // próprio escopo: destacar uma memória nunca pode desmarcar o destaque
+      // de outra empresa.
+      if (data.isFeatured) {
+        await tx.galleryEntry.updateMany({
+          where: { isFeatured: true, id: { not: id }, ...currentLegacyGalleryFilterWithConsistentRelations() },
+          data: { isFeatured: false },
+        });
+      }
+
+      // Update normalized search columns if relevant fields are being updated
+      const searchData: Record<string, string> = {};
+      if (data.title !== undefined) {
+        searchData.titleSearch = normalizeForSearch(data.title);
+      }
+      if (data.description !== undefined) {
+        searchData.descriptionSearch = normalizeForSearch(data.description);
+      }
+
+      const entry = await tx.galleryEntry.update({
+        where: { id },
+        data: {
+          ...stringifyJsonFields(data, GALLERY_JSON_FIELDS),
+          ...searchData,
+        },
+        include: {
+          trip: { select: { id: true, title: true } },
+          visit: { select: { id: true, title: true } },
+        },
       });
-    }
 
-    // Update normalized search columns if relevant fields are being updated
-    const searchData: Record<string, string> = {};
-    if (data.title !== undefined) {
-      searchData.titleSearch = normalizeForSearch(data.title);
-    }
-    if (data.description !== undefined) {
-      searchData.descriptionSearch = normalizeForSearch(data.description);
-    }
-
-    const entry = await prisma.galleryEntry.update({
-      where: { id },
-      data: {
-        ...stringifyJsonFields(data, GALLERY_JSON_FIELDS),
-        ...searchData,
-      },
-      include: {
-        trip: { select: { id: true, title: true } },
-        visit: { select: { id: true, title: true } },
-      },
+      return parseJsonFields(entry, GALLERY_JSON_FIELDS);
     });
-
-    return parseJsonFields(entry, GALLERY_JSON_FIELDS);
   },
 
   async delete(id: string) {
-    await this.findById(id);
-    await prisma.galleryEntry.delete({ where: { id } });
-    return { success: true };
+    return prisma.$transaction(async tx => {
+      // Existência e escopo checados na mesma transação da exclusão.
+      const exists = await tx.galleryEntry.findFirst({ where: { id, ...currentLegacyGalleryFilterWithConsistentRelations() }, select: { id: true } });
+      if (!exists) throw AppError.notFound('Memória da galeria não encontrada');
+      await tx.galleryEntry.delete({ where: { id } });
+      return { success: true };
+    });
   },
 
   async reorder(entries: { id: string; orderIndex: number }[]) {
-    // Update order indices in a transaction
-    await prisma.$transaction(
-      entries.map(({ id, orderIndex }) =>
-        prisma.galleryEntry.update({
-          where: { id },
-          data: { orderIndex },
-        })
-      )
-    );
+    return prisma.$transaction(async tx => {
+      // Reordenar nunca pode alterar uma memória de outra empresa: todo o
+      // lote é validado contra o escopo antes de qualquer escrita; se um só
+      // ID for estrangeiro ou inexistente, o lote inteiro é rejeitado.
+      const ids = entries.map(e => e.id);
+      const scoped = await tx.galleryEntry.findMany({
+        where: { id: { in: ids }, ...currentLegacyGalleryFilterWithConsistentRelations() },
+        select: { id: true },
+      });
+      if (scoped.length !== new Set(ids).size) {
+        throw AppError.notFound('Uma ou mais memórias da galeria não foram encontradas.');
+      }
 
-    return { success: true };
+      await Promise.all(entries.map(({ id, orderIndex }) =>
+        tx.galleryEntry.update({ where: { id }, data: { orderIndex } })
+      ));
+
+      return { success: true };
+    });
   },
 };
 
@@ -728,14 +834,14 @@ export const dashboardService = {
       galleryTotal,
       galleryFeatured,
     ] = await Promise.all([
-      prisma.trip.count(),
-      prisma.trip.count({ where: { status: 'OPEN' } }),
-      prisma.trip.count({ where: { status: 'DRAFT' } }),
-      prisma.visit.count(),
-      prisma.visit.count({ where: { needsReview: true } }),
-      prisma.visit.count({ where: { lat: { not: null }, lng: { not: null } } }),
-      prisma.galleryEntry.count(),
-      prisma.galleryEntry.count({ where: { isFeatured: true } }),
+      prisma.trip.count({ where: currentLegacyTourismFilter() }),
+      prisma.trip.count({ where: { AND: [currentLegacyTourismFilter(), { status: 'OPEN' }] } }),
+      prisma.trip.count({ where: { AND: [currentLegacyTourismFilter(), { status: 'DRAFT' }] } }),
+      prisma.visit.count({ where: currentLegacyVisitFilterWithConsistentTrip() }),
+      prisma.visit.count({ where: { AND: [currentLegacyVisitFilterWithConsistentTrip(), { needsReview: true }] } }),
+      prisma.visit.count({ where: { AND: [currentLegacyVisitFilterWithConsistentTrip(), { lat: { not: null }, lng: { not: null } }] } }),
+      prisma.galleryEntry.count({ where: currentLegacyGalleryFilterWithConsistentRelations() }),
+      prisma.galleryEntry.count({ where: { AND: [currentLegacyGalleryFilterWithConsistentRelations(), { isFeatured: true }] } }),
     ]);
 
     return {

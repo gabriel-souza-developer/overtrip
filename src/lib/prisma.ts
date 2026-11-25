@@ -5,8 +5,9 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 function createClient(): PrismaClient {
-  // Prisma's default error logger prints query arguments (including customer
-  // data). Keep an operational signal without serializing the event message.
+  // A mensagem padrão do Prisma pode conter valores privados das consultas
+  // (incluindo dados de clientes). Mantém o sinal operacional sem serializar
+  // a mensagem do evento.
   const client = new PrismaClient({ log: [{ emit: 'event', level: 'error' }] });
   client.$on('error', () => console.error('Erro no acesso ao banco de dados.'));
   return client;

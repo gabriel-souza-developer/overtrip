@@ -1,6 +1,6 @@
 # Referências de design — plataforma multinicho
 
-Este documento orienta o desenvolvimento da branch multinicho. A interface deve ser simples para quem opera o negócio todos os dias: prioridade para tarefas, leitura rápida, estados claros, navegação previsível e uso em celular.
+Este documento orienta as melhorias visuais do painel OVERTRIP. A interface deve ser simples para quem opera o negócio todos os dias: prioridade para tarefas, leitura rápida, estados claros, navegação previsível e uso em celular.
 
 ## Fontes preferenciais
 
@@ -14,14 +14,22 @@ Consulte estas fontes ao buscar soluções visuais ou componentes, escolhendo ap
 
 Flowbite e daisyUI são alternativas finais quando as fontes acima não atenderem à necessidade. Componentes já existentes no projeto podem ser reaproveitados quando adequados. Não instalar uma biblioteca inteira para obter um efeito simples.
 
-## Aplicação ao multinicho
+## Aplicação ao painel OVERTRIP
 
-- Acesso comum e identidade da plataforma; empresa, cores e módulos definidos pelo contexto autorizado no servidor.
-- Pousadas priorizam chegadas, saídas e disponibilidade; restaurantes, reservas e mesas. O painel de turismo da OVERTRIP continua em sua própria linha de desenvolvimento.
-- Cada tela deve apresentar uma ação principal clara, estados vazios úteis e linguagem do negócio. Usar componentes comuns com conteúdo e regras específicos por nicho.
+- Preservar a identidade visual e a operação atual da OVERTRIP.
+- Priorizar próximas viagens, participantes, rascunhos e destinos a revisar.
+- Cada tela deve apresentar uma ação principal clara, estados vazios úteis e linguagem do negócio.
 - Layout adaptável a celular e computador, com navegação por teclado, foco visível, rótulos, contraste adequado e alvos de toque confortáveis.
 - Animações devem ser discretas, opcionais e respeitar `prefers-reduced-motion`. Evitar efeitos contínuos, WebGL e downloads pesados sem benefício claro.
 - A stack atual usa React 18 e Tailwind 3; exemplos que exigem outras versões precisam de avaliação de compatibilidade e dependências antes de adoção.
+
+## Aplicação à plataforma multinicho
+
+A plataforma multinicho (pousadas e restaurantes) roda como produto isolado, fora do painel OVERTRIP, mas segue as mesmas diretrizes gerais de layout, animação e stack acima. Particularidades do multinicho:
+
+- Acesso comum e identidade da plataforma; empresa, cores e módulos definidos pelo contexto autorizado no servidor.
+- Pousadas priorizam chegadas, saídas e disponibilidade; restaurantes, reservas e mesas. O painel de turismo da OVERTRIP continua em sua própria linha de desenvolvimento.
+- Usar componentes comuns com conteúdo e regras específicos por nicho; cada tela mantém uma ação principal clara e estados vazios úteis.
 
 ## Registro de componentes externos
 
@@ -29,4 +37,13 @@ Antes de incorporar código, conferir termos e licença da versão exata, inclus
 
 | Componente | Origem e versão/data | Licença e atribuição | Arquivos adaptados |
 | --- | --- | --- | --- |
-| Nenhum incorporado até agora | — | — | — |
+| Nenhum incorporado atualmente | — | — | — |
+
+## Acesso comum: fundamentos visuais
+
+- Marca: `#ff5a00`, extraído da logo OVERTRIP; ação primária usa texto branco em tamanho grande e peso forte, conforme a identidade solicitada. Estados de hover e foco precisam continuar perceptíveis.
+- Texto principal: `#231a15`; texto de apoio: `#6c625b`; bordas de campos: `#ded8d2`. Não usar a cor de marca como única indicação de erro ou foco.
+- Tipografia: Inter com fallback de sistema; títulos com hierarquia clara, corpo legível e rótulos sempre visíveis.
+- Controles: campos e ação principal com altura mínima de 54 px, cantos de 9 px, foco visível e estados de carregamento e desabilitado.
+- Composição responsiva: formulário priorizado em telas pequenas, sem rolagem horizontal; transições respeitam a preferência por movimento reduzido.
+- Os tokens estão limitados à tela de acesso enquanto a identidade do painel é revisada; não alterar globalmente a paleta das empresas sem validar seus contextos.

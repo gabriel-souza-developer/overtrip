@@ -11,7 +11,7 @@ describe('migração de bloqueios com dados existentes', () => {
     const migrationDir = join(directory, 'migrations');
     mkdirSync(migrationDir);
     const source = resolve('prisma/migrations');
-    const targetMigration = '20261116110000_lodging_blocks';
+    const targetMigration = '20261123020000_lodging_blocks';
     for (const name of readdirSync(source)) if (name !== targetMigration) cpSync(join(source, name), join(migrationDir, name), { recursive: true });
     cpSync(resolve('prisma/schema.prisma'), join(directory, 'schema.prisma'));
     const database = `file:${join(directory, 'populated.db')}`;

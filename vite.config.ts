@@ -39,7 +39,10 @@ export default defineConfig(({ command }) => ({
       } : {}),
       '/api': {
         // PLATFORM_API_TARGET encaminha também login e sessão para a plataforma.
-        target: process.env.PLATFORM_API_TARGET || process.env.OVERTRIP_E2E_API_TARGET || 'http://localhost:3001',
+        // E2E_API_PORT: só para e2e/organization-visit-gallery-real-api.spec.ts
+        // (API real isolada, porta própria para nunca colidir com um `npm run
+        // dev` já rodando na 3001). Sem nenhuma variável, comportamento igual a sempre.
+        target: process.env.PLATFORM_API_TARGET || process.env.OVERTRIP_E2E_API_TARGET || `http://localhost:${process.env.E2E_API_PORT || 3001}`,
         changeOrigin: true,
       },
     },

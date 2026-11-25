@@ -3,8 +3,8 @@ import { expect, test } from '@playwright/test';
 test('calendário do painel mostra viagens de todas as páginas, navega por mês e abre a edição', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.clock.install({ time: new Date('2026-11-10T12:00:00.000Z') });
-  await page.addInitScript(() => { localStorage.setItem('auth_token', 'token'); localStorage.setItem('auth_user', JSON.stringify({ id: '1', email: 'admin@example.test', name: 'Admin', role: 'admin' })); });
-  await page.route('**/api/auth/me', route => route.fulfill({ json: { id: '1', email: 'admin@example.test', name: 'Admin', role: 'admin' } }));
+  await page.addInitScript(() => { localStorage.setItem('auth_token', 'token'); localStorage.setItem('auth_user', JSON.stringify({ id: '1', email: 'admin@example.test', name: 'Admin', role: 'admin', legacyAccess: true })); });
+  await page.route('**/api/auth/me', route => route.fulfill({ json: { id: '1', email: 'admin@example.test', name: 'Admin', role: 'admin', legacyAccess: true } }));
   await page.route('**/api/dashboard/stats', route => route.fulfill({ json: { tripsTotal: 2, tripsPublished: 1, tripsDraft: 1, visitsTotal: 0, visitsNeedsReview: 0, visitsWithCoords: 0, galleryTotal: 0, galleryFeatured: 0 } }));
   await page.route('**/api/trips?*', route => {
     const n = new URL(route.request().url()).searchParams.get('page');

@@ -65,6 +65,7 @@ sudo nano /etc/overtrip/env
 sudo chmod 600 /etc/overtrip/env
 ```
 Preencha: `JWT_SECRET` (mínimo 32 caracteres aleatórios, ex.: `openssl rand -hex 32`), `DATABASE_URL=file:/var/lib/overtrip/overtrip.db`, `CORS_ORIGIN=https://overtrip.com.br`, e se quiser a ajuda de IA `GEMINI_API_KEY` e `AI_MODEL`.
+Para habilitar recuperação de senha, configure no arquivo protegido a chave transacional restrita `BREVO_API_KEY`, o remetente verificado `BREVO_SENDER_EMAIL` e `PASSWORD_RESET_URL_BASE=https://overtrip.com.br/admin`. Aplique as migrações antes de iniciar a versão nova. Confirme em um e-mail recebido que a Brevo não reescreve o link de redefinição para rastreamento: a reescrita pode expor o token ao serviço de rastreamento. Não registre nem compartilhe o link de teste.
 O limite de tentativas de login usa o IP real automaticamente (a API confia em 1 proxy, o Caddy). Para desligar: `TRUST_PROXY=0`.
 
 ## 6. Banco de dados

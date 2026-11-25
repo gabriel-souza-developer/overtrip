@@ -26,9 +26,9 @@ beforeAll(async () => {
   const bOrg = await prisma.organization.create({ data: { name: 'B', slug: 'lodging-test-b', niche: 'pousada' } });
   const rest = await prisma.organization.create({ data: { name: 'R', slug: 'lodging-test-r', niche: 'restaurante' } });
   orgA = aOrg.id; orgB = bOrg.id; restaurant = rest.id;
-  await prisma.membership.create({ data: { organizationId: orgA, userId: a.id, role: 'owner' } });
-  await prisma.membership.create({ data: { organizationId: orgB, userId: b.id, role: 'staff' } });
-  await prisma.membership.create({ data: { organizationId: restaurant, userId: a.id, role: 'owner' } });
+  await prisma.membership.create({ data: { organizationId: orgA, userId: a.id, role: 'OWNER' } });
+  await prisma.membership.create({ data: { organizationId: orgB, userId: b.id, role: 'MEMBER' } });
+  await prisma.membership.create({ data: { organizationId: restaurant, userId: a.id, role: 'OWNER' } });
   await new Promise<void>(resolve => { server = app.listen(0, resolve); });
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}/api/lodging`;
 });
@@ -57,9 +57,9 @@ describe('pousada com isolamento entre empresas', () => {
     const other = await (await fetch(`${base}/units`, { headers: headers(tokenB, orgB) })).json() as { units: unknown[] };
     expect(other.units).toEqual([]);
     expect((await create('/reservations', { unitId: unitA, guestName: 'B', checkIn: '2030-01-01', checkOut: '2030-01-02' }, tokenB, orgB)).status).toBe(404);
-    await prisma.membership.update({ where: { userId_organizationId: { userId: userIds[1], organizationId: orgB } }, data: { role: 'viewer' } });
+    await prisma.membership.update({ where: { organizationId_userId: { organizationId: orgB, userId: userIds[1] } }, data: { role: 'viewer' } });
     expect((await fetch(`${base}/units`, { headers: headers(tokenB, orgB) })).status).toBe(403);
-    await prisma.membership.update({ where: { userId_organizationId: { userId: userIds[1], organizationId: orgB } }, data: { role: 'staff' } });
+    await prisma.membership.update({ where: { organizationId_userId: { organizationId: orgB, userId: userIds[1] } }, data: { role: 'MEMBER' } });
     await prisma.organization.update({ where: { id: orgB }, data: { status: 'INACTIVE' } });
     expect((await fetch(`${base}/units`, { headers: headers(tokenB, orgB) })).status).toBe(403);
     await prisma.organization.update({ where: { id: orgB }, data: { status: 'ACTIVE' } });

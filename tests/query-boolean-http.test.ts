@@ -28,7 +28,7 @@ beforeAll(async () => {
   await new Promise<void>((resolve) => { server = app.listen(0, resolve); });
   baseUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   const user = await prisma.user.create({
-    data: { email: `test:query-boolean:${Date.now()}@example.com`, passwordHash: 'unused', role: 'admin' },
+    data: { legacyAccess: true, email: `test:query-boolean:${Date.now()}@example.com`, passwordHash: 'unused', role: 'admin' },
   });
   userId = user.id;
   token = generateToken(user);

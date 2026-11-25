@@ -10,7 +10,7 @@ import './workspace.css';
 interface Organization { id: string; name: string; slug: string; niche: string; role: string }
 type View = 'overview' | 'operation';
 const nicheLabel = (niche: string) => niche === 'pousada' ? 'Hospedagem' : niche === 'restaurante' ? 'Restaurante' : niche;
-const roleLabel = (role: string) => ({ owner: 'Proprietário', admin: 'Administrador', staff: 'Equipe' } as Record<string, string>)[role] || role;
+const roleLabel = (role: string) => ({ OWNER: 'Proprietário', ADMIN: 'Administrador', MEMBER: 'Equipe' } as Record<string, string>)[role] || role;
 
 /** Espaço isolado: todas as operações usam apenas APIs da plataforma. */
 export default function Workspace() {
@@ -37,8 +37,8 @@ export default function Workspace() {
       if (!active) return;
       setOrganizations(available);
       if (available.length === 1) {
-        const result = await request<{ organization: Organization }>('/organizations/current', { headers: { 'X-Organization-Id': available[0].id } });
-        if (active) setCurrent(result.organization);
+        const result = await request<{ organization: Omit<Organization, 'role'>; role: string }>(`/organizations/${encodeURIComponent(available[0].id)}`);
+        if (active) setCurrent({ ...result.organization, role: result.role });
       }
     }).catch(err => { if (active) setError(err instanceof Error ? err.message : 'Não foi possível carregar os espaços.'); })
       .finally(() => { if (active) setLoading(false); });
@@ -48,8 +48,8 @@ export default function Workspace() {
   const select = async (id: string) => {
     setLoading(true); setError(''); setMenuOpen(false);
     try {
-      const result = await request<{ organization: Organization }>('/organizations/current', { headers: { 'X-Organization-Id': id } });
-      setCurrent(result.organization); setView('overview');
+      const result = await request<{ organization: Omit<Organization, 'role'>; role: string }>(`/organizations/${encodeURIComponent(id)}`);
+      setCurrent({ ...result.organization, role: result.role }); setView('overview');
     } catch (err) { setError(err instanceof Error ? err.message : 'Não foi possível abrir o espaço.'); }
     finally { setLoading(false); }
   };

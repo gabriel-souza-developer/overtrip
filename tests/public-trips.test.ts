@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { PrismaClient } from '@prisma/client';
 import app from '../src/app.js';
-import { toSiteDate } from '../src/services/publicTrips.js';
+import { publicOrganizationFilter, toSiteDate } from '../src/services/publicTrips.js';
 import { fetchPublicTrips } from '../js/data.js';
 
 const prisma = new PrismaClient();
@@ -165,6 +165,61 @@ describe('GET /api/public/trips', () => {
   it('/api/generate-json foi removida', async () => {
     const res = await fetch(`${baseUrl}/api/generate-json`, { method: 'POST' });
     expect(res.status).toBe(404);
+  });
+});
+
+describe('isolamento por empresa em /api/public/trips', () => {
+  const ORG_TAG = `public-trips-org-test:${Date.now()}`;
+  let organizationId: string;
+
+  beforeAll(async () => {
+    const organization = await prisma.organization.create({ data: { name: ORG_TAG, slug: ORG_TAG } });
+    organizationId = organization.id;
+    await makeTrip('other-org-open', 'OPEN', new Date('2030-05-10T09:00:00-03:00'), { organizationId });
+  });
+
+  afterAll(async () => {
+    await prisma.trip.deleteMany({ where: { organizationId } });
+    await prisma.organization.delete({ where: { id: organizationId } });
+  });
+
+  it('nunca lista viagem de outra empresa, mesmo publicada, por padrão (sem PUBLIC_SITE_ORGANIZATION_IDS)', async () => {
+    const { mine } = await listPublic();
+    expect(mine.map((t) => t.title)).not.toContain(`${TAG} other-org-open`);
+  });
+
+  it('continua listando viagens legadas (organizationId null) normalmente', async () => {
+    const { mine } = await listPublic();
+    expect(mine.map((t) => t.title)).toContain(`${TAG} open`);
+  });
+
+  it('exclui viagens de uma empresa autorizada quando ela é desativada', async () => {
+    const where = publicOrganizationFilter([organizationId]);
+    expect(await prisma.trip.count({ where: { ...where, organizationId } })).toBe(1);
+    await prisma.organization.update({ where: { id: organizationId }, data: { status: 'INACTIVE' } });
+    try {
+      expect(await prisma.trip.count({ where: { ...where, organizationId } })).toBe(0);
+    } finally {
+      await prisma.organization.update({ where: { id: organizationId }, data: { status: 'ACTIVE' } });
+    }
+  });
+});
+
+describe('publicOrganizationFilter (filtro puro, sem variável de ambiente)', () => {
+  it('sem organizações autorizadas, restringe a dado legado (organizationId null)', () => {
+    expect(publicOrganizationFilter([])).toEqual({ organizationId: null });
+  });
+
+  it('com organizações autorizadas, inclui dado legado e as organizações explicitamente listadas', () => {
+    expect(publicOrganizationFilter(['org-a', 'org-b'])).toEqual({
+      OR: [{ organizationId: null }, { organizationId: { in: ['org-a', 'org-b'] }, organization: { is: { status: 'ACTIVE' } } }],
+    });
+  });
+
+  it('nunca inclui todas as organizações por padrão (lista vazia não é "todas")', () => {
+    const filter = publicOrganizationFilter([]) as { organizationId?: unknown; OR?: unknown };
+    expect(filter.OR).toBeUndefined();
+    expect(filter.organizationId).toBeNull();
   });
 });
 

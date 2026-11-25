@@ -1,22 +1,39 @@
 import { Router } from 'express';
-import type { Response } from 'express';
-import { authenticate, type AuthRequest } from '../middleware/auth.js';
+import { authenticate } from '../middleware/auth.js';
+import { requireOrganizationMembership } from '../middleware/organizationContext.js';
+import { organizationController } from '../controllers/organizationController.js';
 import { asyncHandler } from '../middleware/errorHandler.js';
-import { requireOrganization, type OrganizationRequest } from '../middleware/organizationContext.js';
-import { listUserOrganizations, organizationMembershipReader } from '../services/organizationMembership.js';
+import organizationTripRoutes from './organizationTripRoutes.js';
+import organizationLeadRoutes from './organizationLeadRoutes.js';
+import organizationReservationRoutes from './organizationReservationRoutes.js';
+import organizationDashboardRoutes from './organizationDashboardRoutes.js';
+import organizationVisitRoutes from './organizationVisitRoutes.js';
+import organizationGalleryRoutes from './organizationGalleryRoutes.js';
+import organizationMediaRoutes from './organizationMediaRoutes.js';
+import organizationSocialMediaRoutes from './organizationSocialMediaRoutes.js';
+import organizationSocialPostRoutes from './organizationSocialPostRoutes.js';
 
+// Fundação isolada: nenhuma rota legada (trips, leads, reservas, site público)
+// é montada ou alterada aqui. Primeira etapa de multiempresa — não implica
+// isolamento de dados operacionais ainda.
 const router = Router();
+
 router.use((_req, res, next) => { res.set('Cache-Control', 'private, no-store'); next(); });
+router.use(authenticate);
 
-router.get('/', authenticate, asyncHandler(async (req: AuthRequest, res: Response) => {
-  // authenticate garante a identidade; nunca aceitar um userId do cliente.
-  const organizations = await listUserOrganizations(req.user!.id);
-  res.json({ organizations });
-}));
-
-// O vínculo é revalidado no banco a cada chamada; não habilita rotas legadas.
-router.get('/current', authenticate, requireOrganization(organizationMembershipReader), (req: OrganizationRequest, res: Response) => {
-  res.json({ organization: req.organization });
-});
+router.get('/', asyncHandler(organizationController.listMine));
+router.use('/:organizationId/tourism/dashboard', organizationDashboardRoutes);
+router.use('/:organizationId/tourism/visits', organizationVisitRoutes);
+router.use('/:organizationId/tourism/gallery', organizationGalleryRoutes);
+router.use('/:organizationId/tourism/media', organizationMediaRoutes);
+router.use('/:organizationId/tourism/social-media', organizationSocialMediaRoutes);
+router.use('/:organizationId/tourism/social-posts', organizationSocialPostRoutes);
+router.use('/:organizationId/tourism/trips', organizationTripRoutes);
+router.use('/:organizationId/tourism/leads', organizationLeadRoutes);
+router.use('/:organizationId/tourism/reservations', organizationReservationRoutes);
+router.get('/:organizationId', requireOrganizationMembership(), asyncHandler(organizationController.getSelected));
+// Único ajuste de empresa com paridade real com Configurações do painel
+// OVERTRIP hoje (ver comentário em organizationController.updateSettings).
+router.put('/:organizationId/settings', requireOrganizationMembership('OWNER', 'ADMIN'), asyncHandler(organizationController.updateSettings));
 
 export default router;

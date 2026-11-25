@@ -1,6 +1,7 @@
 import { prisma } from '../lib/prisma.js';
+import { config } from '../config.js';
 import { assistantProblems } from './tripReadiness.js';
-import { toSiteDate } from './publicTrips.js';
+import { publicOrganizationFilter, toSiteDate } from './publicTrips.js';
 
 type CatalogTrip = {
   title: string;
@@ -83,7 +84,7 @@ export function toAssistantCatalogTrip(trip: CatalogTrip, now = new Date()) {
 
 export const assistantCatalogService = {
   async list() {
-    const rows = await prisma.trip.findMany({ where: { status: 'OPEN' } });
+    const rows = await prisma.trip.findMany({ where: { status: 'OPEN', ...publicOrganizationFilter(config.publicSiteOrganizationIds) } });
     const now = new Date();
     return rows
       .map((trip) => toAssistantCatalogTrip(trip, now))

@@ -1,13 +1,12 @@
 # Proposta de escopo: OVERTRIP como produto para várias empresas
 
-**Estado:** adiado para o futuro; nada de multiempresa foi implementado nem deve ser iniciado nesta etapa.
+**Documento histórico de proposta.** A branch de turismo multiagência já implementa parte deste escopo em ambiente local; este texto preserva as decisões e requisitos originais e não descreve o estado atual da implantação. Consulte `MULTIAGENCIA_OPERACAO_LOCAL.md` para o trabalho em andamento e `deploy/ORACLE_STATUS.md` para o histórico verificado de produção.
 
 ## Resposta curta
 
-É possível transformar o produto em SaaS para várias empresas, mas a versão
-atual foi feita para uma única operação: a OVERTRIP. Liberar cadastros de
-clientes no painel agora seria inseguro, porque os registros não têm vínculo
-com uma empresa e as consultas não filtram por empresa.
+Na época desta proposta, o produto atendia uma única operação: a OVERTRIP.
+Os requisitos abaixo registram as condições identificadas para evoluir com
+isolamento entre empresas; consulte o guia local para verificar sua implementação.
 
 Também há uma diferença de produto entre os segmentos. Operadores de turismo
 trabalham com viagens, datas de saída, embarques e vagas. Hospedagens precisam

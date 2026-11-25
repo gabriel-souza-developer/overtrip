@@ -11,16 +11,16 @@ export default {
         // laranja do site público: o painel usa esta escala; a marca e as
         // cores da agência no site público e na prévia do card não mudam.
         primary: {
-          50: '#f1f7f3',
-          100: '#eaf5ef',
-          200: '#dceee6',
-          300: '#c6e5d3',
-          400: '#63aa98',
-          500: '#26755e',
-          600: '#1d634e',
-          700: '#194f3f',
-          800: '#153f33',
-          900: '#102f26',
+          50: '#fff1e7',
+          100: '#ffe2cf',
+          200: '#ffc9a7',
+          300: '#ffa977',
+          400: '#fa8746',
+          500: '#e26b1b',
+          600: '#ce4900',
+          700: '#ae3e00',
+          800: '#753000',
+          900: '#542202',
         },
         surface: {
           50: '#fafafa',

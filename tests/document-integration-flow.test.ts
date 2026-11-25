@@ -132,7 +132,7 @@ beforeAll(async () => {
 
   // Usuário admin
   const user = await prisma.user.create({
-    data: {
+    data: { legacyAccess: true,
       email: `test:integration-flow:${Date.now()}@example.com`,
       passwordHash: 'unused',
       role: 'admin',

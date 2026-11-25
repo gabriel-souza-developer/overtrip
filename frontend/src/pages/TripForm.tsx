@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Save } from 'lucide-react';
-import { tripApi, settingsApi, TripFormData } from '../api';
+import { tripApi, settingsApi, documentApi, TripFormData } from '../api';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../App';
 import { CityAutocomplete, UfSelect } from '../components/LocationFields';
@@ -339,7 +339,7 @@ export default function TripForm() {
           <summary className="cursor-pointer font-semibold text-surface-900">Sugerir preenchimento com PDF e IA (opcional)</summary>
           <p className="hint mt-2">Envie o roteiro em PDF. A IA sugere informações e você escolhe o que aplicar.</p>
           {id
-            ? <div className="mt-4"><TripDocuments key={id} tripId={id} form={formData as Record<string, unknown>} defaults={defaultsRef.current} onApply={applyAiDraft} /></div>
+            ? <div className="mt-4"><TripDocuments key={id} tripId={id} api={documentApi} form={formData as Record<string, unknown>} defaults={defaultsRef.current} onApply={applyAiDraft} /></div>
             : <p className="mt-3 rounded-lg bg-surface-50 p-3 text-sm text-surface-700" role="note">Salve a viagem como rascunho primeiro. Depois, você poderá anexar o PDF aqui.</p>}
         </details>}
         {errorKeys.length > 0 && (

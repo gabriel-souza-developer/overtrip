@@ -21,7 +21,7 @@ beforeAll(async () => {
   const org = await prisma.organization.create({ data: { name: 'A', slug: 'lodging-page-a', niche: 'pousada' } });
   const other = await prisma.organization.create({ data: { name: 'B', slug: 'lodging-page-b', niche: 'pousada' } });
   orgId = org.id; otherOrgId = other.id;
-  await prisma.membership.create({ data: { userId, organizationId: orgId, role: 'staff' } });
+  await prisma.membership.create({ data: { userId, organizationId: orgId, role: 'MEMBER' } });
   await prisma.lodgingUnit.createMany({ data: Array.from({ length: 22 }, (_, index) => ({ organizationId: orgId, name: `Unidade ${String(index).padStart(2, '0')}` })) });
   const first = await prisma.lodgingUnit.findFirstOrThrow({ where: { organizationId: orgId }, orderBy: { name: 'asc' } });
   unitId = first.id;

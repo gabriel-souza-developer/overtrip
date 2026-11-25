@@ -187,7 +187,18 @@ export const loginSchema = z.object({
 
 export const changePasswordSchema = z.object({
   currentPassword: z.string().min(6),
-  newPassword: z.string().min(6, 'Nova senha deve ter pelo menos 6 caracteres'),
+  newPassword: z.string().min(8, 'Nova senha deve ter pelo menos 8 caracteres')
+    .refine(value => Buffer.byteLength(value, 'utf8') <= 72 && !/[\r\n\0]/.test(value), 'Use no máximo 72 bytes, sem quebras de linha.'),
+});
+
+export const forgotPasswordSchema = z.object({
+  email: z.string().email('Email inválido'),
+});
+
+// Mesma política de senha de changePasswordSchema (reaproveitada, não uma nova regra).
+export const resetPasswordSchema = z.object({
+  token: z.string().trim().min(1, 'Token é obrigatório').max(512),
+  newPassword: changePasswordSchema.shape.newPassword,
 });
 
 export const defaultWhatsappSchema = z.object({
@@ -212,5 +223,7 @@ export type GalleryUpdateInput = z.infer<typeof galleryUpdateSchema>;
 export type GalleryQueryInput = z.infer<typeof galleryQuerySchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export type DefaultWhatsappInput = z.infer<typeof defaultWhatsappSchema>;
 export type TripPresentationDefaultsInput = z.infer<typeof tripPresentationDefaultsSchema>;

@@ -16,7 +16,8 @@ describe('proteções do painel', () => {
   });
 
   it('menu fechado no celular sai da ordem de foco', () => {
-    expect(read('frontend/src/components/Layout.tsx')).toContain("toggleAttribute('inert', !isDesktop && !sidebarOpen)");
+    // Comportamento da casca comum aos dois painéis; ver PanelShell.tsx.
+    expect(read('frontend/src/components/PanelShell.tsx')).toContain("toggleAttribute('inert', !isDesktop && !sidebarOpen)");
   });
 
   it('login não revela o e-mail do administrador', () => {
