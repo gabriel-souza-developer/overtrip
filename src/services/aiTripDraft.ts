@@ -128,6 +128,7 @@ Regras:
 - Datas no formato AAAA-MM-DD. Se o ano não estiver no texto, ou a data for ambígua (ex.: "dia 10", "03/04" sem ano), deixe a data null e explique em "warnings".
 - Horários no formato 05h30 (dois dígitos, letra h, dois dígitos; 24h), só se explícitos.
 - "region" é a sigla do estado com 2 letras (ex.: PB), só se o texto indicar.
+- "city" é o nome do MUNICÍPIO. Nome de praia, trilha, mirante ou outro ponto turístico (ex.: "Praia de Coqueirinho") não é cidade: não repita esse nome em "city". Só preencha "city" se o texto citar o município explicitamente (ex.: "Conde - PB"); senão, deixe null.
 - priceValue é o número em reais (ex.: 109.9), sem símbolo.
 - Você pode redigir "description" (texto atraente de 2 a 4 frases) e "headlineDisplay" (título curto de card) a partir do texto, sem acrescentar fatos novos.
 - Listas (includes, itinerary etc.): um item curto por linha, só com o que o texto diz.
