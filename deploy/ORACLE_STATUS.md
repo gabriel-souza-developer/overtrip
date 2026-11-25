@@ -1,5 +1,13 @@
 # Estado da produção na Oracle
 
+## Sugestão de viagem por texto (IA) e cores da marca (25 de novembro de 2026, 18:27 UTC)
+
+- Publicados API e painel do commit `fd399a4` (acima de `c1dc8b2`), compilados na VM ARM64 em área de preparo isolada (`/srv/overtrip/stage-fd399a4-20261125-182454`), sem afetar o app ativo até a troca. Pacote transferido por `git archive`, SHA-256 `22afbd92cfe435b78c6282ab309884a8441526d222c9c9163f2effa24d3c0634` conferido na VM. Sem migração de banco (mudança só de rotas e painel).
+- Novidade: bloco "Colar texto e sugerir com IA" no formulário de viagens da agência (sugere campos a partir de texto colado, nada é salvo até o clique em Salvar), atrás de `/api/organizations/:id/tourism/ai/{status,trip-draft}`, restrito a OWNER/ADMIN da própria empresa. Cabeçalho do painel e faixas das seções do formulário usam a cor da marca.
+- Backup do banco executado e validado antes da troca (`gzip -t` ok): `/var/backups/overtrip/overtrip-20261125-182622.db.gz`. Código e painel anteriores preservados em `/srv/overtrip/retorno-fd399a4-20261125-182454/{app,admin}`.
+- Após a troca: `overtrip-api`, `caddy`, `tailscaled` e os temporizadores de saúde/backup ativos; reinício foi limpo (`SIGTERM` → `HTTP server closed`, sem erros no journal). `/`, `/admin/`, `/health` e `/api/public/trips` responderam 200; `/api/auth/me` sem sessão respondeu 401. A nova rota `/api/organizations/<id>/tourism/ai/status` respondeu 401 (não 404), confirmando que o código novo está no ar; os bundles servidos contêm os textos "Dados da viagem" e "Colar texto e sugerir com IA". Não foi feito login real em produção.
+- O commit ainda não foi enviado ao GitHub (`git push` foi bloqueado pela permissão desta sessão); a publicação na Oracle usou `git archive` direto do commit local, que não depende do GitHub.
+
 ## Formulário e cores da agência (25 de novembro de 2026, 17:09 UTC)
 
 - Publicado somente o painel do commit `c1dc8b2`, com os blocos no formulário de viagens da agência e a cor da empresa mais visível no menu e no início. Pacote SHA-256 `c3491eff98b9cd47b596bed222df0004da7f14ae00396107132de9a9cecca76b` conferido na VM. Painel anterior preservado em `/srv/overtrip/retorno-painel-c1dc8b2-20261125-170900/admin`; API e banco não foram alterados.
