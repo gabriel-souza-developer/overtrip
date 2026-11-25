@@ -15,11 +15,14 @@ describe('formulário do banco de destinos', () => {
     const { data } = formToOutingInput({ ...emptyOutingForm(), date: '2025-03-30', passengers: '15', pricePerPerson: '65', transportCost: '800', extraCost: '85,50' });
     expect(data).toMatchObject({ date: '2025-03-30', passengers: 15, pricePerPersonCents: 6500, transportCostCents: 80000, extraCostCents: 8550, supplier: null });
     expect(previewOuting(data!)).toEqual({ revenueCents: 97500, expenseCents: 88550, resultCents: 8950 });
+    const withCourtesy = formToOutingInput({ ...emptyOutingForm(), passengers: '15', courtesySeats: '1', pricePerPerson: '65', transportCost: '800', extraCost: '85' }).data!;
+    expect(previewOuting(withCourtesy)).toEqual({ revenueCents: 91000, expenseCents: 88500, resultCents: 2500 });
+    expect(formToOutingInput({ ...emptyOutingForm(), passengers: '2', courtesySeats: '3' }).error).toMatch(/Cortesias/);
   });
 
   it('reabre uma saída salva com os mesmos valores', () => {
-    const form = outingToForm({ id: 'o', date: '2025-03-30T12:00:00.000Z', passengers: 15, pricePerPersonCents: 6550, transportCostCents: 80000, extraCostCents: null, supplier: 'Van', notes: null, updatedAt: '', revenueCents: null, expenseCents: null, resultCents: null });
-    expect(form).toEqual({ date: '2025-03-30', passengers: '15', pricePerPerson: '65,50', transportCost: '800', extraCost: '', supplier: 'Van', notes: '' });
+    const form = outingToForm({ id: 'o', date: '2025-03-30T12:00:00.000Z', passengers: 15, courtesySeats: null, pricePerPersonCents: 6550, transportCostCents: 80000, extraCostCents: null, supplier: 'Van', notes: null, updatedAt: '', revenueCents: null, expenseCents: null, resultCents: null });
+    expect(form).toEqual({ date: '2025-03-30', passengers: '15', courtesySeats: '', pricePerPerson: '65,50', transportCost: '800', extraCost: '', supplier: 'Van', notes: '' });
     expect(formToOutingInput(form).data).toMatchObject({ pricePerPersonCents: 6550, transportCostCents: 80000 });
   });
 });

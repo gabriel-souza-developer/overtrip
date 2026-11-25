@@ -37,6 +37,7 @@ const money = z.union([z.number().int().min(0).max(100_000_000), z.null()]).opti
 export const outingFields = {
   date: z.union([z.iso.date(), z.null()]).optional(),
   passengers: z.union([z.number().int().min(0).max(1000), z.null()]).optional(),
+  courtesySeats: z.union([z.number().int().min(0).max(1000), z.null()]).optional(),
   pricePerPersonCents: money,
   transportCostCents: money,
   extraCostCents: money,
@@ -75,19 +76,21 @@ export const dayToDate = (value: string | null | undefined) => (value ? new Date
 
 export interface OutingNumbers {
   passengers: number | null;
+  courtesySeats?: number | null;
   pricePerPersonCents: number | null;
   transportCostCents: number | null;
   extraCostCents: number | null;
 }
 
 /**
- * Receita = passageiros × valor por pessoa; despesa = transporte + taxas
+ * Receita = pagantes (passageiros − cortesias) × valor por pessoa; despesa = transporte + taxas
  * extras; resultado = receita − despesa (a coluna "CAIXA" da planilha).
  * Sem passageiros ou valor por pessoa, receita e resultado ficam nulos —
  * nunca presumidos como zero.
  */
 export function outingTotals(outing: OutingNumbers) {
-  const revenueCents = outing.passengers != null && outing.pricePerPersonCents != null ? outing.passengers * outing.pricePerPersonCents : null;
+  const paying = outing.passengers != null ? Math.max(0, outing.passengers - (outing.courtesySeats ?? 0)) : null;
+  const revenueCents = paying !== null && outing.pricePerPersonCents != null ? paying * outing.pricePerPersonCents : null;
   const hasExpense = outing.transportCostCents != null || outing.extraCostCents != null;
   const expenseCents = hasExpense ? (outing.transportCostCents ?? 0) + (outing.extraCostCents ?? 0) : null;
   const resultCents = revenueCents != null && expenseCents != null ? revenueCents - expenseCents : null;

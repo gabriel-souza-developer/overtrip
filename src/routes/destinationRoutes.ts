@@ -41,7 +41,7 @@ const filters = z.object({
   sort: z.enum(['name', 'distance', 'recent']).default('name'),
 }).strict();
 
-const outingSelect = { id: true, date: true, passengers: true, pricePerPersonCents: true, transportCostCents: true, extraCostCents: true, supplier: true, notes: true, updatedAt: true } as const;
+const outingSelect = { id: true, date: true, passengers: true, courtesySeats: true, pricePerPersonCents: true, transportCostCents: true, extraCostCents: true, supplier: true, notes: true, updatedAt: true } as const;
 // Viagens e visitas do site ligadas ao destino, lidas sempre do registro
 // original (nada é copiado): o que mudar no site aparece aqui também. Só os
 // registros no escopo legado — nunca de outra empresa.

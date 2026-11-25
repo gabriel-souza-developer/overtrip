@@ -20,6 +20,7 @@ export { parseDestinationLabel };
 export interface ImportedOuting {
   date: string | null; // AAAA-MM-DD
   passengers: number | null;
+  courtesySeats: number | null;
   pricePerPersonCents: number | null;
   transportCostCents: number | null;
   extraCostCents: number | null;
@@ -98,6 +99,22 @@ function addLink(links: DestinationLink[], raw: string | undefined) {
   links.push({ label: labelForUrl(url), url });
 }
 
+const sumCents = (a: number | null, b: number | null) => (a === null && b === null ? null : (a ?? 0) + (b ?? 0));
+
+/**
+ * A coluna CAIXA da planilha desconta lugares que não pagam (a partir de
+ * set/2024, um por saída: CAIXA = (passageiros − 1) × valor − despesa). O
+ * número de cortesias é recuperado da própria linha, só quando a diferença
+ * é um múltiplo exato do valor por pessoa.
+ */
+export function inferCourtesySeats(passengers: number | null, priceCents: number | null, expenseCents: number | null, cashCents: number | null): number | null {
+  if (passengers === null || !priceCents || expenseCents === null || cashCents === null) return null;
+  const difference = passengers * priceCents - expenseCents - cashCents;
+  if (difference <= 0 || difference % priceCents !== 0) return null;
+  const seats = difference / priceCents;
+  return seats <= passengers ? seats : null;
+}
+
 export function mapDestinationSheet(rows: SheetRow[]): SheetImportReport {
   const byKey = new Map<string, ImportedDestination>();
   const skippedRows: number[] = [];
@@ -144,9 +161,11 @@ export function mapDestinationSheet(rows: SheetRow[]): SheetImportReport {
       camping ? 'Saída com camping.' : null,
       !serialDay && monthIndex >= 0 ? `Mês registrado na planilha: ${dateCell}${year ? `/${year}` : ''} (dia não informado).` : null,
     ].filter(Boolean).join(' ') || null;
+    const passengers = toInt(cells.J);
     destination.outings.push({
       date: serialDay,
-      passengers: toInt(cells.J),
+      passengers,
+      courtesySeats: inferCourtesySeats(passengers, toCents(cells.K), toCents(cells.O) ?? sumCents(toCents(cells.L), toCents(cells.N)), toCents(cells.P)),
       pricePerPersonCents: toCents(cells.K),
       transportCostCents: toCents(cells.L),
       extraCostCents: toCents(cells.N) || null,

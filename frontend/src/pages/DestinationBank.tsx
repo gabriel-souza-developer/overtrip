@@ -266,7 +266,7 @@ export default function DestinationBank() {
                   </tr></thead>
                   <tbody className="divide-y divide-surface-200">{destination.outings.map((outing) => <tr key={outing.id}>
                     <td className="py-2 pr-3">{outing.date ? formatDateBR(outing.date) : 'Sem data'}{outing.onSite && <span className="ml-2 badge-info">no site</span>}{outing.notes && <span className="block text-xs text-surface-600">{outing.notes}</span>}</td>
-                    <td className="py-2 pr-3 tabular-nums">{outing.passengers ?? '—'}</td>
+                    <td className="py-2 pr-3 tabular-nums">{outing.passengers ?? '—'}{outing.courtesySeats ? <span className="block text-xs text-surface-600">{outing.courtesySeats === 1 ? '1 cortesia' : `${outing.courtesySeats} cortesias`}</span> : null}</td>
                     <td className="py-2 pr-3 tabular-nums">{formatMoney(outing.pricePerPersonCents)}</td>
                     <td className="py-2 pr-3 tabular-nums">{formatMoney(outing.expenseCents)}</td>
                     <td className={`py-2 pr-3 tabular-nums font-medium ${outing.resultCents !== null && outing.resultCents < 0 ? 'text-red-700' : 'text-surface-900'}`}>{formatMoney(outing.resultCents)}</td>
@@ -277,7 +277,7 @@ export default function DestinationBank() {
                     </div></td>
                   </tr>)}</tbody>
                 </table>
-                <p className="mt-2 text-xs text-surface-600">Despesa = transporte + taxas extras. Resultado = pessoas × valor por pessoa − despesa. Valores lançados à mão.</p>
+                <p className="mt-2 text-xs text-surface-600">Despesa = transporte + taxas extras. Resultado = (pessoas − cortesias) × valor por pessoa − despesa. Valores lançados à mão.</p>
               </div>}
             </div>
           </div>}
@@ -352,6 +352,7 @@ export default function DestinationBank() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field id="outing-date" label="Data"><input id="outing-date" type="date" className="input" value={outingForm.date} onChange={(event) => setOutingForm({ ...outingForm, date: event.target.value })} /></Field>
           <Field id="outing-passengers" label="Passageiros"><input id="outing-passengers" className="input" inputMode="numeric" value={outingForm.passengers} onChange={(event) => setOutingForm({ ...outingForm, passengers: event.target.value })} /></Field>
+          <Field id="outing-courtesy" label="Cortesias" hint="Lugares que não pagam (ex.: organizador)."><input id="outing-courtesy" className="input" inputMode="numeric" value={outingForm.courtesySeats} onChange={(event) => setOutingForm({ ...outingForm, courtesySeats: event.target.value })} /></Field>
           <Field id="outing-price" label="Valor por pessoa (R$)"><input id="outing-price" className="input" inputMode="decimal" value={outingForm.pricePerPerson} onChange={(event) => setOutingForm({ ...outingForm, pricePerPerson: event.target.value })} placeholder="65,00" /></Field>
           <Field id="outing-transport" label="Transporte (R$)"><input id="outing-transport" className="input" inputMode="decimal" value={outingForm.transportCost} onChange={(event) => setOutingForm({ ...outingForm, transportCost: event.target.value })} /></Field>
           <Field id="outing-extra" label="Taxas extras (R$)" hint="Entradas, guia, estacionamento."><input id="outing-extra" className="input" inputMode="decimal" value={outingForm.extraCost} onChange={(event) => setOutingForm({ ...outingForm, extraCost: event.target.value })} /></Field>

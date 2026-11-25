@@ -36,12 +36,13 @@ export function formToDestinationInput(form: DestinationForm): { data?: Destinat
   };
 }
 
-export interface OutingForm { date: string; passengers: string; pricePerPerson: string; transportCost: string; extraCost: string; supplier: string; notes: string }
+export interface OutingForm { date: string; passengers: string; courtesySeats: string; pricePerPerson: string; transportCost: string; extraCost: string; supplier: string; notes: string }
 
-export const emptyOutingForm = (): OutingForm => ({ date: '', passengers: '', pricePerPerson: '', transportCost: '', extraCost: '', supplier: '', notes: '' });
+export const emptyOutingForm = (): OutingForm => ({ date: '', passengers: '', courtesySeats: '', pricePerPerson: '', transportCost: '', extraCost: '', supplier: '', notes: '' });
 
 export const outingToForm = (outing: DestinationOuting): OutingForm => ({
   date: outing.date ? outing.date.slice(0, 10) : '', passengers: outing.passengers === null ? '' : String(outing.passengers),
+  courtesySeats: outing.courtesySeats === null ? '' : String(outing.courtesySeats),
   pricePerPerson: centsToInput(outing.pricePerPersonCents), transportCost: centsToInput(outing.transportCostCents), extraCost: centsToInput(outing.extraCostCents),
   supplier: outing.supplier ?? '', notes: outing.notes ?? '',
 });
@@ -54,13 +55,16 @@ export function formToOutingInput(form: OutingForm): { data?: OutingInput; error
   };
   const passengers = form.passengers.trim();
   if (passengers && !/^\d{1,4}$/.test(passengers)) return { error: 'Passageiros deve ser um número inteiro.' };
+  const courtesy = form.courtesySeats.trim();
+  if (courtesy && !/^\d{1,4}$/.test(courtesy)) return { error: 'Cortesias deve ser um número inteiro.' };
+  if (courtesy && passengers && Number(courtesy) > Number(passengers)) return { error: 'Cortesias não podem passar do número de passageiros.' };
   const values = [money(form.pricePerPerson, 'Valor por pessoa'), money(form.transportCost, 'Transporte'), money(form.extraCost, 'Taxas extras')];
   const invalid = values.find((value) => typeof value === 'string');
   if (typeof invalid === 'string') return { error: invalid };
   const [pricePerPersonCents, transportCostCents, extraCostCents] = values as Array<number | null>;
   return {
     data: {
-      date: form.date || null, passengers: passengers ? Number(passengers) : null, pricePerPersonCents, transportCostCents, extraCostCents,
+      date: form.date || null, passengers: passengers ? Number(passengers) : null, courtesySeats: courtesy ? Number(courtesy) : null, pricePerPersonCents, transportCostCents, extraCostCents,
       supplier: form.supplier.trim() || null, notes: form.notes.trim() || null,
     },
   };
@@ -68,7 +72,8 @@ export function formToOutingInput(form: OutingForm): { data?: OutingInput; error
 
 /** Mesma conta da API (destinationBank.ts): para mostrar o resultado enquanto se digita. */
 export function previewOuting(input: OutingInput) {
-  const revenueCents = input.passengers !== null && input.pricePerPersonCents !== null ? input.passengers * input.pricePerPersonCents : null;
+  const paying = input.passengers !== null ? Math.max(0, input.passengers - (input.courtesySeats ?? 0)) : null;
+  const revenueCents = paying !== null && input.pricePerPersonCents !== null ? paying * input.pricePerPersonCents : null;
   const hasExpense = input.transportCostCents !== null || input.extraCostCents !== null;
   const expenseCents = hasExpense ? (input.transportCostCents ?? 0) + (input.extraCostCents ?? 0) : null;
   return { revenueCents, expenseCents, resultCents: revenueCents !== null && expenseCents !== null ? revenueCents - expenseCents : null };

@@ -72,6 +72,20 @@ async function main() {
       }
     });
     console.log(`Gravados ${pending.length} destinos.`);
+    // Destinos importados antes: completa só as cortesias ainda vazias das
+    // saídas do mesmo dia (campo criado depois da primeira importação).
+    let courtesyFilled = 0;
+    for (const destination of destinations.filter((item) => existing.has(item.importKey))) {
+      for (const outing of destination.outings) {
+        if (!outing.date || !outing.courtesySeats) continue;
+        const { count } = await prisma.destinationOuting.updateMany({
+          where: { destination: { is: { importKey: destination.importKey } }, date: new Date(`${outing.date}T12:00:00.000Z`), courtesySeats: null },
+          data: { courtesySeats: outing.courtesySeats },
+        });
+        courtesyFilled += count;
+      }
+    }
+    console.log(`Cortesias completadas em saídas já importadas: ${courtesyFilled}.`);
     // Em seguida liga viagens e visitas do site aos destinos (idempotente).
     const report = await prisma.$transaction((tx) => syncDestinationsWithSite(tx));
     console.log(`Site: ${report.linkedVisits} visitas e ${report.linkedTrips} viagens vinculadas, ${report.createdDestinations} destinos criados a partir do site, ${report.createdOutings} saídas criadas, ${report.filledFields} campos completados.`);

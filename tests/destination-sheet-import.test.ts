@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { deflateRawSync } from 'node:zlib';
 import { readXlsxSheets } from '../src/lib/xlsxReader.js';
-import { applySheetCorrections, mapDestinationSheet, parseDestinationLabel } from '../src/services/destinationSheetImport.js';
+import { applySheetCorrections, inferCourtesySeats, mapDestinationSheet, parseDestinationLabel } from '../src/services/destinationSheetImport.js';
 import { destinationMatchKey, prettyPlaceName } from '../src/services/destinationNames.js';
 import { labelForUrl, outingTotals, parseStoredLinks, summarizeOutings } from '../src/services/destinationBank.js';
 
@@ -118,14 +118,30 @@ describe('aba de destinos visitados', () => {
       links: [{ label: 'Google Maps', url: 'https://maps.app.goo.gl/a' }, { label: 'Wikiloc', url: 'https://pt.wikiloc.com/b' }],
     });
     expect(first.outings).toEqual([
-      { date: '2024-09-29', passengers: 21, pricePerPersonCents: 6500, transportCostCents: 60000, extraCostCents: 15000, supplier: 'Fornecedor', notes: null },
-      { date: null, passengers: null, pricePerPersonCents: null, transportCostCents: null, extraCostCents: null, supplier: null, notes: 'Saída com camping. Mês registrado na planilha: Maio/2024 (dia não informado).' },
+      { date: '2024-09-29', passengers: 21, courtesySeats: null, pricePerPersonCents: 6500, transportCostCents: 60000, extraCostCents: 15000, supplier: 'Fornecedor', notes: null },
+      { date: null, passengers: null, courtesySeats: null, pricePerPersonCents: null, transportCostCents: null, extraCostCents: null, supplier: null, notes: 'Saída com camping. Mês registrado na planilha: Maio/2024 (dia não informado).' },
     ]);
     expect(second).toMatchObject({ name: 'Praia Dois', city: 'Cidade', region: 'RN', category: 'Praia', trailLevel: null, links: [], outings: [] });
   });
 
   it('gera a mesma chave de importação a cada execução', () => {
     expect(mapDestinationSheet(rows).destinations.map((d) => d.importKey)).toEqual(['sheet:cachoeira um|PB', 'sheet:praia dois|RN']);
+  });
+});
+
+describe('cortesias da coluna CAIXA', () => {
+  it('recupera lugares não pagantes só quando a diferença é múltiplo exato do valor', () => {
+    // Lagoa Azul 2025: 31 × 85 − 1.730 = 905; CAIXA 820 → 1 cortesia.
+    expect(inferCourtesySeats(31, 8500, 173000, 82000)).toBe(1);
+    // Abril/2026: 29 × 130 − 3.300 = 470; CAIXA 210 → 2 cortesias.
+    expect(inferCourtesySeats(29, 13000, 330000, 21000)).toBe(2);
+    expect(inferCourtesySeats(15, 5500, 80000, 2500)).toBeNull();
+    expect(inferCourtesySeats(15, 5500, 80000, 2000)).toBeNull();
+    expect(inferCourtesySeats(15, 5500, 80000, null)).toBeNull();
+  });
+
+  it('a receita desconta as cortesias', () => {
+    expect(outingTotals({ passengers: 31, courtesySeats: 1, pricePerPersonCents: 8500, transportCostCents: 160000, extraCostCents: 13000 })).toEqual({ revenueCents: 255000, expenseCents: 173000, resultCents: 82000 });
   });
 });
 
@@ -140,7 +156,7 @@ describe('totais das saídas', () => {
     const summary = summarizeOutings([
       { date: new Date('2024-01-01T12:00:00Z'), passengers: 10, pricePerPersonCents: 5000, transportCostCents: 40000, extraCostCents: null },
       { date: new Date('2025-01-01T12:00:00Z'), passengers: 20, pricePerPersonCents: 7000, transportCostCents: 100000, extraCostCents: 0 },
-      { date: null, passengers: null, pricePerPersonCents: null, transportCostCents: null, extraCostCents: null },
+      { date: null, passengers: null, courtesySeats: null, pricePerPersonCents: null, transportCostCents: null, extraCostCents: null },
     ]);
     expect(summary).toEqual({ outingsCount: 3, lastOutingDate: '2025-01-01T12:00:00.000Z', averagePassengers: 15, averagePricePerPersonCents: 6000, averageExpenseCents: 70000, averageResultCents: 25000 });
   });

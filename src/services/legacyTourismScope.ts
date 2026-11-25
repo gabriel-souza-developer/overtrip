@@ -275,3 +275,8 @@ export async function currentReservationCountInLegacyScope(
 ): Promise<number> {
   return reservationCountInLegacyScope(client, config.legacyTourismOrganizationId, filters);
 }
+
+/** JOIN e WHERE de acesso às reservas do escopo legado, para agregados em SQL (painel financeiro). */
+export function currentReservationAccessSql(): { join: Prisma.Sql; where: Prisma.Sql } {
+  return { join: reservationAccessJoinSql(), where: reservationAccessWhereSql(config.legacyTourismOrganizationId) };
+}

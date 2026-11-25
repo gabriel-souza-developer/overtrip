@@ -17,6 +17,7 @@ export interface DestinationOuting {
   id: string;
   date: string | null;
   passengers: number | null;
+  courtesySeats: number | null;
   pricePerPersonCents: number | null;
   transportCostCents: number | null;
   extraCostCents: number | null;
@@ -67,7 +68,7 @@ export interface Destination {
 }
 
 export type DestinationInput = Pick<Destination, 'name' | 'city' | 'region' | 'category' | 'status' | 'originCity' | 'distanceKm' | 'trailLevel' | 'bestSeason' | 'notes' | 'links'>;
-export type OutingInput = Pick<DestinationOuting, 'passengers' | 'pricePerPersonCents' | 'transportCostCents' | 'extraCostCents' | 'supplier' | 'notes'> & { date: string | null };
+export type OutingInput = Pick<DestinationOuting, 'passengers' | 'courtesySeats' | 'pricePerPersonCents' | 'transportCostCents' | 'extraCostCents' | 'supplier' | 'notes'> & { date: string | null };
 
 export interface DestinationFilters {
   page?: number; limit?: number; search?: string; status?: string; category?: string; trailLevel?: string; visited?: string; maxDistanceKm?: string; onMap?: string; sort?: string;

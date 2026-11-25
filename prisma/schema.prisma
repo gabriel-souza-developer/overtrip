@@ -473,6 +473,8 @@ model DestinationOuting {
   destination         Destination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
   date                DateTime?
   passengers          Int?
+  // Lugares que não pagam (organizador, cortesia): receita usa só os pagantes.
+  courtesySeats       Int?
   pricePerPersonCents Int?
   transportCostCents  Int?
   extraCostCents      Int?
