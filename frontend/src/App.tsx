@@ -22,6 +22,7 @@ const Reservations = React.lazy(() => import('./pages/Reservations'));
 const SystemHealthPage = React.lazy(() => import('./pages/SystemHealth'));
 const Gallery = React.lazy(() => import('./pages/Gallery'));
 const Settings = React.lazy(() => import('./pages/Settings'));
+const Users = React.lazy(() => import('./pages/Users'));
 const SocialPosts = React.lazy(() => import('./pages/SocialPosts'));
 const OrganizationSelect = React.lazy(() => import('./pages/OrganizationSelect'));
 const OrganizationLayout = React.lazy(() => import('./pages/OrganizationLayout'));
@@ -188,6 +189,7 @@ const AppRoutes = () => platformMode ? (
             <Route path="/reservations" element={<Reservations />} />
             <Route path="/social-posts" element={<SocialPosts />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/users" element={<Users />} />
             <Route path="/system" element={<SystemHealthPage />} />
           </Route>
         </Route>

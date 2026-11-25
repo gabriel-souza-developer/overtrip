@@ -15,6 +15,7 @@ const navItems = [
   { path: '/social-posts', label: 'Redes sociais', icon: Share2, adminOnly: true },
   { path: '/gallery', label: 'Galeria de memórias', icon: Images },
   { path: '/settings', label: 'Configurações', icon: SettingsIcon, adminOnly: true },
+  { path: '/users', label: 'Usuários', icon: UsersRound, adminOnly: true },
   { path: '/system', label: 'Saúde do servidor', icon: Activity, adminOnly: true },
 ];
 
@@ -36,8 +37,8 @@ export default function Layout() {
   };
 
   const groups = [
-    { label: 'Operação', items: navItems.filter(item => !['/settings', '/system'].includes(item.path)) },
-    { label: 'Administração', items: navItems.filter(item => ['/settings', '/system'].includes(item.path)) },
+    { label: 'Operação', items: navItems.filter(item => !['/settings', '/system', '/users'].includes(item.path)) },
+    { label: 'Administração', items: navItems.filter(item => ['/settings', '/system', '/users'].includes(item.path)) },
   ].map(({ label, items }) => ({ label, items: items.filter(item => !('adminOnly' in item) || user?.role === 'admin') }));
 
   return (
