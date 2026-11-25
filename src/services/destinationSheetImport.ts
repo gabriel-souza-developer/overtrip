@@ -192,6 +192,15 @@ export function applySheetCorrections(destinations: ImportedDestination[]): stri
     applied.push('Caraúbas: saída removida (viagem não aconteceu).');
   }
 
+  const feijao = find('Rio do Feijão');
+  const camping = feijao?.outings.find((outing) => outing.notes?.startsWith('Saída com camping'));
+  if (camping) {
+    // Acampamento de dois dias; o mapa do site registra o primeiro dia.
+    camping.date = '2023-07-22';
+    camping.notes = 'Camping de dois dias (22 e 23/07/2023).';
+    applied.push('Rio do Feijão: camping registrado em 22 e 23/07/2023.');
+  }
+
   const balneario = find('Balnearioa Rio Água Viva');
   if (balneario) {
     balneario.name = 'Balneário Rio Água Viva';

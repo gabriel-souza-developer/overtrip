@@ -78,9 +78,10 @@ describe('correções confirmadas da planilha', () => {
       { row: 4, cells: { A: 'Maio', C: "Olho D'água de Pureza - Pureza - RN" } },
       { row: 5, cells: { A: 'Agosto', C: 'Caraubas - Rio Paraíba' } },
       { row: 6, cells: { A: '45956', C: 'Balnearioa Rio Água Viva - Areai - PB' } },
+      { row: 7, cells: { A: '45130', C: 'Camping Rio do Feijão - PB' } },
     ]);
     const keys = destinations.map((d) => d.importKey);
-    expect(applySheetCorrections(destinations)).toHaveLength(4);
+    expect(applySheetCorrections(destinations)).toHaveLength(5);
     expect(destinations.map((d) => d.importKey)).toEqual(keys);
     const [lagoa, pureza, caraubas, balneario] = destinations;
     expect(lagoa.links).toEqual([
@@ -90,6 +91,7 @@ describe('correções confirmadas da planilha', () => {
     expect(pureza.outings).toMatchObject([{ date: '2026-05-17' }]);
     expect(caraubas.outings).toEqual([]);
     expect(balneario).toMatchObject({ name: 'Balneário Rio Água Viva', city: 'Areia' });
+    expect(destinations[4].outings).toMatchObject([{ date: '2023-07-22', notes: 'Camping de dois dias (22 e 23/07/2023).' }]);
   });
 });
 
