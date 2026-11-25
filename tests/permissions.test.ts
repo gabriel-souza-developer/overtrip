@@ -18,13 +18,15 @@ describe('campo Situação em TripForm.tsx', () => {
     expect(tripForm).toContain('id="status"');
   });
 
-  it('fica nos dados da viagem, e não nos detalhes opcionais', () => {
+  it('fica no bloco de Publicação, por último, e não escondido em "Mais opções"', () => {
     const status = tripForm.indexOf('id="status"');
-    const preparar = tripForm.indexOf('Dados da viagem');
-    const ajustes = tripForm.indexOf('Configurações adicionais do painel');
-    expect(status).toBeGreaterThan(preparar);
-    expect(status).toBeLessThan(ajustes);
-    const ajustesBlock = tripForm.slice(ajustes);
-    expect(ajustesBlock).not.toContain('id="status"');
+    const essencial = tripForm.indexOf('>O essencial</h2>');
+    const publicacaoStart = tripForm.indexOf('>Publicação</h2>');
+    const publicacaoEnd = tripForm.indexOf('</fieldset>', publicacaoStart);
+    expect(status).toBeGreaterThan(essencial);
+    expect(status).toBeGreaterThan(publicacaoStart);
+    expect(status).toBeLessThan(publicacaoEnd);
+    const publicacaoBlock = tripForm.slice(publicacaoStart, publicacaoEnd);
+    expect(publicacaoBlock).not.toContain('Mais opções');
   });
 });

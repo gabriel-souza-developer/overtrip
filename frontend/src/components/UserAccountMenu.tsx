@@ -16,7 +16,7 @@ export default function UserAccountMenu({ user, onLogout }: UserAccountMenuProps
       <Menu.Root>
         <Menu.Trigger className="flex items-center gap-2 px-2 py-1.5 min-h-[44px] rounded-lg text-surface-700 hover:bg-surface-100" aria-label="Minha conta">
           <span className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center">
-            <User className="w-5 h-5 text-primary-500" aria-hidden="true" />
+            <User className="w-5 h-5 text-primary-800" aria-hidden="true" />
           </span>
           <span className="hidden sm:block text-sm font-medium">{user?.name || user?.email}</span>
           <ChevronDown className="w-4 h-4 hidden sm:block" aria-hidden="true" />

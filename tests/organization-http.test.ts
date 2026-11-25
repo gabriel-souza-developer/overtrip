@@ -219,15 +219,22 @@ describe('PUT /:organizationId/settings (cor da empresa)', () => {
     expect((await cleared.json() as { organization: { brandColor: string | null } }).organization.brandColor).toBeNull();
   });
 
-  it('rejeita formato inválido e cor clara demais para o contraste mínimo, sem gravar nada', async () => {
+  it('rejeita formato inválido, sem gravar nada', async () => {
     expect((await fetch(`${base}/${orgActive.id}/settings`, { method: 'PUT', headers: headers(tokenA), body: JSON.stringify({ defaultPriceUnit: 'por grupo', brandColor: 'azul' }) })).status).toBe(400);
     expect((await fetch(`${base}/${orgActive.id}/settings`, { method: 'PUT', headers: headers(tokenA), body: JSON.stringify({ defaultPriceUnit: 'por grupo', brandColor: '#12345' }) })).status).toBe(400);
     expect((await fetch(`${base}/${orgActive.id}/settings`, { method: 'PUT', headers: headers(tokenA), body: JSON.stringify({ defaultPriceUnit: 'por grupo', brandColor: '<script>' }) })).status).toBe(400);
-    // Amarelo claro: formato válido, mas contraste insuficiente contra branco.
-    expect((await fetch(`${base}/${orgActive.id}/settings`, { method: 'PUT', headers: headers(tokenA), body: JSON.stringify({ defaultPriceUnit: 'por grupo', brandColor: '#ffff00' }) })).status).toBe(400);
 
     const stillCleared = await fetch(`${base}/${orgActive.id}`, { headers: headers(tokenA) });
     expect((await stillCleared.json() as { organization: { brandColor: string | null } }).organization.brandColor).toBeNull(); // da limpeza do teste anterior; nenhuma tentativa rejeitada gravou nada
+  });
+
+  it('aceita cor viva/clara (ex.: amarelo puro) sem exigir contraste bruto — o painel deriva um tom legível a partir dela', async () => {
+    const saved = await fetch(`${base}/${orgActive.id}/settings`, { method: 'PUT', headers: headers(tokenA), body: JSON.stringify({ defaultPriceUnit: 'por grupo', brandColor: '#ffff00' }) });
+    expect(saved.status).toBe(200);
+    expect((await saved.json() as { organization: { brandColor: string | null } }).organization.brandColor).toBe('#ffff00');
+
+    // Restaura null para não afetar os testes seguintes deste arquivo.
+    await fetch(`${base}/${orgActive.id}/settings`, { method: 'PUT', headers: headers(tokenA), body: JSON.stringify({ defaultPriceUnit: 'por grupo', brandColor: null }) });
   });
 
   it('exige sessão e papel OWNER/ADMIN: 401 sem token, 403 para MEMBER', async () => {

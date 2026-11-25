@@ -76,10 +76,10 @@ export default function AiDraftBlock({ form, defaults, onApply }: Props) {
   const allChecked = rows.length > 0 && rows.every(r => checked.has(r.key));
 
   return (
-    <details className="card p-5">
+    <details className="rounded-lg border border-surface-200 p-4">
       <summary className="flex items-center gap-2 cursor-pointer">
         <Sparkles className="w-5 h-5 text-surface-700" aria-hidden="true" />
-        <span className="text-lg font-semibold text-surface-900">Ajudar a preencher com IA (opcional)</span>
+        <span className="font-semibold text-surface-900">Ajudar a preencher com IA (opcional)</span>
       </summary>
       <div className="space-y-3 mt-4">
       <p className="hint">Cole a conversa ou o roteiro. A IA sugere os campos; nada é salvo até você clicar em Salvar. O que não estiver no texto fica vazio.</p>

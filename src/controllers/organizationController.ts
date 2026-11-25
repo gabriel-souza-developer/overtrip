@@ -5,9 +5,7 @@ import { AuthRequest } from '../middleware/auth.js';
 import { assertOrganizationWriteAccess, OrganizationRequest } from '../middleware/organizationContext.js';
 import { AppError } from '../middleware/errorHandler.js';
 import {
-  BRAND_COLOR_CONTRAST_MESSAGE,
   BRAND_COLOR_FORMAT_MESSAGE,
-  hasEnoughContrastOnWhite,
   isValidBrandColorFormat,
 } from '../validators/organizationBrand.js';
 
@@ -23,13 +21,13 @@ import {
 // só um padrão de preenchimento, nunca lido de volta do banco em cada
 // criação).
 // brandColor: null limpa e volta à paleta verde fixa do painel; string
-// precisa ser #RRGGBB com contraste >= 4.5:1 contra branco (é usada como
-// texto e como fundo de botão com texto branco) — revalidado aqui mesmo
-// quando o cliente já valida, porque o servidor nunca confia em validação
-// só do lado do cliente.
+// precisa só ser #RRGGBB — revalidado aqui mesmo quando o cliente já
+// valida, porque o servidor nunca confia em validação só do lado do
+// cliente. Qualquer cor passa (inclusive vivas/claras sem 4.5:1 de
+// contraste puras): a cor crua só decora; organizationBrand.ts deriva um
+// tom escurecido e acessível para texto/fundo de botão a partir dela.
 const brandColorInput = z.string().trim().nullable().optional()
-  .refine((value) => value == null || isValidBrandColorFormat(value), { message: BRAND_COLOR_FORMAT_MESSAGE })
-  .refine((value) => value == null || !isValidBrandColorFormat(value) || hasEnoughContrastOnWhite(value), { message: BRAND_COLOR_CONTRAST_MESSAGE });
+  .refine((value) => value == null || isValidBrandColorFormat(value), { message: BRAND_COLOR_FORMAT_MESSAGE });
 const updateSettingsSchema = z.object({
   defaultPriceUnit: z.string().trim().min(1).max(40).nullable().optional(),
   brandColor: brandColorInput,

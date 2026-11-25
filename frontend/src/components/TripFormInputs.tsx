@@ -71,14 +71,14 @@ export function LocationPicker({ coords, onConfirm, onClear }: { coords: { lat: 
               <p>{result.label}</p>
               <p className="text-surface-600">{result.lat}, {result.lng}</p>
               <div className="flex flex-wrap items-center gap-3">
-                <a className="text-primary-500 underline" href={locationMapUrl(result.lat, result.lng)} target="_blank" rel="noopener noreferrer">Abrir no mapa</a>
+                <a className="text-primary-800 underline" href={locationMapUrl(result.lat, result.lng)} target="_blank" rel="noopener noreferrer">Abrir no mapa</a>
                 <Button small onClick={() => { onConfirm(result); setResults([]); }}>Usar esta localização</Button>
               </div>
             </li>
           ))}
         </ul>
       )}
-      {coords && <div className="flex flex-wrap items-center gap-4 text-sm"><a className="text-primary-500 underline" href={locationMapUrl(coords.lat, coords.lng)} target="_blank" rel="noopener noreferrer">Ver localização confirmada no mapa</a>{onClear && <button type="button" className="text-primary-600 underline" onClick={onClear}>Remover coordenadas</button>}</div>}
+      {coords && <div className="flex flex-wrap items-center gap-4 text-sm"><a className="text-primary-800 underline" href={locationMapUrl(coords.lat, coords.lng)} target="_blank" rel="noopener noreferrer">Ver localização confirmada no mapa</a>{onClear && <button type="button" className="text-primary-600 underline" onClick={onClear}>Remover coordenadas</button>}</div>}
     </div>
   );
 }

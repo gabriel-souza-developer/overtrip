@@ -4,11 +4,9 @@ import { Palette, ShieldAlert, Tag } from 'lucide-react';
 import { organizationApi } from '../api/organizations';
 import { useToast } from '../hooks/useToast';
 import {
-  BRAND_COLOR_CONTRAST_MESSAGE,
   BRAND_COLOR_FORMAT_MESSAGE,
-  FALLBACK_PALETTE,
+  FALLBACK_BRAND_COLOR,
   derivePaletteFromBrandColor,
-  hasEnoughContrastOnWhite,
   isValidBrandColorFormat,
 } from '../lib/organizationBrand';
 import type { OrganizationOutletContext } from './OrganizationLayout';
@@ -18,7 +16,6 @@ import Field from '../components/Field';
 import Button from '../components/Button';
 
 const FALLBACK_PRICE_UNIT = 'por pessoa';
-const FALLBACK_BRAND_COLOR = FALLBACK_PALETTE['--agency-600'];
 
 // Comparado com Configurações do painel OVERTRIP (WhatsApp do site, padrões
 // de apresentação de novas viagens, FAQ do site, base da IA): só a unidade
@@ -118,7 +115,8 @@ export default function OrganizationSettings() {
     event.preventDefault();
     const normalized = brandColor.trim().toLowerCase();
     if (!isValidBrandColorFormat(normalized)) { setBrandError(BRAND_COLOR_FORMAT_MESSAGE); return; }
-    if (!hasEnoughContrastOnWhite(normalized)) { setBrandError(BRAND_COLOR_CONTRAST_MESSAGE); return; }
+    // Qualquer #RRGGBB vale, inclusive cores vivas/claras: o painel deriva
+    // sozinho um tom escurecido para texto/botão (ver organizationBrand.ts).
     // Igual à unidade de preço: a própria cor padrão salva como null, nunca
     // como uma "escolha" duplicando o que já é o padrão fixo.
     await persistBrandColor(normalized === FALLBACK_BRAND_COLOR ? null : normalized, 'Cor da empresa salva.');
@@ -132,7 +130,7 @@ export default function OrganizationSettings() {
       <PageHeader title="Configurações" description="Padrões usados ao criar uma nova viagem nesta empresa." />
       <form className="card p-5 sm:p-6 space-y-5" onSubmit={save} noValidate>
         <div className="flex gap-3">
-          <span className="w-10 h-10 rounded-xl bg-primary-100 text-primary-500 flex items-center justify-center shrink-0">
+          <span className="w-10 h-10 rounded-xl bg-primary-100 text-primary-800 flex items-center justify-center shrink-0">
             <Tag className="w-5 h-5" aria-hidden="true" />
           </span>
           <div>
@@ -151,7 +149,7 @@ export default function OrganizationSettings() {
       </form>
       <form className="card p-5 sm:p-6 space-y-5" onSubmit={saveBrandColor} noValidate>
         <div className="flex gap-3">
-          <span className="w-10 h-10 rounded-xl bg-primary-100 text-primary-500 flex items-center justify-center shrink-0">
+          <span className="w-10 h-10 rounded-xl bg-primary-100 text-primary-800 flex items-center justify-center shrink-0">
             <Palette className="w-5 h-5" aria-hidden="true" />
           </span>
           <div>
@@ -159,7 +157,7 @@ export default function OrganizationSettings() {
             <p className="text-sm text-surface-600 mt-1">Cor usada em botões e destaques do painel desta empresa. Sem uma cor própria, o painel usa o verde padrão.</p>
           </div>
         </div>
-        <Field id="org-settings-brand-color" label="Cor da empresa" hint="Precisa ter contraste suficiente com texto branco (mínimo 4.5:1).">
+        <Field id="org-settings-brand-color" label="Cor da empresa" hint="Qualquer cor vale: o painel ajusta sozinho o tom usado em texto e botões para manter a leitura.">
           <div className="flex flex-wrap items-center gap-3">
             <input
               id="org-settings-brand-color"
@@ -172,8 +170,8 @@ export default function OrganizationSettings() {
             <span className="text-sm text-surface-700 font-mono">{brandColor}</span>
             {brandPreview && (
               <span className="flex items-center gap-2" aria-hidden="true">
-                <span className="rounded-lg px-3 py-1.5 text-sm font-medium text-white" style={{ backgroundColor: brandPreview['--agency-600'] }}>Prévia</span>
-                <span className="rounded-lg px-3 py-1.5 text-sm font-medium text-white" style={{ backgroundColor: brandPreview['--agency-600-hover'] }}>Ao passar o mouse</span>
+                <span className="rounded-lg px-3 py-1.5 text-sm font-medium text-white" style={{ backgroundColor: brandPreview.solid }}>Prévia</span>
+                <span className="rounded-lg px-3 py-1.5 text-sm font-medium text-white" style={{ backgroundColor: brandPreview.solidHover }}>Ao passar o mouse</span>
               </span>
             )}
           </div>

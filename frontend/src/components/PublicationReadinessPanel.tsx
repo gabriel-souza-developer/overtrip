@@ -1,16 +1,24 @@
 import React from 'react';
 import { AlertCircle, CheckCircle } from 'lucide-react';
 
+export interface PublicationIssue {
+  /** Texto explicando o que falta. */
+  message: string;
+  /** Id do campo correspondente na tela, se houver um para focar. */
+  field?: string;
+}
+
 interface PublicationReadinessPanelProps {
-  /** Lista de problemas que impedem publicação (vazia = pronto). */
-  problems: string[];
-  /** Callback para focar em um campo pendente. */
+  /** Pendências que impedem publicação (vazia = pronto). */
+  problems: PublicationIssue[];
+  /** Leva o foco até o campo da pendência clicada. */
   onFieldFocus?: (fieldId: string) => void;
 }
 
 /**
  * Painel que mostra claramente o que falta para publicar uma viagem.
- * Verde = pronto, amarelo = pendências.
+ * Verde = pronto, amarelo = pendências. Cada pendência com campo conhecido
+ * é clicável e leva o foco até o campo correspondente no formulário.
  */
 export default function PublicationReadinessPanel({ problems, onFieldFocus }: PublicationReadinessPanelProps) {
   const isReady = problems.length === 0;
@@ -45,7 +53,17 @@ export default function PublicationReadinessPanel({ problems, onFieldFocus }: Pu
                 {problems.map((problem, idx) => (
                   <li key={idx} className="flex items-start gap-1">
                     <span className="shrink-0">•</span>
-                    <span>{problem}</span>
+                    {problem.field && onFieldFocus ? (
+                      <button
+                        type="button"
+                        className="text-left underline hover:no-underline"
+                        onClick={() => onFieldFocus(problem.field!)}
+                      >
+                        {problem.message}
+                      </button>
+                    ) : (
+                      <span>{problem.message}</span>
+                    )}
                   </li>
                 ))}
               </ul>

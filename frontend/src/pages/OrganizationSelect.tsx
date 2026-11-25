@@ -73,10 +73,10 @@ export default function OrganizationSelect() {
                 key={org.id}
                 type="button"
                 onClick={() => navigate(`/empresa/${org.id}`)}
-                className="card p-5 text-left hover:border-primary-300 hover:shadow-md motion-safe:transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary-500"
+                className="card p-5 text-left hover:border-primary-300 hover:shadow-md motion-safe:transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary-600"
               >
                 <div className="flex items-center gap-3">
-                  <span className="w-10 h-10 rounded-xl bg-primary-50 text-primary-500 flex items-center justify-center shrink-0">
+                  <span className="w-10 h-10 rounded-xl bg-primary-50 text-primary-800 flex items-center justify-center shrink-0">
                     <Building2 className="w-5 h-5" aria-hidden="true" />
                   </span>
                   <div className="min-w-0">

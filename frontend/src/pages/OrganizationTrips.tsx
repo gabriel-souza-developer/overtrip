@@ -3,7 +3,7 @@ import { useNavigate, useOutletContext, useSearchParams } from 'react-router-dom
 import { CopyPlus, Pencil, Plane, Plus, Trash2, X } from 'lucide-react';
 import { organizationApi, type OrgTrip, type OrgTripDetail, type OrgTripEssentials, type OrgTripIntensity } from '../api/organizations';
 import { createOrganizationDocumentApi } from '../api/organizationTripDocuments';
-import { TRIP_STATUS_LABELS, tripStatusLabel, parsePriceInput, formatPriceInput } from '../lib/panelHelpers';
+import { TRIP_STATUS_LABELS, tripStatusLabel, tripStatusTone, parsePriceInput, formatPriceInput } from '../lib/panelHelpers';
 import { syncPriceDisplay } from '../lib/formHelpers';
 import { toLocalDateTime, fromLocalDateTime } from '../lib/organizationDateTime';
 import { prepareOrgTripTemplate } from '../lib/tripTemplate';
@@ -25,6 +25,7 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import TripDocuments from '../components/TripDocuments';
 import TripCardPreview from '../components/TripCardPreview';
 import TripProposalPreview from '../components/TripProposalPreview';
+import StatusBadge from '../components/StatusBadge';
 
 const CAN_MANAGE_TRIPS = (role: string) => role === 'OWNER' || role === 'ADMIN';
 const INTENSITY_OPTIONS: OrgTripIntensity[] = ['leve', 'moderado', 'intenso', 'extremo'];
@@ -400,7 +401,7 @@ export default function OrganizationTrips() {
       />
       <div className="flex flex-wrap gap-2" role="group" aria-label="Período das viagens">
         {([{ value: 'upcoming', label: 'Próximas' }, { value: 'past', label: 'Anteriores' }, { value: 'all', label: 'Todas' }] as const).map(option => (
-          <button key={option.value} type="button" aria-pressed={period === option.value} onClick={() => setPeriod(option.value)} className={`min-h-[40px] rounded-full border px-4 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary-500 ${period === option.value ? 'border-primary-600 bg-primary-600 text-white' : 'border-surface-300 bg-white text-surface-800 hover:border-primary-300'}`}>{option.label}</button>
+          <button key={option.value} type="button" aria-pressed={period === option.value} onClick={() => setPeriod(option.value)} className={`min-h-[40px] rounded-full border px-4 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary-600 ${period === option.value ? 'border-primary-600 bg-primary-600 text-white' : 'border-surface-300 bg-white text-surface-800 hover:border-primary-300'}`}>{option.label}</button>
         ))}
       </div>
       <FilterBar searchLabel="Buscar viagens" searchPlaceholder="Buscar por nome, cidade ou categoria" searchValue={search} onSearch={setSearch} onClear={() => { setSearch(''); setStatus(''); setPeriod('upcoming'); }} hasFilters={!!search || !!status || period !== 'upcoming'}>
@@ -429,7 +430,7 @@ export default function OrganizationTrips() {
                 <p className="text-sm text-surface-600">Saída: {new Date(trip.startDateISO).toLocaleDateString('pt-BR')}{trip.endDateISO ? ` · Retorno: ${new Date(trip.endDateISO).toLocaleDateString('pt-BR')}` : ''}</p>
               </div>
               <div className="flex items-center gap-2">
-                <span className="badge-neutral">{tripStatusLabel(trip.status)}</span>
+                <StatusBadge tone={tripStatusTone(trip.status)}>{tripStatusLabel(trip.status)}</StatusBadge>
                 {canManage && trip.status === 'DRAFT' && (
                   <Button small loading={loadingEdit === trip.id} icon={<Pencil className="w-4 h-4" aria-hidden="true" />} onClick={() => void openEdit(trip)} aria-label={`Editar ${trip.title}`}>
                     <span className="hidden sm:inline">Editar</span>

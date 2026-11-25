@@ -12,20 +12,20 @@ describe('textos do cadastro e da prévia da viagem', () => {
     expect(form).not.toContain('label="Chamada sobre a foto"');
   });
 
-  it('segue a ordem visual do cartão e deixa ações e ajudas opcionais discretas', () => {
+  it('segue a ordem dos blocos (essencial, embarque, experiência, roteiro, publicação) e deixa ajudas opcionais discretas', () => {
     const order = [
-      'Fotos da viagem', 'label="Intensidade da atividade"', 'label="Texto de destaque no card"',
-      'label="Nome da viagem"', 'label="Resumo da experiência"', 'label="Data de saída"',
-      'label="Horário de saída"', 'Embarque</span>', 'label="O que inclui"',
-      'label="Roteiro"', 'label="Observações do percurso"', 'label="Informações importantes"',
-      'label="Valor (R$)"',
+      'label="Nome da viagem"', 'label="Data de saída"', 'label="Valor (R$)"',
+      'label="Horário de saída"', 'Embarque</span>',
+      'label="Resumo da experiência"', 'Fotos da viagem', 'label="Texto de destaque no card"', 'label="Intensidade da atividade"', 'label="O que inclui"',
+      'label="Roteiro"', 'label="Informações importantes"', 'label="Observações do percurso"',
     ].map(text => form.indexOf(text));
     expect(order.every(index => index >= 0)).toBe(true);
     expect(order).toEqual([...order].sort((a, b) => a - b));
     expect(form).not.toContain('Criar outra viagem com estes dados');
     expect(form).not.toContain('Um cadastro para sua viagem');
     expect(form).not.toContain('As ferramentas de IA e documentos');
-    expect(form).toContain('Mais ações');
+    expect(form).not.toContain('Mais ações');
+    expect(form).toContain('Usar como modelo');
     expect(form).toContain('Sugerir preenchimento com PDF e IA (opcional)');
   });
 

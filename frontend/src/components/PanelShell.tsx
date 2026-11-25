@@ -103,7 +103,7 @@ export default function PanelShell({ rootClassName, rootStyle, brand, navGroups,
                 <div key={groupLabel} className="mb-6 space-y-1">
                   <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-surface-600">{groupLabel}</p>
                   {items.map(({ path, label, icon: Icon }) => (
-                    <NavLink key={path} to={path} className={({ isActive }) => `flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium motion-safe:transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary-500 ${isActive ? 'bg-primary-50 text-primary-600' : 'text-surface-600 hover:bg-surface-100 hover:text-surface-900'}`} onClick={() => setSidebarOpen(false)}>
+                    <NavLink key={path} to={path} className={({ isActive }) => `flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium motion-safe:transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary-600 ${isActive ? 'bg-primary-50 text-primary-800' : 'text-surface-600 hover:bg-surface-100 hover:text-surface-900'}`} onClick={() => setSidebarOpen(false)}>
                       <Icon className="w-5 h-5 shrink-0" aria-hidden="true" />{label}
                     </NavLink>
                   ))}
@@ -114,7 +114,7 @@ export default function PanelShell({ rootClassName, rootStyle, brand, navGroups,
           <div className="p-3 border-t border-surface-200">
             {sidebarFooterExtra}
             <div className="flex items-center gap-3 px-3 py-2">
-              <div className="w-9 h-9 rounded-full bg-primary-100 flex items-center justify-center shrink-0"><User className="w-5 h-5 text-primary-500" aria-hidden="true" /></div>
+              <div className="w-9 h-9 rounded-full bg-primary-100 flex items-center justify-center shrink-0"><User className="w-5 h-5 text-primary-800" aria-hidden="true" /></div>
               <div className="flex-1 min-w-0"><p className="text-sm font-medium text-surface-900 truncate">{user?.name}</p><p className="text-xs text-surface-600 truncate">{user?.email}</p></div>
             </div>
             <button type="button" className="btn-ghost w-full justify-start mt-1" onClick={handleLogout}><LogOut className="w-4 h-4" aria-hidden="true" /> Sair</button>

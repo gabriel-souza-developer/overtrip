@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CopyPlus, Eye, EyeOff, MapPin, Pencil, Plane, Plus, Trash2 } from 'lucide-react';
-import { tripApi, Trip, TripStatus, Pagination as PaginationInfo } from '../api';
+import { tripApi, Trip, Pagination as PaginationInfo } from '../api';
 import { useToast } from '../hooks/useToast';
 import { useListParams } from '../hooks/useListParams';
-import { publishProblems, TRIP_STATUS_LABELS, tripListAction, tripStatusLabel } from '../lib/panelHelpers';
+import { publishProblems, TRIP_STATUS_LABELS, tripListAction, tripStatusLabel, tripStatusTone } from '../lib/panelHelpers';
 import { canChangeTripStatus } from '../lib/permissions';
 import { useAuth } from '../App';
 import { formatDateBR } from '../lib/dateInput';
@@ -16,16 +16,7 @@ import Pagination from '../components/Pagination';
 import RowMenu from '../components/RowMenu';
 import ConfirmDialog from '../components/ConfirmDialog';
 import Button from '../components/Button';
-
-const statusColors: Record<TripStatus, string> = {
-  DRAFT: 'badge-neutral',
-  REVIEW: 'badge-warning',
-  OPEN: 'badge-success',
-  COMPLETED: 'badge-info',
-  CANCELLED: 'badge-danger',
-  SOLD_OUT: 'badge-warning',
-  CLOSED: 'badge-neutral',
-};
+import StatusBadge from '../components/StatusBadge';
 
 const formatDate = formatDateBR;
 
@@ -153,7 +144,7 @@ export default function Trips() {
             aria-pressed={period === option.value}
             title={option.hint}
             onClick={() => list.setFilter('period', option.value === 'upcoming' ? '' : option.value)}
-            className={`min-h-[40px] rounded-full border px-4 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary-500 ${period === option.value ? 'border-primary-600 bg-primary-600 text-white' : 'border-surface-300 bg-white text-surface-800 hover:border-primary-300'}`}
+            className={`min-h-[40px] rounded-full border px-4 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary-600 ${period === option.value ? 'border-primary-600 bg-primary-600 text-white' : 'border-surface-300 bg-white text-surface-800 hover:border-primary-300'}`}
           >
             {option.label}
           </button>
@@ -212,10 +203,10 @@ export default function Trips() {
                   return (
                     <tr key={trip.id}>
                       <td className="max-w-[16rem]">
-                        <Link to={`/trips/${trip.id}/edit`} className="font-medium text-surface-900 hover:text-primary-500 hover:underline">{trip.title}</Link>
+                        <Link to={`/trips/${trip.id}/edit`} className="font-medium text-surface-900 hover:text-primary-800 hover:underline">{trip.title}</Link>
                         <p className="md:hidden text-xs text-surface-600 mt-0.5">{formatDate(trip.startDateISO)} · {trip.city}/{trip.region}</p>
                       </td>
-                      <td><span className={statusColors[trip.status]}>{tripStatusLabel(trip.status)}</span></td>
+                      <td><StatusBadge tone={tripStatusTone(trip.status)}>{tripStatusLabel(trip.status)}</StatusBadge></td>
                       <td className="hidden md:table-cell text-surface-700 whitespace-nowrap">{formatDate(trip.startDateISO)}</td>
                       <td className="hidden lg:table-cell text-surface-700">
                         <span className="inline-flex items-center gap-1"><MapPin className="w-4 h-4 text-surface-500" aria-hidden="true" />{trip.city}/{trip.region}</span>

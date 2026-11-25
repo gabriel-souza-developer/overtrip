@@ -16,8 +16,11 @@ import Modal from '../components/Modal';
 import ConfirmDialog from '../components/ConfirmDialog';
 import Button from '../components/Button';
 import Field from '../components/Field';
+import StatusBadge, { type StatusTone } from '../components/StatusBadge';
 
 const STATUS_LABELS: Record<OrgReservationStatus, string> = { PENDING: 'Pendente', CONFIRMED: 'Confirmada', CANCELLED: 'Cancelada' };
+// Mesma lógica de pages/Trips.tsx: cores fixas por estado, nunca derivadas da marca.
+const STATUS_TONE: Record<OrgReservationStatus, StatusTone> = { PENDING: 'warning', CONFIRMED: 'success', CANCELLED: 'danger' };
 const STATUS_OPTIONS = Object.keys(STATUS_LABELS) as OrgReservationStatus[];
 const formatMoney = (cents: number) => (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const textFromCents = (cents: number) => (cents / 100).toFixed(2).replace('.', ',');
@@ -343,7 +346,7 @@ export default function OrganizationReservations() {
                   {row.customerPhone && <p className="text-sm text-surface-600">{row.customerPhone}</p>}
                 </div>
                 <div className="flex flex-col items-end gap-2">
-                  <span className="badge-neutral self-start">{STATUS_LABELS[row.status]}</span>
+                  <StatusBadge tone={STATUS_TONE[row.status]} className="self-start">{STATUS_LABELS[row.status]}</StatusBadge>
                   <div className="flex gap-2">
                     <Button small icon={<History className="w-4 h-4" aria-hidden="true" />} onClick={() => openHistory(row)} aria-label={`Ver histórico da reserva de ${row.customerName}`}>
                       <span className="hidden sm:inline">Histórico</span>

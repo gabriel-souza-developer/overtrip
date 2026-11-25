@@ -104,7 +104,7 @@ export default function TripDocuments({ tripId, api, form, defaults, onApply, on
       <p className="hint">Escolha uma foto para importar como foto da viagem. Nada é salvo até você confirmar o texto alternativo e importar.</p>
       <ul className="flex flex-wrap gap-2" role="list">{images.map(image => <li key={image.index}>
         <button type="button" disabled={busy}
-          className={`block rounded-lg border-2 p-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${pickedImage === image.index ? 'border-primary-500' : 'border-surface-200'}`}
+          className={`block rounded-lg border-2 p-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 ${pickedImage === image.index ? 'border-primary-500' : 'border-surface-200'}`}
           aria-pressed={pickedImage === image.index}
           aria-label={`Selecionar foto da página ${image.page} (${image.width}×${image.height} px)`}
           onClick={() => { setPickedImage(image.index); setImageAlt(''); }}>

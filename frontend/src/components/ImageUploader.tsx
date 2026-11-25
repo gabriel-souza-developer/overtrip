@@ -96,11 +96,11 @@ export default function ImageUploader({ onAdd, onPendingChange, idPrefix, endpoi
         <div className="flex flex-wrap items-center gap-2">
           <input id={fileId} type="file" className="sr-only peer" accept={MEDIA_ACCEPTED_TYPES.join(',')} aria-describedby={hintId}
             onChange={(e) => { const input = e.currentTarget; const file = input.files?.[0]; input.value = ''; if (file) void send(file); }} />
-          <label htmlFor={fileId} className="btn-secondary cursor-pointer inline-flex items-center gap-2 peer-focus-visible:ring-2 peer-focus-visible:ring-primary-500">
+          <label htmlFor={fileId} className="btn-secondary cursor-pointer inline-flex items-center gap-2 peer-focus-visible:ring-2 peer-focus-visible:ring-primary-600">
             <Upload className="w-4 h-4" aria-hidden="true" /> Enviar foto
           </label>
           <div tabIndex={0} role="textbox" aria-label="Colar imagem da área de transferência" aria-describedby={hintId} onPaste={onPaste}
-            className="flex-1 min-w-[12rem] rounded-md border border-surface-200 bg-surface-50 px-3 py-2 text-sm text-surface-600 focus:outline-none focus:ring-2 focus:ring-primary-500 inline-flex items-center gap-2">
+            className="flex-1 min-w-[12rem] rounded-md border border-surface-200 bg-surface-50 px-3 py-2 text-sm text-surface-600 focus:outline-none focus:ring-2 focus:ring-primary-600 inline-flex items-center gap-2">
             <ClipboardPaste className="w-4 h-4" aria-hidden="true" /> Clique aqui e cole uma imagem (Ctrl+V)
           </div>
           <p id={hintId} className="hint w-full">JPEG, PNG ou WebP, até 15 MiB. A foto é girada e limpa (sem localização e dados da câmera) antes de salvar.</p>

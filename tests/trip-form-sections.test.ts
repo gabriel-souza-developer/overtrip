@@ -14,25 +14,48 @@ const empty = {
 };
 
 describe('TripForm: seções', () => {
-  it('mantém os campos públicos em um único bloco de dados da viagem', () => {
-    expect(form).toContain('Dados da viagem');
-    expect(form).toContain('Informações para os viajantes');
+  it('organiza os campos em seis blocos, do atalho de preenchimento até a publicação, nessa ordem', () => {
+    const headings = [
+      'Preencher automaticamente', 'O essencial', 'Embarque e horários',
+      'Como é a experiência', 'Roteiro e orientações', 'Publicação',
+    ].map(heading => form.indexOf(`>${heading}</h2>`));
+    expect(headings.every(index => index >= 0)).toBe(true);
+    expect(headings).toEqual([...headings].sort((a, b) => a - b));
     expect(form).not.toContain('Detalhes opcionais');
     expect(form).not.toContain('Outros detalhes da viagem');
+    expect(form).not.toContain('Dados da viagem');
+    expect(form).not.toContain('Configurações adicionais do painel');
   });
 
   it.each([
-    ['dados principais e publicação', ['id="description"', 'id="priceValue"', 'MediaInput', 'id="meetingCity"', 'id="meetingPoint"', 'id="meetingTBD"', 'PublicationReadinessPanel', 'DeparturesInput']],
-    ['informações públicas opcionais', ['id="filterCategory"', 'id="category"', 'id="intensityClass"', 'id="spotsLeft"', 'id="departureTime"', 'id="endDateISO"', 'id="returnTime"', 'id="priceDisplay"', 'id="includes-custom-input"', 'id="itinerary-input"', 'id="route-notes-input"', 'id="important-info-input"', 'id="scheduleInfo"', 'id="trailDistance"', 'id="supportPoint"', 'id="meetingMapsQuery"']],
-  ])('%s permanecem no bloco principal', (_title, fields) => {
-    const start = form.indexOf('<fieldset className="card p-5 space-y-5">');
+    ['Preencher automaticamente', ['Usar como modelo', 'Sugerir preenchimento com PDF e IA', 'AiDraftBlock']],
+    ['O essencial', ['id="title"', 'id="region"', 'id="city"', 'id="startDateISO"', 'id="endDateISO"', 'id="priceValue"', 'id="free"', 'id="spotsLeft"', 'id="filterCategory"', 'id="headlineDisplay"', 'id="priceDisplay"']],
+    ['Embarque e horários', ['id="departureTime"', 'id="returnTime"', 'id="scheduleTBD"', 'id="meetingCity"', 'id="meetingPoint"', 'id="meetingTBD"', 'DeparturesInput', 'id="meetingDetails"', 'id="departureTolerance"', 'id="scheduleInfo"', 'id="meetingMapsQuery"']],
+    ['Como é a experiência', ['id="description"', 'MediaInput', 'id="category"', 'id="intensityClass"', 'id="includes-custom-input"', 'id="includesHighlight"']],
+    ['Roteiro e orientações', ['id="itinerary-input"', 'id="important-info-input"', 'id="trailDistance"', 'id="supportPoint"', 'id="supportPointInfo"', 'id="route-notes-input"']],
+    ['Publicação', ['PublicationReadinessPanel', 'id="status"']],
+  ])('bloco "%s" contém seus campos', (heading, fields) => {
+    const start = form.indexOf(`>${heading}</h2>`);
     const end = form.indexOf('</fieldset>', start);
     const block = form.slice(start, end);
-    for (const f of fields as string[]) expect(block).toContain(f);
+    for (const field of fields as string[]) expect(block).toContain(field);
   });
 
-  it('mostra a prévia mobile após os dados da viagem e mantém o uso de modelo discreto', () => {
-    expect(form.indexOf('Ver prévia da viagem')).toBeGreaterThan(form.indexOf('</fieldset>'));
+  it('esconde os campos raros atrás de um "Mais opções" por bloco, que abre quando já há dado preenchido', () => {
+    expect(form.match(/Mais opções/g)?.length).toBe(3);
+    expect(form).toContain('open={essentialMoreOpen}');
+    expect(form).toContain('open={departureMoreOpen}');
+    expect(form).toContain('open={experienceMoreOpen}');
+  });
+
+  it('o painel de publicação recebe onFieldFocus para focar o campo pendente de cada item', () => {
+    expect(form).toContain('onFieldFocus={focusPublicationField}');
+    expect(form).toContain('const focusPublicationField');
+    expect(form).toContain('problems={publicationIssues}');
+  });
+
+  it('mostra a prévia mobile depois do bloco de publicação e mantém o uso de modelo discreto', () => {
+    expect(form.indexOf('Ver prévia da viagem')).toBeGreaterThan(form.indexOf('>Publicação</h2>'));
     expect(form).toContain('Usar como modelo');
     expect(form).toContain('/trips/new?modelo=');
     expect(form).not.toContain('Criar outra viagem com estes dados');

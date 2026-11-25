@@ -10,6 +10,14 @@ const user = { id: 'u1', name: 'Agente', email: 'agente@example.test', role: 'ad
 
 const HEX_COLOR = /^#[0-9a-f]{6}$/i;
 
+// As variáveis CSS da paleta guardam canais "r g b" (ver
+// src/validators/organizationBrand.ts), não "#rrggbb": getComputedStyle
+// devolve nesse formato, então os testes abaixo convertem de volta pra hex
+// antes de comparar com o valor digitado no seletor de cor.
+function channelsToHex(channels: string): string {
+  return `#${channels.trim().split(/\s+/).map((part) => Number(part).toString(16).padStart(2, '0')).join('')}`;
+}
+
 // Devolve também `organization`: o mesmo objeto que a rota lê e grava, para
 // um teste simular uma escrita concorrente de outro administrador (mudar o
 // campo direto, sem passar pela página) entre o carregamento da página e o
@@ -31,16 +39,11 @@ async function mockOrganizationApi(page: import('@playwright/test').Page, { role
       // real. null é um valor válido (limpa a substituição); só texto vazio
       // ou longo demais é rejeitado, como no servidor real.
       if (body.defaultPriceUnit !== undefined && body.defaultPriceUnit !== null && (!body.defaultPriceUnit.trim() || body.defaultPriceUnit.length > 40)) return route.fulfill({ status: 400, json: { error: 'Dados inválidos' } });
-      // Mesma regra do servidor: formato #RRGGBB e contraste mínimo com
-      // branco; cores claras (ex.: amarelo) são sempre rejeitadas aqui.
+      // Mesma regra do servidor: só o formato #RRGGBB é validado. Qualquer
+      // cor passa, inclusive vivas/claras (ex.: amarelo) — o painel deriva
+      // sozinho um tom legível a partir dela (ver organizationBrand.ts).
       if (body.brandColor !== undefined && body.brandColor !== null) {
         if (!HEX_COLOR.test(body.brandColor)) return route.fulfill({ status: 400, json: { error: 'Dados de entrada inválidos', code: 'VALIDATION_ERROR', details: [{ field: 'brandColor', message: 'Informe uma cor no formato #RRGGBB (ex.: #0b756b).' }] } });
-        const n = parseInt(body.brandColor.slice(1), 16);
-        const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
-        const lum = [r, g, b].map((c) => { const v = c / 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
-        const relLum = 0.2126 * lum[0] + 0.7152 * lum[1] + 0.0722 * lum[2];
-        const contrast = (1 + 0.05) / (relLum + 0.05);
-        if (contrast < 4.5) return route.fulfill({ status: 400, json: { error: 'Dados de entrada inválidos', code: 'VALIDATION_ERROR', details: [{ field: 'brandColor', message: 'Essa cor é muito clara para o contraste mínimo exigido (4.5:1 com texto branco); escolha um tom mais escuro.' }] } });
       }
       if (body.defaultPriceUnit !== undefined) organization.defaultPriceUnit = body.defaultPriceUnit;
       if (body.brandColor !== undefined) organization.brandColor = body.brandColor;
@@ -134,13 +137,14 @@ test('sem cor própria salva, o seletor mostra o verde padrão, Restaurar fica d
   await login(page);
   await page.getByRole('link', { name: 'Configurações' }).click();
 
-  await expect(page.locator('#org-settings-brand-color')).toHaveValue('#09685f');
-  await expect(page.getByText('#09685f')).toBeVisible();
+  await expect(page.locator('#org-settings-brand-color')).toHaveValue('#0b756b');
+  await expect(page.getByText('#0b756b')).toBeVisible();
   await expect(page.getByRole('button', { name: /^Restaurar a cor padrão/ })).toBeDisabled();
 
-  // A cor efetiva (fallback) é mesmo a aplicada no painel, não só exibida no formulário.
-  const appliedColor = await page.evaluate(() => getComputedStyle(document.querySelector('.agency-panel')!).getPropertyValue('--agency-600').trim());
-  expect(appliedColor).toBe('#09685f');
+  // A cor efetiva (fallback) é mesma aplicada no painel, não só exibida no
+  // formulário — --color-primary-500 é "vivid", a cor exata escolhida.
+  const appliedColor = await page.evaluate(() => getComputedStyle(document.querySelector('.agency-panel')!).getPropertyValue('--color-primary-500').trim());
+  expect(channelsToHex(appliedColor)).toBe('#0b756b');
 });
 
 test('OWNER escolhe uma cor válida, ela persiste e passa a ser aplicada no painel (desktop e celular)', async ({ page }) => {
@@ -153,34 +157,36 @@ test('OWNER escolhe uma cor válida, ela persiste e passa a ser aplicada no pain
   await expect(page.getByText('Cor da empresa salva.')).toBeVisible();
   await expect(page.getByRole('button', { name: /^Restaurar a cor padrão/ })).toBeEnabled();
 
-  const desktopColor = await page.evaluate(() => getComputedStyle(document.querySelector('.agency-panel')!).getPropertyValue('--agency-600').trim());
-  expect(desktopColor).toBe('#185f90');
+  const desktopColor = await page.evaluate(() => getComputedStyle(document.querySelector('.agency-panel')!).getPropertyValue('--color-primary-500').trim());
+  expect(channelsToHex(desktopColor)).toBe('#185f90');
 
   // A cor persistida continua aplicada depois de recarregar e também no layout móvel.
   await page.setViewportSize({ width: 360, height: 780 });
   await page.reload();
   await expect(page.locator('#org-settings-brand-color')).toHaveValue('#185f90');
-  const mobileColor = await page.evaluate(() => getComputedStyle(document.querySelector('.agency-panel')!).getPropertyValue('--agency-600').trim());
-  expect(mobileColor).toBe('#185f90');
+  const mobileColor = await page.evaluate(() => getComputedStyle(document.querySelector('.agency-panel')!).getPropertyValue('--color-primary-500').trim());
+  expect(channelsToHex(mobileColor)).toBe('#185f90');
 
   await page.getByRole('button', { name: /^Restaurar a cor padrão/ }).click();
   await expect(page.getByText('Restaurado para a cor padrão (verde).')).toBeVisible();
-  await expect(page.locator('#org-settings-brand-color')).toHaveValue('#09685f');
+  await expect(page.locator('#org-settings-brand-color')).toHaveValue('#0b756b');
 });
 
-test('rejeita formato inválido e cor sem contraste suficiente, sem salvar nem aplicar', async ({ page }) => {
+test('aceita cor viva/clara (ex.: amarelo puro) sem exigir contraste bruto; o painel aplica a cor exata (vivid) e deriva um tom escuro legível para texto/botão', async ({ page }) => {
   await mockOrganizationApi(page, { role: 'OWNER' });
   await login(page);
   await page.getByRole('link', { name: 'Configurações' }).click();
 
-  // input[type=color] já força um hex válido no próprio navegador; ainda
-  // assim a cor é clara demais para o contraste mínimo exigido.
   await page.locator('#org-settings-brand-color').fill('#ffff00');
   await page.getByRole('button', { name: 'Salvar cor' }).click();
-  await expect(page.getByRole('alert')).toContainText('contraste');
+  await expect(page.getByText('Cor da empresa salva.')).toBeVisible();
 
-  const appliedColor = await page.evaluate(() => getComputedStyle(document.querySelector('.agency-panel')!).getPropertyValue('--agency-600').trim());
-  expect(appliedColor).toBe('#09685f'); // nada foi aplicado: continua no fallback
+  // "vivid" (500) é a cor exata escolhida, mesmo sem contraste suficiente puro.
+  const vivid = await page.evaluate(() => getComputedStyle(document.querySelector('.agency-panel')!).getPropertyValue('--color-primary-500').trim());
+  expect(channelsToHex(vivid)).toBe('#ffff00');
+  // "solid" (600, usado em texto/fundo de botão) é escurecida o suficiente para ser legível.
+  const solid = await page.evaluate(() => getComputedStyle(document.querySelector('.agency-panel')!).getPropertyValue('--color-primary-600').trim());
+  expect(channelsToHex(solid)).not.toBe('#ffff00');
 });
 
 test('salvar a cor não sobrescreve uma unidade de preço alterada por outro administrador entre o carregamento e o clique', async ({ page }) => {
@@ -205,4 +211,38 @@ test('salvar a cor não sobrescreve uma unidade de preço alterada por outro adm
   await page.reload();
   await expect(page.locator('#org-settings-price-unit')).toHaveValue('por grupo (outro admin)');
   await expect(page.locator('#org-settings-brand-color')).toHaveValue('#185f90');
+});
+
+test('paleta padrão e navegação com marca amarela mantêm estilos e contraste no navegador', async ({ page }) => {
+  await mockOrganizationApi(page, { role: 'OWNER', initialBrandColor: '#ffff00' });
+  await login(page);
+  const root = await page.evaluate(() => {
+    const css = getComputedStyle(document.documentElement);
+    return { primary: css.getPropertyValue('--color-primary-500').trim(), surface: css.getPropertyValue('--color-surface-900').trim(), success: css.getPropertyValue('--success-bg').trim() };
+  });
+  expect(channelsToHex(root.primary)).toBe('#ff5a00');
+  expect(channelsToHex(root.surface)).toBe('#0d0d0d');
+  expect(root.success).toBe('#dcfce7');
+
+  const active = page.getByRole('link', { name: 'Configurações', exact: true });
+  await active.click();
+  await expect(active).toHaveAttribute('aria-current', 'page');
+  await active.focus();
+  const colors = await active.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return { text: style.color, background: style.backgroundColor, outline: style.outlineColor };
+  });
+  const luminance = (rgb: string) => {
+    const channels = rgb.match(/\d+/g)!.slice(0, 3).map(Number).map((channel) => {
+      const value = channel / 255;
+      return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+    });
+    return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+  };
+  const contrast = (a: string, b: string) => {
+    const values = [luminance(a), luminance(b)].sort((x, y) => y - x);
+    return (values[0] + 0.05) / (values[1] + 0.05);
+  };
+  expect(contrast(colors.text, colors.background)).toBeGreaterThanOrEqual(4.5);
+  expect(contrast(colors.outline, 'rgb(255, 255, 255)')).toBeGreaterThanOrEqual(3);
 });

@@ -46,4 +46,22 @@ Antes de incorporar código, conferir termos e licença da versão exata, inclus
 - Tipografia: Inter com fallback de sistema; títulos com hierarquia clara, corpo legível e rótulos sempre visíveis.
 - Controles: campos e ação principal com altura mínima de 54 px, cantos de 9 px, foco visível e estados de carregamento e desabilitado.
 - Composição responsiva: formulário priorizado em telas pequenas, sem rolagem horizontal; transições respeitam a preferência por movimento reduzido.
-- Os tokens estão limitados à tela de acesso enquanto a identidade do painel é revisada; não alterar globalmente a paleta das empresas sem validar seus contextos.
+- Estes tokens (`frontend/src/pages/login.css`) continuam restritos à tela de acesso — ela não usa a paleta `primary`/`surface` do painel abaixo.
+
+## Paleta `primary`/`surface` do painel (Tailwind) e cor por empresa
+
+- `tailwind.config.js` define `primary-50..900` e `surface-50..900` como variáveis CSS (`--color-primary-*`/`--color-surface-*`, canais "r g b", lidas em `frontend/src/index.css`), nunca como hex fixo. Qualquer utilitário `bg-primary-500`, `text-surface-700` etc. segue a variável vigente no elemento mais próximo — sem lista de exceções por classe.
+- `:root` define o padrão: o laranja da OVERTRIP (`#ff5a00`) passado pela mesma derivação de paleta de `src/validators/organizationBrand.ts` — a OVERTRIP é só mais um tenant, não um caso especial — e o cinza neutro fixo de `surface` (nunca derivado de marca nenhuma).
+- `OrganizationLayout.tsx` sobrescreve esse bloco, por variável inline no elemento raiz do painel de agência, com a paleta derivada da cor própria da empresa (`brandColor`) ou a mesma paleta verde/teal fixa de sempre quando a empresa não escolheu uma cor.
+- Uma única cor de marca ("vivid", qualquer `#RRGGBB`, inclusive vivas/claras como o próprio laranja da OVERTRIP) deriva seis tokens em `organizationBrand.ts`, por mistura perceptual em OKLab (nunca soma fixa de luminosidade HSL, que gera neon em cores escuras/saturadas):
+  - `vivid`: a cor exata escolhida — só decoração (avatar, hero, gráfico), nunca texto ou fundo de botão.
+  - `solid`: `vivid` escurecida o suficiente para ≥ 4.5:1 contra branco — texto e fundo de botão.
+  - `text`: escurecida ainda mais (≥ 7:1) para texto corrido que precise de contraste extra.
+  - `subtle`/`muted`: tons bem claros (fundo de destaque leve).
+  - `border`: tom intermediário (bordas de hover/foco leve).
+- Essa cor nunca é rejeitada por falta de contraste bruto: a validação (cliente e servidor) só exige o formato `#RRGGBB`.
+
+## Status de negócio: tokens fixos + `StatusBadge`
+
+- Estado de viagem, reserva etc. usa sempre `--success-*`/`--warning-*`/`--danger-*`/`--info-*` (`frontend/src/index.css`) — cores fixas, nunca derivadas da marca da empresa, para o estado continuar reconhecível em qualquer paleta de agência.
+- `frontend/src/components/StatusBadge.tsx` é o componente compartilhado (`<StatusBadge tone="success">...`); a paleta de referência por status é a de `pages/Trips.tsx` (`TRIP_STATUS_TONE`, em `lib/panelHelpers.ts`), reaproveitada por `OrganizationTrips.tsx`. `OrganizationReservations.tsx` usa o mesmo componente com seu próprio mapa de 3 estados.

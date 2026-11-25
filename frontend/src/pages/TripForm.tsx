@@ -14,7 +14,7 @@ import { customItems, hasItem, INCLUDE_PRESETS, mergeUnique, togglePreset } from
 import { customImportantInfo, FILTER_CATEGORY_OPTIONS, hasImportantInfoPreset, IMPORTANT_INFO_PRESETS, toggleImportantInfoPreset } from '../lib/tripFormOptions';
 import { fillMissingAlt, formatBRL, syncPriceDisplay } from '../lib/formHelpers';
 import { canChangeTripStatus } from '../lib/permissions';
-import { applyTripDefaults, formatPriceInput, parsePriceInput, parseWholeNumber, publishProblems, TRIP_STATUS_LABELS, validateTripMinimum } from '../lib/panelHelpers';
+import { applyTripDefaults, formatPriceInput, parsePriceInput, parseWholeNumber, TRIP_STATUS_LABELS, validateTripMinimum } from '../lib/panelHelpers';
 import Button from '../components/Button';
 import Field from '../components/Field';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -85,6 +85,8 @@ export default function TripForm() {
   const [formData, setFormData] = useState<FormState>(emptyForm);
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [priceText, setPriceText] = useState('');
+  // Abertura inicial apenas ao carregar uma viagem; depois o usuário controla os detalhes.
+  const [initialOptions, setInitialOptions] = useState({ essential: false, departure: false, experience: false, trail: false });
   // Datas como vieram da API: se a pessoa não mexe na data, o valor guardado não muda.
   const originalSchedule = useRef<StoredSchedule>({ startDateISO: null, departureTime: null, endDateISO: null, returnTime: null });
   const initialRef = useRef(JSON.stringify(formData));
@@ -187,6 +189,12 @@ export default function TripForm() {
         })) || [],
       };
       const next = useAsTemplate ? prepareTripTemplate(loaded) : loaded;
+      setInitialOptions({
+        essential: !!next.headlineDisplay.trim() || (!!next.priceDisplay.trim() && next.priceDisplay.trim() !== (next.priceValue ? formatBRL(next.priceValue) : '')),
+        departure: !!next.scheduleInfo.trim() || !!next.meetingMapsQuery.trim() || (next.meetingLat != null && next.meetingLng != null),
+        experience: !!next.includesHighlight.trim(),
+        trail: !!next.trailDistance.trim() || !!next.supportPoint.trim() || !!next.supportPointInfo.trim() || next.routeNotes.length > 0,
+      });
       initialRef.current = useAsTemplate ? JSON.stringify(emptyForm()) : JSON.stringify(next);
       originalSchedule.current = useAsTemplate ? { startDateISO: null, departureTime: null, endDateISO: null, returnTime: null } : { startDateISO: trip.startDateISO, departureTime: trip.departureTime, endDateISO: trip.endDateISO, returnTime: trip.returnTime };
       setPriceText(formatPriceInput(next.priceValue));
@@ -301,6 +309,18 @@ export default function TripForm() {
 
   const leave = () => (dirty ? setLeaveOpen(true) : navigate('/trips'));
 
+  const useAsModel = () => {
+    if (dirty) { toast.error('Salve as alterações antes de reutilizar os dados desta viagem.'); return; }
+    navigate(`/trips/new?modelo=${encodeURIComponent(id!)}`);
+  };
+
+  // Leva o foco até o campo que a pendência de publicação aponta (PublicationReadinessPanel).
+  const focusPublicationField = (fieldId: string) => {
+    const el = document.getElementById(fieldId);
+    el?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    el?.focus({ preventScroll: true });
+  };
+
   if (loading) {
     return (
       <div className="max-w-3xl mx-auto space-y-4" aria-busy="true" aria-label="Carregando viagem">
@@ -312,9 +332,16 @@ export default function TripForm() {
 
   const errorKeys = Object.keys(errors).filter(k => errors[k]);
   const f = formData;
-  const publicationPending = publishProblems(f);
+  // Mesma validação do mínimo para publicar, mas já com o campo de cada pendência (para o foco do painel).
+  const publicationIssues = Object.entries(validateTripMinimum({ ...f, status: 'OPEN' }))
+    .map(([key, message]) => ({ message, field: ERROR_TARGETS[key] }));
   const err = (name: string) => errors[name] || undefined;
   const invalid = (name: string) => (errors[name] ? 'input-error' : '');
+  const nestedBlockClass = 'rounded-lg border border-surface-200 p-4';
+  const essentialMoreOpen = initialOptions.essential;
+  const departureMoreOpen = initialOptions.departure;
+  const experienceMoreOpen = initialOptions.experience;
+  const trailOpen = initialOptions.trail;
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 pb-24">
@@ -328,20 +355,12 @@ export default function TripForm() {
           <p className="page-description">{isEditing ? 'Edite os dados da viagem e salve as alterações.' : 'Comece pelos dados básicos. Você pode salvar e completar a publicação depois.'}</p>
         </div>
         </div>
-        {isEditing && <details className="relative shrink-0"><summary className="cursor-pointer list-none rounded-lg px-3 py-2 text-sm font-medium text-surface-600 hover:bg-surface-100">Mais ações</summary><div className="absolute right-0 z-20 mt-1 w-48 rounded-lg border border-surface-200 bg-white p-2 shadow-lg"><button type="button" className="w-full rounded-md px-3 py-2 text-left text-sm text-surface-700 hover:bg-surface-50" onClick={() => { if (dirty) { toast.error('Salve as alterações antes de reutilizar os dados desta viagem.'); return; } navigate(`/trips/new?modelo=${encodeURIComponent(id!)}`); }}>Usar como modelo</button></div></details>}
       </div>
 
       {templateId && <p className="alert-info" role="note">Os dados da viagem anterior foram copiados. Informe a nova data e revise os textos, horários, preços, embarques e fotos, que podem conter informações antigas. Ao salvar, será criado um novo rascunho; a viagem original não será alterada.</p>}
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(300px,380px)] xl:items-start">
       <form id="trip-form" onSubmit={handleSubmit} noValidate className="space-y-4 min-w-0">
-        {user?.role === 'admin' && <details className="card p-4">
-          <summary className="cursor-pointer font-semibold text-surface-900">Sugerir preenchimento com PDF e IA (opcional)</summary>
-          <p className="hint mt-2">Envie o roteiro em PDF. A IA sugere informações e você escolhe o que aplicar.</p>
-          {id
-            ? <div className="mt-4"><TripDocuments key={id} tripId={id} api={documentApi} form={formData as Record<string, unknown>} defaults={defaultsRef.current} onApply={applyAiDraft} /></div>
-            : <p className="mt-3 rounded-lg bg-surface-50 p-3 text-sm text-surface-700" role="note">Salve a viagem como rascunho primeiro. Depois, você poderá anexar o PDF aqui.</p>}
-        </details>}
         {errorKeys.length > 0 && (
           <div ref={summaryRef} className="alert-error" role="alert">
             <p className="font-semibold">Falta pouco para salvar:</p>
@@ -357,56 +376,42 @@ export default function TripForm() {
           </div>
         )}
 
-        {/* Um formulário principal para salvar e preparar a publicação. */}
+        {/* Bloco 0: atalhos para preencher o formulário sem digitar tudo manualmente. */}
+        <fieldset className="card p-5 space-y-4">
+          <legend className="sr-only">Preencher automaticamente</legend>
+          <h2 className="text-lg font-semibold text-surface-900">Preencher automaticamente</h2>
+          <p className="text-xs text-surface-500">Tudo aqui é opcional. Você também pode preencher cada campo manualmente nos blocos abaixo.</p>
+
+          {isEditing && (
+            <div className={nestedBlockClass}>
+              <p className="text-sm font-semibold text-surface-900">Usar esta viagem como modelo</p>
+              <p className="hint mb-2">Cria uma nova viagem com os mesmos dados. A viagem original não é alterada.</p>
+              <Button onClick={useAsModel}>Usar como modelo</Button>
+            </div>
+          )}
+
+          {user?.role === 'admin' && (
+            <details className={nestedBlockClass}>
+              <summary className="cursor-pointer font-semibold text-surface-900">Sugerir preenchimento com PDF e IA (opcional)</summary>
+              <p className="hint mt-2">Envie o roteiro em PDF. A IA sugere informações e você escolhe o que aplicar.</p>
+              {id
+                ? <div className="mt-4"><TripDocuments key={id} tripId={id} api={documentApi} form={formData as Record<string, unknown>} defaults={defaultsRef.current} onApply={applyAiDraft} /></div>
+                : <p className="mt-3 rounded-lg bg-surface-50 p-3 text-sm text-surface-700" role="note">Salve a viagem como rascunho primeiro. Depois, você poderá anexar o PDF aqui.</p>}
+            </details>
+          )}
+
+          <AiDraftBlock form={formData as Record<string, unknown>} defaults={defaultsRef.current} onApply={applyAiDraft} />
+        </fieldset>
+
+        {/* Bloco 1: o mínimo para a viagem existir e aparecer na lista/filtro. */}
         <fieldset className="card p-5 space-y-5">
-          <legend className="sr-only">Dados da viagem</legend>
-          <h2 className="text-lg font-semibold text-surface-900">Dados da viagem</h2>
-          <p className="text-xs text-surface-500">Comece pelo que já sabe. Os campos necessários para publicar ficam indicados.</p>
-
-          <div className="form-group">
-            <span className="label" id="media-label">Fotos da viagem</span>
-            <p className="hint mb-2">A primeira foto é a capa. Precisa de pelo menos uma para publicar.</p>
-            <MediaInput
-              inputId="media-link"
-              value={f.media}
-              onPendingChange={setPhotoPending}
-              onLinkPendingChange={(pending) => setPendingItem('foto', pending)}
-              onChange={(val) => { setFormData(prev => ({ ...prev, media: val })); clearError('media'); }}
-            />
-            {errors.media && <p className="field-error" role="alert">{errors.media}</p>}
-          </div>
-
-          <Field id="intensityClass" label="Intensidade da atividade">
-            <select id="intensityClass" name="intensityClass" className="select" value={f.intensityClass} onChange={handleChange}>
-              {intensityOptions.map(opt => <option key={opt} value={opt}>{opt.charAt(0).toUpperCase() + opt.slice(1)}</option>)}
-            </select>
-          </Field>
-
-          <Field id="category" label="Texto de destaque no card" hint="Aparece acima do nome da viagem, como “Trilha, natureza e patrimônio”.">
-            <input id="category" name="category" className="input" value={f.category} onChange={handleChange} placeholder="Ex.: Trilha, natureza e patrimônio" />
-          </Field>
+          <legend className="sr-only">O essencial</legend>
+          <h2 className="text-lg font-semibold text-surface-900">O essencial</h2>
+          <p className="text-xs text-surface-500">Comece por aqui. Os campos necessários para publicar ficam indicados.</p>
 
           <Field id="title" label="Nome da viagem" required error={err('title')}>
             <input id="title" name="title" className={`input ${invalid('title')}`} value={f.title} onChange={handleChange} aria-invalid={!!errors.title} aria-describedby={errors.title ? 'title-error' : undefined} placeholder="Ex.: Trilha do Pico do Jabre" autoComplete="off" />
           </Field>
-
-          <Field id="description" label="Resumo da experiência" required={f.status === 'OPEN'} error={err('description')} hint="Necessário para publicar. Descreva o que os viajantes vão viver.">
-            <textarea id="description" name="description" className={`input ${invalid('description')}`} value={f.description} onChange={handleChange} rows={4} aria-invalid={!!errors.description} placeholder="Conte o que torna essa viagem especial..." />
-          </Field>
-
-          <Field id="startDateISO" label="Data de saída" required error={err('startDateISO')}>
-            <input id="startDateISO" name="startDateISO" type="date" className={`input ${invalid('startDateISO')}`} value={f.startDateISO} onChange={handleChange} aria-invalid={!!errors.startDateISO} />
-          </Field>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field id="departureTime" label="Horário de saída"><input id="departureTime" name="departureTime" type="time" className="input" value={f.departureTime} onChange={handleChange} /></Field>
-            <Field id="endDateISO" label="Data de volta"><input id="endDateISO" name="endDateISO" type="date" className="input" value={f.endDateISO} onChange={handleChange} /></Field>
-            <Field id="returnTime" label="Horário de volta"><input id="returnTime" name="returnTime" type="time" className="input" value={f.returnTime} onChange={handleChange} /></Field>
-          </div>
-          <Field id="scheduleInfo" label="Horário como texto (opcional)" hint="Use só para substituir os horários acima por uma faixa, como “05h às 17h”.">
-            <input id="scheduleInfo" name="scheduleInfo" className="input" value={f.scheduleInfo} onChange={handleChange} placeholder="05h às 17h" />
-          </Field>
-          <label htmlFor="scheduleTBD" className="checkbox-label min-h-[32px]"><input id="scheduleTBD" name="scheduleTBD" type="checkbox" className="checkbox-input" checked={f.scheduleTBD} onChange={handleChange} /><span className="text-sm text-surface-700">Horário ainda não definido</span></label>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field id="region" label="Estado" required error={err('region')}>
@@ -432,6 +437,60 @@ export default function TripForm() {
               />
             </Field>
           </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field id="startDateISO" label="Data de saída" required error={err('startDateISO')}>
+              <input id="startDateISO" name="startDateISO" type="date" className={`input ${invalid('startDateISO')}`} value={f.startDateISO} onChange={handleChange} aria-invalid={!!errors.startDateISO} />
+            </Field>
+            <Field id="endDateISO" label="Data de volta"><input id="endDateISO" name="endDateISO" type="date" className="input" value={f.endDateISO} onChange={handleChange} /></Field>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <Field id="priceValue" label="Valor (R$)" required={f.status === 'OPEN' && !f.free} error={err('priceValue')} hint={f.free ? 'Viagem gratuita: sem valor.' : 'Necessário para publicar. Ex.: 109,99 ou 1.250,00'}>
+                <input id="priceValue" name="priceValue" type="text" inputMode="decimal" className={`input ${invalid('priceValue')}`} value={priceText} onChange={handlePriceChange} placeholder="109,99" disabled={f.free} aria-invalid={!!errors.priceValue} autoComplete="off" />
+              </Field>
+              <label htmlFor="free" className="checkbox-label mt-2 min-h-[32px]">
+                <input id="free" name="free" type="checkbox" className="checkbox-input" checked={f.free} onChange={(e) => { handleChange(e); clearError('priceValue'); }} />
+                <span className="text-sm text-surface-700">Viagem gratuita</span>
+              </label>
+            </div>
+            <Field id="spotsLeft" label="Vagas restantes" hint="Só número inteiro. Aparece no site quando for maior que zero.">
+              <input id="spotsLeft" name="spotsLeft" type="text" inputMode="numeric" pattern="[0-9]*" className="input" value={f.spotsLeft ?? ''} onChange={(e) => setFormData(prev => ({ ...prev, spotsLeft: parseWholeNumber(e.target.value) }))} autoComplete="off" />
+            </Field>
+          </div>
+
+          <Field id="filterCategory" label="Categoria da viagem" hint="Esta categoria aparece nos filtros do site. Se não escolher uma, a viagem ficará em Todas as categorias.">
+            <select id="filterCategory" name="filterCategory" className="select" value={f.filterCategory} onChange={handleChange}>
+              <option value="">Selecione uma categoria</option>
+              {f.filterCategory && !FILTER_CATEGORY_OPTIONS.some(option => option.toLocaleLowerCase('pt-BR') === f.filterCategory.trim().toLocaleLowerCase('pt-BR')) && <option value={f.filterCategory}>{f.filterCategory} (personalizada)</option>}
+              {FILTER_CATEGORY_OPTIONS.map(option => <option key={option} value={option}>{option}</option>)}
+            </select>
+          </Field>
+
+          <details className={nestedBlockClass} open={essentialMoreOpen}>
+            <summary className="cursor-pointer text-sm font-semibold text-surface-700">Mais opções</summary>
+            <div className="pt-4 space-y-5">
+              <Field id="headlineDisplay" label="Título para outros canais (opcional)" hint="O site usa o nome da viagem.">
+                <input id="headlineDisplay" name="headlineDisplay" className="input" value={f.headlineDisplay} onChange={handleChange} />
+              </Field>
+              <Field id="priceDisplay" label="Texto do valor no site (opcional)" hint="Se preenchido, aparece no lugar do valor numérico.">
+                <input id="priceDisplay" name="priceDisplay" className="input" value={f.priceDisplay} onChange={handleChange} placeholder="Ex.: A partir de R$ 109,99" disabled={f.free} />
+              </Field>
+            </div>
+          </details>
+        </fieldset>
+
+        {/* Bloco 2: de onde e quando o grupo sai e volta. */}
+        <fieldset className="card p-5 space-y-5">
+          <legend className="sr-only">Embarque e horários</legend>
+          <h2 className="text-lg font-semibold text-surface-900">Embarque e horários</h2>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field id="departureTime" label="Horário de saída"><input id="departureTime" name="departureTime" type="time" className="input" value={f.departureTime} onChange={handleChange} /></Field>
+            <Field id="returnTime" label="Horário de volta"><input id="returnTime" name="returnTime" type="time" className="input" value={f.returnTime} onChange={handleChange} /></Field>
+          </div>
+          <label htmlFor="scheduleTBD" className="checkbox-label min-h-[32px]"><input id="scheduleTBD" name="scheduleTBD" type="checkbox" className="checkbox-input" checked={f.scheduleTBD} onChange={handleChange} /><span className="text-sm text-surface-700">Horário ainda não definido</span></label>
 
           <div>
             <span className="label">Embarque</span>
@@ -459,44 +518,62 @@ export default function TripForm() {
             <Field id="meetingDetails" label="Orientações de embarque (opcional)">
               <textarea id="meetingDetails" name="meetingDetails" className="input" value={f.meetingDetails} onChange={handleChange} rows={2} />
             </Field>
-            <Field id="meetingMapsQuery" label="Localização do embarque no mapa (opcional)" hint="Endereço usado para gerar o link do mapa.">
-              <input id="meetingMapsQuery" name="meetingMapsQuery" className="input" value={f.meetingMapsQuery} onChange={handleChange} placeholder="Rua, bairro, cidade/UF" />
-            </Field>
-            <div className="form-group">
-              <span className="label">Coordenadas confirmadas do embarque (opcional)</span>
-              <p className="hint mb-2">Confirme a coordenada para o site mostrar um mapa junto do embarque. Ela será removida se você alterar cidade, local ou endereço.</p>
-              <LocationPicker key={JSON.stringify([f.meetingCity, f.meetingPoint, f.meetingMapsQuery])} coords={f.meetingLat !== null && f.meetingLng !== null ? { lat: f.meetingLat, lng: f.meetingLng } : null} onConfirm={(result) => setFormData(prev => ({ ...prev, meetingLat: result.lat, meetingLng: result.lng }))} onClear={() => setFormData(prev => ({ ...prev, meetingLat: null, meetingLng: null }))} />
-            </div>
             {errors.departure && <p className="field-error" role="alert">{errors.departure}</p>}
           </div>
 
-          <PublicationReadinessPanel problems={publicationPending} />
-          {canEditStatus && !templateId && (
-            <div>
-              <Field id="status" label="Situação" hint={'“Publicada” aparece no site; “Rascunho” fica só aqui.'}>
-                <select id="status" name="status" className="select" value={f.status} onChange={handleChange}>
-                  {Object.entries(TRIP_STATUS_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-                </select>
+          <Field id="departureTolerance" label="Tolerância operacional no embarque">
+            <input id="departureTolerance" name="departureTolerance" className="input" value={f.departureTolerance} onChange={handleChange} placeholder="30 minutos" />
+          </Field>
+
+          <details className={nestedBlockClass} open={departureMoreOpen}>
+            <summary className="cursor-pointer text-sm font-semibold text-surface-700">Mais opções</summary>
+            <div className="pt-4 space-y-5">
+              <Field id="scheduleInfo" label="Horário como texto (opcional)" hint="Use só para substituir os horários acima por uma faixa, como “05h às 17h”.">
+                <input id="scheduleInfo" name="scheduleInfo" className="input" value={f.scheduleInfo} onChange={handleChange} placeholder="05h às 17h" />
               </Field>
+              <Field id="meetingMapsQuery" label="Localização do embarque no mapa (opcional)" hint="Endereço usado para gerar o link do mapa.">
+                <input id="meetingMapsQuery" name="meetingMapsQuery" className="input" value={f.meetingMapsQuery} onChange={handleChange} placeholder="Rua, bairro, cidade/UF" />
+              </Field>
+              <div className="form-group">
+                <span className="label">Coordenadas confirmadas do embarque (opcional)</span>
+                <p className="hint mb-2">Confirme a coordenada para o site mostrar um mapa junto do embarque. Ela será removida se você alterar cidade, local ou endereço.</p>
+                <LocationPicker key={JSON.stringify([f.meetingCity, f.meetingPoint, f.meetingMapsQuery])} coords={f.meetingLat !== null && f.meetingLng !== null ? { lat: f.meetingLat, lng: f.meetingLng } : null} onConfirm={(result) => setFormData(prev => ({ ...prev, meetingLat: result.lat, meetingLng: result.lng }))} onClear={() => setFormData(prev => ({ ...prev, meetingLat: null, meetingLng: null }))} />
+              </div>
             </div>
-          )}
-        <div className="border-t border-surface-200 pt-5 space-y-5">
-          <div>
-            <h3 className="font-semibold text-surface-900">Informações para os viajantes</h3>
-            <p className="hint">Estes dados aparecem na página da viagem. Preencha os que se aplicam.</p>
+          </details>
+        </fieldset>
+
+        {/* Bloco 3: o que torna a viagem especial, do jeito que aparece na página. */}
+        <fieldset className="card p-5 space-y-5">
+          <legend className="sr-only">Como é a experiência</legend>
+          <h2 className="text-lg font-semibold text-surface-900">Como é a experiência</h2>
+
+          <Field id="description" label="Resumo da experiência" required={f.status === 'OPEN'} error={err('description')} hint="Necessário para publicar. Descreva o que os viajantes vão viver.">
+            <textarea id="description" name="description" className={`input ${invalid('description')}`} value={f.description} onChange={handleChange} rows={4} aria-invalid={!!errors.description} placeholder="Conte o que torna essa viagem especial..." />
+          </Field>
+
+          <div className="form-group">
+            <span className="label" id="media-label">Fotos da viagem</span>
+            <p className="hint mb-2">A primeira foto é a capa. Precisa de pelo menos uma para publicar.</p>
+            <MediaInput
+              inputId="media-link"
+              value={f.media}
+              onPendingChange={setPhotoPending}
+              onLinkPendingChange={(pending) => setPendingItem('foto', pending)}
+              onChange={(val) => { setFormData(prev => ({ ...prev, media: val })); clearError('media'); }}
+            />
+            {errors.media && <p className="field-error" role="alert">{errors.media}</p>}
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field id="filterCategory" label="Categoria da viagem" hint="Esta categoria aparece nos filtros do site. Se não escolher uma, a viagem ficará em Todas as categorias.">
-              <select id="filterCategory" name="filterCategory" className="select" value={f.filterCategory} onChange={handleChange}>
-                <option value="">Selecione uma categoria</option>
-                {f.filterCategory && !FILTER_CATEGORY_OPTIONS.some(option => option.toLocaleLowerCase('pt-BR') === f.filterCategory.trim().toLocaleLowerCase('pt-BR')) && <option value={f.filterCategory}>{f.filterCategory} (personalizada)</option>}
-                {FILTER_CATEGORY_OPTIONS.map(option => <option key={option} value={option}>{option}</option>)}
-              </select>
-            </Field>
-            <Field id="spotsLeft" label="Vagas restantes" hint="Só número inteiro. Aparece no site quando for maior que zero.">
-              <input id="spotsLeft" name="spotsLeft" type="text" inputMode="numeric" pattern="[0-9]*" className="input" value={f.spotsLeft ?? ''} onChange={(e) => setFormData(prev => ({ ...prev, spotsLeft: parseWholeNumber(e.target.value) }))} autoComplete="off" />
-            </Field>
-          </div>
+
+          <Field id="category" label="Texto de destaque no card" hint="Aparece acima do nome da viagem, como “Trilha, natureza e patrimônio”.">
+            <input id="category" name="category" className="input" value={f.category} onChange={handleChange} placeholder="Ex.: Trilha, natureza e patrimônio" />
+          </Field>
+
+          <Field id="intensityClass" label="Intensidade da atividade">
+            <select id="intensityClass" name="intensityClass" className="select" value={f.intensityClass} onChange={handleChange}>
+              {intensityOptions.map(opt => <option key={opt} value={opt}>{opt.charAt(0).toUpperCase() + opt.slice(1)}</option>)}
+            </select>
+          </Field>
 
           <Field id="includes-custom-input" label="O que inclui">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3" role="group" aria-label="Serviços padrão incluídos">
@@ -521,19 +598,23 @@ export default function TripForm() {
             />
           </Field>
 
-          <Field id="includesHighlight" label="Destaque do que está incluído (opcional)"><input id="includesHighlight" name="includesHighlight" className="input" value={f.includesHighlight} onChange={handleChange} placeholder="Ex.: Transporte incluso saindo de João Pessoa" /></Field>
+          <details className={nestedBlockClass} open={experienceMoreOpen}>
+            <summary className="cursor-pointer text-sm font-semibold text-surface-700">Mais opções</summary>
+            <div className="pt-4 space-y-5">
+              <Field id="includesHighlight" label="Destaque do que está incluído (opcional)"><input id="includesHighlight" name="includesHighlight" className="input" value={f.includesHighlight} onChange={handleChange} placeholder="Ex.: Transporte incluso saindo de João Pessoa" /></Field>
+            </div>
+          </details>
+        </fieldset>
+
+        {/* Bloco 4: roteiro, orientações e, quando for trilha, os detalhes do percurso. */}
+        <fieldset className="card p-5 space-y-5">
+          <legend className="sr-only">Roteiro e orientações</legend>
+          <h2 className="text-lg font-semibold text-surface-900">Roteiro e orientações</h2>
 
           <Field id="itinerary-input" label="Roteiro">
             <ArrayInput id="itinerary-input" value={f.itinerary} onPendingChange={(pending) => setPendingItem('roteiro', pending)} onChange={(val) => setList('itinerary', val)} placeholder="Ex.: 06h - Encontro, 07h - Saída" />
           </Field>
-          <Field id="route-notes-input" label="Observações do percurso">
-            <ArrayInput id="route-notes-input" value={f.routeNotes} onPendingChange={(pending) => setPendingItem('percurso', pending)} onChange={(val) => setList('routeNotes', val)} placeholder="Ex.: Trilha com trechos íngremes" />
-          </Field>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field id="trailDistance" label="Distância do percurso"><input id="trailDistance" name="trailDistance" className="input" value={f.trailDistance} onChange={handleChange} placeholder="Ex.: aproximadamente 6 km" /></Field>
-            <Field id="supportPoint" label="Ponto de apoio"><input id="supportPoint" name="supportPoint" className="input" value={f.supportPoint} onChange={handleChange} /></Field>
-          </div>
-          <Field id="supportPointInfo" label="Sobre o ponto de apoio"><textarea id="supportPointInfo" name="supportPointInfo" className="input" value={f.supportPointInfo} onChange={handleChange} rows={2} /></Field>
+
           <Field id="important-info-input" label="Informações importantes">
             <p className="hint mb-2">Marque apenas as orientações que valem para esta viagem. Você também pode adicionar uma informação própria.</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3" role="group" aria-label="Orientações sugeridas">
@@ -544,36 +625,37 @@ export default function TripForm() {
             </div>
             <ArrayInput id="important-info-input" value={customImportantInfo(f.importantInfo)} onPendingChange={(pending) => setPendingItem('informações', pending)} onChange={(items) => setList('importantInfo', mergeUnique(IMPORTANT_INFO_PRESETS.filter(item => hasImportantInfoPreset(f.importantInfo, item)), items))} placeholder="Ex.: O pagamento final vence 48 horas antes" />
           </Field>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <Field id="priceValue" label="Valor (R$)" required={f.status === 'OPEN' && !f.free} error={err('priceValue')} hint={f.free ? 'Viagem gratuita: sem valor.' : 'Necessário para publicar. Ex.: 109,99 ou 1.250,00'}>
-                <input id="priceValue" name="priceValue" type="text" inputMode="decimal" className={`input ${invalid('priceValue')}`} value={priceText} onChange={handlePriceChange} placeholder="109,99" disabled={f.free} aria-invalid={!!errors.priceValue} autoComplete="off" />
+
+          <details className={nestedBlockClass} open={trailOpen}>
+            <summary className="cursor-pointer text-sm font-semibold text-surface-700">Trilha (quando houver)</summary>
+            <div className="pt-4 space-y-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field id="trailDistance" label="Distância do percurso"><input id="trailDistance" name="trailDistance" className="input" value={f.trailDistance} onChange={handleChange} placeholder="Ex.: aproximadamente 6 km" /></Field>
+                <Field id="supportPoint" label="Ponto de apoio"><input id="supportPoint" name="supportPoint" className="input" value={f.supportPoint} onChange={handleChange} /></Field>
+              </div>
+              <Field id="supportPointInfo" label="Sobre o ponto de apoio"><textarea id="supportPointInfo" name="supportPointInfo" className="input" value={f.supportPointInfo} onChange={handleChange} rows={2} /></Field>
+              <Field id="route-notes-input" label="Observações do percurso">
+                <ArrayInput id="route-notes-input" value={f.routeNotes} onPendingChange={(pending) => setPendingItem('percurso', pending)} onChange={(val) => setList('routeNotes', val)} placeholder="Ex.: Trilha com trechos íngremes" />
               </Field>
-              <label htmlFor="free" className="checkbox-label mt-2 min-h-[32px]">
-                <input id="free" name="free" type="checkbox" className="checkbox-input" checked={f.free} onChange={(e) => { handleChange(e); clearError('priceValue'); }} />
-                <span className="text-sm text-surface-700">Viagem gratuita</span>
-              </label>
             </div>
-          </div>
-          <Field id="priceDisplay" label="Texto do valor no site (opcional)" hint="Se preenchido, aparece no lugar do valor numérico.">
-            <input id="priceDisplay" name="priceDisplay" className="input" value={f.priceDisplay} onChange={handleChange} placeholder="Ex.: A partir de R$ 109,99" disabled={f.free} />
-          </Field>
-        <details className="rounded-lg border border-surface-200 p-4">
-          <summary className="cursor-pointer text-sm font-semibold text-surface-700">Configurações adicionais do painel</summary>
-          <div className="pt-4 space-y-5">
-            <p className="hint">Informações internas ou usadas em outros canais de divulgação.</p>
-            <Field id="headlineDisplay" label="Título para outros canais (opcional)" hint="O site usa o nome da viagem.">
-              <input id="headlineDisplay" name="headlineDisplay" className="input" value={f.headlineDisplay} onChange={handleChange} />
-            </Field>
-            <Field id="departureTolerance" label="Tolerância operacional no embarque">
-              <input id="departureTolerance" name="departureTolerance" className="input" value={f.departureTolerance} onChange={handleChange} placeholder="30 minutos" />
-            </Field>
-          </div>
-        </details>
-        </div>
+          </details>
         </fieldset>
 
-        <AiDraftBlock form={formData as Record<string, unknown>} defaults={defaultsRef.current} onApply={applyAiDraft} />
+        {/* Bloco 5: situação e o que falta para publicar, por último, ao lado do botão Salvar. */}
+        <fieldset className="card p-5 space-y-5">
+          <legend className="sr-only">Publicação</legend>
+          <h2 className="text-lg font-semibold text-surface-900">Publicação</h2>
+
+          <PublicationReadinessPanel problems={publicationIssues} onFieldFocus={focusPublicationField} />
+
+          {canEditStatus && !templateId && (
+            <Field id="status" label="Situação" hint={'“Publicada” aparece no site; “Rascunho” fica só aqui.'}>
+              <select id="status" name="status" className="select" value={f.status} onChange={handleChange}>
+                {Object.entries(TRIP_STATUS_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              </select>
+            </Field>
+          )}
+        </fieldset>
 
         <details className="xl:hidden card p-4"><summary className="cursor-pointer font-semibold text-surface-900">Ver prévia da viagem</summary><div className="mt-4"><TripCardPreview trip={f} /></div></details>
 

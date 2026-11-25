@@ -77,10 +77,9 @@ test('menu móvel: o fundo fica inert e o foco não escapa dele enquanto aberto'
   // O conteúdo por trás (cabeçalho + área principal) some do Tab/leitor de
   // tela enquanto o menu está aberto, como um diálogo modal.
   expect(await page.evaluate(() => document.querySelector('header')?.closest('[inert]') != null)).toBe(true);
-  expect(await page.evaluate(() => {
-    const btn = Array.from(document.querySelectorAll('button')).find((el) => el.textContent?.trim() === 'Trocar senha');
-    return btn ? btn.closest('[inert]') != null : null;
-  })).toBe(true);
+  expect(await page.getByRole('button', { name: 'Minha conta', includeHidden: true }).evaluate(
+    (button) => button.closest('[inert]') != null,
+  )).toBe(true);
 
   // Tab a partir do último item focável do menu volta para o primeiro, sem
   // sair para o conteúdo por trás.

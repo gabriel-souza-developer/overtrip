@@ -88,8 +88,17 @@ test('coordenadas confirmadas são removidas ao alterar o endereço do embarque'
     features: [{ geometry: { coordinates: [-35.8814, -7.2159] }, properties: { name: 'Praça da Bandeira', city: 'Campina Grande', state: 'Paraíba', countrycode: 'BR' } }],
   } }));
   await page.goto('/trips/new');
+  // A busca de mapa do ponto de embarque fica em "Mais opções", dentro do bloco de embarque.
+  const embarqueBlock = page.locator('fieldset').filter({ has: page.getByRole('heading', { name: 'Embarque e horários' }) });
+  const openMoreOptionsIfClosed = async () => {
+    if (!(await page.getByRole('textbox', { name: 'Pesquisar local no mapa' }).first().isVisible())) {
+      await embarqueBlock.getByText('Mais opções').click();
+    }
+  };
+
   await page.getByLabel('Cidade de embarque').fill('Campina Grande');
   await page.getByLabel('Local de embarque').fill('Praça da Bandeira');
+  await openMoreOptionsIfClosed();
   await page.getByRole('textbox', { name: 'Pesquisar local no mapa' }).first().fill('Praça da Bandeira');
   await page.getByRole('button', { name: 'Pesquisar' }).click();
   await page.getByRole('button', { name: 'Usar esta localização' }).click();
@@ -98,6 +107,8 @@ test('coordenadas confirmadas são removidas ao alterar o endereço do embarque'
   await page.getByLabel('Local de embarque').fill('Terminal Rodoviário');
   await expect(page.getByText('Ver localização confirmada no mapa')).toHaveCount(0);
 
+  // Alterar o endereço não deve fechar o bloco que a pessoa abriu.
+  await expect(page.getByRole('textbox', { name: 'Pesquisar local no mapa' }).first()).toBeVisible();
   await page.getByRole('textbox', { name: 'Pesquisar local no mapa' }).first().fill('Terminal Rodoviário');
   await page.getByRole('button', { name: 'Pesquisar' }).click();
   await page.getByRole('button', { name: 'Usar esta localização' }).click();
@@ -197,4 +208,44 @@ test('prévia da proposta também existe em viagem nova', async ({ page }) => {
   await page.locator('#departureTime').fill('06:30');
   await page.getByRole('button', { name: 'Prévia da proposta' }).click();
   await expect(page.getByRole('dialog', { name: 'Prévia da proposta' })).toContainText('Saída: 06h30');
+});
+
+test('painel de publicação foca o campo quando a pendência é clicada', async ({ page }) => {
+  await page.goto('/trips/new');
+  const issue = page.getByRole('button', { name: 'Escreva o nome da viagem.' });
+  await expect(issue).toBeVisible();
+  await issue.click();
+  await expect(page.locator('#title')).toBeFocused();
+});
+
+test('opções mantêm a escolha da pessoa durante a edição e preço comum não as abre', async ({ page }) => {
+  await page.goto('/trips/new');
+  const essential = page.locator('fieldset').filter({ has: page.getByRole('heading', { name: 'O essencial' }) });
+  const options = essential.locator('details');
+  await page.locator('#priceValue').fill('100');
+  await expect(options).not.toHaveAttribute('open', '');
+  await options.locator('summary').click();
+  const headline = page.locator('#headlineDisplay');
+  await headline.fill('Teste');
+  await headline.fill('');
+  await expect(headline).toBeVisible();
+  await expect(headline).toBeFocused();
+  await options.locator('summary').click();
+  await page.locator('#priceValue').fill('200');
+  await expect(options).not.toHaveAttribute('open', '');
+});
+
+test('"Mais opções" abre sozinho quando o campo já vem preenchido ao editar', async ({ page }) => {
+  await page.route('**/api/trips/trip-headline', route => route.fulfill({ json: {
+    id: 'trip-headline', title: 'Viagem com título alternativo', category: '', description: '', city: '', region: '',
+    startDateISO: '2027-01-01T00:00:00.000Z', endDateISO: null, departureTime: '', returnTime: '',
+    scheduleTBD: false, priceValue: null, priceUnit: 'por pessoa', free: false, intensityClass: 'moderado', spotsLeft: null,
+    meetingTBD: false, includes: [], itinerary: [], media: [],
+    headlineDisplay: 'Título para WhatsApp',
+    buttonLabel: 'Quero viajar', buttonClass: 'button-dark', status: 'DRAFT', availabilitySchema: 'https://schema.org/InStock',
+  } }));
+  await page.route('**/api/trips/trip-headline/documents', route => route.fulfill({ json: [] }));
+  await page.goto('/trips/trip-headline/edit');
+  await expect(page.locator('#headlineDisplay')).toBeVisible();
+  await expect(page.locator('#headlineDisplay')).toHaveValue('Título para WhatsApp');
 });

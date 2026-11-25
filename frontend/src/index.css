@@ -2,6 +2,62 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Paleta primary/surface do painel inteiro (ver tailwind.config.js e
+   src/validators/organizationBrand.ts): canais "r g b", nunca "#rrggbb",
+   para toda classe primary e surface poder aplicar opacidade (ex.:
+   bg-primary-50/50) com rgb(var(x) / <alpha-value>).
+   O padrão abaixo é o laranja #ff5a00 da própria OVERTRIP (mesma cor da
+   tela de acesso) passado pela mesma derivação de paleta usada por
+   qualquer empresa — a OVERTRIP não é um caso especial, só mais um tenant.
+   OrganizationLayout.tsx sobrescreve este bloco, por variável inline no
+   elemento raiz do painel, com a paleta derivada da cor própria da empresa
+   (ou a mesma paleta fixa verde/teal quando a empresa não escolheu uma). */
+:root {
+  --color-primary-50: 255 246 242;
+  --color-primary-100: 255 231 221;
+  --color-primary-200: 255 210 192;
+  --color-primary-300: 255 192 167;
+  --color-primary-400: 255 146 106;
+  --color-primary-500: 255 90 0;
+  --color-primary-600: 209 72 0;
+  --color-primary-700: 184 62 0;
+  --color-primary-800: 159 53 0;
+  --color-primary-900: 97 29 0;
+  --color-primary-vivid: 255 90 0;
+  --color-primary-solid: 209 72 0;
+  --color-primary-subtle: 255 246 242;
+  --color-primary-muted: 255 231 221;
+  --color-primary-border: 255 192 167;
+  --color-primary-text: 159 53 0;
+
+  /* Cinza neutro fixo (texto, bordas, fundos de chrome): nunca sobrescrito
+     por agência nenhuma, nem pela própria OVERTRIP. */
+  --color-surface-50: 250 250 250;
+  --color-surface-100: 245 245 245;
+  --color-surface-200: 229 229 229;
+  --color-surface-300: 212 212 212;
+  --color-surface-400: 163 163 163;
+  --color-surface-500: 115 115 115;
+  --color-surface-600: 82 82 82;
+  --color-surface-700: 64 64 64;
+  --color-surface-800: 38 38 38;
+  --color-surface-900: 13 13 13;
+
+  /* Status de negócio (sucesso/alerta/erro/info): sempre estes tons fixos,
+     nunca derivados da marca — o estado precisa continuar reconhecível em
+     qualquer paleta de agência. Ver frontend/src/components/StatusBadge.tsx. */
+  --success-bg: #dcfce7;
+  --success-text: #166534;
+  --warning-bg: #fef9c3;
+  --warning-text: #854d0e;
+  --danger-bg: #fee2e2;
+  --danger-text: #991b1b;
+  --info-bg: #dbeafe;
+  --info-text: #1e40af;
+  --neutral-bg: rgb(var(--color-surface-100));
+  --neutral-text: rgb(var(--color-surface-700));
+}
+
 * {
   box-sizing: border-box;
 }
@@ -11,12 +67,12 @@ body {
   font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #fafafa;
-  color: #0d0d0d;
+  background-color: rgb(var(--color-surface-50));
+  color: rgb(var(--color-surface-900));
 }
 
 :focus-visible {
-  outline: 2px solid #e26b1b;
+  outline: 2px solid rgb(var(--color-primary-600));
   outline-offset: 2px;
 }
 
@@ -31,7 +87,7 @@ input, select, textarea {
 }
 
 .btn {
-  @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
 }
 
 .btn-primary {
@@ -60,7 +116,7 @@ input, select, textarea {
 }
 
 .input {
-  @apply w-full px-3 py-2 border border-surface-300 rounded-lg bg-white text-surface-900 placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-shadow;
+  @apply w-full px-3 py-2 border border-surface-300 rounded-lg bg-white text-surface-900 placeholder-surface-500 focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent transition-shadow;
 }
 
 .input-error {
@@ -80,23 +136,33 @@ input, select, textarea {
 }
 
 .badge-success {
-  @apply badge bg-green-100 text-green-800;
+  @apply badge;
+  background-color: var(--success-bg);
+  color: var(--success-text);
 }
 
 .badge-warning {
-  @apply badge bg-yellow-100 text-yellow-800;
+  @apply badge;
+  background-color: var(--warning-bg);
+  color: var(--warning-text);
 }
 
 .badge-danger {
-  @apply badge bg-red-100 text-red-800;
+  @apply badge;
+  background-color: var(--danger-bg);
+  color: var(--danger-text);
 }
 
 .badge-info {
-  @apply badge bg-blue-100 text-blue-800;
+  @apply badge;
+  background-color: var(--info-bg);
+  color: var(--info-text);
 }
 
 .badge-neutral {
-  @apply badge bg-surface-100 text-surface-700;
+  @apply badge;
+  background-color: var(--neutral-bg);
+  color: var(--neutral-text);
 }
 
 /* Mesma aparência do bloco "Ver roteiro & o que inclui" do card público. */
@@ -292,7 +358,7 @@ input, select, textarea {
 }
 
 .tab-active {
-  @apply text-primary-500 border-primary-500;
+  @apply text-primary-800 border-primary-500;
 }
 
 .form-group {
@@ -335,7 +401,7 @@ textarea.input {
 }
 
 .checkbox-input {
-  @apply w-4 h-4 rounded border-surface-300 text-primary-500 focus:ring-primary-500 focus:ring-2;
+  @apply w-4 h-4 rounded border-surface-300 text-primary-800 focus:ring-primary-600 focus:ring-2;
 }
 
 .page-header {

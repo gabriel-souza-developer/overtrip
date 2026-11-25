@@ -1,5 +1,7 @@
 // Funções puras dos formulários e listas do painel (testadas em tests/panelHelpers.test.ts).
 
+import type { StatusTone } from '../components/StatusBadge';
+
 export const TRIP_STATUS_LABELS: Record<string, string> = {
   DRAFT: 'Rascunho',
   REVIEW: 'Em revisão',
@@ -12,6 +14,24 @@ export const TRIP_STATUS_LABELS: Record<string, string> = {
 
 export function tripStatusLabel(status: string): string {
   return TRIP_STATUS_LABELS[status] ?? status;
+}
+
+// Mesma paleta de status que o painel OVERTRIP original já usava (ver
+// pages/Trips.tsx) — compartilhada aqui para o painel de agência
+// (OrganizationTrips.tsx) mostrar o mesmo estado, em vez de badge-neutral
+// para toda situação.
+export const TRIP_STATUS_TONE: Record<string, StatusTone> = {
+  DRAFT: 'neutral',
+  REVIEW: 'warning',
+  OPEN: 'success',
+  COMPLETED: 'info',
+  CANCELLED: 'danger',
+  SOLD_OUT: 'warning',
+  CLOSED: 'neutral',
+};
+
+export function tripStatusTone(status: string): StatusTone {
+  return TRIP_STATUS_TONE[status] ?? 'neutral';
 }
 
 const MONTHS = [
