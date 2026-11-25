@@ -21,13 +21,14 @@ const expected = [
   { path: '/social-posts', label: 'Redes sociais', icon: 'Share2', adminOnly: true },
   { path: '/gallery', label: 'Galeria de memórias', icon: 'Images', adminOnly: false },
   { path: '/settings', label: 'Configurações', icon: 'SettingsIcon', adminOnly: true },
+  { path: '/users', label: 'Usuários', icon: 'UserCog', adminOnly: true },
   { path: '/system', label: 'Saúde do servidor', icon: 'Activity', adminOnly: true },
 ];
 
 // Tela de cada rota; o Início tem cabeçalho próprio ("Visão geral"), fora do PageHeader.
 const pages: Record<string, string> = {
   '/trips': 'Trips', '/visits': 'Visits', '/leads': 'Leads', '/reservations': 'Reservations',
-  '/social-posts': 'SocialPosts', '/gallery': 'Gallery', '/settings': 'Settings', '/system': 'SystemHealth',
+  '/social-posts': 'SocialPosts', '/gallery': 'Gallery', '/settings': 'Settings', '/users': 'Users', '/system': 'SystemHealth',
 };
 
 describe('menu lateral do painel', () => {

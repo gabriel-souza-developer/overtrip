@@ -1,7 +1,7 @@
 import React from 'react';
 import { brandUrl } from '../lib/basePath';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Activity, House, Images, MapPinned, Plane, Settings as SettingsIcon, Share2, Ticket, UsersRound } from 'lucide-react';
+import { Activity, House, Images, MapPinned, Plane, Settings as SettingsIcon, Share2, Ticket, UserCog, UsersRound } from 'lucide-react';
 import { useAuth } from '../App';
 import { useToast } from '../hooks/useToast';
 import PanelShell from './PanelShell';
@@ -15,7 +15,7 @@ const navItems = [
   { path: '/social-posts', label: 'Redes sociais', icon: Share2, adminOnly: true },
   { path: '/gallery', label: 'Galeria de memórias', icon: Images },
   { path: '/settings', label: 'Configurações', icon: SettingsIcon, adminOnly: true },
-  { path: '/users', label: 'Usuários', icon: UsersRound, adminOnly: true },
+  { path: '/users', label: 'Usuários', icon: UserCog, adminOnly: true },
   { path: '/system', label: 'Saúde do servidor', icon: Activity, adminOnly: true },
 ];
 
