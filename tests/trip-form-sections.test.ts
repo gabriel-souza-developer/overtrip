@@ -41,8 +41,10 @@ describe('TripForm: seções', () => {
     for (const field of fields as string[]) expect(block).toContain(field);
   });
 
-  it('esconde os campos raros atrás de um "Mais opções" por bloco, que abre quando já há dado preenchido', () => {
-    expect(form.match(/>Mais opções<\/summary>/g)?.length).toBe(3);
+  it('identifica a frase de destaque e abre as opções quando já há dados preenchidos', () => {
+    expect(form.match(/>Mais opções<\/summary>/g)?.length).toBe(2);
+    expect(form).toContain('>Adicionar frase de destaque (opcional)</summary>');
+    expect(form).toContain('aria-describedby="includesHighlight-hint"');
     expect(form).toContain('open={essentialMoreOpen}');
     expect(form).toContain('open={departureMoreOpen}');
     expect(form).toContain('open={experienceMoreOpen}');

@@ -1,8 +1,17 @@
 // Sugestões selecionáveis para informações que costumam se repetir entre viagens.
-// São apenas atalhos: nada é incluído automaticamente no cadastro.
+// As orientações padrão começam selecionadas em viagens novas e podem ser removidas.
 export const FILTER_CATEGORY_OPTIONS = ['Trilha', 'Experiência', 'Praia', 'Aventura', 'Cultura', 'Natureza'] as const;
 
+export const DEFAULT_IMPORTANT_INFO = [
+  'Leve água, protetor solar e itens pessoais para o percurso.',
+  'Obrigatório apresentar documento original com foto para a reserva/viagem (normas da ANTT)',
+  'Restante do pagamento até 48 horas antes da excursão.',
+  'Excursão será realizada com mínimo de 13 pessoas.',
+  'Transportes utilizados: Van, Micro-ônibus ou Ônibus.',
+] as const;
+
 export const IMPORTANT_INFO_PRESETS = [
+  ...DEFAULT_IMPORTANT_INFO,
   'Use roupas confortáveis e calçado adequado à atividade.',
   'Leve água e itens pessoais necessários para o percurso.',
   'Leve protetor solar e proteção para o sol.',

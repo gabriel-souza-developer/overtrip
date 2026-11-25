@@ -10,7 +10,7 @@ import { prepareOrgTripTemplate } from '../lib/tripTemplate';
 import type { OrganizationOutletContext } from './OrganizationLayout';
 import { ArrayInput, DeparturesInput, type Departure } from '../components/TripFormInputs';
 import { customItems, hasItem, INCLUDE_PRESETS, mergeUnique, togglePreset } from '../lib/includesServices';
-import { customImportantInfo, FILTER_CATEGORY_OPTIONS, hasImportantInfoPreset, IMPORTANT_INFO_PRESETS, toggleImportantInfoPreset } from '../lib/tripFormOptions';
+import { customImportantInfo, DEFAULT_IMPORTANT_INFO, FILTER_CATEGORY_OPTIONS, hasImportantInfoPreset, IMPORTANT_INFO_PRESETS, toggleImportantInfoPreset } from '../lib/tripFormOptions';
 import { applySuggestions, type DraftKey, type TripDraft } from '../lib/aiDraft';
 import PageHeader from '../components/PageHeader';
 import EmptyState from '../components/EmptyState';
@@ -65,7 +65,7 @@ const emptyForm: TripForm = {
   intensityClass: 'moderado', spotsLeft: '',
   trailDistance: '', supportPoint: '', supportPointInfo: '',
   meetingCity: '', meetingPoint: '', meetingTBD: false, meetingDetails: '', meetingMapsQuery: '',
-  includes: [], includesHighlight: '', itinerary: [], routeNotes: [], importantInfo: [],
+  includes: [], includesHighlight: '', itinerary: [], routeNotes: [], importantInfo: [...DEFAULT_IMPORTANT_INFO],
   media: [], departures: [],
 };
 const formFromDetail = (trip: OrgTripDetail): TripForm => ({
@@ -688,10 +688,10 @@ export default function OrganizationTrips() {
                   />
                 </div>
               <details className="rounded-lg border border-surface-200 p-3" open={optionsOpen.experience} onToggle={(event) => { const open = event.currentTarget.open; setOptionsOpen((previous) => previous.experience === open ? previous : { ...previous, experience: open }); }}>
-                <summary className="cursor-pointer text-sm font-semibold text-surface-800">Mais opções</summary>
+                <summary className="cursor-pointer text-sm font-semibold text-surface-800">Adicionar frase de destaque (opcional)</summary>
                 <div className="mt-3 space-y-3">
-                <Field id="org-trip-includes-highlight" label="Destaque do que está incluso (opcional)">
-                  <input id="org-trip-includes-highlight" className="input" value={form.includesHighlight} onChange={(e) => patch({ includesHighlight: e.target.value })} />
+                <Field id="org-trip-includes-highlight" label="Frase de destaque" hint="Aparece em destaque abaixo da lista ‘O que inclui’ no site. Deixe vazio se não precisar de uma frase extra.">
+                  <input id="org-trip-includes-highlight" className="input" value={form.includesHighlight} onChange={(e) => patch({ includesHighlight: e.target.value })} aria-describedby="org-trip-includes-highlight-hint" placeholder="Ex.: Seguro viagem incluso" />
                 </Field>
                 </div>
               </details>

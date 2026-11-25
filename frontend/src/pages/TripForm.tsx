@@ -11,7 +11,7 @@ import { isoToLocalInput } from '../lib/dateInput';
 import { fieldsToScheduleWithText, scheduleText, scheduleToFields, type StoredSchedule } from '../lib/tripSchedule';
 import { prepareTripTemplate } from '../lib/tripTemplate';
 import { customItems, hasItem, INCLUDE_PRESETS, mergeUnique, togglePreset } from '../lib/includesServices';
-import { customImportantInfo, DEPARTURE_PRESETS, type DeparturePreset, FILTER_CATEGORY_OPTIONS, hasImportantInfoPreset, IMPORTANT_INFO_PRESETS, toggleImportantInfoPreset } from '../lib/tripFormOptions';
+import { customImportantInfo, DEFAULT_IMPORTANT_INFO, DEPARTURE_PRESETS, type DeparturePreset, FILTER_CATEGORY_OPTIONS, hasImportantInfoPreset, IMPORTANT_INFO_PRESETS, toggleImportantInfoPreset } from '../lib/tripFormOptions';
 import { fillMissingAlt, formatBRL, syncPriceDisplay } from '../lib/formHelpers';
 import { canChangeTripStatus } from '../lib/permissions';
 import { applyTripDefaults, formatPriceInput, parsePriceInput, parseWholeNumber, TRIP_STATUS_LABELS, validateTripMinimum } from '../lib/panelHelpers';
@@ -62,7 +62,7 @@ const emptyForm = (): FormState => ({
   priceValue: null, priceDisplay: '', priceUnit: 'por pessoa', free: false,
   intensityClass: 'moderado', spotsLeft: null, trailDistance: '', supportPoint: '', supportPointInfo: '',
   meetingCity: '', meetingPoint: '', meetingTBD: false, meetingDetails: '', meetingMapsQuery: '', meetingLat: null, meetingLng: null,
-  includes: [], includesHighlight: '', includedServices: [], itinerary: [], routeNotes: [], importantInfo: [],
+  includes: [], includesHighlight: '', includedServices: [], itinerary: [], routeNotes: [], importantInfo: [...DEFAULT_IMPORTANT_INFO],
   media: [], buttonLabel: 'Quero viajar', buttonClass: 'button-dark', status: 'DRAFT',
   availabilitySchema: 'https://schema.org/InStock', departures: [],
 });
@@ -630,9 +630,9 @@ export default function TripForm() {
           </Field>
 
           <details className={nestedBlockClass} open={experienceMoreOpen}>
-            <summary className="cursor-pointer text-sm font-semibold text-surface-700">Mais opções</summary>
+            <summary className="cursor-pointer text-sm font-semibold text-surface-700">Adicionar frase de destaque (opcional)</summary>
             <div className="pt-4 space-y-5">
-              <Field id="includesHighlight" label="Destaque do que está incluído (opcional)"><input id="includesHighlight" name="includesHighlight" className="input" value={f.includesHighlight} onChange={handleChange} placeholder="Ex.: Transporte incluso saindo de João Pessoa" /></Field>
+              <Field id="includesHighlight" label="Frase de destaque" hint="Aparece em destaque abaixo da lista ‘O que inclui’ no site. Deixe vazio se não precisar de uma frase extra."><input id="includesHighlight" name="includesHighlight" className="input" value={f.includesHighlight} onChange={handleChange} aria-describedby="includesHighlight-hint" placeholder="Ex.: Seguro viagem incluso" /></Field>
             </div>
           </details>
         </fieldset>
