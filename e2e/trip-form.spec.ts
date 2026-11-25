@@ -220,7 +220,7 @@ test('painel de publicação foca o campo quando a pendência é clicada', async
 
 test('opções mantêm a escolha da pessoa durante a edição e preço comum não as abre', async ({ page }) => {
   await page.goto('/trips/new');
-  const essential = page.locator('fieldset').filter({ has: page.getByRole('heading', { name: 'O essencial' }) });
+  const essential = page.locator('fieldset').filter({ has: page.getByRole('heading', { name: 'Informações principais' }) });
   const options = essential.locator('details');
   await page.locator('#priceValue').fill('100');
   await expect(options).not.toHaveAttribute('open', '');

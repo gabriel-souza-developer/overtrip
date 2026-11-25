@@ -400,13 +400,13 @@ export default function TripForm() {
             </details>
           )}
 
-          <AiDraftBlock form={formData as Record<string, unknown>} defaults={defaultsRef.current} onApply={applyAiDraft} />
+          <AiDraftBlock form={formData as Record<string, unknown>} defaults={defaultsRef.current} onApply={applyAiDraft} showUnavailable />
         </fieldset>
 
         {/* Bloco 1: o mínimo para a viagem existir e aparecer na lista/filtro. */}
         <fieldset className="card p-5 space-y-5">
-          <legend className="sr-only">O essencial</legend>
-          <h2 className="text-lg font-semibold text-surface-900">O essencial</h2>
+          <legend className="sr-only">Informações principais</legend>
+          <h2 className="text-lg font-semibold text-surface-900">Informações principais</h2>
           <p className="text-xs text-surface-500">Comece por aqui. Os campos necessários para publicar ficam indicados.</p>
 
           <Field id="title" label="Nome da viagem" required error={err('title')}>

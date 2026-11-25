@@ -20,7 +20,7 @@ describe('campo Situação em TripForm.tsx', () => {
 
   it('fica no bloco de Publicação, por último, e não escondido em "Mais opções"', () => {
     const status = tripForm.indexOf('id="status"');
-    const essencial = tripForm.indexOf('>O essencial</h2>');
+    const essencial = tripForm.indexOf('>Informações principais</h2>');
     const publicacaoStart = tripForm.indexOf('>Publicação</h2>');
     const publicacaoEnd = tripForm.indexOf('</fieldset>', publicacaoStart);
     expect(status).toBeGreaterThan(essencial);

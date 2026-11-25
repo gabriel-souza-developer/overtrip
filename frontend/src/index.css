@@ -506,6 +506,44 @@ textarea.input {
   @apply border-b border-surface-200 rounded-b-none;
 }
 
+/* Seta moderna (chevron) para qualquer outro <details> do painel/site,
+   substituindo o triângulo nativo do navegador. .form-section já tem seu
+   próprio ChevronDown (ver FormSection.tsx) e .trip-includes-toggle já usa
+   ↓/↑ customizado (ver acima): os dois cancelam esta regra geral abaixo, em
+   vez de ganhar uma segunda seta. */
+details > summary {
+  list-style: none;
+}
+
+details > summary::-webkit-details-marker {
+  display: none;
+}
+
+details > summary::before {
+  content: '';
+  display: inline-block;
+  width: 0.4rem;
+  height: 0.4rem;
+  margin-right: 0.6rem;
+  margin-bottom: 0.1rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+details[open] > summary::before {
+  transform: rotate(45deg);
+  margin-bottom: -0.1rem;
+}
+
+.form-section > summary::before,
+.site-card-preview .trip-includes-toggle summary::before {
+  content: none;
+}
+
 .hint {
   @apply text-xs text-surface-600 mt-1;
 }

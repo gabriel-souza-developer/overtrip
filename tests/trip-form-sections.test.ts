@@ -16,7 +16,7 @@ const empty = {
 describe('TripForm: seções', () => {
   it('organiza os campos em seis blocos, do atalho de preenchimento até a publicação, nessa ordem', () => {
     const headings = [
-      'Preencher automaticamente', 'O essencial', 'Embarque e horários',
+      'Preencher automaticamente', 'Informações principais', 'Embarque e horários',
       'Como é a experiência', 'Roteiro e orientações', 'Publicação',
     ].map(heading => form.indexOf(`>${heading}</h2>`));
     expect(headings.every(index => index >= 0)).toBe(true);
@@ -29,7 +29,7 @@ describe('TripForm: seções', () => {
 
   it.each([
     ['Preencher automaticamente', ['Usar como modelo', 'Sugerir preenchimento com PDF e IA', 'AiDraftBlock']],
-    ['O essencial', ['id="title"', 'id="region"', 'id="city"', 'id="startDateISO"', 'id="endDateISO"', 'id="priceValue"', 'id="free"', 'id="spotsLeft"', 'id="filterCategory"', 'id="headlineDisplay"', 'id="priceDisplay"']],
+    ['Informações principais', ['id="title"', 'id="region"', 'id="city"', 'id="startDateISO"', 'id="endDateISO"', 'id="priceValue"', 'id="free"', 'id="spotsLeft"', 'id="filterCategory"', 'id="headlineDisplay"', 'id="priceDisplay"']],
     ['Embarque e horários', ['id="departureTime"', 'id="returnTime"', 'id="scheduleTBD"', 'id="meetingCity"', 'id="meetingPoint"', 'id="meetingTBD"', 'DeparturesInput', 'id="meetingDetails"', 'id="departureTolerance"', 'id="scheduleInfo"', 'id="meetingMapsQuery"']],
     ['Como é a experiência', ['id="description"', 'MediaInput', 'id="category"', 'id="intensityClass"', 'id="includes-custom-input"', 'id="includesHighlight"']],
     ['Roteiro e orientações', ['id="itinerary-input"', 'id="important-info-input"', 'id="trailDistance"', 'id="supportPoint"', 'id="supportPointInfo"', 'id="route-notes-input"']],
