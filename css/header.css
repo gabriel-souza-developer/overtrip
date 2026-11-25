@@ -9,34 +9,6 @@
   box-shadow: 0 8px 24px rgba(17, 17, 17, 0.08);
 }
 
-.agency-strip {
-  background: var(--ink);
-  color: var(--bone);
-}
-
-.agency-strip-inner {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  min-height: 2rem;
-  gap: 0.55rem;
-  font-size: 0.61rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-align: center;
-}
-
-.agency-strip-note {
-  display: inline;
-  color: rgba(245, 243, 239, 0.65);
-}
-
-.agency-strip-note i {
-  padding-inline: 0.3rem;
-  color: var(--rust);
-  font-style: normal;
-}
-
 .nav-shell {
   position: relative;
   display: flex;

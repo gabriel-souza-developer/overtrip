@@ -79,11 +79,6 @@
 
 /* --- A partir de 980px --------------------------------------------------- */
 @media (min-width: 980px) {
-  .agency-strip-inner {
-    justify-content: space-between;
-    font-size: 0.65rem;
-  }
-
   .trip-section-head {
     grid-template-columns: minmax(0, 1fr) 13.5rem;
     gap: 1.5rem;
