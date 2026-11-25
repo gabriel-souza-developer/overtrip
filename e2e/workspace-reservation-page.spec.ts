@@ -1,13 +1,13 @@
 import { expect, test, type Page } from '@playwright/test';
 
-const org = { id: 'org-a', name: 'Pousada A', slug: 'a', niche: 'pousada', role: 'owner' };
+const org = { id: 'org-a', name: 'Pousada A', slug: 'a', niche: 'pousada', role: 'OWNER' };
 const unit = { id: 'u1', name: 'Quarto 1' };
 const reservation = (id: string, guestName: string) => ({ id, unitId: unit.id, guestName, checkIn: '2030-06-10', checkOut: '2030-06-11', status: 'CONFIRMED', unit });
 const paginated = (page: number, total: number) => ({ page, limit: 20, total, totalPages: Math.ceil(total / 20) });
 async function setup(page: Page, getTotal: () => number, onCancel: () => void) {
   await page.route('**/api/auth/me', route => route.fulfill({ json: { id: 'user', email: 'a@example.test', role: 'admin' } }));
   await page.route('**/api/organizations', route => route.fulfill({ json: { organizations: [org] } }));
-  await page.route('**/api/organizations/current', route => route.fulfill({ json: { organization: org } }));
+  await page.route('**/api/organizations/' + org.id, route => route.fulfill({ json: { organization: org, role: org.role } }));
   await page.route('**/api/lodging/**', route => {
     const req = route.request();
     const url = new URL(req.url());

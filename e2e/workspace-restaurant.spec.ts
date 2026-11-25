@@ -5,8 +5,8 @@ const emptyMovement = { expected: 0, arrived: 0, overdue: 0 };
 
 test('mesas e reservas isolam espaços, rejeitam conflito no turno e permitem cancelamento', async ({ page }) => {
   const orgs = [
-    { id: 'org-a', name: 'Restaurante A', slug: 'a', niche: 'restaurante', role: 'owner' },
-    { id: 'org-b', name: 'Restaurante B', slug: 'b', niche: 'restaurante', role: 'staff' },
+    { id: 'org-a', name: 'Restaurante A', slug: 'a', niche: 'restaurante', role: 'OWNER' },
+    { id: 'org-b', name: 'Restaurante B', slug: 'b', niche: 'restaurante', role: 'MEMBER' },
   ];
   type Table = { id: string; name: string; capacity: number };
   type Booking = { id: string; tableId: string; guestName: string; partySize: number; date: string; shift: string; time: string; status: string; table: Table };
@@ -14,11 +14,11 @@ test('mesas e reservas isolam espaços, rejeitam conflito no turno e permitem ca
   const bookings: Record<string, Booking[]> = { 'org-a': [], 'org-b': [] };
   await page.route('**/api/auth/me', route => route.fulfill({ json: { id: 'user', email: 'a@example.test', role: 'admin' } }));
   await page.route('**/api/organizations', route => route.fulfill({ json: { organizations: orgs } }));
-  await page.route('**/api/organizations/current', route => {
-    const id = route.request().headers()['x-organization-id'];
+  await page.route('**/api/organizations/*', route => {
+    const id = route.request().url().split('/').pop();
     const organization = orgs.find(org => org.id === id);
     expect(organization).toBeTruthy();
-    return route.fulfill({ json: { organization } });
+    return route.fulfill({ json: { organization, role: organization!.role } });
   });
   await page.route('**/api/restaurant/**', route => {
     const req = route.request();

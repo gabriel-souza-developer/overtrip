@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 test('página de reservas não limita a grade e unidade escolhida permanece selecionada', async ({ page }) => {
-  const org = { id: 'org-a', name: 'Pousada A', slug: 'a', niche: 'pousada', role: 'owner' };
+  const org = { id: 'org-a', name: 'Pousada A', slug: 'a', niche: 'pousada', role: 'OWNER' };
   const first = { id: 'u1', name: 'Quarto 1' };
   const second = { id: 'u2', name: 'Quarto 2' };
   const firstReservation = { id: 'r1', unitId: first.id, guestName: 'Ana', checkIn: '2030-06-10', checkOut: '2030-06-11', status: 'CONFIRMED', unit: first };
@@ -10,7 +10,7 @@ test('página de reservas não limita a grade e unidade escolhida permanece sele
   await page.clock.setFixedTime(new Date('2030-06-10T12:00:00Z'));
   await page.route('**/api/auth/me', route => route.fulfill({ json: { id: 'user', email: 'a@example.test', role: 'admin' } }));
   await page.route('**/api/organizations', route => route.fulfill({ json: { organizations: [org] } }));
-  await page.route('**/api/organizations/current', route => route.fulfill({ json: { organization: org } }));
+  await page.route('**/api/organizations/' + org.id, route => route.fulfill({ json: { organization: org, role: org.role } }));
   await page.route('**/api/lodging/**', route => {
     const req = route.request();
     expect(req.headers()['x-organization-id']).toBe(org.id);

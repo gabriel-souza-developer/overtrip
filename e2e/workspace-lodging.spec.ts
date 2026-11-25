@@ -10,12 +10,12 @@ async function mockBasicOccupancy(page: Page) {
 
 test('pede confirmação ao registrar chegada fora da data prevista', async ({ page }) => {
   await page.clock.setFixedTime(new Date('2030-06-10T12:00:00.000Z'));
-  const org = { id: 'org-a', name: 'Pousada A', slug: 'a', niche: 'pousada', role: 'owner' };
+  const org = { id: 'org-a', name: 'Pousada A', slug: 'a', niche: 'pousada', role: 'OWNER' };
   const unit = { id: 'u1', name: 'Quarto' };
   let requests = 0;
   await page.route('**/api/auth/me', route => route.fulfill({ json: { id: 'user', email: 'a@example.test', role: 'admin' } }));
   await page.route('**/api/organizations', route => route.fulfill({ json: { organizations: [org] } }));
-  await page.route('**/api/organizations/current', route => route.fulfill({ json: { organization: org } }));
+  await page.route('**/api/organizations/' + org.id, route => route.fulfill({ json: { organization: org, role: org.role } }));
   await page.route('**/api/lodging/units?*', route => route.fulfill({ json: { units: [unit], pagination } }));
   await mockBasicOccupancy(page);
   await page.route('**/api/lodging/movement?*', route => route.fulfill({ json: emptyMovement }));
@@ -34,11 +34,11 @@ test('pede confirmação ao registrar chegada fora da data prevista', async ({ p
 
 test('mostra movimentos do dia e pendências anteriores sem presumir ausência', async ({ page }) => {
   await page.clock.setFixedTime(new Date('2030-06-10T12:00:00.000Z'));
-  const org = { id: 'org-a', name: 'Pousada A', slug: 'a', niche: 'pousada', role: 'owner' };
+  const org = { id: 'org-a', name: 'Pousada A', slug: 'a', niche: 'pousada', role: 'OWNER' };
   const unit = { id: 'u1', name: 'Quarto' };
   await page.route('**/api/auth/me', route => route.fulfill({ json: { id: 'user', email: 'a@example.test', role: 'admin' } }));
   await page.route('**/api/organizations', route => route.fulfill({ json: { organizations: [org] } }));
-  await page.route('**/api/organizations/current', route => route.fulfill({ json: { organization: org } }));
+  await page.route('**/api/organizations/' + org.id, route => route.fulfill({ json: { organization: org, role: org.role } }));
   await page.route('**/api/lodging/units?*', route => route.fulfill({ json: { units: [unit], pagination } }));
   await mockBasicOccupancy(page);
   await page.route('**/api/lodging/movement?*', route => route.fulfill({ json: { arrivals: 1, departures: 1, overdueArrivals: 1, overdueDepartures: 0 } }));
@@ -56,8 +56,8 @@ test('mostra movimentos do dia e pendências anteriores sem presumir ausência',
 
 test('espaços isolam unidades e reservas, rejeitam conflito e permitem cancelamento', async ({ page }) => {
   const orgs = [
-    { id: 'org-a', name: 'Pousada A', slug: 'a', niche: 'pousada', role: 'owner' },
-    { id: 'org-b', name: 'Pousada B', slug: 'b', niche: 'pousada', role: 'staff' },
+    { id: 'org-a', name: 'Pousada A', slug: 'a', niche: 'pousada', role: 'OWNER' },
+    { id: 'org-b', name: 'Pousada B', slug: 'b', niche: 'pousada', role: 'MEMBER' },
   ];
   type Unit = { id: string; name: string };
   type Booking = { id: string; unitId: string; guestName: string; checkIn: string; checkOut: string; status: string; unit: Unit };
@@ -66,11 +66,11 @@ test('espaços isolam unidades e reservas, rejeitam conflito e permitem cancelam
   const seen: string[] = [];
   await page.route('**/api/auth/me', route => route.fulfill({ json: { id: 'user', email: 'a@example.test', role: 'admin', name: 'Teste' } }));
   await page.route('**/api/organizations', route => route.fulfill({ json: { organizations: orgs } }));
-  await page.route('**/api/organizations/current', route => {
-    const id = route.request().headers()['x-organization-id'];
+  await page.route('**/api/organizations/*', route => {
+    const id = route.request().url().split('/').pop();
     const organization = orgs.find(org => org.id === id);
     expect(organization).toBeTruthy();
-    return route.fulfill({ json: { organization } });
+    return route.fulfill({ json: { organization, role: organization!.role } });
   });
   await page.route('**/api/lodging/**', route => {
     const req = route.request();
@@ -150,13 +150,13 @@ test('espaços isolam unidades e reservas, rejeitam conflito e permitem cancelam
 });
 
 test('informa que operação foi salva se atualização falha e permite recarregar', async ({ page }) => {
-  const org = { id: 'org-a', name: 'Pousada A', slug: 'a', niche: 'pousada', role: 'owner' };
+  const org = { id: 'org-a', name: 'Pousada A', slug: 'a', niche: 'pousada', role: 'OWNER' };
   let saved = false;
   let failRefresh = false;
   let attempts = 0;
   await page.route('**/api/auth/me', route => route.fulfill({ json: { id: 'user', email: 'a@example.test', role: 'admin' } }));
   await page.route('**/api/organizations', route => route.fulfill({ json: { organizations: [org] } }));
-  await page.route('**/api/organizations/current', route => route.fulfill({ json: { organization: org } }));
+  await page.route('**/api/organizations/' + org.id, route => route.fulfill({ json: { organization: org, role: org.role } }));
   await page.route('**/api/lodging/**', route => {
     const req = route.request();
     const path = new URL(req.url()).pathname;
@@ -190,13 +190,13 @@ test('informa que operação foi salva se atualização falha e permite recarreg
 });
 
 test('revogação de acesso oculta dados e permite tentar novamente', async ({ page }) => {
-  const org = { id: 'org-a', name: 'Pousada A', slug: 'a', niche: 'pousada', role: 'owner' };
+  const org = { id: 'org-a', name: 'Pousada A', slug: 'a', niche: 'pousada', role: 'OWNER' };
   let revoked = false;
   const unit = { id: 'unit-a', name: 'Suíte A' };
   const booking = { id: 'booking-a', unitId: unit.id, guestName: 'Hóspede privado', checkIn: '2030-01-01', checkOut: '2030-01-02', status: 'CONFIRMED', unit };
   await page.route('**/api/auth/me', route => route.fulfill({ json: { id: 'user', email: 'a@example.test', role: 'admin' } }));
   await page.route('**/api/organizations', route => route.fulfill({ json: { organizations: [org] } }));
-  await page.route('**/api/organizations/current', route => route.fulfill({ json: { organization: org } }));
+  await page.route('**/api/organizations/' + org.id, route => route.fulfill({ json: { organization: org, role: org.role } }));
   await page.route('**/api/lodging/**', route => {
     const req = route.request();
     const path = new URL(req.url()).pathname;

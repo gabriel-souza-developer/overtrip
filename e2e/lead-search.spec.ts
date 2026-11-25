@@ -3,9 +3,9 @@ import { expect, test } from '@playwright/test';
 test('busca interessados na API, combina filtros e ignora resposta antiga', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('auth_token', 'token');
-    localStorage.setItem('auth_user', JSON.stringify({ id: '1', email: 'admin@example.test', role: 'admin' }));
+    localStorage.setItem('auth_user', JSON.stringify({ id: '1', email: 'admin@example.test', role: 'admin', legacyAccess: true }));
   });
-  await page.route('**/api/auth/me', route => route.fulfill({ json: { id: '1', email: 'admin@example.test', role: 'admin' } }));
+  await page.route('**/api/auth/me', route => route.fulfill({ json: { id: '1', email: 'admin@example.test', role: 'admin', legacyAccess: true } }));
   const requests: string[] = [];
   await page.route('**/api/leads?*', async route => {
     const query = new URL(route.request().url()).searchParams;

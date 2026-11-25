@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 test('bloqueia noites, informa conflito e libera ao cancelar', async ({ page }) => {
-  const org = { id: 'org-a', name: 'Pousada A', slug: 'a', niche: 'pousada', role: 'owner' };
+  const org = { id: 'org-a', name: 'Pousada A', slug: 'a', niche: 'pousada', role: 'OWNER' };
   const unit = { id: 'unit-a', name: 'Suíte A' };
   const pagination = { page: 1, limit: 20, total: 1, totalPages: 1 };
   let block: { id: string; unitId: string; start: string; end: string; reason: string | null; status: string; unit: typeof unit } | null = null;
@@ -9,7 +9,7 @@ test('bloqueia noites, informa conflito e libera ao cancelar', async ({ page }) 
   let posts = 0;
   await page.route('**/api/auth/me', route => route.fulfill({ json: { id: 'user', email: 'a@example.test', role: 'admin' } }));
   await page.route('**/api/organizations', route => route.fulfill({ json: { organizations: [org] } }));
-  await page.route('**/api/organizations/current', route => route.fulfill({ json: { organization: org } }));
+  await page.route('**/api/organizations/' + org.id, route => route.fulfill({ json: { organization: org, role: org.role } }));
   await page.route('**/api/lodging/**', route => {
     const req = route.request();
     expect(req.headers()['x-organization-id']).toBe('org-a');
@@ -63,7 +63,7 @@ test('bloqueia noites, informa conflito e libera ao cancelar', async ({ page }) 
 });
 
 test('preserva o resultado ao falhar a atualização após registrar bloqueio', async ({ page }) => {
-  const org = { id: 'org-a', name: 'Pousada A', slug: 'a', niche: 'pousada', role: 'owner' };
+  const org = { id: 'org-a', name: 'Pousada A', slug: 'a', niche: 'pousada', role: 'OWNER' };
   const unit = { id: 'unit-a', name: 'Suíte A' };
   const pagination = { page: 1, limit: 20, total: 1, totalPages: 1 };
   let saved: Record<string, unknown> | null = null;
@@ -71,7 +71,7 @@ test('preserva o resultado ao falhar a atualização após registrar bloqueio', 
   let attempts = 0;
   await page.route('**/api/auth/me', route => route.fulfill({ json: { id: 'user', email: 'a@example.test', role: 'admin' } }));
   await page.route('**/api/organizations', route => route.fulfill({ json: { organizations: [org] } }));
-  await page.route('**/api/organizations/current', route => route.fulfill({ json: { organization: org } }));
+  await page.route('**/api/organizations/' + org.id, route => route.fulfill({ json: { organization: org, role: org.role } }));
   await page.route('**/api/lodging/**', route => {
     const req = route.request();
     const path = new URL(req.url()).pathname;

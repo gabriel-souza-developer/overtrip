@@ -3,9 +3,9 @@ import { expect, test, type Page } from '@playwright/test';
 async function authenticate(page: Page) {
   await page.addInitScript(() => {
     localStorage.setItem('auth_token', 'token');
-    localStorage.setItem('auth_user', JSON.stringify({ id: '1', email: 'admin@example.test', name: 'Admin', role: 'admin' }));
+    localStorage.setItem('auth_user', JSON.stringify({ id: '1', email: 'admin@example.test', name: 'Admin', role: 'admin', legacyAccess: true }));
   });
-  await page.route('**/api/auth/me', route => route.fulfill({ json: { id: '1', email: 'admin@example.test', role: 'admin' } }));
+  await page.route('**/api/auth/me', route => route.fulfill({ json: { id: '1', email: 'admin@example.test', role: 'admin', legacyAccess: true } }));
 }
 
 const pagination = { page: 1, total: 1, totalPages: 1, limit: 20 };
