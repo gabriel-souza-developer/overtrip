@@ -7,6 +7,10 @@ import { tripCreateSchema } from '../validators/index.js';
 export const DEFAULT_AI_MODEL = 'claude-opus-5-5'; // padrão da Anthropic
 /** Modelo Flash com plano gratuito (ai.google.dev/gemini-api/docs/pricing). */
 export const DEFAULT_GEMINI_MODEL = 'gemini-3.5-flash-lite';
+/** Modelo com camada gratuita (console.groq.com/docs/models); ajustável via GROQ_MODEL. */
+export const DEFAULT_GROQ_MODEL = 'llama-3.3-70b-versatile';
+/** Ver modelos e preços em docs.x.ai/docs/models; ajustável via XAI_MODEL. */
+export const DEFAULT_XAI_MODEL = 'grok-4-fast';
 const REQUEST_TIMEOUT_MS = 60_000;
 export const MAX_TEXT_LENGTH = 8000;
 const MAX_TOKENS = 4096;
@@ -26,7 +30,7 @@ export type StopReason = 'end' | 'refusal' | 'max_tokens' | 'other';
 
 /** Interface mínima de um provedor: texto de entrada -> objeto + motivo de parada + tokens. */
 export interface AiProvider {
-  name: 'gemini' | 'anthropic';
+  name: 'gemini' | 'anthropic' | 'groq' | 'xai';
   defaultModel: string;
   generate(input: { system: string; userText: string; model: string; schema?: z.ZodType }): Promise<{
     object: unknown;
@@ -379,18 +383,132 @@ export function createGeminiProvider(client: GeminiLikeClient): AiProvider {
   };
 }
 
-/** Escolhe o provedor pelo ambiente: Gemini > Anthropic > nenhum. A chave vem só do servidor. */
-export function createProviderFromEnv(env: NodeJS.ProcessEnv = process.env): AiProvider | null {
-  const geminiKey = env.GEMINI_API_KEY || env.GOOGLE_API_KEY;
-  if (geminiKey) {
-    const ai = new GoogleGenAI({
-      apiKey: geminiKey,
-      httpOptions: { timeout: REQUEST_TIMEOUT_MS, retryOptions: { attempts: 1 } },
-    });
-    return createGeminiProvider(ai as unknown as GeminiLikeClient);
+/** Parte de uma API compatível com a da OpenAI (Groq, xAI) que usamos. */
+function createOpenAiCompatibleProvider(config: {
+  name: 'groq' | 'xai';
+  baseUrl: string;
+  apiKey: string;
+  defaultModel: string;
+}): AiProvider {
+  return {
+    name: config.name,
+    defaultModel: config.defaultModel,
+    async generate({ system, userText, model, schema }) {
+      const jsonSchema = z.toJSONSchema(schema ?? aiDraftOutputSchema);
+      const res = await fetch(`${config.baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${config.apiKey}`, 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        body: JSON.stringify({
+          model,
+          max_tokens: MAX_TOKENS,
+          response_format: { type: 'json_object' },
+          messages: [
+            { role: 'system', content: `${system}\n\nResponda só com um JSON válido, usando exatamente estas chaves (schema): ${JSON.stringify(jsonSchema)}` },
+            { role: 'user', content: userText },
+          ],
+        }),
+      });
+      const data = await res.json().catch(() => null) as any;
+      if (!res.ok) {
+        const error = new Error(data?.error?.message || `HTTP ${res.status}`) as Error & { status?: number; code?: string };
+        error.status = res.status;
+        if (typeof data?.error?.code === 'string') error.code = data.error.code;
+        throw error;
+      }
+      const choice = data?.choices?.[0];
+      const finish: string | undefined = choice?.finish_reason;
+      const stopReason: StopReason =
+        finish === 'length' ? 'max_tokens' : finish === 'content_filter' ? 'refusal' : finish === 'stop' ? 'end' : 'other';
+      let object: unknown;
+      if (stopReason === 'end') {
+        try { object = JSON.parse(String(choice?.message?.content ?? '')); } catch { object = undefined; }
+      }
+      const usage = data?.usage
+        ? { inputTokens: data.usage.prompt_tokens ?? 0, outputTokens: data.usage.completion_tokens ?? 0 }
+        : undefined;
+      return { object, stopReason, usage };
+    },
+  };
+}
+
+export function createGroqProvider(apiKey: string, model: string = DEFAULT_GROQ_MODEL): AiProvider {
+  return createOpenAiCompatibleProvider({ name: 'groq', baseUrl: 'https://api.groq.com/openai/v1', apiKey, defaultModel: model });
+}
+
+export function createXaiProvider(apiKey: string, model: string = DEFAULT_XAI_MODEL): AiProvider {
+  return createOpenAiCompatibleProvider({ name: 'xai', baseUrl: 'https://api.x.ai/v1', apiKey, defaultModel: model });
+}
+
+/**
+ * Provedor principal com um de reserva: tenta `primary`; se ela falhar (erro de rede,
+ * limite, chave inválida etc.), tenta `fallback` com o próprio modelo padrão dela
+ * (nunca reaproveita um AI_MODEL pensado para a principal). Se as duas falharem,
+ * o erro relatado é o da principal.
+ */
+export function createFallbackProvider(primary: AiProvider, fallback: AiProvider): AiProvider {
+  return {
+    name: primary.name,
+    defaultModel: primary.defaultModel,
+    async generate(params) {
+      try {
+        return await primary.generate(params);
+      } catch (primaryError) {
+        try {
+          return await fallback.generate({ ...params, model: fallback.defaultModel });
+        } catch {
+          throw primaryError;
+        }
+      }
+    },
+  };
+}
+
+type ProviderId = 'groq' | 'xai' | 'gemini' | 'anthropic';
+const PROVIDER_IDS: readonly ProviderId[] = ['groq', 'xai', 'gemini', 'anthropic'];
+
+function buildNamedProvider(id: ProviderId, env: NodeJS.ProcessEnv): AiProvider | null {
+  switch (id) {
+    case 'groq':
+      return env.GROQ_API_KEY ? createGroqProvider(env.GROQ_API_KEY, env.GROQ_MODEL || DEFAULT_GROQ_MODEL) : null;
+    case 'xai':
+      return env.XAI_API_KEY ? createXaiProvider(env.XAI_API_KEY, env.XAI_MODEL || DEFAULT_XAI_MODEL) : null;
+    case 'gemini': {
+      const geminiKey = env.GEMINI_API_KEY || env.GOOGLE_API_KEY;
+      if (!geminiKey) return null;
+      const ai = new GoogleGenAI({
+        apiKey: geminiKey,
+        httpOptions: { timeout: REQUEST_TIMEOUT_MS, retryOptions: { attempts: 1 } },
+      });
+      return createGeminiProvider(ai as unknown as GeminiLikeClient);
+    }
+    case 'anthropic':
+      return env.ANTHROPIC_API_KEY ? createAnthropicProvider(createAnthropicClient(env.ANTHROPIC_API_KEY)) : null;
   }
-  if (env.ANTHROPIC_API_KEY) return createAnthropicProvider(createAnthropicClient(env.ANTHROPIC_API_KEY));
-  return null;
+}
+
+/**
+ * Escolhe o(s) provedor(es) pelo ambiente. A chave vem só do servidor.
+ * - Sem AI_PROVIDER_ORDER: comportamento de sempre, um só provedor (Gemini > Anthropic > nenhum).
+ * - Com AI_PROVIDER_ORDER (lista separada por vírgula, ex.: "groq,xai"): encadeia, nessa ordem,
+ *   os provedores citados que tiverem chave configurada, cada um como reserva do anterior.
+ */
+export function createProviderFromEnv(env: NodeJS.ProcessEnv = process.env): AiProvider | null {
+  const order = env.AI_PROVIDER_ORDER
+    ?.split(',')
+    .map((s) => s.trim())
+    .filter((s): s is ProviderId => (PROVIDER_IDS as readonly string[]).includes(s));
+
+  if (!order || order.length === 0) {
+    const geminiKey = env.GEMINI_API_KEY || env.GOOGLE_API_KEY;
+    if (geminiKey) return buildNamedProvider('gemini', env);
+    if (env.ANTHROPIC_API_KEY) return buildNamedProvider('anthropic', env);
+    return null;
+  }
+
+  const chain = order.map((id) => buildNamedProvider(id, env)).filter((p): p is AiProvider => p !== null);
+  if (chain.length === 0) return null;
+  return chain.reduceRight<AiProvider | null>((acc, cur) => (acc ? createFallbackProvider(cur, acc) : cur), null);
 }
 
 /** Cliente real da Anthropic. */

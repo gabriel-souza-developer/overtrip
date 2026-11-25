@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import {
-  createGeminiProvider, sanitizeDraft, createProviderFromEnv, describeProviderError, generateTripDraft, AiDraftError, DEFAULT_GEMINI_MODEL, SYSTEM_PROMPT,
+  createGeminiProvider, sanitizeDraft, createProviderFromEnv, describeProviderError, generateTripDraft, AiDraftError, DEFAULT_GEMINI_MODEL,
+  DEFAULT_GROQ_MODEL, DEFAULT_XAI_MODEL, SYSTEM_PROMPT, createGroqProvider, createXaiProvider, createFallbackProvider, type AiProvider,
 } from '../src/services/aiTripDraft.js';
 
 const base = {
@@ -29,6 +30,116 @@ describe('seleção de provedor', () => {
     [{}, null],
   ])('%j -> %s', (env, expected) => {
     expect(createProviderFromEnv(env as NodeJS.ProcessEnv)?.name ?? null).toBe(expected);
+  });
+
+  it('sem AI_PROVIDER_ORDER, GROQ_API_KEY/XAI_API_KEY sozinhas não ativam nada (compatibilidade)', () => {
+    expect(createProviderFromEnv({ GROQ_API_KEY: 'g', XAI_API_KEY: 'x' } as NodeJS.ProcessEnv)).toBeNull();
+  });
+
+  it.each([
+    [{ AI_PROVIDER_ORDER: 'groq,xai', GROQ_API_KEY: 'g', XAI_API_KEY: 'x' }, 'groq'],
+    [{ AI_PROVIDER_ORDER: 'xai,groq', GROQ_API_KEY: 'g', XAI_API_KEY: 'x' }, 'xai'],
+    [{ AI_PROVIDER_ORDER: 'groq,anthropic', ANTHROPIC_API_KEY: 'a' }, 'anthropic'],
+    [{ AI_PROVIDER_ORDER: 'groq,xai' }, null],
+    [{ AI_PROVIDER_ORDER: 'bicho-invalido,groq', GROQ_API_KEY: 'g' }, 'groq'],
+  ])('AI_PROVIDER_ORDER %j -> %s', (env, expected) => {
+    expect(createProviderFromEnv(env as NodeJS.ProcessEnv)?.name ?? null).toBe(expected);
+  });
+});
+
+describe('provedor com reserva (createFallbackProvider)', () => {
+  function stubProvider(name: AiProvider['name'], behavior: 'ok' | 'throw'): { provider: AiProvider; calls: any[] } {
+    const calls: any[] = [];
+    return {
+      calls,
+      provider: {
+        name,
+        defaultModel: `modelo-${name}`,
+        async generate(params) {
+          calls.push(params);
+          if (behavior === 'throw') throw Object.assign(new Error(`falhou-${name}`), { status: 500 });
+          return { object: { ...base, title: `ok-${name}` }, stopReason: 'end' as const };
+        },
+      },
+    };
+  }
+
+  it('usa a principal quando ela funciona, sem chamar a reserva', async () => {
+    const primary = stubProvider('groq', 'ok');
+    const fallback = stubProvider('xai', 'ok');
+    const chained = createFallbackProvider(primary.provider, fallback.provider);
+    const out = await generateTripDraft(chained, 'texto');
+    expect(out.draft.title).toBe('ok-groq');
+    expect(fallback.calls).toHaveLength(0);
+  });
+
+  it('cai para a reserva quando a principal falha, usando o modelo padrão da reserva (não o da principal)', async () => {
+    const primary = stubProvider('groq', 'throw');
+    const fallback = stubProvider('xai', 'ok');
+    const chained = createFallbackProvider(primary.provider, fallback.provider);
+    const out = await generateTripDraft(chained, 'texto', 'modelo-escolhido-para-a-principal');
+    expect(out.draft.title).toBe('ok-xai');
+    expect(primary.calls[0].model).toBe('modelo-escolhido-para-a-principal');
+    expect(fallback.calls[0].model).toBe('modelo-xai');
+  });
+
+  it('se as duas falharem, o erro relatado é o da principal', async () => {
+    const primary = stubProvider('groq', 'throw');
+    const fallback = stubProvider('xai', 'throw');
+    const chained = createFallbackProvider(primary.provider, fallback.provider);
+    const e = await generateTripDraft(chained, 'texto').catch((x) => x);
+    expect(e).toBeInstanceOf(AiDraftError);
+    expect(e.status).toBe(502);
+  });
+});
+
+describe('provedores compatíveis com a API da OpenAI (Groq e xAI)', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it.each([
+    ['groq', createGroqProvider, DEFAULT_GROQ_MODEL, 'https://api.groq.com/openai/v1/chat/completions'],
+    ['xai', createXaiProvider, DEFAULT_XAI_MODEL, 'https://api.x.ai/v1/chat/completions'],
+  ] as const)('%s: chama o endpoint certo, com chave e corpo em formato OpenAI; passa por sanitizeDraft', async (name, create, defaultModel, url) => {
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        choices: [{ finish_reason: 'stop', message: { content: JSON.stringify({ ...base, title: 'Trilha', priceValue: 50 }) } }],
+        usage: { prompt_tokens: 12, completion_tokens: 7 },
+      }),
+    }));
+    vi.stubGlobal('fetch', fetchMock);
+    const provider = create('minha-chave');
+    expect(provider.defaultModel).toBe(defaultModel);
+    const usages: any[] = [];
+    const out = await generateTripDraft(provider, 'oi', undefined, (u) => usages.push(u));
+    expect(out.draft).toMatchObject({ title: 'Trilha', priceValue: 50 });
+    expect(usages).toEqual([{ inputTokens: 12, outputTokens: 7 }]);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [calledUrl, init] = fetchMock.mock.calls[0];
+    expect(calledUrl).toBe(url);
+    expect(init.headers.Authorization).toBe('Bearer minha-chave');
+    const body = JSON.parse(init.body);
+    expect(body.model).toBe(defaultModel);
+    expect(body.response_format).toEqual({ type: 'json_object' });
+    expect(body.messages[1].content).toContain('oi');
+  });
+
+  it('mapeia finish_reason: length -> cortada, content_filter -> recusa', async () => {
+    for (const [finish, expected] of [['length', 'cortada'], ['content_filter', 'não pôde analisar']] as const) {
+      vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({ choices: [{ finish_reason: finish }] }) })));
+      const e = await generateTripDraft(createGroqProvider('k'), 'x').catch((x) => x);
+      expect(e.message).toContain(expected);
+    }
+  });
+
+  it('HTTP não-ok vira erro com status (ex.: 429 -> limite gratuito), sem vazar a mensagem do provedor', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 429, json: async () => ({ error: { message: 'segredo-do-provedor', code: 'rate_limit_exceeded' } }) })));
+    const e = await generateTripDraft(createGroqProvider('k'), 'x').catch((x) => x);
+    expect(e).toBeInstanceOf(AiDraftError);
+    expect(e.message).toBe('A IA gratuita atingiu o limite de uso agora. Tente em alguns minutos ou preencha à mão.');
+    expect(e.message).not.toContain('segredo');
   });
 });
 

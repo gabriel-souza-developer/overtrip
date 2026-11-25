@@ -25,7 +25,11 @@ export interface AiRoutesDeps {
 let cachedProvider: { signature: string; provider: AiProvider | null } | null = null;
 
 export function envProvider(): AiProvider | null {
-  const signature = [process.env.GEMINI_API_KEY, process.env.GOOGLE_API_KEY, process.env.ANTHROPIC_API_KEY].join('|');
+  const signature = [
+    process.env.GEMINI_API_KEY, process.env.GOOGLE_API_KEY, process.env.ANTHROPIC_API_KEY,
+    process.env.GROQ_API_KEY, process.env.GROQ_MODEL, process.env.XAI_API_KEY, process.env.XAI_MODEL,
+    process.env.AI_PROVIDER_ORDER,
+  ].join('|');
   if (!cachedProvider || cachedProvider.signature !== signature) {
     cachedProvider = { signature, provider: createProviderFromEnv() };
   }
