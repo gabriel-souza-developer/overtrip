@@ -1,5 +1,13 @@
 # Estado da produção na Oracle
 
+## Planejamento de destinos e edição financeira (26 de novembro de 2026)
+
+- Publicados API e painel do commit `a45739e`; pacote SHA-256 `81750126bcec9e94147983d9214d55670c1a808025518a0a402ad7117dd714ef`, compilado na VM. Sem migração. A lista de destinos mostra os que não têm saída realizada registrada; o financeiro permite editar e excluir registros individualmente. A sincronização deixou de aparecer no painel.
+- Preservados o código e o painel anteriores em `/srv/overtrip/retorno-a45739e-20261126-062031` e o backup SQLite validado em `/var/backups/overtrip/pre-a45739e-20261126-062031.db.gz`.
+- A pedido do usuário, na saída de Pureza de 17/05/2026 foi informado R$ 130 por pessoa; na saída da Cachoeira do Pinga de 20/09/2026, transporte e extras foram registrados como zero. Passageiros e demais valores desconhecidos permaneceram vazios. Backup imediatamente anterior à edição: `/var/backups/overtrip/pre-finance-values-20261126-062047.db.gz`. Abril/2026 continua desconsiderado por não ter ocorrido.
+- A conciliação das saídas completas permanece em R$ 1.911 (2024), R$ 1.100 (2025) e R$ 170 (2026). Registros automáticos do site são marcados para revisão; vários pontos no mesmo dia podem representar uma única viagem e não foram apagados automaticamente.
+- Validação local: 1.342 testes passaram, 6 ignorados; dois testes de interface passaram, tipos e builds aprovados. Após publicar, API e Caddy ativos, integridade SQLite `ok`, endpoints públicos 200 e privados sem sessão 401. O bundle servido contém “Destinos a conhecer” e não contém o botão “Sincronizar com o site”. Não foi feito login real em produção.
+
 ## Painel financeiro e cortesias nas saídas (26 de novembro de 2026, 05:01 UTC)
 
 - Publicados API e painel do commit `1536511` (inclui `f518115`), compilados na VM em `/srv/overtrip/stage-1536511-20261126-050022`. Pacote por `git archive`, SHA-256 `22c53aff94484c33473d4659055ffd99213768956cb92e641f579a185fb1c6af` conferido na VM; sem banco, `.env` ou planilha no pacote. Site público não foi trocado.
