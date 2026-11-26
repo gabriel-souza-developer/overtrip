@@ -76,7 +76,7 @@ export default function Dashboard() {
 
       <TripCalendar month={calendarMonth} onMonthChange={setCalendarMonth} />
 
-      <SeasonalGuide month={calendarMonth} />
+      <SeasonalGuide month={calendarMonth} onMonthChange={setCalendarMonth} />
 
       <section aria-labelledby="acoes-title" className="rounded-2xl border border-surface-200 bg-white p-5 sm:p-6 shadow-sm">
         <h2 id="acoes-title" className="mb-4 text-lg font-bold text-surface-900">Ações rápidas</h2>
