@@ -1,5 +1,13 @@
 # Estado da produção na Oracle
 
+## Planejamento sazonal para o Nordeste (26 de novembro de 2026)
+
+- Publicado o painel estático do commit `4d46b24`. Pacote SHA-256 `9f65364ce6420ac22a2376d7f7a1e3f4b5ef14b323dcf9b32dc67f9cca7072cb`; API e banco não mudaram.
+- O seletor de mês e ano do planejamento está ligado ao calendário do Início nos dois sentidos. A seleção de estado cobre os nove estados do Nordeste; cada recorte mostra a fonte que sustenta sua referência sazonal e o link estadual de previsão/monitoramento. O layout segue uma organização de dashboard inspirada no [Shadcn Dashboard do v0](https://v0.app/templates/Pf7lw1nypu5).
+- As orientações distinguem zonas dentro dos estados e identificam recortes regionais ou operacionais quando a fonte não apresenta uma climatologia uniforme. O ano serve para organizar o planejamento; a tela deixa claro que os dados sazonais não são previsão daquele ano.
+- A versão anterior do painel está preservada em `/srv/overtrip/retorno-season-ne-20261126-190043/admin`. Nenhum backup ou migração de banco foi necessário.
+- Validação de build e tipos do frontend aprovada. Após publicação, `/admin/` e `/health` responderam 200, API e assistente ficaram ativos e o journal da API não mostrou erro recente. Não foram executados testes automatizados nesta alteração.
+
 ## Guia sazonal, filtro de visitas e calendário (26 de novembro de 2026)
 
 - Publicado o commit `1593f4c` (inclui a correção do calendário em `2173319`) na API e no painel. SHA-256 do pacote de release: `c276b08a89d1fe8114b45f7dec9aecc92d553cad832b3eb5ad75721b0b6da2c9`. O pacote não incluiu banco de dados, credenciais ou planilhas; o site público não foi substituído.
