@@ -95,6 +95,10 @@ describe('banco de destinos', () => {
     expect(notVisited.data.map((row: { id: string }) => row.id)).not.toContain(destination.id);
 
     const outingId = body.outings[0].id;
+    expect((await call(`/${destination.id}/outings`, adminToken, 'POST', { passengers: 2, courtesySeats: 3 })).status).toBe(400);
+    expect((await call(`/${destination.id}/outings/${outingId}`, adminToken, 'PUT', { courtesySeats: 22 })).status).toBe(400);
+    expect((await call(`/${destination.id}/outings/${outingId}`, adminToken, 'PUT', { courtesySeats: 2 })).status).toBe(200);
+    expect((await call(`/${destination.id}/outings/${outingId}`, adminToken, 'PUT', { passengers: 1 })).status).toBe(400);
     const edited = await (await call(`/${destination.id}/outings/${outingId}`, adminToken, 'PUT', { passengers: null })).json();
     expect(edited.outings[0]).toMatchObject({ revenueCents: null, resultCents: null, expenseCents: 75000 });
     expect((await call(`/${destination.id}/outings/${outingId}`, adminToken, 'DELETE')).status).toBe(200);

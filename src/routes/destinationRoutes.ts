@@ -183,6 +183,12 @@ function outingData(data: z.infer<typeof outingCreateSchema>) {
   return result;
 }
 
+function validateCourtesy(passengers: number | null | undefined, courtesySeats: number | null | undefined) {
+  if (passengers != null && courtesySeats != null && courtesySeats > passengers) {
+    throw AppError.badRequest('Cortesias não podem superar o total de passageiros.');
+  }
+}
+
 // Toda mudança numa saída avança a versão do destino na mesma transação,
 // para quem estiver com o formulário do destino aberto perceber a mudança.
 async function touch(tx: Prisma.TransactionClient, destinationId: string, previous: Date) {
@@ -192,6 +198,7 @@ async function touch(tx: Prisma.TransactionClient, destinationId: string, previo
 router.post('/:id/outings', asyncHandler(async (req: AuthRequest, res: Response) => {
   const id = idSchema.parse(req.params.id);
   const data = outingCreateSchema.parse(req.body);
+  validateCourtesy(data.passengers, data.courtesySeats);
   const row = await prisma.$transaction(async (tx) => {
     const destination = await findOwn(tx, id);
     await tx.destinationOuting.create({ data: { destinationId: id, ...outingData(data) } });
@@ -207,6 +214,9 @@ router.put('/:id/outings/:outingId', asyncHandler(async (req: AuthRequest, res: 
   const data = outingUpdateSchema.parse(req.body);
   const row = await prisma.$transaction(async (tx) => {
     const destination = await findOwn(tx, id);
+    const existing = await tx.destinationOuting.findFirst({ where: { id: outingId, destinationId: id }, select: { passengers: true, courtesySeats: true } });
+    if (!existing) throw AppError.notFound('Saída não encontrada');
+    validateCourtesy(data.passengers === undefined ? existing.passengers : data.passengers, data.courtesySeats === undefined ? existing.courtesySeats : data.courtesySeats);
     const { count } = await tx.destinationOuting.updateMany({ where: { id: outingId, destinationId: id }, data: outingData(data) });
     if (count !== 1) throw AppError.notFound('Saída não encontrada');
     await touch(tx, id, destination.updatedAt);

@@ -1,7 +1,7 @@
 import React from 'react';
 import { brandUrl } from '../lib/basePath';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Activity, Compass, House, Images, MapPinned, Plane, Settings as SettingsIcon, Share2, Ticket, UserCog, UsersRound } from 'lucide-react';
+import { Activity, Compass, House, Wallet, Images, MapPinned, Plane, Settings as SettingsIcon, Share2, Ticket, UserCog, UsersRound } from 'lucide-react';
 import { useAuth } from '../App';
 import { useToast } from '../hooks/useToast';
 import PanelShell from './PanelShell';
@@ -10,9 +10,10 @@ const navItems = [
   { path: '/dashboard', label: 'Início', icon: House },
   { path: '/trips', label: 'Viagens', icon: Plane },
   { path: '/visits', label: 'Destinos visitados', icon: MapPinned },
-  { path: '/destination-bank', label: 'Banco de destinos', icon: Compass, adminOnly: true },
+  { path: '/destination-bank', label: 'Destinos e saídas', icon: Compass, adminOnly: true },
   { path: '/leads', label: 'Interessados', icon: UsersRound, adminOnly: true },
   { path: '/reservations', label: 'Reservas', icon: Ticket, adminOnly: true },
+  { path: '/finance', label: 'Financeiro', icon: Wallet, adminOnly: true },
   { path: '/social-posts', label: 'Redes sociais', icon: Share2, adminOnly: true },
   { path: '/gallery', label: 'Galeria de memórias', icon: Images },
   { path: '/settings', label: 'Configurações', icon: SettingsIcon, adminOnly: true },

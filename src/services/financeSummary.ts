@@ -133,8 +133,20 @@ export function summarizeFinanceOutings(rows: FinanceOutingInput[], year: number
 
 type RawClient = Pick<Prisma.TransactionClient, '$queryRaw'>;
 
+// Vencimentos são dias civis armazenados ao meio-dia UTC. Usar o calendário
+// de São Paulo evita considerar uma parcela vencida antes da meia-noite local.
+const financeDayFormatter = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit',
+});
+
+function startOfFinanceDay(now: Date): number {
+  const parts = financeDayFormatter.formatToParts(now);
+  const part = (type: Intl.DateTimeFormatPartTypes) => Number(parts.find((item) => item.type === type)?.value);
+  return Date.UTC(part('year'), part('month') - 1, part('day'));
+}
+
 export async function summarizeReservations(client: RawClient, accessJoin: Prisma.Sql, accessWhere: Prisma.Sql, now = new Date()) {
-  const startOfToday = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const startOfToday = startOfFinanceDay(now);
   const in30Days = startOfToday + 31 * 86400000;
   const num = (value: unknown) => Number(value ?? 0);
 

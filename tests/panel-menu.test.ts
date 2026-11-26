@@ -16,9 +16,10 @@ const expected = [
   { path: '/dashboard', label: 'Início', icon: 'House', adminOnly: false },
   { path: '/trips', label: 'Viagens', icon: 'Plane', adminOnly: false },
   { path: '/visits', label: 'Destinos visitados', icon: 'MapPinned', adminOnly: false },
-  { path: '/destination-bank', label: 'Banco de destinos', icon: 'Compass', adminOnly: true },
+  { path: '/destination-bank', label: 'Destinos e saídas', icon: 'Compass', adminOnly: true },
   { path: '/leads', label: 'Interessados', icon: 'UsersRound', adminOnly: true },
   { path: '/reservations', label: 'Reservas', icon: 'Ticket', adminOnly: true },
+  { path: '/finance', label: 'Financeiro', icon: 'Wallet', adminOnly: true },
   { path: '/social-posts', label: 'Redes sociais', icon: 'Share2', adminOnly: true },
   { path: '/gallery', label: 'Galeria de memórias', icon: 'Images', adminOnly: false },
   { path: '/settings', label: 'Configurações', icon: 'SettingsIcon', adminOnly: true },
@@ -28,7 +29,7 @@ const expected = [
 
 // Tela de cada rota; o Início tem cabeçalho próprio ("Visão geral"), fora do PageHeader.
 const pages: Record<string, string> = {
-  '/trips': 'Trips', '/visits': 'Visits', '/destination-bank': 'DestinationBank', '/leads': 'Leads', '/reservations': 'Reservations',
+  '/trips': 'Trips', '/visits': 'Visits', '/destination-bank': 'DestinationBank', '/leads': 'Leads', '/reservations': 'Reservations', '/finance': 'Finance',
   '/social-posts': 'SocialPosts', '/gallery': 'Gallery', '/settings': 'Settings', '/users': 'Users', '/system': 'SystemHealth',
 };
 

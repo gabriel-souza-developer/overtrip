@@ -4,6 +4,8 @@ import type { AddressInfo } from 'node:net';
 import { PrismaClient } from '@prisma/client';
 import app from '../src/app.js';
 import { generateToken } from '../src/middleware/auth.js';
+import { summarizeReservations } from '../src/services/financeSummary.js';
+import { currentReservationAccessSql } from '../src/services/legacyTourismScope.js';
 
 // Painel financeiro (/api/finance/summary): só administradores do painel
 // OVERTRIP; saídas do banco de destinos e reservas do escopo legado, nunca de
@@ -16,6 +18,8 @@ let baseUrl: string;
 let adminToken: string;
 let userToken: string;
 let orgId: string;
+// Outras suítes podem deixar reservas no mesmo banco: compara contra a base medida antes.
+let baseline: Awaited<ReturnType<typeof summarizeReservations>>;
 const userIds: string[] = [];
 
 const get = (path: string, token: string | null) => fetch(`${baseUrl}/api/finance${path}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
@@ -45,6 +49,8 @@ beforeAll(async () => {
     organizationId, title: `${TAG} ${key}`, category: 'Teste', description: 'x', city: 'C', region: 'PB', startDateISO: new Date('2099-12-01T06:00:00-03:00'),
     intensityClass: 'leve', includes: '[]', media: '[]', storedIdentity: `${TAG}:${key}`,
   } });
+  const access = currentReservationAccessSql();
+  baseline = await summarizeReservations(prisma, access.join, access.where);
   const trip = await makeTrip(null, 'trip');
   const foreignTrip = await makeTrip(orgId, 'foreign-trip');
   await prisma.reservation.create({ data: { tripId: trip.id, customerName: 'Cliente A', seats: 2, totalCents: 30000, installments: { create: [
@@ -100,12 +106,40 @@ describe('painel financeiro', () => {
 
   it('resume reservas e parcelas do escopo legado, sem canceladas nem outra empresa', async () => {
     const { reservations } = await (await get('/summary', adminToken)).json();
-    expect(reservations).toMatchObject({
-      activeReservations: 1, seats: 2, contractedCents: 30000, receivedCents: 10000, receivableCents: 20000,
-      openInstallmentsCents: 20000, overdueCents: 10000, overdueInstallments: 1, dueNext30DaysCents: 10000,
-    });
-    expect(reservations.pendingInstallments).toHaveLength(2);
-    expect(reservations.pendingInstallments[0]).toMatchObject({ customerName: 'Cliente A', amountCents: 10000, overdue: true });
+    const delta = (key: 'activeReservations' | 'seats' | 'contractedCents' | 'receivedCents' | 'openInstallmentsCents' | 'overdueCents' | 'overdueInstallments' | 'dueNext30DaysCents') => reservations[key] - baseline[key];
+    expect({
+      activeReservations: delta('activeReservations'), seats: delta('seats'), contractedCents: delta('contractedCents'), receivedCents: delta('receivedCents'),
+      openInstallmentsCents: delta('openInstallmentsCents'), overdueCents: delta('overdueCents'), overdueInstallments: delta('overdueInstallments'), dueNext30DaysCents: delta('dueNext30DaysCents'),
+    }).toEqual({ activeReservations: 1, seats: 2, contractedCents: 30000, receivedCents: 10000, openInstallmentsCents: 20000, overdueCents: 10000, overdueInstallments: 1, dueNext30DaysCents: 10000 });
+    expect(reservations.receivableCents).toBe(Math.max(0, reservations.contractedCents - reservations.receivedCents));
+    const ours = reservations.pendingInstallments.filter((item: { customerName: string }) => item.customerName === 'Cliente A');
+    expect(ours).toHaveLength(2);
+    expect(ours[0]).toMatchObject({ amountCents: 10000, overdue: true });
     expect(JSON.stringify(reservations)).not.toContain('Outra empresa');
+  });
+
+  it('classifica vencimentos pelo dia de São Paulo na virada do UTC', async () => {
+    const trip = await prisma.trip.findFirstOrThrow({ where: { storedIdentity: `${TAG}:trip` } });
+    const reservation = await prisma.reservation.create({ data: {
+      tripId: trip.id, customerName: 'Teste de datas', totalCents: 40000,
+      installments: { create: ['2026-11-24', '2026-11-25', '2026-12-25', '2026-12-26'].map((date) => ({ amountCents: 10000, dueDate: day(date) })) },
+    } });
+    try {
+      const access = currentReservationAccessSql();
+      // 22h de 25/11 em São Paulo, apesar de já ser 26/11 em UTC.
+      const beforeMidnight = await summarizeReservations(prisma, access.join, access.where, new Date('2026-11-26T01:00:00Z'));
+      const ours = beforeMidnight.pendingInstallments.filter((item) => item.reservationId === reservation.id);
+      expect(ours.map((item) => [item.dueDate.slice(0, 10), item.overdue])).toEqual([
+        ['2026-11-24', true], ['2026-11-25', false], ['2026-12-25', false],
+      ]);
+      const afterMidnight = await summarizeReservations(prisma, access.join, access.where, new Date('2026-11-26T03:00:00Z'));
+      const nextDay = afterMidnight.pendingInstallments.filter((item) => item.reservationId === reservation.id);
+      expect(nextDay.map((item) => [item.dueDate.slice(0, 10), item.overdue])).toEqual([
+        ['2026-11-24', true], ['2026-11-25', true], ['2026-12-25', false], ['2026-12-26', false],
+      ]);
+      expect(afterMidnight.overdueCents - beforeMidnight.overdueCents).toBe(10000);
+    } finally {
+      await prisma.reservation.delete({ where: { id: reservation.id } });
+    }
   });
 });

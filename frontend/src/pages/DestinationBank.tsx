@@ -30,7 +30,8 @@ const dayBR = (day: string) => day.split('-').reverse().join('/');
 function SiteSection({ destination }: { destination: Destination }) {
   const { trips, visits } = destination.site;
   return <div>
-    <h3 className="text-sm font-semibold text-surface-900">No site</h3>
+    <h3 className="text-sm font-semibold text-surface-900">Registros vinculados ao site</h3>
+    <p className="mt-1 text-xs text-surface-600">Viagens e pontos do mapa vinculados a este destino. Uma mesma saída pode aparecer aqui e no histórico abaixo.</p>
     {trips.length === 0 && visits.length === 0
       ? <p className="mt-1 text-sm text-surface-600">Nenhuma viagem ou ponto do mapa ligado a este destino. Use “Sincronizar com o site” depois de cadastrar uma viagem ou visita.</p>
       : <ul className="mt-2 space-y-2">
@@ -56,14 +57,14 @@ function Summary({ destination }: { destination: Destination }) {
   const parts = [
     `${summary.outingsCount === 1 ? '1 saída' : `${summary.outingsCount} saídas`}${summary.lastOutingDate ? ` · última em ${formatDateBR(summary.lastOutingDate)}` : ''}`,
     summary.averagePassengers !== null ? `média de ${summary.averagePassengers} pessoas` : null,
-    summary.averagePricePerPersonCents !== null ? `${formatMoney(summary.averagePricePerPersonCents)} por pessoa` : null,
+    summary.averagePricePerPersonCents !== null ? `preço médio ${formatMoney(summary.averagePricePerPersonCents)} por pessoa` : null,
     summary.averageResultCents !== null ? `resultado médio ${formatMoney(summary.averageResultCents)}` : null,
   ].filter(Boolean);
   return <p className="text-xs text-surface-600">{parts.join(' · ')}</p>;
 }
 
 export default function DestinationBank() {
-  useDocumentTitle('Banco de destinos');
+  useDocumentTitle('Destinos e saídas');
   const [rows, setRows] = useState<Destination[]>([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 30, total: 0, totalPages: 0 });
   const [filters, setFilters] = useState<DestinationFilters>({ sort: 'name' });
@@ -183,8 +184,8 @@ export default function DestinationBank() {
 
   return <div className="space-y-6">
     <PageHeader
-      title="Banco de destinos"
-      description="Destinos já visitados e possíveis destinos, com distância, nível, links e o histórico de cada saída. Viagens e pontos do mapa do site aparecem em cada destino. Uso interno: as notas e os valores daqui não vão para o site."
+      title="Destinos e saídas"
+      description="Planeje destinos e consulte o histórico de saídas. Os registros do site aparecem vinculados para consulta; notas e valores deste cadastro são internos."
       actions={<>
         <Button icon={<RefreshCw className="w-4 h-4" aria-hidden="true" />} loading={syncing} loadingText="Sincronizando..." onClick={() => void syncSite()}>Sincronizar com o site</Button>
         <Button variant="primary" icon={<Plus className="w-4 h-4" aria-hidden="true" />} onClick={openCreate}>Novo destino</Button>
@@ -351,13 +352,14 @@ export default function DestinationBank() {
         {outingError && <div className="alert-error" role="alert">{outingError}</div>}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field id="outing-date" label="Data"><input id="outing-date" type="date" className="input" value={outingForm.date} onChange={(event) => setOutingForm({ ...outingForm, date: event.target.value })} /></Field>
-          <Field id="outing-passengers" label="Passageiros"><input id="outing-passengers" className="input" inputMode="numeric" value={outingForm.passengers} onChange={(event) => setOutingForm({ ...outingForm, passengers: event.target.value })} /></Field>
-          <Field id="outing-courtesy" label="Cortesias" hint="Lugares que não pagam (ex.: organizador)."><input id="outing-courtesy" className="input" inputMode="numeric" value={outingForm.courtesySeats} onChange={(event) => setOutingForm({ ...outingForm, courtesySeats: event.target.value })} /></Field>
+          <Field id="outing-passengers" label="Passageiros" hint="Total de pessoas, incluindo cortesias."><input id="outing-passengers" className="input" inputMode="numeric" value={outingForm.passengers} onChange={(event) => setOutingForm({ ...outingForm, passengers: event.target.value })} /></Field>
+          <Field id="outing-courtesy" label="Cortesias" hint="Pessoas que não pagam. Em branco conta como zero."><input id="outing-courtesy" className="input" inputMode="numeric" value={outingForm.courtesySeats} onChange={(event) => setOutingForm({ ...outingForm, courtesySeats: event.target.value })} /></Field>
           <Field id="outing-price" label="Valor por pessoa (R$)"><input id="outing-price" className="input" inputMode="decimal" value={outingForm.pricePerPerson} onChange={(event) => setOutingForm({ ...outingForm, pricePerPerson: event.target.value })} placeholder="65,00" /></Field>
           <Field id="outing-transport" label="Transporte (R$)"><input id="outing-transport" className="input" inputMode="decimal" value={outingForm.transportCost} onChange={(event) => setOutingForm({ ...outingForm, transportCost: event.target.value })} /></Field>
           <Field id="outing-extra" label="Taxas extras (R$)" hint="Entradas, guia, estacionamento."><input id="outing-extra" className="input" inputMode="decimal" value={outingForm.extraCost} onChange={(event) => setOutingForm({ ...outingForm, extraCost: event.target.value })} /></Field>
           <Field id="outing-supplier" label="Transporte contratado"><input id="outing-supplier" className="input" value={outingForm.supplier} onChange={(event) => setOutingForm({ ...outingForm, supplier: event.target.value })} /></Field>
         </div>
+        <p className="text-xs text-surface-600">Se um dos custos estiver preenchido, o outro em branco conta como zero. Para registrar uma saída sem custos, informe zero.</p>
         <Field id="outing-notes" label="Observações"><textarea id="outing-notes" className="input" rows={2} value={outingForm.notes} onChange={(event) => setOutingForm({ ...outingForm, notes: event.target.value })} /></Field>
         {outingPreview && <dl className="grid grid-cols-3 gap-2 rounded-xl bg-surface-50 p-3 text-sm" aria-live="polite">
           <div><dt className="text-xs text-surface-600">Receita</dt><dd className="font-semibold tabular-nums">{formatMoney(outingPreview.revenueCents)}</dd></div>
