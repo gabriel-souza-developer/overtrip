@@ -1,5 +1,11 @@
 # Estado da produção na Oracle
 
+## Cópia externa e ensaio de restauração (26 de novembro de 2026)
+
+- Executado com sucesso o serviço de backup existente; o banco, os uploads e a mídia social foram copiados para `/home/ztsu-pc/backups-overtrip/overtrip-externo-20261126-073157.tar.gz` (arquivo privado). SHA-256 do pacote: `77c6a7290c2632e8f0141c03d96b507f668bfc114804e7d27e37c585669e3528`.
+- Em restauração temporária local, o banco retornou `integrity_check: ok` e nenhuma violação em `foreign_key_check`; o SHA-256 do banco compactado conferiu com o original na Oracle. O pacote contém 28 arquivos de uploads e nenhum arquivo de mídia social. A restauração testou extração e integridade, sem trocar o banco de produção.
+- É um snapshot pontual no computador, não uma sincronização externa automática; o temporizador automático permanece na VM.
+
 ## Planejamento de destinos e edição financeira (26 de novembro de 2026)
 
 - Publicados API e painel do commit `a45739e`; pacote SHA-256 `81750126bcec9e94147983d9214d55670c1a808025518a0a402ad7117dd714ef`, compilado na VM. Sem migração. A lista de destinos mostra os que não têm saída realizada registrada; o financeiro permite editar e excluir registros individualmente. A sincronização deixou de aparecer no painel.
@@ -343,3 +349,11 @@ Registro atualizado em 10 de novembro de 2026 após publicação do pacote princ
 - O site tenta carregar `/trips.json` como alternativa quando a API falha (`js/data.js`), mas esse caminho está bloqueado na Oracle. Assim, não há alternativa de viagens funcional durante uma indisponibilidade da API. Avaliar um snapshot público sanitizado antes de mudar essa política; não expor o arquivo privado existente.
 
 As seis vulnerabilidades relatadas por `npm ci` eram de dependências de desenvolvimento na verificação anterior; `npm audit --omit=dev` no commit preparado retornou zero. Reavalie as dependências antes da publicação.
+
+## Viagens com vários destinos e confirmação de realização (26 de novembro de 2026)
+
+- Publicado API e painel do commit `7ff3987`, compilado em `/srv/overtrip/app`; SHA-256 do pacote: `f3cf87b76257c45742c05de8f22d3a54eb8c6723bb6ff19b4c1fd35e06213d33`. Migração aditiva `20261128010000_outing_trip_stops_status`; aplicada após backup validado `/var/backups/overtrip/pre-7ff3987-final-20261126-091320.db.gz`. Código anterior preservado em `/srv/overtrip/retorno-7ff3987-20261126-085557`.
+- Antes da migração, cópia de ensaio no diretório privado `/srv/overtrip/rehearsal-7ff3987` foi migrada; script de agrupamento em modo simulação identificou os três destinos de 15/08/2026 sem ambiguidade.
+- Após migrar, a mesma rotina agrupou Dique de Cabedelo como principal, Fortaleza de Santa Catarina e Praia Formosa como paradas. Não alterou valores financeiros nem marcou realização. A integridade SQLite retornou `ok` e `foreign_key_check` não encontrou violações.
+- API e Caddy ativos; `/`, `/admin/` e `/health` 200, rotas privadas sem sessão 401; journal sem avisos no período da publicação. A equipe precisa abrir o Financeiro e confirmar o status da viagem quando apropriado.
+- Validação local registrada pelo Claude: 1.356 testes Vitest aprovados, 6 ignorados, 3 cenários Playwright, tipos e builds da API e painel aprovados. Nesta sessão foram refeitos os builds, typecheck e o cenário `finance-trip-confirm`.
