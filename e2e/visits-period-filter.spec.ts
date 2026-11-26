@@ -51,7 +51,7 @@ test('Início: orientação sazonal acompanha o mês do calendário e avisa que 
   const guide = page.getByRole('region', { name: /O que costuma funcionar em/ });
   await expect(guide.getByRole('heading', { name: 'O que costuma funcionar em Novembro de 2026' })).toBeVisible();
   await expect(guide.getByText('Orientação climatológica, não é previsão')).toBeVisible();
-  await expect(guide.getByText('Nenhuma região está no período chuvoso típico', { exact: false })).toBeVisible();
+  await expect(guide.getByText('Todas as regiões estão fora do período chuvoso típico', { exact: false })).toBeVisible();
   await expect(guide.getByRole('link', { name: /INMET — Avisos/ })).toBeHidden();
   await page.getByLabel('Mês do calendário').selectOption('3');
   await expect(guide.getByRole('heading', { name: 'O que costuma funcionar em Abril de 2026' })).toBeVisible();

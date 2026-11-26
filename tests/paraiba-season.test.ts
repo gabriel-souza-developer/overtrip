@@ -39,7 +39,8 @@ describe('orientação sazonal da Paraíba (climatologia AESA)', () => {
       expect(guide.activities.length).toBeLessThanOrEqual(3);
     }
     expect(seasonalGuide(12)).toBeNull();
-    expect(seasonalGuide(10)!.summary).toContain('Nenhuma região');
+    expect(seasonalGuide(10)!.summary).toBe('Todas as regiões estão fora do período chuvoso típico. Praia e trilha ainda dependem da previsão, da maré e da condição do local.');
+    expect(source).not.toMatch(/bom mês|tempo mais firme/);
     expect(seasonalGuide(3)!.summary).toContain('Todas as regiões');
     expect(seasonalGuide(6)!.summary).toBe('Período chuvoso típico em Litoral, Brejo e Agreste; as demais regiões estão em transição ou fora dele.');
     expect(source).not.toMatch(/carnival|Carnaval|events/);
@@ -49,6 +50,29 @@ describe('orientação sazonal da Paraíba (climatologia AESA)', () => {
     expect(source).not.toMatch(/\d+(,\d+)?\s*mm\b/);
     expect(source).not.toMatch(/\b[0-5][.,]\d\s*(estrelas|\/\s*5)\b/);
     for (const item of VISITOR_FEEDBACK) for (const theme of item.themes) expect(theme).not.toMatch(/\d[.,]\d/);
+  });
+
+  it('opiniões de visitantes: só temas sustentados pelas páginas atuais, sem notas', () => {
+    const themes = (place: string) => VISITOR_FEEDBACK.find((item) => item.place.startsWith(place))!.themes.join(' ');
+    expect(themes('Cachoeira do Roncador')).toMatch(/cenário/);
+    expect(themes('Cachoeira do Roncador')).toMatch(/lotação e som alto em domingos e feriados/);
+    expect(themes('Cachoeira do Roncador')).not.toMatch(/estrada de terra|sinalização|escorregad|seca|lixo/);
+    expect(themes('Picãozinho')).toMatch(/maré baixa/);
+    expect(themes('Picãozinho')).toMatch(/pedras atrapalham/);
+    expect(themes('Picãozinho')).not.toMatch(/domingo|nublado|agitado/);
+    expect(themes('Piscinas naturais do Seixas')).toMatch(/maré baixa/i);
+    expect(themes('Piscinas naturais do Seixas')).toMatch(/maré alta/);
+    for (const item of VISITOR_FEEDBACK) expect(item.url).toMatch(/^https:\/\/www\.tripadvisor\.com(\.br)?\/Attraction_Review-/);
+  });
+
+  it('Roncador: volume de água depende das chuvas locais e exige confirmação', () => {
+    const roncador = [6, 7].flatMap((month) => seasonalGuide(month)!.activities.filter((activity) => activity.title === 'Cachoeira do Roncador'));
+    expect(roncador).toHaveLength(2);
+    for (const activity of roncador) {
+      expect(activity.why).toMatch(/depende das chuvas locais/);
+      expect(activity.why).toMatch(/confirme a condição/);
+      expect(activity.why).not.toMatch(/mais água|ainda com água/);
+    }
   });
 
   it('cita fontes diretas (AESA, Atlas, previsão e avisos) e deixa claro que não é previsão', () => {

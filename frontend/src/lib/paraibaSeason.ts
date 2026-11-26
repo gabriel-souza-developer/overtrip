@@ -79,15 +79,15 @@ const ACTIVITIES: SeasonActivity[][] = [
   ],
   [ // julho
     { title: 'Brejo no inverno: engenhos e mirantes', where: 'Areia e Bananeiras', zone: 'leste', why: 'Fim do período chuvoso no Brejo; programa de clima frio que funciona mesmo com garoa.', mapsQuery: 'Areia PB' },
-    { title: 'Cachoeira do Roncador', where: 'Bananeiras', zone: 'leste', why: 'Costuma ter mais água no fim do período chuvoso; pedras escorregadias.', mapsQuery: 'Cachoeira do Roncador Bananeiras' },
+    { title: 'Cachoeira do Roncador', where: 'Bananeiras', zone: 'leste', why: 'O volume de água depende das chuvas locais: confirme a condição da cachoeira e do acesso antes de levar o grupo.', mapsQuery: 'Cachoeira do Roncador Bananeiras' },
   ],
   [ // agosto
-    { title: 'Cachoeira do Roncador', where: 'Bananeiras', zone: 'leste', why: 'Chuvas diminuindo e ainda com água; acesso por estrada de terra.', mapsQuery: 'Cachoeira do Roncador Bananeiras' },
+    { title: 'Cachoeira do Roncador', where: 'Bananeiras', zone: 'leste', why: 'Chuvas diminuindo no Brejo; o volume de água depende das chuvas locais, então confirme a condição da cachoeira e do acesso.', mapsQuery: 'Cachoeira do Roncador Bananeiras' },
     { title: 'Trilhas do Brejo', where: 'Bananeiras e Areia', zone: 'leste', why: 'Transição para o seco: menos chuva para caminhar.', mapsQuery: 'Trilhas Bananeiras PB' },
   ],
   [ // setembro
     { title: 'Piscinas naturais do Seixas e Picãozinho', where: 'João Pessoa', zone: 'leste', why: 'Litoral fora do período chuvoso; reserve conforme a maré baixa.', mapsQuery: 'Piscinas naturais do Seixas João Pessoa' },
-    { title: 'Mirantes do Brejo', where: 'Areia e Bananeiras', zone: 'leste', why: 'Fora do período chuvoso, com tempo mais firme.', mapsQuery: 'Mirante Areia PB' },
+    { title: 'Mirantes do Brejo', where: 'Areia e Bananeiras', zone: 'leste', why: 'Fora do período chuvoso típico; confira a previsão antes da trilha.', mapsQuery: 'Mirante Areia PB' },
   ],
   [ // outubro
     { title: 'Picãozinho e Areia Vermelha', where: 'João Pessoa e Cabedelo', zone: 'leste', why: 'Período seco no Litoral; passeios dependem da maré baixa.', mapsQuery: 'Piscinas naturais do Picãozinho João Pessoa' },
@@ -126,17 +126,17 @@ export const VISITOR_FEEDBACK: VisitorFeedback[] = [
   {
     place: 'Cachoeira do Roncador (Bananeiras)',
     url: 'https://www.tripadvisor.com/Attraction_Review-g2352095-d6740158-Reviews-Cachoeira_do_Roncador-Bananeiras_State_of_Paraiba.html',
-    themes: ['Elogios ao cenário e à água fria.', 'Volume de água varia: há relatos de cachoeira quase seca em alguns meses.', 'Acesso por estrada de terra com pouca sinalização; pedras escorregadias e trechos íngremes.', 'Lotação e lixo em domingos e feriados.'],
+    themes: ['Elogios ao cenário e à água da cachoeira.', 'Relatos de lotação e som alto em domingos e feriados.'],
   },
   {
     place: 'Piscinas naturais do Seixas (João Pessoa)',
     url: 'https://www.tripadvisor.com.br/Attraction_Review-g303428-d8342655-Reviews-Piscinas_Naturais_do_Seixas-Joao_Pessoa_State_of_Paraiba.html',
-    themes: ['Maré baixa é a recomendação mais repetida; sem ela não há passeio.', 'Elogios à água clara e aos peixes; queixas de lotação e fundo de pedras.', 'Pouca visibilidade quando a maré não está baixa.'],
+    themes: ['Maré baixa é a recomendação mais repetida.', 'Com maré alta há relatos de piscinas encobertas, pouca visibilidade e gente sem conseguir descer do barco.'],
   },
   {
     place: 'Picãozinho (João Pessoa)',
     url: 'https://www.tripadvisor.com.br/Attraction_Review-g303428-d2342321-Reviews-Picaozinho-Joao_Pessoa_State_of_Paraiba.html',
-    themes: ['Recomendação de acompanhar a tábua de marés e evitar domingos.', 'Dia nublado e mar agitado deixam a água menos cristalina.', 'Pedras escorregadias e profundidade irregular.'],
+    themes: ['Recomendação de ir na maré baixa, acompanhando a tábua de marés.', 'Relato recente de que as pedras atrapalham a caminhada nas piscinas.'],
   },
 ];
 
@@ -149,7 +149,7 @@ export interface SeasonMonth { zones: { zone: SeasonZone; phase: RainPhase }[]; 
 
 function monthSummary(zones: { zone: SeasonZone; phase: RainPhase }[]): string {
   const rainy = zones.filter((item) => isRainy(item.phase)).map((item) => ZONES[item.zone].name);
-  if (rainy.length === 0) return 'Nenhuma região está no período chuvoso típico: bom mês para praias, piscinas naturais e trilhas.';
+  if (rainy.length === 0) return 'Todas as regiões estão fora do período chuvoso típico. Praia e trilha ainda dependem da previsão, da maré e da condição do local.';
   if (rainy.length === zones.length) return 'Todas as regiões estão no período chuvoso típico: prefira roteiros flexíveis e confira a previsão.';
   return `Período chuvoso típico em ${rainy.join(' e ')}; as demais regiões estão em transição ou fora dele.`;
 }
