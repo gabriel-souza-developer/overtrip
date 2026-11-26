@@ -20,7 +20,7 @@ router.get('/summary', asyncHandler(async (req: AuthRequest, res: Response) => {
   const { outings, reservations } = await prisma.$transaction(async (tx) => {
     const rows = await tx.destinationOuting.findMany({
       where: { destination: { is: currentLegacyDestinationFilter() } },
-      select: { id: true, date: true, passengers: true, courtesySeats: true, pricePerPersonCents: true, transportCostCents: true, extraCostCents: true, destination: { select: { id: true, name: true } } },
+      select: { id: true, date: true, passengers: true, courtesySeats: true, pricePerPersonCents: true, transportCostCents: true, extraCostCents: true, notes: true, destination: { select: { id: true, name: true } } },
     });
     const access = currentReservationAccessSql();
     return {

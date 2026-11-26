@@ -192,7 +192,8 @@ const AppRoutes = () => platformMode ? (
           <Route element={<AdminRoute />}>
             <Route path="/leads" element={<Leads />} />
             <Route path="/reservations" element={<Reservations />} />
-            <Route path="/destination-bank" element={<DestinationBank />} />
+            <Route path="/destination-bank" element={<DestinationBank key="planning" />} />
+            <Route path="/destination-history" element={<DestinationBank key="history" history />} />
             <Route path="/finance" element={<Finance />} />
             <Route path="/social-posts" element={<SocialPosts />} />
             <Route path="/settings" element={<Settings />} />

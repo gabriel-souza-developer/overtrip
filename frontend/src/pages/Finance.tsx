@@ -2,10 +2,17 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AlertTriangle, ArrowDownRight, ArrowUpRight, CalendarClock, Minus, Percent, TrendingDown, TrendingUp, Wallet, type LucideIcon } from 'lucide-react';
 import { financeApi, type FinanceSummary, type FinanceTotals } from '../api/finance';
+import { request } from '../api';
+import { destinationApi, type Destination, type OutingInput } from '../api/destinations';
+import { emptyOutingForm, formToOutingInput, outingToForm, previewOuting } from '../lib/destinationBank';
 import { MISSING_LABELS, MONTHS_SHORT, compactMoney, money, niceScale, percentChange, pointsChange } from '../lib/finance';
 import { formatDateBR } from '../lib/dateInput';
 import PageHeader from '../components/PageHeader';
 import ErrorState from '../components/ErrorState';
+import Modal from '../components/Modal';
+import Field from '../components/Field';
+import Button from '../components/Button';
+import ConfirmDialog from '../components/ConfirmDialog';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 // Cores das barras (validadas no verificador de paleta: laranja da marca para
@@ -89,7 +96,7 @@ function RankedBars({ rows }: { rows: FinanceSummary['outings']['byDestination']
   </li>)}</ul>;
 }
 
-const subline = (totals: FinanceTotals) => `${totals.completeOutings} de ${totals.outings} saídas com valores · ${totals.passengers} passageiros${totals.courtesySeats ? ` (${totals.courtesySeats} cortesias)` : ''}`;
+const subline = (totals: FinanceTotals) => `${totals.completeOutings} de ${totals.outings} registros com valores · ${totals.passengers} passageiros${totals.courtesySeats ? ` (${totals.courtesySeats} cortesias)` : ''}`;
 
 export default function Finance() {
   useDocumentTitle('Financeiro');
@@ -99,6 +106,13 @@ export default function Finance() {
   const [error, setError] = useState('');
   const [loadedAt, setLoadedAt] = useState<Date | null>(null);
   const requestVersion = useRef(0);
+  const [editing, setEditing] = useState<{ destinationId: string; outingId: string; name: string; original: OutingInput } | null>(null);
+  const [editForm, setEditForm] = useState(emptyOutingForm);
+  const [editError, setEditError] = useState('');
+  const [editLoading, setEditLoading] = useState<string | null>(null);
+  const [editSaving, setEditSaving] = useState(false);
+  const [removing, setRemoving] = useState<FinanceSummary['outings']['outings'][number] | null>(null);
+  const [removeBusy, setRemoveBusy] = useState(false);
 
   const load = useCallback(async () => {
     const version = ++requestVersion.current;
@@ -111,6 +125,48 @@ export default function Finance() {
     } finally { if (version === requestVersion.current) setLoading(false); }
   }, [year]);
   useEffect(() => { void load(); return () => { requestVersion.current++; }; }, [load]);
+
+  const openEdit = async (outing: FinanceSummary['outings']['outings'][number]) => {
+    if (editLoading) return;
+    setEditLoading(outing.id); setError('');
+    try {
+      const destination = await request<Destination>(`/destinations/${encodeURIComponent(outing.destinationId)}`);
+      const record = destination.outings.find((item) => item.id === outing.id);
+      if (!record) throw new Error('Saída não encontrada. Atualize o financeiro e tente novamente.');
+      const form = outingToForm(record);
+      const original = formToOutingInput(form).data;
+      if (!original) throw new Error('Os dados desta saída precisam ser revisados no histórico.');
+      setEditForm(form); setEditError('');
+      setEditing({ destinationId: outing.destinationId, outingId: outing.id, name: outing.destinationName, original });
+    } catch (err) { setError(err instanceof Error ? err.message : 'Não foi possível abrir a saída.'); }
+    finally { setEditLoading(null); }
+  };
+  const saveEdit = async () => {
+    if (!editing || editSaving) return;
+    const parsed = formToOutingInput(editForm);
+    if (!parsed.data) { setEditError(parsed.error ?? 'Revise os campos.'); return; }
+    const changes = Object.fromEntries(Object.entries(parsed.data).filter(([key, value]) => value !== editing.original[key as keyof OutingInput]));
+    if (!Object.keys(changes).length) { setEditing(null); return; }
+    setEditSaving(true); setEditError('');
+    try {
+      await request(`/destinations/${encodeURIComponent(editing.destinationId)}/outings/${encodeURIComponent(editing.outingId)}`, { method: 'PUT', body: JSON.stringify(changes) });
+      setEditing(null);
+      await load();
+    } catch (err) { setEditError(err instanceof Error ? err.message : 'Não foi possível salvar a saída.'); }
+    finally { setEditSaving(false); }
+  };
+  const parsedEdit = formToOutingInput(editForm);
+  const editPreview = parsedEdit.data ? previewOuting(parsedEdit.data) : null;
+  const removeOuting = async () => {
+    if (!removing || removeBusy) return;
+    setRemoveBusy(true);
+    try {
+      await destinationApi.removeOuting(removing.destinationId, removing.id);
+      setRemoving(null);
+      await load();
+    } catch (err) { setRemoving(null); setError(err instanceof Error ? err.message : 'Não foi possível excluir a saída.'); }
+    finally { setRemoveBusy(false); }
+  };
 
   const outings = data?.outings;
   const selected = outings?.year ?? null;
@@ -215,25 +271,27 @@ export default function Finance() {
       <section aria-labelledby="finance-outings-title" className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div><h2 id="finance-outings-title" className="text-base font-bold text-surface-900">Saídas {selected === null ? 'registradas' : `de ${selected}`}</h2>
-            <p className="text-xs text-surface-600">Para corrigir ou completar valores, abra o destino em Destinos e saídas.</p></div>
-          <Link to="/destination-bank" className="text-sm font-medium text-primary-700 hover:underline">Abrir Destinos e saídas</Link>
+            <p className="text-xs text-surface-600">Edite uma saída para completar valores. Registros criados pelo site precisam de revisão: pontos no mesmo dia podem ser da mesma viagem.</p></div>
+          <Link to="/destination-history" className="text-sm font-medium text-primary-700 hover:underline">Abrir histórico de saídas</Link>
         </div>
         {outings.outings.length === 0 ? <p className="mt-3 text-sm text-surface-600">Nenhuma saída no período.</p> : <div className="mt-3 overflow-x-auto">
           <table className="w-full min-w-[760px] text-left text-sm">
             <caption className="sr-only">Saídas do período com receita, despesa e resultado</caption>
             <thead className="text-xs uppercase text-surface-600"><tr>
               <th scope="col" className="py-2 pr-3">Data</th><th scope="col" className="py-2 pr-3">Destino</th><th scope="col" className="py-2 pr-3 text-right">Pessoas</th>
-              <th scope="col" className="py-2 pr-3 text-right">Por pessoa</th><th scope="col" className="py-2 pr-3 text-right">Receita</th><th scope="col" className="py-2 pr-3 text-right">Despesa</th><th scope="col" className="py-2 text-right">Resultado</th>
+              <th scope="col" className="py-2 pr-3 text-right">Por pessoa</th><th scope="col" className="py-2 pr-3 text-right">Receita</th><th scope="col" className="py-2 pr-3 text-right">Despesa</th><th scope="col" className="py-2 text-right">Resultado</th><th scope="col"><span className="sr-only">Ações</span></th>
             </tr></thead>
             <tbody className="divide-y divide-surface-200">{outings.outings.map((outing) => <tr key={outing.id}>
               <td className="py-2 pr-3 whitespace-nowrap">{outing.date ? formatDateBR(outing.date) : 'Sem data'}</td>
               <td className="py-2 pr-3"><span className="text-surface-900">{outing.destinationName}</span>
+                {outing.siteImported && <span className="block text-xs text-surface-600">Criado a partir do site · conferir realização</span>}
                 {outing.missing.length > 0 && <span className="block text-xs text-amber-800">Falta: {outing.missing.map((field) => MISSING_LABELS[field]).join(', ')}</span>}</td>
               <td className="py-2 pr-3 text-right tabular-nums">{outing.passengers ?? '—'}{outing.courtesySeats ? <span className="block text-[11px] text-surface-500">{outing.courtesySeats} cortesia{outing.courtesySeats > 1 ? 's' : ''}</span> : null}</td>
               <td className="py-2 pr-3 text-right tabular-nums">{money(outing.pricePerPersonCents)}</td>
               <td className="py-2 pr-3 text-right tabular-nums">{money(outing.revenueCents)}</td>
               <td className="py-2 pr-3 text-right tabular-nums">{money(outing.expenseCents)}</td>
               <td className={`py-2 text-right font-semibold tabular-nums ${outing.resultCents !== null && outing.resultCents < 0 ? 'text-rose-800' : 'text-surface-900'}`}>{money(outing.resultCents)}</td>
+              <td className="py-2 pl-3"><div className="flex gap-3"><button type="button" className="text-sm font-medium text-primary-700 hover:underline" disabled={editLoading !== null} onClick={() => void openEdit(outing)} aria-label={`Editar saída de ${outing.destinationName}, ${outing.date ? formatDateBR(outing.date) : 'sem data'}`}>{editLoading === outing.id ? 'Abrindo...' : 'Editar'}</button><button type="button" className="text-sm font-medium text-red-700 hover:underline" onClick={() => setRemoving(outing)} aria-label={`Excluir saída de ${outing.destinationName}, ${outing.date ? formatDateBR(outing.date) : 'sem data'}`}>Excluir</button></div></td>
             </tr>)}</tbody>
           </table>
         </div>}
@@ -244,5 +302,28 @@ export default function Finance() {
         {loadedAt && <span>Atualizado em {loadedAt.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</span>}
       </footer>
     </>}
+    <Modal open={editing !== null} onOpenChange={(open) => { if (!open && !editSaving) setEditing(null); }} title="Editar saída" description={editing?.name} widthClass="max-w-xl"
+      footer={<><Button onClick={() => setEditing(null)} disabled={editSaving}>Cancelar</Button><Button variant="primary" loading={editSaving} loadingText="Salvando..." onClick={() => void saveEdit()}>Salvar</Button></>}>
+      <form onSubmit={(event) => { event.preventDefault(); void saveEdit(); }} className="space-y-4" noValidate>
+        {editError && <div className="alert-error" role="alert">{editError}</div>}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field id="finance-edit-date" label="Data"><input id="finance-edit-date" type="date" className="input" value={editForm.date} onChange={(e) => setEditForm({ ...editForm, date: e.target.value })} /></Field>
+          <Field id="finance-edit-passengers" label="Passageiros"><input id="finance-edit-passengers" inputMode="numeric" className="input" value={editForm.passengers} onChange={(e) => setEditForm({ ...editForm, passengers: e.target.value })} /></Field>
+          <Field id="finance-edit-courtesy" label="Cortesias" hint="Lugares que não pagam."><input id="finance-edit-courtesy" inputMode="numeric" className="input" value={editForm.courtesySeats} onChange={(e) => setEditForm({ ...editForm, courtesySeats: e.target.value })} /></Field>
+          <Field id="finance-edit-price" label="Valor por pessoa (R$)"><input id="finance-edit-price" inputMode="decimal" className="input" value={editForm.pricePerPerson} onChange={(e) => setEditForm({ ...editForm, pricePerPerson: e.target.value })} /></Field>
+          <Field id="finance-edit-transport" label="Transporte (R$)"><input id="finance-edit-transport" inputMode="decimal" className="input" value={editForm.transportCost} onChange={(e) => setEditForm({ ...editForm, transportCost: e.target.value })} /></Field>
+          <Field id="finance-edit-extra" label="Taxas extras (R$)" hint="Entradas, guia, estacionamento."><input id="finance-edit-extra" inputMode="decimal" className="input" value={editForm.extraCost} onChange={(e) => setEditForm({ ...editForm, extraCost: e.target.value })} /></Field>
+        </div>
+        <p className="text-xs text-surface-600">Cortesias em branco contam como zero. Quando apenas um custo é informado, o outro é considerado zero.</p>
+        {editPreview && <dl className="grid grid-cols-3 gap-2 rounded-xl bg-surface-50 p-3 text-sm" aria-live="polite">
+          <div><dt>Receita estimada</dt><dd className="font-semibold">{money(editPreview.revenueCents)}</dd></div>
+          <div><dt>Despesa</dt><dd className="font-semibold">{money(editPreview.expenseCents)}</dd></div>
+          <div><dt>Resultado</dt><dd className="font-semibold">{money(editPreview.resultCents)}</dd></div>
+        </dl>}
+      </form>
+    </Modal>
+    <ConfirmDialog open={removing !== null} onOpenChange={(open) => { if (!open) setRemoving(null); }} title="Excluir esta saída?"
+      description={`A saída de ${removing?.destinationName ?? ''} será removida do histórico e dos totais. O destino permanece. Se ela veio do site, uma nova sincronização pode recriá-la.`}
+      confirmLabel="Excluir saída" busyLabel="Excluindo..." busy={removeBusy} onConfirm={() => void removeOuting()} />
   </div>;
 }

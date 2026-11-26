@@ -17,6 +17,7 @@ export interface FinanceOutingInput {
   pricePerPersonCents: number | null;
   transportCostCents: number | null;
   extraCostCents: number | null;
+  notes?: string | null;
 }
 
 export type MissingField = 'passengers' | 'pricePerPerson' | 'costs';
@@ -112,6 +113,7 @@ export function summarizeFinanceOutings(rows: FinanceOutingInput[], year: number
       id: row.id, destinationId: row.destinationId, destinationName: row.destinationName,
       date: row.date ? row.date.toISOString() : null, passengers: row.passengers, courtesySeats: row.courtesySeats, pricePerPersonCents: row.pricePerPersonCents,
       ...outingTotals(row), missing: missingFields(row),
+      siteImported: /^(Registrada a partir do mapa do site\.|Visita registrada no mapa do site, sem data\.|Registrada a partir da viagem do site\.)/.test(row.notes ?? ''),
     }))
     .sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
 

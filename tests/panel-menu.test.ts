@@ -16,7 +16,7 @@ const expected = [
   { path: '/dashboard', label: 'Início', icon: 'House', adminOnly: false },
   { path: '/trips', label: 'Viagens', icon: 'Plane', adminOnly: false },
   { path: '/visits', label: 'Destinos visitados', icon: 'MapPinned', adminOnly: false },
-  { path: '/destination-bank', label: 'Destinos e saídas', icon: 'Compass', adminOnly: true },
+  { path: '/destination-bank', label: 'Destinos a conhecer', icon: 'Compass', adminOnly: true },
   { path: '/leads', label: 'Interessados', icon: 'UsersRound', adminOnly: true },
   { path: '/reservations', label: 'Reservas', icon: 'Ticket', adminOnly: true },
   { path: '/finance', label: 'Financeiro', icon: 'Wallet', adminOnly: true },
@@ -56,6 +56,10 @@ describe('menu lateral do painel', () => {
   it('o título de cada tela é o mesmo nome do menu', () => {
     for (const { path, label } of items) {
       if (path === '/dashboard') continue;
+      if (path === '/destination-bank') {
+        expect(read('frontend/src/pages/DestinationBank.tsx')).toContain("title={history ? 'Histórico de saídas' : 'Destinos a conhecer'}");
+        continue;
+      }
       expect(read(`frontend/src/pages/${pages[path]}.tsx`), path).toContain(`title="${label}"`);
     }
   });

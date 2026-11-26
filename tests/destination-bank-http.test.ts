@@ -112,6 +112,19 @@ describe('banco de destinos', () => {
     expect((await call('/', adminToken, 'POST', { name: `${TAG}:x`, trailLevel: 'EXTREME' })).status).toBe(400);
   });
 
+  it('separa ideias de saídas realizadas, preservando histórico sem data e saídas futuras', async () => {
+    const destination = await (await call('/', adminToken, 'POST', { name: `${TAG}:planejamento` })).json();
+    const contains = async (visited: boolean) => (await (await call(`/?visited=${visited}&search=${encodeURIComponent('planejamento')}`, adminToken)).json()).data.some((row: { id: string }) => row.id === destination.id);
+    expect(await contains(false)).toBe(true);
+    const withFuture = await (await call(`/${destination.id}/outings`, adminToken, 'POST', { date: '2099-01-01' })).json();
+    expect(await contains(false)).toBe(true);
+    expect(await contains(true)).toBe(false);
+    await call(`/${destination.id}/outings`, adminToken, 'POST', { notes: 'Histórico sem dia conhecido' });
+    expect(await contains(false)).toBe(false);
+    expect(await contains(true)).toBe(true);
+    expect(withFuture.outings).toHaveLength(1);
+  });
+
   it('nunca expõe nem altera destino de outra empresa fora do escopo legado', async () => {
     const list = await (await call('/?limit=100', adminToken)).json();
     expect(list.data.map((row: { id: string }) => row.id)).not.toContain(foreignId);

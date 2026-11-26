@@ -29,6 +29,7 @@ export interface FinanceOuting {
   revenueCents: number | null;
   expenseCents: number | null;
   resultCents: number | null;
+  siteImported: boolean;
   missing: FinanceMissingField[];
 }
 

@@ -83,8 +83,11 @@ router.get('/', asyncHandler(async (req: AuthRequest, res: Response) => {
   if (query.status) clauses.push({ status: query.status });
   if (query.category) clauses.push({ category: query.category });
   if (query.trailLevel) clauses.push({ trailLevel: query.trailLevel });
-  if (query.visited === 'true') clauses.push({ outings: { some: {} } });
-  if (query.visited === 'false') clauses.push({ outings: { none: {} } });
+  // Uma saída sem data pode ser um registro histórico importado. Uma saída
+  // futura, por outro lado, ainda não torna o destino visitado.
+  const completedOuting: Prisma.DestinationOutingWhereInput = { OR: [{ date: null }, { date: { lte: new Date(`${siteDay(new Date())}T23:59:59.999Z`) } }] };
+  if (query.visited === 'true') clauses.push({ outings: { some: completedOuting } });
+  if (query.visited === 'false') clauses.push({ outings: { none: completedOuting } });
   const mapVisit: Prisma.VisitWhereInput = { AND: [currentLegacyVisitFilterWithConsistentTrip(), { lat: { not: null }, lng: { not: null }, needsReview: false }] };
   if (query.onMap === 'true') clauses.push({ visits: { some: mapVisit } });
   if (query.onMap === 'false') clauses.push({ visits: { none: mapVisit } });

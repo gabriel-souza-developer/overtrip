@@ -10,7 +10,7 @@ const navItems = [
   { path: '/dashboard', label: 'Início', icon: House },
   { path: '/trips', label: 'Viagens', icon: Plane },
   { path: '/visits', label: 'Destinos visitados', icon: MapPinned },
-  { path: '/destination-bank', label: 'Destinos e saídas', icon: Compass, adminOnly: true },
+  { path: '/destination-bank', label: 'Destinos a conhecer', icon: Compass, adminOnly: true },
   { path: '/leads', label: 'Interessados', icon: UsersRound, adminOnly: true },
   { path: '/reservations', label: 'Reservas', icon: Ticket, adminOnly: true },
   { path: '/finance', label: 'Financeiro', icon: Wallet, adminOnly: true },
