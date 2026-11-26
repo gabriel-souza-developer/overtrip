@@ -17,7 +17,6 @@ const expected = [
   { path: '/trips', label: 'Viagens', icon: 'Plane', adminOnly: false },
   { path: '/visits', label: 'Destinos visitados', icon: 'MapPinned', adminOnly: false },
   { path: '/destination-bank', label: 'Destinos a conhecer', icon: 'Compass', adminOnly: true },
-  { path: '/leads', label: 'Interessados', icon: 'UsersRound', adminOnly: true },
   { path: '/reservations', label: 'Reservas', icon: 'Ticket', adminOnly: true },
   { path: '/finance', label: 'Financeiro', icon: 'Wallet', adminOnly: true },
   { path: '/social-posts', label: 'Redes sociais', icon: 'Share2', adminOnly: true },

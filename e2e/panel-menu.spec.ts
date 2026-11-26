@@ -6,7 +6,6 @@ const menu = [
   { label: 'Início', heading: 'Visão geral', path: '/dashboard' },
   { label: 'Viagens', heading: 'Viagens', path: '/trips' },
   { label: 'Destinos visitados', heading: 'Destinos visitados', path: '/visits' },
-  { label: 'Interessados', heading: 'Interessados', path: '/leads' },
   { label: 'Reservas', heading: 'Reservas', path: '/reservations' },
   { label: 'Redes sociais', heading: 'Redes sociais', path: '/social-posts' },
   { label: 'Galeria de memórias', heading: 'Galeria de memórias', path: '/gallery' },
