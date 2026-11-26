@@ -1,5 +1,16 @@
 # Estado da produção na Oracle
 
+## Painel financeiro e cortesias nas saídas (26 de novembro de 2026, 05:01 UTC)
+
+- Publicados API e painel do commit `1536511` (inclui `f518115`), compilados na VM em `/srv/overtrip/stage-1536511-20261126-050022`. Pacote por `git archive`, SHA-256 `22c53aff94484c33473d4659055ffd99213768956cb92e641f579a185fb1c6af` conferido na VM; sem banco, `.env` ou planilha no pacote. Site público não foi trocado.
+- Antes de publicar, conferido que as alterações feitas pela sessão Codex neste worktree (renomeação para "Destinos e saídas", validação de cortesias acima de passageiros, vencimentos pelo dia de São Paulo, rótulos de estimativa) estavam todas no commit `1536511`; produção sem mudanças desde a publicação anterior. Suíte completa local: 1341 testes aprovados, 6 ignorados; tipos da API e do painel ok.
+- Nova página "Financeiro" no painel (só administradores, somente leitura), atrás de `GET /api/finance/summary`: resultado por ano/mês/destino das saídas do banco de destinos e resumo de reservas e parcelas do escopo legado.
+- Uma migração aditiva: `20261127030000_outing_courtesy_seats` (`ALTER TABLE "DestinationOuting" ADD COLUMN "courtesySeats" INTEGER`). Ensaiada numa cópia do banco (migração, importação, segunda execução sem alterações, `integrity_check` ok, `foreign_key_check` vazio) e depois aplicada com a API parada.
+- Backups validados (`gzip -t`): `/var/backups/overtrip/pre-1536511-20261126-050104.db.gz` (antes do ensaio) e `/var/backups/overtrip/pre-1536511-switch-20261126-050128.db.gz` (na troca). Código e painel anteriores em `/srv/overtrip/retorno-1536511-20261126-050128/{app,admin}`. Retorno de código não exige desfazer o banco: a coluna nova é ignorada pelo código anterior.
+- Reimportada a planilha (`--apply`) só para completar cortesias: 8 saídas receberam `courtesySeats` (total 8), nenhum destino, saída ou vínculo criado. Planilha e cópia do ensaio ficaram em diretório `overtrip` 700 e foram apagadas com `shred`. A linha de abril/2026 sem destino foi descartada a pedido do usuário (viagem não aconteceu).
+- Resultados por ano no banco de produção, iguais ao caixa da planilha: 2024 R$ 1.911 (7 saídas completas), 2025 R$ 1.100 (5), 2026 R$ 170 (2). Contagens preservadas: 46 destinos, 35 saídas, 5 viagens, 43 visitas.
+- Depois da publicação: `overtrip-api` e `caddy` ativos, journal sem avisos; `/`, `/admin/`, `/health`, `/api/public/trips` e `/api/public/destinations` 200; `/api/finance/summary`, `/api/destinations` e `/api/auth/me` sem sessão 401. Bundles servidos contêm "Financeiro" e "Cortesias". Não foi feito login real em produção.
+
 ## Banco de destinos sincronizado com o site (25 de novembro de 2026, 23:46 UTC)
 
 - Publicados API e painel do commit `393eb71` (branch `gabriel-souza-developer/profile-finance-dashboard`), compilados na VM em área de preparo isolada. Pacote por `git archive`, SHA-256 `c494cd547df9292d1e84a6fae3500b3a3b371a7f29d8d0bec6fc690f69f634ca` conferido na VM; sem banco, `.env` ou planilha no pacote. Site público não foi trocado.
