@@ -1,5 +1,14 @@
 # Estado da produção na Oracle
 
+## Guia sazonal, filtro de visitas e calendário (26 de novembro de 2026)
+
+- Publicado o commit `1593f4c` (inclui a correção do calendário em `2173319`) na API e no painel. SHA-256 do pacote de release: `c276b08a89d1fe8114b45f7dec9aecc92d553cad832b3eb5ad75721b0b6da2c9`. O pacote não incluiu banco de dados, credenciais ou planilhas; o site público não foi substituído.
+- O painel inclui orientação sazonal baseada na climatologia da AESA, filtro de destinos visitados por mês/ano e calendário com viagens publicadas em verde. A aba Interessados segue fora dos menus; a interface também não exibe mais a sincronização com o site.
+- Aplicada a migração aditiva `20261129010000_outing_source`, após ensaio no backup recém-criado. O ensaio e a produção mantiveram 35 saídas, sem violações de chave estrangeira; `integrity_check` retornou `ok`. A coluna nova classifica 10 saídas existentes como `SITE`; 25 permanecem sem origem.
+- Backup pré-migração: `/var/backups/overtrip/overtrip-20261126-182214.db.gz` (`gzip -t` aprovado). Código e painel anteriores preservados em `/srv/overtrip/retorno-1593f4c-20261126-182123/{app,admin}`.
+- Build de API e frontend concluídos na VM. Após a troca, API e assistente ativos; `/`, `/admin/`, `/health` e `/api/public/trips` responderam 200. Rotas protegidas `/api/visits/periods` e `/api/auth/me` responderam 401 sem sessão. Nenhum erro recente nos journals dos serviços.
+- A compilação na VM reportou 6 vulnerabilidades em dependências (3 moderadas, 1 alta, 2 críticas); não foi executado `npm audit fix`. Login real em produção não foi testado.
+
 ## Aba Interessados oculta e limpeza de arquivos antigos (26 de novembro de 2026)
 
 - Publicado somente o painel do commit `4a08d39`; API e banco não mudaram. A rota e os dados de CRM foram preservados. `/admin/` responde 200 e o bundle de entrada servido não contém o rótulo “Interessados”. API e Caddy seguem ativos.
