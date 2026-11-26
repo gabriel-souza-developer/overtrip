@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AlertTriangle, CheckCircle2, MapPin, Pencil, Plus, Trash2 } from 'lucide-react';
-import { visitApi, Visit, Pagination as PaginationInfo } from '../api';
+import { visitApi, Visit, VisitPeriods, Pagination as PaginationInfo } from '../api';
 import { formatDateBR, localInputToIso } from '../lib/dateInput';
 import { visitToEditForm, reviewAfterSave, VisitEditForm } from '../lib/visitForm';
 import { locationMapUrl, LocationResult, parseLocationResults } from '../lib/locationSearch';
@@ -21,6 +21,7 @@ import Button from '../components/Button';
 import Field from '../components/Field';
 import FormSection from '../components/FormSection';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
+import { MONTH_NAMES, monthOptions, yearOptions } from '../lib/visitPeriods';
 
 const formatDate = formatDateBR;
 
@@ -55,6 +56,14 @@ export default function Visits() {
   const region = list.get('region');
   const tripId = list.get('tripId');
   const search = list.get('search');
+  const year = list.get('year');
+  const month = list.get('month');
+  const [periods, setPeriods] = useState<VisitPeriods | null>(null);
+
+  const loadPeriods = async () => {
+    try { setPeriods(await visitApi.periods()); } catch { setPeriods(null); }
+  };
+  useEffect(() => { void loadPeriods(); }, []);
 
   const loadVisits = async () => {
     setLoading(true);
@@ -68,6 +77,8 @@ export default function Visits() {
         ...(city ? { city } : {}),
         ...(region ? { region } : {}),
         ...(search ? { search } : {}),
+        ...(year ? { year } : {}),
+        ...(year && month ? { month } : {}),
       });
       setVisits(data.data);
       setPagination(data.pagination);
@@ -80,7 +91,7 @@ export default function Visits() {
 
   useEffect(() => {
     loadVisits();
-  }, [page, needsReview, hasCoords, tripId, city, region, search]);
+  }, [page, needsReview, hasCoords, tripId, city, region, search, year, month]);
 
   const openEdit = (visit: Visit) => {
     locationRequest.current?.abort();
@@ -169,7 +180,7 @@ export default function Visits() {
       setEditing(null);
       setCreating(false);
       setEditForm(null);
-      await loadVisits();
+      await Promise.all([loadVisits(), loadPeriods()]);
     } catch (err) {
       setFormError(err instanceof Error ? err.message : 'Não foi possível salvar o destino.');
     } finally {
@@ -210,6 +221,7 @@ export default function Visits() {
       await visitApi.delete(toDelete.id);
       toast.success('Destino excluído.');
       setToDelete(null);
+      void loadPeriods();
       if (visits.length === 1 && page > 1) list.setPage(page - 1);
       else await loadVisits();
     } catch (err) {
@@ -219,7 +231,18 @@ export default function Visits() {
     }
   };
 
-  const hasFilters = !!(search || needsReview || hasCoords || city || region || tripId);
+  const hasFilters = !!(search || needsReview || hasCoords || city || region || tripId || year);
+  const years = yearOptions(periods, year);
+  const months = monthOptions(periods, year, month);
+  const setYear = (value: string) => {
+    // Trocar o ano limpa o mês se ele não tiver visitas no novo ano.
+    const next = new URLSearchParams(list.searchParams);
+    if (value) next.set('year', value); else next.delete('year');
+    if (!value || (month && !monthOptions(periods, value, '').some((option) => option.value === month))) next.delete('month');
+    next.set('page', '1');
+    list.setParams(next);
+  };
+  const periodLabel = year ? `${month ? `${MONTH_NAMES[Number(month) - 1]} de ` : ''}${year}` : '';
 
   return (
     <div className="space-y-6">
@@ -243,7 +266,16 @@ export default function Visits() {
           <option value="true">Só os que têm local no mapa</option>
           <option value="false">Só os sem local no mapa</option>
         </select>
+        <select className="select w-full lg:w-36" value={year} onChange={(e) => setYear(e.target.value)} aria-label="Filtrar por ano da visita">
+          <option value="">Todos os anos</option>
+          {years.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+        </select>
+        <select className="select w-full lg:w-44" value={year ? month : ''} disabled={!year} onChange={(e) => list.setFilter('month', e.target.value)} aria-label="Filtrar por mês da visita" title={year ? undefined : 'Escolha um ano para filtrar por mês'}>
+          <option value="">{year ? 'Todos os meses' : 'Mês (escolha o ano)'}</option>
+          {months.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+        </select>
       </FilterBar>
+      <p className="text-sm text-surface-700 empty:hidden" role="status">{periodLabel && !loading && !error ? `${pagination.total === 1 ? '1 destino visitado' : `${pagination.total} destinos visitados`} em ${periodLabel}.` : ''}</p>
 
       {error ? <ErrorState message={error} onRetry={loadVisits} /> : null}
 
@@ -256,7 +288,7 @@ export default function Visits() {
           <EmptyState
             icon={<MapPin className="w-6 h-6" />}
             title={hasFilters ? 'Nenhum destino encontrado' : 'Ainda não há destinos visitados'}
-            text={hasFilters ? 'Tente outra busca ou limpe os filtros.' : 'Os destinos aparecem aqui quando forem importados ou cadastrados.'}
+            text={hasFilters ? (periodLabel ? `Nenhum registro em ${periodLabel}. Escolha outro período ou limpe os filtros.` : 'Tente outra busca ou limpe os filtros.') : 'Os destinos aparecem aqui quando forem importados ou cadastrados.'}
             action={hasFilters ? <Button onClick={() => list.clear()}>Limpar filtros</Button> : undefined}
           />
         ) : (

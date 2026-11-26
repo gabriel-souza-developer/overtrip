@@ -125,6 +125,19 @@ describe('banco de destinos', () => {
     expect(withFuture.outings).toHaveLength(1);
   });
 
+  it('destino ligado a um registro de Destinos visitados não se repete em "a conhecer"', async () => {
+    const destination = await (await call('/', adminToken, 'POST', { name: `${TAG}:ja visitado` })).json();
+    const contains = async (visited: boolean) => (await (await call(`/?visited=${visited}&search=${encodeURIComponent('ja visitado')}`, adminToken)).json()).data.some((row: { id: string }) => row.id === destination.id);
+    expect(await contains(false)).toBe(true);
+    // Visita sem data: a sincronização só vincula, sem criar saída.
+    await prisma.visit.create({ data: { title: `${TAG}:ja visitado`, city: 'Areia', region: 'PB', storedIdentity: `${TAG}:visit:dedupe`, destinationId: destination.id, needsReview: true } });
+    expect(await contains(false)).toBe(false);
+    expect(await contains(true)).toBe(true);
+    const row = (await (await call(`/?visited=true&search=${encodeURIComponent('ja visitado')}`, adminToken)).json()).data.find((item: { id: string }) => item.id === destination.id);
+    expect(row.summary.outingsCount).toBe(0);
+    expect(row.site.visits).toHaveLength(1);
+  });
+
   it('nunca expõe nem altera destino de outra empresa fora do escopo legado', async () => {
     const list = await (await call('/?limit=100', adminToken)).json();
     expect(list.data.map((row: { id: string }) => row.id)).not.toContain(foreignId);

@@ -25,7 +25,7 @@ const OUTING_BADGE: Record<EffectiveOutingStatus, string> = { PLANNED: 'badge-in
 const outingDateLabel = (outing: DestinationOuting) => (outing.date ? formatDateBR(outing.date) : 'data não informada');
 function Summary({ destination }: { destination: Destination }) {
   const { summary } = destination;
-  if (summary.outingsCount === 0) return <p className="text-xs text-surface-600">Ainda não visitado</p>;
+  if (summary.outingsCount === 0) return <p className="text-xs text-surface-600">{destination.site.visits.length ? 'Já está em Destinos visitados · nenhuma saída lançada ainda' : 'Ainda não visitado'}</p>;
   const parts = [
     `${summary.outingsCount === 1 ? '1 registro' : `${summary.outingsCount} registros`}${summary.lastOutingDate ? ` · último em ${formatDateBR(summary.lastOutingDate)}` : ''}`,
     summary.averagePassengers !== null ? `média de ${summary.averagePassengers} pessoas` : null,
@@ -194,7 +194,7 @@ export default function DestinationBank({ history = false }: { history?: boolean
   return <div className="space-y-6">
     <PageHeader
       title={history ? 'Histórico de saídas' : 'Destinos a conhecer'}
-      description={history ? 'Consulte e corrija os registros usados no financeiro. Registros criados pelo site precisam de conferência; vários pontos no mesmo dia podem pertencer à mesma viagem.' : 'Ideias de lugares sem saída realizada registrada. Ao registrar uma saída realizada, o destino passa para o histórico.'}
+      description={history ? 'Consulte e corrija os registros usados no financeiro. Registros criados pelo site precisam de conferência; vários pontos no mesmo dia podem pertencer à mesma viagem.' : 'Ideias de lugares ainda não visitados: sem saída realizada e fora de Destinos visitados. Ao registrar uma saída realizada, o destino passa para o histórico.'}
       actions={<>
         {!history && <Button variant="primary" icon={<Plus className="w-4 h-4" aria-hidden="true" />} onClick={openCreate}>Novo destino</Button>}
       </>}

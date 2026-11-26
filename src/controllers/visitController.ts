@@ -14,6 +14,10 @@ export const visitController = {
     res.json(result);
   },
 
+  async periods(_req: Request, res: Response) {
+    res.json(await visitService.periods());
+  },
+
   async findById(req: Request, res: Response) {
     const { id } = req.params;
     const visit = await visitService.findById(id);

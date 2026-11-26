@@ -21,7 +21,8 @@ test('login de agência abre apenas a empresa vinculada e oculta dados após err
   await page.getByLabel('Senha', { exact: true }).fill('senha-segura');
   await page.getByRole('button', { name: 'Entrar' }).click();
   await expect(page).toHaveURL(/\/empresa\/a\/dashboard$/);
-  await page.getByRole('link', { name: 'Interessados', exact: true }).click();
+  // A aba Interessados está oculta do menu; a rota continua acessível.
+  await page.goto('/empresa/a/leads');
   await expect(page.getByText('Cliente privado')).toBeVisible();
   await page.getByRole('button', { name: 'Próxima página' }).click();
   await expect(page.getByText('Cliente privado')).toHaveCount(0);

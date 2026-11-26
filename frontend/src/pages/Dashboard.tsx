@@ -4,6 +4,7 @@ import { AlertTriangle, ArrowRight, CheckCircle2, Images, Pencil, Plane, Plus, t
 import { dashboardApi, DashboardStats, tripApi } from '../api';
 import ErrorState from '../components/ErrorState';
 import TripCalendar from '../components/TripCalendar';
+import SeasonalGuide from '../components/SeasonalGuide';
 import { capitalizeFirst } from '../lib/tripCalendar';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
@@ -25,6 +26,8 @@ export default function Dashboard() {
   const [upcomingTrips, setUpcomingTrips] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  // Mês do calendário; a orientação sazonal acompanha a mesma escolha.
+  const [calendarMonth, setCalendarMonth] = useState(() => { const now = new Date(); return new Date(now.getFullYear(), now.getMonth(), 1); });
 
   const loadStats = async () => {
     setLoading(true); setError('');
@@ -71,7 +74,9 @@ export default function Dashboard() {
         </div>
       </section>
 
-      <TripCalendar />
+      <TripCalendar month={calendarMonth} onMonthChange={setCalendarMonth} />
+
+      <SeasonalGuide month={calendarMonth} />
 
       <section aria-labelledby="acoes-title" className="rounded-2xl border border-surface-200 bg-white p-5 sm:p-6 shadow-sm">
         <h2 id="acoes-title" className="mb-4 text-lg font-bold text-surface-900">Ações rápidas</h2>

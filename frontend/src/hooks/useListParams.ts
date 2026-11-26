@@ -27,5 +27,8 @@ export function useListParams() {
 
   const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1);
 
-  return { searchParams, page, get: (key: string) => searchParams.get(key) || '', setFilter, setPage, clear };
+  /** Troca vários filtros de uma vez (um só registro no histórico do navegador). */
+  const setParams = (next: URLSearchParams) => setSearchParams(next);
+
+  return { searchParams, page, get: (key: string) => searchParams.get(key) || '', setFilter, setPage, clear, setParams };
 }

@@ -17,6 +17,7 @@ import { assertOwnedVideos } from './organizationOwnedMedia.js';
 import { publicationProblems } from './tripReadiness.js';
 import { settingsService } from './settingsService.js';
 import { tripPeriodWhere } from '../utils/tripPeriod.js';
+import { summarizeVisitPeriods, visitPeriodWhere } from '../utils/siteMonth.js';
 import {
   currentLegacyGalleryFilterWithConsistentRelations,
   currentLegacyLeadFilterWithConsistentTrip,
@@ -369,8 +370,14 @@ export const tripService = {
 const VISIT_JSON_FIELDS = ['images'];
 
 export const visitService = {
+  /** Meses com visitas registradas (consulta do histórico para o filtro mês/ano). */
+  async periods() {
+    const rows = await prisma.visit.findMany({ where: currentLegacyVisitFilterWithConsistentTrip(), select: { date: true } });
+    return summarizeVisitPeriods(rows.map((row) => row.date));
+  },
+
   async findAll(query: VisitQueryInput) {
-    const { page = 1, limit = 20, needsReview, tripId, city, region, hasCoords, search } = query;
+    const { page = 1, limit = 20, needsReview, tripId, city, region, hasCoords, search, year, month } = query;
     const skip = (page - 1) * limit;
 
     const businessWhere: Prisma.VisitWhereInput = {};
@@ -411,7 +418,7 @@ export const visitService = {
 
     // Escopo (próprio registro + viagem vinculada) combinado por AND, nunca
     // colidindo com AND/OR já usados pelos filtros de negócio acima.
-    const where: Prisma.VisitWhereInput = { AND: [currentLegacyVisitFilterWithConsistentTrip(), businessWhere] };
+    const where: Prisma.VisitWhereInput = { AND: [currentLegacyVisitFilterWithConsistentTrip(), businessWhere, ...(year !== undefined ? [visitPeriodWhere(year, month)] : [])] };
 
     const [visits, total] = await Promise.all([
       prisma.visit.findMany({

@@ -6,12 +6,17 @@ const menu = [
   { label: 'Início', heading: 'Visão geral', path: '/dashboard' },
   { label: 'Viagens', heading: 'Viagens', path: '/trips' },
   { label: 'Destinos visitados', heading: 'Destinos visitados', path: '/visits' },
+  { label: 'Destinos a conhecer', heading: 'Destinos a conhecer', path: '/destination-bank' },
   { label: 'Reservas', heading: 'Reservas', path: '/reservations' },
+  { label: 'Financeiro', heading: 'Financeiro', path: '/finance' },
   { label: 'Redes sociais', heading: 'Redes sociais', path: '/social-posts' },
   { label: 'Galeria de memórias', heading: 'Galeria de memórias', path: '/gallery' },
   { label: 'Configurações', heading: 'Configurações', path: '/settings' },
+  { label: 'Usuários', heading: 'Usuários', path: '/users' },
   { label: 'Saúde do servidor', heading: 'Saúde do servidor', path: '/system' },
 ];
+// A aba Interessados está desativada: não pode voltar ao menu.
+const hidden = ['Interessados'];
 
 async function mockApi(page: Page) {
   await page.addInitScript((user) => {
@@ -27,6 +32,7 @@ async function mockApi(page: Page) {
     if (path === '/api/settings/public-faq') return route.fulfill({ json: { version: 0, updatedAt: null, entries: [{ question: 'Pergunta?', answer: 'Resposta.' }] } });
     if (path === '/api/assistant-knowledge') return route.fulfill({ json: null });
     if (path === '/api/assistant-knowledge/versions') return route.fulfill({ json: [] });
+    if (path === '/api/users') return route.fulfill({ json: [{ id: 'admin', name: 'Admin', email: admin.email, role: 'admin', mustChangePassword: false }] });
     return route.fulfill({ json: { data: [], pagination: { page: 1, limit: 20, total: 0, totalPages: 0 } } });
   });
 }
@@ -37,6 +43,7 @@ test('menu lateral: cada item abre a tela com o mesmo nome e marca o item ativo'
   await page.goto('/dashboard');
   const nav = page.getByRole('complementary', { name: 'Menu principal' }).getByRole('navigation');
   await expect(nav.getByRole('link')).toHaveText(menu.map(item => item.label));
+  for (const label of hidden) await expect(nav.getByRole('link', { name: label, exact: true })).toHaveCount(0);
 
   for (const item of menu) {
     await nav.getByRole('link', { name: item.label, exact: true }).click();

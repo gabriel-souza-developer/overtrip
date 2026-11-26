@@ -142,8 +142,13 @@ router.get('/', asyncHandler(async (req: AuthRequest, res: Response) => {
   // site, ainda a confirmar) ficam no histórico, onde a equipe os confere.
   const realized: Prisma.DestinationOutingWhereInput = { OR: [{ status: 'REALIZED' }, { status: null, OR: [{ date: null }, { date: { lte: new Date(`${todayInSaoPaulo()}T23:59:59.999Z`) } }] }] };
   const completedOuting: Prisma.DestinationOutingWhereInput = { OR: [{ parentOutingId: null, ...realized }, { parentOuting: { is: { ...realized, destination: { is: currentLegacyDestinationFilter() } } } }] };
-  if (query.visited === 'true') clauses.push({ outings: { some: completedOuting } });
-  if (query.visited === 'false') clauses.push({ outings: { none: completedOuting } });
+  // Um destino ligado a um registro de "Destinos visitados" (Visit, via
+  // Sincronizar com o site) já aparece naquela tela: não volta para "a
+  // conhecer" mesmo sem saída lançada (ex.: visita sem data, que a
+  // sincronização só vincula). Ele fica no histórico, onde a saída pode ser lançada.
+  const siteVisit: Prisma.VisitWhereInput = currentLegacyVisitFilterWithConsistentTrip();
+  if (query.visited === 'true') clauses.push({ OR: [{ outings: { some: completedOuting } }, { visits: { some: siteVisit } }] });
+  if (query.visited === 'false') clauses.push({ outings: { none: completedOuting } }, { visits: { none: siteVisit } });
   const mapVisit: Prisma.VisitWhereInput = { AND: [currentLegacyVisitFilterWithConsistentTrip(), { lat: { not: null }, lng: { not: null }, needsReview: false }] };
   if (query.onMap === 'true') clauses.push({ visits: { some: mapVisit } });
   if (query.onMap === 'false') clauses.push({ visits: { none: mapVisit } });

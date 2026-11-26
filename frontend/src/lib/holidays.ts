@@ -14,7 +14,7 @@ const fixed: Array<[number, number, string, Holiday['scope']]> = [
 ];
 
 /** Páscoa no calendário gregoriano, em UTC para evitar variação por fuso. */
-function easter(year: number): Date {
+export function easter(year: number): Date {
   const a = year % 19, b = Math.floor(year / 100), c = year % 100;
   const d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
   const g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30;

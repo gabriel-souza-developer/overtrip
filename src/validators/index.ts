@@ -134,7 +134,10 @@ export const visitQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(20),
   search: z.string().optional(),
-});
+  // Mês/ano no dia civil mostrado pelo site (ver src/utils/siteMonth.ts).
+  year: z.coerce.number().int().min(2000).max(2100).optional(),
+  month: z.coerce.number().int().min(1).max(12).optional(),
+}).refine((query) => query.month === undefined || query.year !== undefined, { message: 'Informe o ano para filtrar por mês.', path: ['month'] });
 
 // GalleryEntry schemas
 export const galleryCreateSchema = z.object({

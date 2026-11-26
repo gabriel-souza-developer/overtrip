@@ -8,6 +8,8 @@ const router = Router();
 router.use(authenticate);
 
 router.get('/', asyncHandler(visitController.findAll));
+// Antes de '/:id': senão "periods" seria lido como id.
+router.get('/periods', asyncHandler(visitController.periods));
 router.get('/:id', asyncHandler(visitController.findById));
 router.post('/', asyncHandler(visitController.create));
 router.put('/:id', asyncHandler(visitController.update));

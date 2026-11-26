@@ -214,6 +214,9 @@ export const aiApi = {
     ),
 };
 
+/** Meses com visitas registradas, do mais recente ao mais antigo (dia civil do site). */
+export interface VisitPeriods { periods: { year: number; month: number; count: number }[]; undated: number }
+
 export const visitApi = {
   list: (params?: Record<string, string | number | boolean>) => {
     const searchParams = new URLSearchParams();
@@ -224,6 +227,8 @@ export const visitApi = {
     }
     return request<{ data: Visit[]; pagination: Pagination }>(`/visits?${searchParams}`);
   },
+
+  periods: () => request<VisitPeriods>('/visits/periods'),
 
   get: (id: string) => request<Visit>(`/visits/${id}`),
 

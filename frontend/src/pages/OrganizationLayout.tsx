@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { Building2, House, Images, MapPinned, Plane, Settings as SettingsIcon, Share2, Ticket, UsersRound } from 'lucide-react';
+import { Building2, House, Images, MapPinned, Plane, Settings as SettingsIcon, Share2, Ticket } from 'lucide-react';
 import { organizationApi, type OrganizationContext } from '../api/organizations';
 import { useAuth } from '../App';
 import { useToast } from '../hooks/useToast';
@@ -71,9 +71,11 @@ export default function OrganizationLayout() {
   const palette = getOrganizationPalette(context.organization);
   // Mesma convenção estrutural do menu do OVERTRIP (Layout.tsx): operação de
   // um lado, itens administrativos de outro (aqui, só Configurações, já que
-  // Interessados/Reservas/Redes sociais seguem no grupo de operação mesmo
-  // exigindo OWNER/ADMIN, como lá) — e mesma ordem dentro de "Operação"
-  // (Interessados, Reservas, Redes sociais, Galeria de memórias).
+  // Reservas/Redes sociais seguem no grupo de operação mesmo exigindo
+  // OWNER/ADMIN, como lá) — e mesma ordem dentro de "Operação" (Reservas,
+  // Redes sociais, Galeria de memórias). A aba Interessados está desativada
+  // no menu dos dois painéis; a rota /leads e os dados de CRM continuam
+  // existindo e protegidos pelo mesmo gate.
   const navGroups: PanelShellNavGroup[] = [
     {
       label: 'Operação',
@@ -82,7 +84,6 @@ export default function OrganizationLayout() {
         { path: 'trips', label: 'Viagens', icon: Plane },
         { path: 'visits', label: 'Destinos visitados', icon: MapPinned },
         ...(canViewPrivateData ? [
-          { path: 'leads', label: 'Interessados', icon: UsersRound },
           { path: 'reservations', label: 'Reservas', icon: Ticket },
           // Divulgação é informação sensível como Interessados/Reservas: mesmo
           // gate (OWNER/ADMIN), reforçado no servidor em organizationSocialPostRoutes.ts.

@@ -46,7 +46,8 @@ async function login(page: import('@playwright/test').Page) {
   await page.getByLabel('Senha', { exact: true }).fill('senha-segura');
   await page.getByRole('button', { name: 'Entrar' }).click();
   await expect(page).toHaveURL(/\/empresa\/a\/dashboard$/);
-  await page.getByRole('link', { name: 'Interessados', exact: true }).click();
+  // A aba Interessados está oculta do menu; a rota continua acessível.
+  await page.goto('/empresa/a/leads');
   await expect(page).toHaveURL(/\/empresa\/a\/leads$/);
 }
 

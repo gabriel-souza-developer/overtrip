@@ -24,4 +24,11 @@ describe('ordem do menu de operação', () => {
 
     expect(orgPaths).toEqual(legacyPaths);
   });
+
+  it('a aba Interessados continua desativada no menu dos dois painéis', () => {
+    const legacy = extractPaths(read('frontend/src/components/Layout.tsx'), 'const navItems = [', '];');
+    const org = extractPaths(read('frontend/src/pages/OrganizationLayout.tsx'), "label: 'Operação'", "label: 'Administração'");
+    expect(legacy).not.toContain('leads');
+    expect(org).not.toContain('leads');
+  });
 });
