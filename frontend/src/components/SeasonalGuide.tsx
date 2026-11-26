@@ -1,26 +1,28 @@
 import React from 'react';
-import { CloudRain, ExternalLink, Info, MapPin, Star, Sun, CloudSun, PartyPopper } from 'lucide-react';
-import { CLIMATE_SOURCES, RAIN_LABELS, REGION_LABELS, SEASON_DISCLAIMER, TOURISM_SOURCES, mapsSearchUrl, seasonalGuide, type RainLevel, type SeasonRegion, type SeasonSource } from '../lib/paraibaSeason';
+import { CloudRain, CloudSun, ExternalLink, Info, MapPin, Sun } from 'lucide-react';
+import {
+  CLIMATE_SOURCES, FEEDBACK_CHECKED_AT, FEEDBACK_DISCLAIMER, FORECAST_SOURCES, PHASE_LABELS, SEASON_DISCLAIMER, VISITOR_FEEDBACK, ZONES,
+  isRainy, mapsSearchUrl, seasonalGuide, type RainPhase, type SeasonSource,
+} from '../lib/paraibaSeason';
 import { capitalizeFirst } from '../lib/tripCalendar';
 
-const RAIN_STYLE: Record<RainLevel, { className: string; Icon: typeof Sun }> = {
-  baixa: { className: 'bg-amber-50 text-amber-800 border-amber-200', Icon: Sun },
-  moderada: { className: 'bg-sky-50 text-sky-800 border-sky-200', Icon: CloudSun },
-  alta: { className: 'bg-blue-50 text-blue-800 border-blue-200', Icon: CloudRain },
-};
-const REGIONS: SeasonRegion[] = ['litoral', 'agreste', 'sertao'];
+const PHASE_STYLE = (phase: RainPhase) => (isRainy(phase)
+  ? { className: 'border-blue-200 bg-blue-50 text-blue-900', Icon: CloudRain }
+  : phase === 'seco' ? { className: 'border-amber-200 bg-amber-50 text-amber-900', Icon: Sun } : { className: 'border-sky-200 bg-sky-50 text-sky-900', Icon: CloudSun });
+
+const NewTab = () => <><ExternalLink className="h-3 w-3" aria-hidden="true" /><span className="sr-only"> (abre em nova aba)</span></>;
 
 function SourceList({ title, sources }: { title: string; sources: SeasonSource[] }) {
   return <div><h4 className="text-xs font-semibold uppercase tracking-wide text-surface-600">{title}</h4>
     <ul className="mt-1.5 space-y-1">{sources.map((source) => <li key={source.url} className="text-xs text-surface-700">
-      <a href={source.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-medium text-primary-800 hover:underline">{source.label}<ExternalLink className="h-3 w-3" aria-hidden="true" /><span className="sr-only"> (abre em nova aba)</span></a>
+      <a href={source.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-medium text-primary-800 hover:underline">{source.label}<NewTab /></a>
       <span className="text-surface-600"> — {source.supports}</span>
     </li>)}</ul></div>;
 }
 
-/** Orientação climatológica (não previsão) para o mês/ano do calendário do Início. */
+/** Orientação climatológica (não previsão) para o mês do calendário do Início. */
 export default function SeasonalGuide({ month }: { month: Date }) {
-  const guide = seasonalGuide(month.getFullYear(), month.getMonth());
+  const guide = seasonalGuide(month.getMonth());
   if (!guide) return null;
   const label = capitalizeFirst(new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' }).format(month));
   return (
@@ -32,40 +34,42 @@ export default function SeasonalGuide({ month }: { month: Date }) {
         </div>
         <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-900"><Info className="h-3.5 w-3.5" aria-hidden="true" />Orientação climatológica, não é previsão</span>
       </div>
-      <p className="mt-2 text-sm text-surface-600">Acompanha o mês escolhido no calendário acima. Baseado em médias históricas (normais 1991–2020) e nos períodos chuvosos de cada região.</p>
+      <p className="mt-2 text-sm font-medium text-surface-800">{guide.summary}</p>
 
-      <ul className="mt-4 grid gap-3 md:grid-cols-3" aria-label={`Clima típico por região em ${label}`}>
-        {REGIONS.map((region) => {
-          const climate = guide.regions[region];
-          const { className, Icon } = RAIN_STYLE[climate.rain];
-          return <li key={region} className={`rounded-xl border p-4 ${className}`}>
-            <div className="flex items-center justify-between gap-2"><span className="font-semibold">{REGION_LABELS[region].name}</span><span className="inline-flex items-center gap-1 text-xs font-semibold"><Icon className="h-4 w-4" aria-hidden="true" />{RAIN_LABELS[climate.rain]}</span></div>
-            <p className="mt-0.5 text-xs opacity-80">{REGION_LABELS[region].places}</p>
-            <p className="mt-2 text-sm">{climate.note}</p>
+      <ul className="mt-3 grid gap-2 sm:grid-cols-3" aria-label={`Período chuvoso típico por região em ${label}`}>
+        {guide.zones.map(({ zone, phase }) => {
+          const { className, Icon } = PHASE_STYLE(phase);
+          return <li key={zone} className={`rounded-xl border px-3 py-2.5 ${className}`}>
+            <span className="block text-sm font-semibold">{ZONES[zone].name}</span>
+            <span className="mt-0.5 flex items-center gap-1 text-xs font-medium"><Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />{PHASE_LABELS[phase]}</span>
+            <span className="mt-0.5 block text-[11px] opacity-80">Chuvas de {ZONES[zone].windowLabel} · {ZONES[zone].places}</span>
           </li>;
         })}
       </ul>
 
-      <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-        <div>
-          <h3 className="flex items-center gap-2 text-sm font-semibold text-surface-900"><Star className="h-4 w-4 text-primary-700" aria-hidden="true" />Atividades recomendadas</h3>
-          <ul className="mt-2 space-y-2">{guide.activities.map((activity) => <li key={activity.title} className="rounded-xl border border-surface-200 p-3">
-            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1"><span className="font-semibold text-surface-900">{activity.title}</span><span className="inline-flex items-center gap-1 text-xs text-surface-600"><MapPin className="h-3.5 w-3.5" aria-hidden="true" />{activity.where}</span></div>
-            <p className="mt-1 text-sm text-surface-700">{activity.why}</p>
-            <a href={mapsSearchUrl(activity.mapsQuery)} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-primary-800 hover:underline">Ver avaliações no Google Maps<ExternalLink className="h-3 w-3" aria-hidden="true" /><span className="sr-only"> (abre em nova aba)</span></a>
-          </li>)}</ul>
-        </div>
-        <div className="space-y-4">
-          <div className="rounded-xl bg-surface-50 p-4">
-            <h3 className="flex items-center gap-2 text-sm font-semibold text-surface-900"><PartyPopper className="h-4 w-4 text-primary-700" aria-hidden="true" />Calendário de eventos</h3>
-            {guide.events.length ? <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-surface-700">{guide.events.map((event) => <li key={event}>{event}</li>)}</ul> : <p className="mt-2 text-sm text-surface-600">Sem evento fixo de destaque neste mês.</p>}
-            <p className="mt-2 text-xs text-surface-600">Datas mudam a cada ano: confirme nos canais oficiais antes de divulgar.</p>
+      <h3 className="mt-4 text-sm font-semibold text-surface-900">Recomendações do mês</h3>
+      <ul className="mt-2 grid gap-2 md:grid-cols-2">{guide.activities.map((activity) => <li key={activity.title} className="rounded-xl border border-surface-200 p-3">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1"><span className="font-semibold text-surface-900">{activity.title}</span><span className="inline-flex items-center gap-1 text-xs text-surface-600"><MapPin className="h-3.5 w-3.5" aria-hidden="true" />{activity.where}</span></div>
+        <p className="mt-1 text-sm text-surface-700">{activity.why}</p>
+        <a href={mapsSearchUrl(activity.mapsQuery)} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-primary-800 hover:underline">Ver no Google Maps<NewTab /></a>
+      </li>)}</ul>
+
+      <details className="group mt-4 rounded-xl border border-surface-200 bg-surface-50 p-3">
+        <summary className="cursor-pointer text-sm font-semibold text-surface-900">Fontes, opiniões de visitantes e previsão atual</summary>
+        <div className="mt-3 space-y-4">
+          <div>
+            <h4 className="text-xs font-semibold uppercase tracking-wide text-surface-600">Opiniões de visitantes (consultadas em {FEEDBACK_CHECKED_AT})</h4>
+            <ul className="mt-1.5 space-y-2">{VISITOR_FEEDBACK.map((item) => <li key={item.place} className="text-xs text-surface-700">
+              <a href={item.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-medium text-primary-800 hover:underline">{item.place} no Tripadvisor<NewTab /></a>
+              <ul className="mt-0.5 list-disc pl-5">{item.themes.map((theme) => <li key={theme}>{theme}</li>)}</ul>
+            </li>)}</ul>
+            <p className="mt-1.5 text-xs text-surface-600">{FEEDBACK_DISCLAIMER}</p>
           </div>
-          <SourceList title="Clima e chuvas" sources={CLIMATE_SOURCES} />
-          <SourceList title="Turismo e avaliações" sources={TOURISM_SOURCES} />
+          <SourceList title="Previsão, avisos e marés (consulte perto da data)" sources={FORECAST_SOURCES} />
+          <SourceList title="Climatologia (períodos chuvosos)" sources={CLIMATE_SOURCES} />
         </div>
-      </div>
-      <p className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900" role="note">{SEASON_DISCLAIMER}</p>
+      </details>
+      <p className="mt-3 text-xs text-amber-900" role="note">{SEASON_DISCLAIMER}</p>
     </section>
   );
 }
