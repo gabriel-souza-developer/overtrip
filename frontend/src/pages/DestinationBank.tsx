@@ -5,7 +5,7 @@ import {
   type Destination, type DestinationFilters, type DestinationOuting, type DestinationStatus, type EffectiveOutingStatus, type OutingStatus, type TrailLevel,
 } from '../api/destinations';
 import {
-  destinationToForm, emptyDestinationForm, emptyOutingForm, formToDestinationInput, formToOutingInput, formatMoney, outingToForm, previewOuting, stopOnlyInput,
+  destinationToForm, emptyDestinationForm, emptyOutingForm, formToDestinationInput, formToOutingInput, formatMoney, outingSourceLabel, outingToForm, previewOuting, stopOnlyInput,
   type DestinationForm, type OutingForm,
 } from '../lib/destinationBank';
 import { formatDateBR } from '../lib/dateInput';
@@ -273,6 +273,7 @@ export default function DestinationBank({ history = false }: { history?: boolean
                       {outing.trip && <span className="block text-xs text-surface-700">{outing.trip.role === 'stop'
                         ? (outing.trip.destinations.length ? `Parada da viagem com ${outing.trip.destinations.filter((item) => item.id !== destination.id).map((item) => item.name).join(', ')} · situação e valores na saída de ${outing.trip.destinations[0].name}` : 'Parada de uma viagem fora do seu acesso')
                         : `Viagem com ${outing.trip.destinations.slice(1).map((item) => item.name).join(', ')} · valores registrados aqui, uma vez`}</span>}
+                      {outingSourceLabel(outing.source) && <span className="block text-xs text-surface-500">Origem: {outingSourceLabel(outing.source)}</span>}
                       {outing.notes && <span className="block text-xs text-surface-600">{outing.notes}</span>}</td>
                     <td className="py-2 pr-3 tabular-nums">{outing.passengers ?? '—'}{outing.courtesySeats ? <span className="block text-xs text-surface-600">{outing.courtesySeats === 1 ? '1 cortesia' : `${outing.courtesySeats} cortesias`}</span> : null}</td>
                     <td className="py-2 pr-3 tabular-nums">{formatMoney(outing.pricePerPersonCents)}</td>

@@ -52,9 +52,9 @@ afterAll(async () => {
 describe('viagem com vários destinos', () => {
   it('agrupa os três pontos de 15/08/2026 numa viagem, sem marcar realizada, e conta uma vez depois de confirmada', async () => {
     const names = [`${TAG} Dique de Cabedelo`, `${TAG} Fortaleza de Santa Catarina`, `${TAG} Praia Formosa`];
-    const dique = await makeDestination(names[0], [{ date: day('2026-08-15'), notes: SITE }]);
-    const fortaleza = await makeDestination(names[1], [{ date: day('2026-08-15'), notes: SITE, passengers: 22, pricePerPersonCents: 7000, transportCostCents: 90000 }]);
-    const formosa = await makeDestination(names[2], [{ date: day('2026-08-15'), notes: SITE }]);
+    const dique = await makeDestination(names[0], [{ date: day('2026-08-15'), notes: SITE, source: 'SITE' }]);
+    const fortaleza = await makeDestination(names[1], [{ date: day('2026-08-15'), notes: SITE, source: 'SITE', passengers: 22, pricePerPersonCents: 7000, transportCostCents: 90000 }]);
+    const formosa = await makeDestination(names[2], [{ date: day('2026-08-15'), notes: SITE, source: 'SITE' }]);
     const ids = [dique, fortaleza, formosa].map((row) => row.outings[0].id);
 
     // Antes: os três são "a confirmar" e nenhum entra nos totais.
@@ -184,5 +184,54 @@ describe('viagem com vários destinos', () => {
     const all = await finance('all');
     expect(JSON.stringify(all)).not.toContain('Alheia');
     await prisma.destinationOuting.update({ where: { id: foreignOuting }, data: { parentOutingId: null } });
+  });
+});
+
+describe('origem gravada da saída (source)', () => {
+  it('não muda ao editar as observações e não pode ser enviada pela API', async () => {
+    const place = await makeDestination(`${TAG} Origem`, [{ date: day('2025-09-01'), notes: SITE, source: 'SITE', passengers: 8, pricePerPersonCents: 5000, transportCostCents: 10000 }]);
+    const siteOuting = place.outings[0].id;
+    const toConfirm = async () => (await finance('all')).toConfirm.find((row: { id: string }) => row.id === siteOuting);
+    expect(await toConfirm()).toMatchObject({ status: 'UNCONFIRMED', siteImported: true, source: 'SITE' });
+
+    // A equipe reescreve a nota: continua criada pelo site e a confirmar.
+    const edited = await call(`/destinations/${place.id}/outings/${siteOuting}`, 'PUT', { notes: 'Turma do colégio, saída das 5h.' });
+    expect(edited.status).toBe(200);
+    expect(edited.body.outings[0]).toMatchObject({ source: 'SITE', effectiveStatus: 'UNCONFIRMED', notes: 'Turma do colégio, saída das 5h.' });
+    expect(await toConfirm()).toMatchObject({ source: 'SITE' });
+    // Apagar a nota também não muda nada.
+    expect((await call(`/destinations/${place.id}/outings/${siteOuting}`, 'PUT', { notes: null })).body.outings[0]).toMatchObject({ source: 'SITE', effectiveStatus: 'UNCONFIRMED' });
+
+    // A origem não é campo editável nem na criação nem na edição.
+    expect((await call(`/destinations/${place.id}/outings/${siteOuting}`, 'PUT', { source: 'TEAM' })).status).toBe(400);
+    expect((await call(`/destinations/${place.id}/outings`, 'POST', { date: '2025-09-02', source: 'SITE' })).status).toBe(400);
+    expect((await prisma.destinationOuting.findUnique({ where: { id: siteOuting } }))!.source).toBe('SITE');
+
+    // Lançada pela equipe com o mesmo texto que o site usa: é da equipe e conta nos totais.
+    const team = await call(`/destinations/${place.id}/outings`, 'POST', { date: '2025-09-03', notes: SITE, passengers: 4, pricePerPersonCents: 1000, transportCostCents: 0 });
+    expect(team.status).toBe(201);
+    const teamOuting = team.body.outings.find((row: { date: string }) => row.date.startsWith('2025-09-03'));
+    expect(teamOuting).toMatchObject({ source: 'TEAM', effectiveStatus: 'REALIZED', notes: SITE });
+    const all = await finance('all');
+    expect(all.outings.find((row: { id: string }) => row.id === teamOuting.id)).toMatchObject({ source: 'TEAM', siteImported: false, revenueCents: 4000 });
+    expect(all.toConfirm.some((row: { id: string }) => row.id === teamOuting.id)).toBe(false);
+
+    // Confirmar a criada pelo site muda a situação, não a origem.
+    await call(`/destinations/${place.id}/outings/${siteOuting}`, 'PUT', { status: 'REALIZED' });
+    expect((await finance('all')).outings.find((row: { id: string }) => row.id === siteOuting)).toMatchObject({ status: 'REALIZED', source: 'SITE' });
+  });
+
+  it('parada criada ao juntar um destino é da equipe; saídas do site de outra empresa nunca aparecem', async () => {
+    const primary = await makeDestination(`${TAG} Principal Origem`, [{ date: day('2025-10-01'), status: 'REALIZED', passengers: 5, pricePerPersonCents: 1000, transportCostCents: 0 }]);
+    const extra = await makeDestination(`${TAG} Parada Origem`);
+    expect((await call(`/destinations/${primary.id}/outings/${primary.outings[0].id}/stops`, 'POST', { destinationId: extra.id })).status).toBe(201);
+    expect(await prisma.destinationOuting.findFirst({ where: { destinationId: extra.id } })).toMatchObject({ parentOutingId: primary.outings[0].id, source: 'TEAM' });
+
+    const foreign = await makeDestination(`${TAG} Estrangeira Origem`, [{ date: day('2025-10-01'), notes: SITE, source: 'SITE' }], orgId);
+    const all = await finance('all');
+    expect([...all.outings, ...all.toConfirm].some((row: { id: string }) => row.id === foreign.outings[0].id)).toBe(false);
+    expect((await call(`/destinations/${foreign.id}`)).status).toBe(404);
+    expect((await call(`/destinations/${foreign.id}/outings/${foreign.outings[0].id}`, 'PUT', { notes: 'x' })).status).toBe(404);
+    expect((await prisma.destinationOuting.findUnique({ where: { id: foreign.outings[0].id } }))!.notes).toBe(SITE);
   });
 });

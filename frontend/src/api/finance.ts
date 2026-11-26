@@ -1,5 +1,5 @@
 import { request } from './index';
-import type { EffectiveOutingStatus } from './destinations';
+import type { EffectiveOutingStatus, OutingSource } from './destinations';
 
 // Painel financeiro (só administradores, somente leitura). Valores lançados
 // à mão no banco de destinos e nas reservas; nada processa pagamento.
@@ -35,6 +35,7 @@ export interface FinanceOuting {
   expenseCents: number | null;
   resultCents: number | null;
   siteImported: boolean;
+  source: OutingSource | null;
   missing: FinanceMissingField[];
 }
 

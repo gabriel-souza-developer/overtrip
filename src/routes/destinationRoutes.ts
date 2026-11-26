@@ -53,9 +53,9 @@ const inScope = (organizationId: string | null) => organizationId === null || or
 const placeSelect = { select: { id: true, name: true, organizationId: true } } as const;
 const stopSelect = () => ({ where: { destination: { is: currentLegacyDestinationFilter() } }, select: { id: true, destination: placeSelect }, orderBy: [{ createdAt: 'asc' as const }, { id: 'asc' as const }] });
 const outingSelect = () => ({
-  id: true, date: true, status: true, passengers: true, courtesySeats: true, pricePerPersonCents: true, transportCostCents: true, extraCostCents: true, supplier: true, notes: true, updatedAt: true,
+  id: true, date: true, status: true, passengers: true, courtesySeats: true, pricePerPersonCents: true, transportCostCents: true, extraCostCents: true, supplier: true, notes: true, source: true, updatedAt: true,
   parentOutingId: true,
-  parentOuting: { select: { id: true, date: true, status: true, notes: true, destination: placeSelect, stops: stopSelect() } },
+  parentOuting: { select: { id: true, date: true, status: true, source: true, destination: placeSelect, stops: stopSelect() } },
   stops: stopSelect(),
 });
 // Viagens e visitas do site ligadas ao destino, lidas sempre do registro
@@ -275,7 +275,7 @@ router.post('/:id/outings', asyncHandler(async (req: AuthRequest, res: Response)
   validateStatus(data.status, dayToDate(data.date));
   const row = await prisma.$transaction(async (tx) => {
     const destination = await findOwn(tx, id);
-    await tx.destinationOuting.create({ data: { destinationId: id, ...outingData(data) } });
+    await tx.destinationOuting.create({ data: { destinationId: id, ...outingData(data), source: 'TEAM' } });
     await touch(tx, id, destination.updatedAt);
     return findOwn(tx, id);
   });

@@ -75,7 +75,7 @@ export async function addDestinationAsStop(tx: Tx, primary: Primary, destination
   const target = await tx.destination.findFirst({ where: { id: destinationId, ...currentLegacyDestinationFilter() }, select: { id: true, updatedAt: true } });
   if (!target) throw AppError.notFound('Destino a ligar não encontrado');
   if (tripDestinations(primary).has(target.id)) throw AppError.conflict('Esse destino já faz parte desta viagem.');
-  await tx.destinationOuting.create({ data: { destinationId: target.id, date: primary.date, parentOutingId: primary.id } });
+  await tx.destinationOuting.create({ data: { destinationId: target.id, date: primary.date, parentOutingId: primary.id, source: 'TEAM' } });
   await assertTripConsistent(tx, primary);
   return { destinationId: target.id, previousUpdatedAt: target.updatedAt };
 }

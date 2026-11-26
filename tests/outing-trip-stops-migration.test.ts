@@ -14,7 +14,8 @@ describe('migração 20261128010000_outing_trip_stops_status com dados existente
     mkdirSync(migrationDir);
     const source = resolve('prisma/migrations');
     const target = '20261128010000_outing_trip_stops_status';
-    for (const name of readdirSync(source)) if (name !== target) cpSync(join(source, name), join(migrationDir, name), { recursive: true });
+    // Só as migrações anteriores à testada (as posteriores dependem dela).
+    for (const name of readdirSync(source)) if (!/^\d/.test(name) || name < target) cpSync(join(source, name), join(migrationDir, name), { recursive: true });
     cpSync(resolve('prisma/schema.prisma'), join(directory, 'schema.prisma'));
     const database = `file:${join(directory, 'populated.db')}`;
     const prisma = new PrismaClient({ datasources: { db: { url: database } } });

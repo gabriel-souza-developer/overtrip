@@ -12,8 +12,19 @@ describe('situação efetiva da saída', () => {
     expect(effectiveOutingStatus({ status: 'PLANNED', date: day('2020-01-01') }, NOW)).toEqual({ status: 'PLANNED', confirmed: true });
   });
   it('não trata o site como prova de realização', () => {
-    expect(effectiveOutingStatus({ status: null, date: day('2026-08-15'), notes: SITE }, NOW)).toEqual({ status: 'UNCONFIRMED', confirmed: false });
-    expect(effectiveOutingStatus({ status: null, date: null, notes: 'Visita registrada no mapa do site, sem data.' }, NOW).status).toBe('UNCONFIRMED');
+    expect(effectiveOutingStatus({ status: null, date: day('2026-08-15'), source: 'SITE' }, NOW)).toEqual({ status: 'UNCONFIRMED', confirmed: false });
+    expect(effectiveOutingStatus({ status: null, date: null, source: 'SITE' }, NOW).status).toBe('UNCONFIRMED');
+  });
+  it('decide pela origem gravada, nunca pelo texto das observações', () => {
+    // Nota com o texto do site, mas lançada pela equipe/planilha: segue manual.
+    const teamWithSiteNote = { status: null, date: day('2026-08-15'), source: 'TEAM', notes: SITE };
+    const legacyWithSiteNote = { status: null, date: day('2026-08-15'), source: null, notes: SITE };
+    // Criada pelo site com a nota reescrita pela equipe: continua a confirmar.
+    const siteWithEditedNote = { status: null, date: day('2026-08-15'), source: 'SITE', notes: 'Saída com a turma do colégio.' };
+    expect(effectiveOutingStatus(teamWithSiteNote, NOW).status).toBe('REALIZED');
+    expect(effectiveOutingStatus(legacyWithSiteNote, NOW).status).toBe('REALIZED');
+    expect(effectiveOutingStatus({ status: null, date: day('2026-08-15'), source: 'SHEET' }, NOW).status).toBe('REALIZED');
+    expect(effectiveOutingStatus(siteWithEditedNote, NOW).status).toBe('UNCONFIRMED');
   });
   it('mantém a regra antiga para registros da equipe/planilha sem status', () => {
     expect(effectiveOutingStatus({ status: null, date: day('2025-02-23') }, NOW)).toEqual({ status: 'REALIZED', confirmed: false });
@@ -39,13 +50,13 @@ describe('financeiro com viagens de vários destinos', () => {
   const base = { courtesySeats: null, extraCostCents: null } as const;
   const rows: FinanceOutingInput[] = [
     // Viagem de 15/08/2026: valores só na principal; duas paradas sem valores.
-    { ...base, id: 'p', destinationId: 'dique', destinationName: 'Dique de Cabedelo', date: day('2026-08-15'), status: 'REALIZED', passengers: 20, pricePerPersonCents: 6500, transportCostCents: 70000, notes: SITE,
+    { ...base, id: 'p', destinationId: 'dique', destinationName: 'Dique de Cabedelo', date: day('2026-08-15'), status: 'REALIZED', passengers: 20, pricePerPersonCents: 6500, transportCostCents: 70000, source: 'SITE',
       stops: [{ destinationId: 'fortaleza', destinationName: 'Fortaleza de Santa Catarina' }, { destinationId: 'formosa', destinationName: 'Praia Formosa' }] },
     { ...base, id: 's1', destinationId: 'fortaleza', destinationName: 'Fortaleza de Santa Catarina', date: day('2026-08-15'), status: null, parentOutingId: 'p', passengers: 20, pricePerPersonCents: 6500, transportCostCents: 70000 },
     { ...base, id: 's2', destinationId: 'formosa', destinationName: 'Praia Formosa', date: day('2026-08-15'), status: null, parentOutingId: 'p', passengers: null, pricePerPersonCents: null, transportCostCents: null },
     // Outros estados.
     { ...base, id: 'legacy', destinationId: 'lagoa', destinationName: 'Lagoa', date: day('2026-02-01'), status: null, passengers: 10, pricePerPersonCents: 5000, transportCostCents: 20000 },
-    { ...base, id: 'site', destinationId: 'rio', destinationName: 'Rio', date: day('2026-09-01'), status: null, passengers: 5, pricePerPersonCents: 5000, transportCostCents: 1000, notes: SITE },
+    { ...base, id: 'site', destinationId: 'rio', destinationName: 'Rio', date: day('2026-09-01'), status: null, passengers: 5, pricePerPersonCents: 5000, transportCostCents: 1000, source: 'SITE' },
     { ...base, id: 'cancel', destinationId: 'rio', destinationName: 'Rio', date: day('2026-03-01'), status: 'CANCELLED', passengers: 5, pricePerPersonCents: 5000, transportCostCents: 1000 },
     { ...base, id: 'plan', destinationId: 'rio', destinationName: 'Rio', date: day('2026-04-01'), status: 'PLANNED', passengers: 5, pricePerPersonCents: 5000, transportCostCents: 1000 },
   ];

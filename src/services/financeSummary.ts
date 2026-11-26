@@ -1,5 +1,5 @@
 import { Prisma } from '@prisma/client';
-import { effectiveOutingStatus, isSiteCreatedOuting, outingTotals, type EffectiveOutingStatus } from './destinationBank.js';
+import { effectiveOutingStatus, isSiteCreatedOuting, outingSource, outingTotals, type EffectiveOutingStatus } from './destinationBank.js';
 
 // Painel financeiro (somente leitura). Duas fontes, ambas lançadas à mão:
 // 1. Saídas realizadas do banco de destinos (receita, despesa e resultado
@@ -17,7 +17,8 @@ export interface FinanceOutingInput {
   pricePerPersonCents: number | null;
   transportCostCents: number | null;
   extraCostCents: number | null;
-  notes?: string | null;
+  /** Origem gravada (SITE | SHEET | TEAM); null = registro anterior da equipe/planilha. */
+  source?: string | null;
   /** null/ausente = registro anterior ao campo (ver effectiveOutingStatus). */
   status?: string | null;
   /** Preenchido nas paradas de uma viagem: os valores ficam na principal. */
@@ -133,6 +134,7 @@ export function summarizeFinanceOutings(input: FinanceOutingInput[], year: numbe
       date: row.date ? row.date.toISOString() : null, passengers: row.passengers, courtesySeats: row.courtesySeats, pricePerPersonCents: row.pricePerPersonCents,
       ...outingTotals(row), missing: missingFields(row),
       siteImported: isSiteCreatedOuting(row),
+      source: outingSource(row),
   });
   const newestFirst = (a: { date: string | null }, b: { date: string | null }) => (b.date ?? '').localeCompare(a.date ?? '');
   const outings = inPeriod.map(view).sort(newestFirst);

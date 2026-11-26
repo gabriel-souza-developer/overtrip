@@ -494,6 +494,11 @@ model DestinationOuting {
   extraCostCents      Int?
   supplier            String?
   notes               String?
+  // Origem do registro, gravada uma vez na criação e nunca derivada de notes:
+  // SITE (criada pela sincronização com o site) | SHEET (importação da
+  // planilha) | TEAM (lançada no painel). null = registro anterior ao campo
+  // que não veio do site (equipe ou planilha, sem distinção).
+  source              String?
   createdAt           DateTime    @default(now())
   updatedAt           DateTime    @updatedAt
 

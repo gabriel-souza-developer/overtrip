@@ -115,9 +115,17 @@ export function summarizeOutings(outings: Array<OutingNumbers & { date: Date | n
   };
 }
 
-/** Notas que a sincronização com o site grava nas saídas que ela cria. */
-export const SITE_CREATED_NOTE = /^(Registrada a partir do mapa do site\.|Visita registrada no mapa do site, sem data\.|Registrada a partir da viagem do site\.)/;
-export const isSiteCreatedOuting = (outing: { notes?: string | null }) => SITE_CREATED_NOTE.test(outing.notes ?? '');
+/**
+ * Origem da saída, gravada na criação e nunca alterada pela API (não está em
+ * outingFields). null = registro anterior ao campo que não veio do site: a
+ * migração 20261129010000_outing_source marcou como SITE as criadas pela
+ * sincronização. A nota é texto livre da equipe e não decide a origem.
+ */
+export const OUTING_SOURCES = ['SITE', 'SHEET', 'TEAM'] as const;
+export type OutingSource = typeof OUTING_SOURCES[number];
+export const outingSource = (outing: { source?: string | null }): OutingSource | null =>
+  (OUTING_SOURCES as readonly string[]).includes(outing.source ?? '') ? outing.source as OutingSource : null;
+export const isSiteCreatedOuting = (outing: { source?: string | null }) => outing.source === 'SITE';
 
 // Dia civil de São Paulo (mesma regra do financeiro, das listas e da validação).
 const saoPauloDay = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' });
@@ -131,7 +139,7 @@ export type EffectiveOutingStatus = OutingStatus | 'UNCONFIRMED';
  * Situação efetiva de uma saída.
  * - Com status gravado, vale o status (`confirmed: true`).
  * - Sem status (registros anteriores ao campo), `confirmed: false`:
- *   - criada automaticamente a partir do site e já passada → UNCONFIRMED:
+ *   - criada automaticamente a partir do site (source SITE) e já passada → UNCONFIRMED:
  *     o site (mapa ou viagem publicada) não comprova realização, então ela
  *     NÃO entra nos totais até a equipe marcar "realizada";
  *   - lançada pela equipe ou importada da planilha de destinos visitados →
@@ -139,7 +147,7 @@ export type EffectiveOutingStatus = OutingStatus | 'UNCONFIRMED';
  *     informada), para preservar os totais conciliados com a planilha;
  *   - data futura → planejada.
  */
-export function effectiveOutingStatus(outing: { status?: string | null; date: Date | null; notes?: string | null }, now = new Date()): { status: EffectiveOutingStatus; confirmed: boolean } {
+export function effectiveOutingStatus(outing: { status?: string | null; date: Date | null; source?: string | null }, now = new Date()): { status: EffectiveOutingStatus; confirmed: boolean } {
   if (outing.status && (OUTING_STATUSES as readonly string[]).includes(outing.status)) return { status: outing.status as OutingStatus, confirmed: true };
   const past = outing.date === null || outingDay(outing.date) <= todayInSaoPaulo(now);
   if (!past) return { status: 'PLANNED', confirmed: false };

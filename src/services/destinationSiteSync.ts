@@ -134,7 +134,7 @@ export async function syncDestinationsWithSite(tx: Tx, now = new Date()): Promis
   async function ensureOuting(destination: BankDestination, day: string | null, note: string, pricePerPersonCents: number | null) {
     if (day === null) {
       if (destination.outingsCount > 0) return;
-      await tx.destinationOuting.create({ data: { destinationId: destination.id, notes: note } });
+      await tx.destinationOuting.create({ data: { destinationId: destination.id, notes: note, source: 'SITE' } });
       destination.outingsCount++; report.createdOutings++;
       return;
     }
@@ -148,7 +148,7 @@ export async function syncDestinationsWithSite(tx: Tx, now = new Date()): Promis
       }
       return;
     }
-    const created = await tx.destinationOuting.create({ data: { destinationId: destination.id, date: noonUtc(day), pricePerPersonCents, notes: note }, select: { id: true } });
+    const created = await tx.destinationOuting.create({ data: { destinationId: destination.id, date: noonUtc(day), pricePerPersonCents, notes: note, source: 'SITE' }, select: { id: true } });
     // Uma viagem do mesmo dia, processada depois, ainda pode completar o valor.
     if (pricePerPersonCents === null) destination.priceless.set(day, created.id);
     destination.outingDays.add(day); destination.outingsCount++; report.createdOutings++;

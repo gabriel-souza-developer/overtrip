@@ -21,7 +21,7 @@ router.get('/summary', asyncHandler(async (req: AuthRequest, res: Response) => {
     const rows = await tx.destinationOuting.findMany({
       where: { destination: { is: currentLegacyDestinationFilter() } },
       select: {
-        id: true, date: true, status: true, parentOutingId: true, passengers: true, courtesySeats: true, pricePerPersonCents: true, transportCostCents: true, extraCostCents: true, notes: true,
+        id: true, date: true, status: true, parentOutingId: true, passengers: true, courtesySeats: true, pricePerPersonCents: true, transportCostCents: true, extraCostCents: true, source: true,
         destination: { select: { id: true, name: true } },
         // Paradas só do mesmo escopo: vínculo cruzado nunca expõe nome de outra empresa.
         stops: { where: { destination: { is: currentLegacyDestinationFilter() } }, select: { destination: { select: { id: true, name: true } } }, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] },

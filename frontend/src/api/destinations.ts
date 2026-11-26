@@ -19,6 +19,9 @@ export type OutingStatus = 'PLANNED' | 'REALIZED' | 'CANCELLED';
 export type EffectiveOutingStatus = OutingStatus | 'UNCONFIRMED';
 export const OUTING_STATUS_LABELS: Record<EffectiveOutingStatus, string> = { PLANNED: 'Planejada', REALIZED: 'Realizada', CANCELLED: 'Cancelada', UNCONFIRMED: 'A confirmar' };
 
+/** Origem gravada na criação (não muda ao editar as observações); null = registro anterior da equipe ou da planilha. */
+export type OutingSource = 'SITE' | 'SHEET' | 'TEAM';
+
 export interface OutingTrip {
   role: 'primary' | 'stop';
   /** null quando a principal está fora do escopo (não exposta). */
@@ -45,6 +48,7 @@ export interface DestinationOuting {
   extraCostCents: number | null;
   supplier: string | null;
   notes: string | null;
+  source: OutingSource | null;
   updatedAt: string;
   revenueCents: number | null;
   expenseCents: number | null;

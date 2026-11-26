@@ -66,7 +66,7 @@ async function main() {
             organizationId,
             nameSearch: normalizeForSearch(destination.name),
             citySearch: normalizeForSearch(destination.city ?? ''),
-            outings: { create: items.map(({ date, ...outing }) => ({ ...outing, date: date ? new Date(`${date}T12:00:00.000Z`) : null })) },
+            outings: { create: items.map(({ date, ...outing }) => ({ ...outing, source: 'SHEET', date: date ? new Date(`${date}T12:00:00.000Z`) : null })) },
           },
         });
       }

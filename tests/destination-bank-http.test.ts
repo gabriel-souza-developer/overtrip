@@ -187,7 +187,8 @@ describe('banco de destinos', () => {
     expect(synced).toMatchObject({ city: 'Pilões', region: 'PB', category: 'Cachoeira', trailLevel: 'MODERATE' });
     expect(synced.links).toEqual([{ label: 'Google Maps', url: 'https://www.google.com/maps?q=-6.8,-35.6' }]);
     expect(synced.outings).toHaveLength(1);
-    expect(synced.outings[0]).toMatchObject({ date: '2024-09-29T12:00:00.000Z', passengers: 20, pricePerPersonCents: 6500, onSite: true });
+    // A saída já lançada pela equipe continua da equipe (a sincronização só completou o valor).
+    expect(synced.outings[0]).toMatchObject({ date: '2024-09-29T12:00:00.000Z', passengers: 20, pricePerPersonCents: 6500, onSite: true, source: 'TEAM', effectiveStatus: 'REALIZED' });
     expect(synced.site.onMap).toBe(true);
     expect(synced.site.visits).toMatchObject([{ id: visit.id, date: '2024-09-29', onMap: true }]);
     expect(synced.site.trips).toMatchObject([{ id: trip.id, date: '2024-09-29', status: 'COMPLETED', pricePerPersonCents: 6500, description: 'Descrição do site.' }]);
@@ -195,6 +196,8 @@ describe('banco de destinos', () => {
     const createdId = (await prisma.visit.findUnique({ where: { id: newPlace.id } }))!.destinationId!;
     const created = await (await call(`/${createdId}`, adminToken)).json();
     expect(created).toMatchObject({ name: `${TAG} Lugar Novo`, city: 'Areia', region: 'PB', imported: false, summary: { outingsCount: 1 } });
+    // Criada pela sincronização: origem SITE gravada, a confirmar.
+    expect(created.outings).toMatchObject([{ source: 'SITE', effectiveStatus: 'UNCONFIRMED', notes: 'Registrada a partir do mapa do site.' }]);
     const futureId = (await prisma.trip.findUnique({ where: { id: future.id } }))!.destinationId!;
     const futureDestination = await (await call(`/${futureId}`, adminToken)).json();
     expect(futureDestination.outings).toEqual([]);
@@ -218,10 +221,10 @@ describe('banco de destinos', () => {
     expect(third).toMatchObject({ linkedVisits: 4, linkedTrips: 1, createdDestinations: 3 });
     expect(await (await call('/sync-site', adminToken, 'POST')).json()).toEqual({ linkedVisits: 0, linkedTrips: 0, createdDestinations: 0, createdOutings: 0, filledFields: 0 });
     const trilha = (await (await call(`/?search=${encodeURIComponent('trilha nova')}`, adminToken)).json()).data[0];
-    expect(trilha.outings).toMatchObject([{ date: '2026-10-18T12:00:00.000Z', pricePerPersonCents: 10999 }]);
+    expect(trilha.outings).toMatchObject([{ date: '2026-10-18T12:00:00.000Z', pricePerPersonCents: 10999, source: 'SITE' }]);
     const campAfter = await (await call(`/${camp.id}`, adminToken)).json();
     expect(campAfter.outings).toHaveLength(1);
-    expect(campAfter.outings[0].onSite).toBe(true);
+    expect(campAfter.outings[0]).toMatchObject({ onSite: true, source: 'TEAM' });
 
     const second = await (await call('/sync-site', adminToken, 'POST')).json();
     expect(second).toEqual({ linkedVisits: 0, linkedTrips: 0, createdDestinations: 0, createdOutings: 0, filledFields: 0 });

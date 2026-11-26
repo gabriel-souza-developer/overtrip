@@ -1,4 +1,4 @@
-import type { Destination, DestinationCategory, DestinationInput, DestinationOuting, DestinationStatus, OutingInput, OutingStatus, TrailLevel } from '../api/destinations';
+import type { Destination, DestinationCategory, DestinationInput, DestinationOuting, DestinationStatus, OutingInput, OutingSource, OutingStatus, TrailLevel } from '../api/destinations';
 import { reservationMoneyToCents } from './reservationMoney';
 
 export const formatMoney = (cents: number | null) => (cents === null ? '—' : (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }));
@@ -86,6 +86,10 @@ export const todayInSaoPaulo = (now = new Date()) => saoPauloDay.format(now);
 
 /** Campos de viagem: numa parada, ficam só na saída principal (a API recusa). */
 export const TRIP_LEVEL_INPUT_FIELDS = ['status', 'passengers', 'courtesySeats', 'pricePerPersonCents', 'transportCostCents', 'extraCostCents', 'supplier'] as const;
+
+const OUTING_SOURCE_LABELS: Record<OutingSource, string> = { SITE: 'Criada pelo site', SHEET: 'Importada da planilha', TEAM: 'Lançada pela equipe' };
+/** Origem da saída, vinda do campo gravado (nunca do texto das observações). */
+export const outingSourceLabel = (source: OutingSource | null | undefined) => (source ? OUTING_SOURCE_LABELS[source] ?? null : 'Registro anterior (equipe ou planilha)');
 
 /** Só o que uma parada pode mudar (data e observações). */
 export function stopOnlyInput(input: OutingInput): Pick<OutingInput, 'date' | 'notes'> {

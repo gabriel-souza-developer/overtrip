@@ -11,7 +11,7 @@ test('confirma uma viagem de vários destinos que veio do site', async ({ page }
   };
   const zero = { outings: 0, completeOutings: 0, passengers: 0, courtesySeats: 0, revenueCents: 0, expenseCents: 0, resultCents: 0, marginPct: null, averageTicketCents: null, averageResultCents: null };
   const row = { id: 'out-1', destinationId: 'dest-1', destinationName: 'Dique de Cabedelo', stops: [{ destinationId: 'dest-2', destinationName: 'Fortaleza de Santa Catarina' }, { destinationId: 'dest-3', destinationName: 'Praia Formosa' }],
-    status: 'UNCONFIRMED', statusConfirmed: false, date: record.date, passengers: 20, courtesySeats: null, pricePerPersonCents: 6500, revenueCents: 130000, expenseCents: 70000, resultCents: 60000, missing: [], siteImported: true };
+    status: 'UNCONFIRMED', statusConfirmed: false, date: record.date, passengers: 20, courtesySeats: null, pricePerPersonCents: 6500, revenueCents: 130000, expenseCents: 70000, resultCents: 60000, missing: [], siteImported: true, source: 'SITE' };
   let submitted: unknown;
   await page.route((url) => url.pathname.startsWith('/api/'), async (route) => {
     const url = new URL(route.request().url());
