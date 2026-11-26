@@ -20,11 +20,19 @@ router.get('/summary', asyncHandler(async (req: AuthRequest, res: Response) => {
   const { outings, reservations } = await prisma.$transaction(async (tx) => {
     const rows = await tx.destinationOuting.findMany({
       where: { destination: { is: currentLegacyDestinationFilter() } },
-      select: { id: true, date: true, passengers: true, courtesySeats: true, pricePerPersonCents: true, transportCostCents: true, extraCostCents: true, notes: true, destination: { select: { id: true, name: true } } },
+      select: {
+        id: true, date: true, status: true, parentOutingId: true, passengers: true, courtesySeats: true, pricePerPersonCents: true, transportCostCents: true, extraCostCents: true, notes: true,
+        destination: { select: { id: true, name: true } },
+        // Paradas só do mesmo escopo: vínculo cruzado nunca expõe nome de outra empresa.
+        stops: { where: { destination: { is: currentLegacyDestinationFilter() } }, select: { destination: { select: { id: true, name: true } } }, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] },
+      },
     });
     const access = currentReservationAccessSql();
     return {
-      outings: rows.map(({ destination, ...row }) => ({ ...row, destinationId: destination.id, destinationName: destination.name })),
+      outings: rows.map(({ destination, stops, ...row }) => ({
+        ...row, destinationId: destination.id, destinationName: destination.name,
+        stops: stops.map((stop) => ({ destinationId: stop.destination.id, destinationName: stop.destination.name })),
+      })),
       reservations: await summarizeReservations(tx, access.join, access.where, now),
     };
   });

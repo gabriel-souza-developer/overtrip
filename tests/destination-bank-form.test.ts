@@ -22,7 +22,13 @@ describe('formulário do banco de destinos', () => {
 
   it('reabre uma saída salva com os mesmos valores', () => {
     const form = outingToForm({ id: 'o', date: '2025-03-30T12:00:00.000Z', passengers: 15, courtesySeats: null, pricePerPersonCents: 6550, transportCostCents: 80000, extraCostCents: null, supplier: 'Van', notes: null, updatedAt: '', revenueCents: null, expenseCents: null, resultCents: null });
-    expect(form).toEqual({ date: '2025-03-30', passengers: '15', courtesySeats: '', pricePerPerson: '65,50', transportCost: '800', extraCost: '', supplier: 'Van', notes: '' });
-    expect(formToOutingInput(form).data).toMatchObject({ pricePerPersonCents: 6550, transportCostCents: 80000 });
+    expect(form).toEqual({ date: '2025-03-30', status: '', passengers: '15', courtesySeats: '', pricePerPerson: '65,50', transportCost: '800', extraCost: '', supplier: 'Van', notes: '' });
+    expect(formToOutingInput(form).data).toMatchObject({ status: null, pricePerPersonCents: 6550, transportCostCents: 80000 });
+  });
+
+  it('envia a situação escolhida e recusa realizada no futuro', () => {
+    expect(formToOutingInput({ ...emptyOutingForm(), date: '2025-03-30', status: 'CANCELLED' }).data).toMatchObject({ status: 'CANCELLED' });
+    expect(formToOutingInput({ ...emptyOutingForm(), date: '2099-01-01', status: 'REALIZED' }).error).toMatch(/futura/);
+    expect(formToOutingInput({ ...emptyOutingForm(), date: '2099-01-01', status: 'PLANNED' }).data).toMatchObject({ status: 'PLANNED' });
   });
 });

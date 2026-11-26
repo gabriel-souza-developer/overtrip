@@ -62,7 +62,7 @@ export async function syncDestinationsWithSite(tx: Tx, now = new Date()): Promis
 
   const rows = await tx.destination.findMany({
     where: currentLegacyDestinationFilter(),
-    select: { id: true, name: true, city: true, region: true, category: true, trailLevel: true, links: true, outings: { select: { id: true, date: true, pricePerPersonCents: true } } },
+    select: { id: true, name: true, city: true, region: true, category: true, trailLevel: true, links: true, outings: { select: { id: true, date: true, pricePerPersonCents: true, parentOutingId: true } } },
   });
   const bank = new Map<string, BankDestination>();
   const byKey = new Map<string, BankDestination>();
@@ -73,7 +73,8 @@ export async function syncDestinationsWithSite(tx: Tx, now = new Date()): Promis
       if (!outing.date) continue;
       const day = outing.date.toISOString().slice(0, 10);
       days.add(day);
-      if (outing.pricePerPersonCents === null) priceless.set(day, outing.id);
+      // Paradas de uma viagem com vários destinos não guardam valores (ficam na principal).
+      if (outing.pricePerPersonCents === null && outing.parentOutingId === null) priceless.set(day, outing.id);
     }
     return { ...row, outingDays: days, outingsCount: row.outings.length, priceless };
   };
@@ -101,7 +102,7 @@ export async function syncDestinationsWithSite(tx: Tx, now = new Date()): Promis
         nameSearch: normalizeForSearch(name),
         citySearch: normalizeForSearch(city || ''),
       },
-      select: { id: true, name: true, city: true, region: true, category: true, trailLevel: true, links: true, outings: { select: { id: true, date: true, pricePerPersonCents: true } } },
+      select: { id: true, name: true, city: true, region: true, category: true, trailLevel: true, links: true, outings: { select: { id: true, date: true, pricePerPersonCents: true, parentOutingId: true } } },
     });
     report.createdDestinations++;
     const entry = toBank(created);

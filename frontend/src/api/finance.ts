@@ -1,4 +1,5 @@
 import { request } from './index';
+import type { EffectiveOutingStatus } from './destinations';
 
 // Painel financeiro (só administradores, somente leitura). Valores lançados
 // à mão no banco de destinos e nas reservas; nada processa pagamento.
@@ -22,6 +23,10 @@ export interface FinanceOuting {
   id: string;
   destinationId: string;
   destinationName: string;
+  /** Outros destinos da mesma viagem (valores registrados uma vez, nesta saída). */
+  stops: Array<{ destinationId: string; destinationName: string }>;
+  status: EffectiveOutingStatus;
+  statusConfirmed: boolean;
   date: string | null;
   passengers: number | null;
   courtesySeats: number | null;
@@ -43,10 +48,17 @@ export interface FinanceSummary {
     year: number | null;
     totals: FinanceTotals;
     incompleteOutings: number;
+    plannedOutings: number;
+    cancelledOutings: number;
+    /** Criadas pelo site, sem confirmação: fora dos totais. */
+    unconfirmedOutings: number;
+    /** Registros históricos sem status, contados pela regra antiga. */
+    legacyRealizedOutings: number;
     byYear: Array<FinanceTotals & { year: number }>;
     byMonth: Array<FinanceTotals & { month: number }>;
-    byDestination: Array<FinanceTotals & { destinationId: string; name: string }>;
+    byDestination: Array<FinanceTotals & { key: string; destinationId: string; destinationIds: string[]; name: string }>;
     outings: FinanceOuting[];
+    toConfirm: FinanceOuting[];
   };
   reservations: {
     activeReservations: number;

@@ -463,15 +463,29 @@ model Destination {
   @@index([citySearch])
 }
 
-// DESTINATION_OUTING: histórico de uma saída já realizada para o destino.
+// DESTINATION_OUTING: uma saída (viagem) para o destino.
 // Valores em centavos, lançados à mão (nunca processam pagamento). Receita,
 // despesa e resultado são CALCULADOS na leitura, não armazenados.
 // supplier é o transporte contratado: dado interno, só para administradores.
+//
+// Viagem com vários destinos: uma saída é a PRINCIPAL (guarda status e
+// valores, contados uma vez só) e as dos outros destinos são PARADAS dela
+// (parentOutingId). Uma parada não guarda status nem valores: só se junta
+// quando os dela estão em branco ou iguais aos da principal (os iguais ficam
+// só na principal). Assim separar a parada nunca duplica totais.
 model DestinationOuting {
   id                  String      @id @default(cuid())
   destinationId       String
   destination         Destination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
   date                DateTime?
+  // PLANNED | REALIZED | CANCELLED. null = registro anterior a este campo,
+  // sem confirmação: criado pelo site → "a confirmar" (fora dos totais);
+  // lançado pela equipe/planilha → regra antiga pela data (ver
+  // effectiveOutingStatus em src/services/destinationBank.ts).
+  status              String?
+  parentOutingId      String?
+  parentOuting        DestinationOuting?  @relation("OutingStops", fields: [parentOutingId], references: [id], onDelete: SetNull)
+  stops               DestinationOuting[] @relation("OutingStops")
   passengers          Int?
   // Lugares que não pagam (organizador, cortesia): receita usa só os pagantes.
   courtesySeats       Int?
@@ -484,6 +498,7 @@ model DestinationOuting {
   updatedAt           DateTime    @updatedAt
 
   @@index([destinationId, date])
+  @@index([parentOutingId])
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

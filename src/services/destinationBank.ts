@@ -5,6 +5,8 @@ import { z } from 'zod';
 
 export const DESTINATION_STATUSES = ['IDEA', 'PRIORITY', 'DISCARDED'] as const;
 export const TRAIL_LEVELS = ['EASY', 'MODERATE', 'HARD'] as const;
+export const OUTING_STATUSES = ['PLANNED', 'REALIZED', 'CANCELLED'] as const;
+export type OutingStatus = typeof OUTING_STATUSES[number];
 export const DESTINATION_CATEGORIES = ['Cachoeira', 'Praia', 'Rio', 'Mirante', 'Trilha', 'Camping', 'Balneário', 'Gruta', 'Lagoa', 'Outro'] as const;
 export const MAX_DESTINATION_LINKS = 6;
 
@@ -36,6 +38,7 @@ export const destinationFields = {
 const money = z.union([z.number().int().min(0).max(100_000_000), z.null()]).optional();
 export const outingFields = {
   date: z.union([z.iso.date(), z.null()]).optional(),
+  status: z.union([z.enum(OUTING_STATUSES), z.null()]).optional(),
   passengers: z.union([z.number().int().min(0).max(1000), z.null()]).optional(),
   courtesySeats: z.union([z.number().int().min(0).max(1000), z.null()]).optional(),
   pricePerPersonCents: money,
@@ -110,4 +113,48 @@ export function summarizeOutings(outings: Array<OutingNumbers & { date: Date | n
     averageExpenseCents: average(totals.flatMap((total) => (total.expenseCents != null ? [total.expenseCents] : []))),
     averageResultCents: average(totals.flatMap((total) => (total.resultCents != null ? [total.resultCents] : []))),
   };
+}
+
+/** Notas que a sincronização com o site grava nas saídas que ela cria. */
+export const SITE_CREATED_NOTE = /^(Registrada a partir do mapa do site\.|Visita registrada no mapa do site, sem data\.|Registrada a partir da viagem do site\.)/;
+export const isSiteCreatedOuting = (outing: { notes?: string | null }) => SITE_CREATED_NOTE.test(outing.notes ?? '');
+
+// Dia civil de São Paulo (mesma regra do financeiro, das listas e da validação).
+const saoPauloDay = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' });
+export const todayInSaoPaulo = (now = new Date()) => saoPauloDay.format(now);
+/** Saídas guardam o dia civil ao meio-dia UTC: o próprio dia é a parte AAAA-MM-DD. */
+export const outingDay = (date: Date) => date.toISOString().slice(0, 10);
+
+export type EffectiveOutingStatus = OutingStatus | 'UNCONFIRMED';
+
+/**
+ * Situação efetiva de uma saída.
+ * - Com status gravado, vale o status (`confirmed: true`).
+ * - Sem status (registros anteriores ao campo), `confirmed: false`:
+ *   - criada automaticamente a partir do site e já passada → UNCONFIRMED:
+ *     o site (mapa ou viagem publicada) não comprova realização, então ela
+ *     NÃO entra nos totais até a equipe marcar "realizada";
+ *   - lançada pela equipe ou importada da planilha de destinos visitados →
+ *     mantém a regra antiga (realizada se a data já passou ou não foi
+ *     informada), para preservar os totais conciliados com a planilha;
+ *   - data futura → planejada.
+ */
+export function effectiveOutingStatus(outing: { status?: string | null; date: Date | null; notes?: string | null }, now = new Date()): { status: EffectiveOutingStatus; confirmed: boolean } {
+  if (outing.status && (OUTING_STATUSES as readonly string[]).includes(outing.status)) return { status: outing.status as OutingStatus, confirmed: true };
+  const past = outing.date === null || outingDay(outing.date) <= todayInSaoPaulo(now);
+  if (!past) return { status: 'PLANNED', confirmed: false };
+  return { status: isSiteCreatedOuting(outing) ? 'UNCONFIRMED' : 'REALIZED', confirmed: false };
+}
+
+/** Campos que, numa viagem com vários destinos, ficam só na saída principal. */
+export const TRIP_LEVEL_FIELDS = ['status', 'passengers', 'courtesySeats', 'pricePerPersonCents', 'transportCostCents', 'extraCostCents', 'supplier'] as const;
+type TripLevelField = typeof TRIP_LEVEL_FIELDS[number];
+
+/**
+ * Campos em que uma saída tem valor diferente da principal. Ao ligar uma
+ * parada, ela não pode trazer valores próprios que deixariam de ser contados
+ * (nada some do financeiro sem a equipe decidir).
+ */
+export function conflictingTripFields(primary: Partial<Record<TripLevelField, unknown>>, stop: Partial<Record<TripLevelField, unknown>>): TripLevelField[] {
+  return TRIP_LEVEL_FIELDS.filter((field) => stop[field] != null && stop[field] !== primary[field]);
 }

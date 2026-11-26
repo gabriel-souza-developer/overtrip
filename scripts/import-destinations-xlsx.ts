@@ -79,7 +79,7 @@ async function main() {
       for (const outing of destination.outings) {
         if (!outing.date || !outing.courtesySeats) continue;
         const { count } = await prisma.destinationOuting.updateMany({
-          where: { destination: { is: { importKey: destination.importKey } }, date: new Date(`${outing.date}T12:00:00.000Z`), courtesySeats: null },
+          where: { destination: { is: { importKey: destination.importKey } }, date: new Date(`${outing.date}T12:00:00.000Z`), courtesySeats: null, parentOutingId: null },
           data: { courtesySeats: outing.courtesySeats },
         });
         courtesyFilled += count;

@@ -1,5 +1,5 @@
 import { Prisma } from '@prisma/client';
-import { outingTotals } from './destinationBank.js';
+import { effectiveOutingStatus, isSiteCreatedOuting, outingTotals, type EffectiveOutingStatus } from './destinationBank.js';
 
 // Painel financeiro (somente leitura). Duas fontes, ambas lançadas à mão:
 // 1. Saídas realizadas do banco de destinos (receita, despesa e resultado
@@ -18,6 +18,12 @@ export interface FinanceOutingInput {
   transportCostCents: number | null;
   extraCostCents: number | null;
   notes?: string | null;
+  /** null/ausente = registro anterior ao campo (ver effectiveOutingStatus). */
+  status?: string | null;
+  /** Preenchido nas paradas de uma viagem: os valores ficam na principal. */
+  parentOutingId?: string | null;
+  /** Outros destinos da mesma viagem (paradas), quando esta é a principal. */
+  stops?: Array<{ destinationId: string; destinationName: string }>;
 }
 
 export type MissingField = 'passengers' | 'pricePerPerson' | 'costs';
@@ -77,10 +83,18 @@ export function missingFields(outing: FinanceOutingInput): MissingField[] {
   return missing;
 }
 
-/** `year` null = todos os anos. Saídas futuras ficam de fora; sem data, só no total geral. */
-export function summarizeFinanceOutings(rows: FinanceOutingInput[], year: number | null, now = new Date()) {
-  const realized = rows.filter((row) => row.date === null || row.date.getTime() <= now.getTime());
-  const years = [...new Set(realized.flatMap((row) => (row.date ? [yearOf(row.date)] : [])))].sort((a, b) => a - b);
+/**
+ * `year` null = todos os anos. Conta cada viagem uma vez: paradas de uma
+ * viagem com vários destinos ficam de fora (os valores estão na principal).
+ * Só entram saídas realizadas: canceladas, planejadas e as criadas pelo site
+ * ainda a confirmar ficam de fora (ver effectiveOutingStatus). Sem data, só
+ * no total geral.
+ */
+export function summarizeFinanceOutings(input: FinanceOutingInput[], year: number | null, now = new Date()) {
+  const rows = input.filter((row) => !row.parentOutingId);
+  const statusOf = new Map(rows.map((row) => [row.id, effectiveOutingStatus(row, now)]));
+  const realized = rows.filter((row) => statusOf.get(row.id)!.status === 'REALIZED');
+  const years = [...new Set(rows.filter((row) => ['REALIZED', 'UNCONFIRMED'].includes(statusOf.get(row.id)!.status)).flatMap((row) => (row.date ? [yearOf(row.date)] : [])))].sort((a, b) => a - b);
   const inPeriod = realized.filter((row) => (year === null ? true : row.date !== null && yearOf(row.date) === year));
 
   const totals = emptyTotals();
@@ -98,34 +112,53 @@ export function summarizeFinanceOutings(rows: FinanceOutingInput[], year: number
     return { month: index + 1, ...finish(monthTotals) };
   });
 
-  const destinations = new Map<string, { destinationId: string; name: string; totals: Totals }>();
+  // Uma viagem com vários destinos aparece como um item próprio ("A + B + C"):
+  // dividir o resultado entre os lugares seria inventar um rateio.
+  const places = (row: FinanceOutingInput) => [{ destinationId: row.destinationId, destinationName: row.destinationName }, ...(row.stops ?? [])];
+  const destinations = new Map<string, { key: string; destinationId: string; destinationIds: string[]; name: string; totals: Totals }>();
   for (const row of inPeriod) {
-    const entry = destinations.get(row.destinationId) ?? { destinationId: row.destinationId, name: row.destinationName, totals: emptyTotals() };
+    const list = places(row);
+    const key = list.map((place) => place.destinationId).sort().join('+');
+    const entry = destinations.get(key) ?? { key, destinationId: row.destinationId, destinationIds: list.map((place) => place.destinationId), name: list.map((place) => place.destinationName).join(' + '), totals: emptyTotals() };
     accumulate(entry.totals, row);
-    destinations.set(row.destinationId, entry);
+    destinations.set(key, entry);
   }
   const byDestination = [...destinations.values()]
-    .map(({ destinationId, name, totals: t }) => ({ destinationId, name, ...finish(t) }))
+    .map(({ totals: t, ...entry }) => ({ ...entry, ...finish(t) }))
     .sort((a, b) => b.resultCents - a.resultCents || b.outings - a.outings || a.name.localeCompare(b.name, 'pt-BR'));
 
-  const outings = inPeriod
-    .map((row) => ({
+  const view = (row: FinanceOutingInput) => ({
       id: row.id, destinationId: row.destinationId, destinationName: row.destinationName,
+      stops: row.stops ?? [], status: statusOf.get(row.id)!.status, statusConfirmed: statusOf.get(row.id)!.confirmed,
       date: row.date ? row.date.toISOString() : null, passengers: row.passengers, courtesySeats: row.courtesySeats, pricePerPersonCents: row.pricePerPersonCents,
       ...outingTotals(row), missing: missingFields(row),
-      siteImported: /^(Registrada a partir do mapa do site\.|Visita registrada no mapa do site, sem data\.|Registrada a partir da viagem do site\.)/.test(row.notes ?? ''),
-    }))
-    .sort((a, b) => (b.date ?? '').localeCompare(a.date ?? ''));
+      siteImported: isSiteCreatedOuting(row),
+  });
+  const newestFirst = (a: { date: string | null }, b: { date: string | null }) => (b.date ?? '').localeCompare(a.date ?? '');
+  const outings = inPeriod.map(view).sort(newestFirst);
+  const inYear = (row: FinanceOutingInput) => year === null || (row.date !== null && yearOf(row.date) === year);
+  // Criadas pelo site e ainda não confirmadas: listadas à parte para a equipe confirmar.
+  const toConfirm = rows.filter((row) => statusOf.get(row.id)!.status === 'UNCONFIRMED' && inYear(row)).map(view).sort(newestFirst);
+
+  // Saídas fora dos totais, para a equipe saber que existem (mesmo período).
+  const statusCount = (status: EffectiveOutingStatus) => rows.filter((row) => statusOf.get(row.id)!.status === status && inYear(row)).length;
 
   return {
     years,
     year,
+    plannedOutings: statusCount('PLANNED'),
+    cancelledOutings: statusCount('CANCELLED'),
+    // Criadas pelo site e ainda sem confirmação: fora dos totais até a equipe marcar "realizada".
+    unconfirmedOutings: statusCount('UNCONFIRMED'),
+    // Registros históricos sem status que seguem a regra antiga (contam nos totais).
+    legacyRealizedOutings: outings.filter((outing) => !outing.statusConfirmed).length,
     totals: finish(totals),
     incompleteOutings: outings.filter((outing) => outing.missing.length > 0).length,
     byYear,
     byMonth,
     byDestination,
     outings,
+    toConfirm,
   };
 }
 

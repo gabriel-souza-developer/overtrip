@@ -13,9 +13,31 @@ export const TRAIL_LABELS: Record<TrailLevel, string> = { EASY: 'Fácil', MODERA
 
 export interface DestinationLink { label: string; url: string }
 
+/** Situação gravada da saída; null = registro anterior, sem confirmação. */
+export type OutingStatus = 'PLANNED' | 'REALIZED' | 'CANCELLED';
+/** UNCONFIRMED: criada pelo site e ainda não confirmada (fora dos totais). */
+export type EffectiveOutingStatus = OutingStatus | 'UNCONFIRMED';
+export const OUTING_STATUS_LABELS: Record<EffectiveOutingStatus, string> = { PLANNED: 'Planejada', REALIZED: 'Realizada', CANCELLED: 'Cancelada', UNCONFIRMED: 'A confirmar' };
+
+export interface OutingTrip {
+  role: 'primary' | 'stop';
+  /** null quando a principal está fora do escopo (não exposta). */
+  primaryOutingId: string | null;
+  primaryDestinationId: string | null;
+  primaryDate?: string | null;
+  destinations: Array<{ id: string; name: string }>;
+}
+
 export interface DestinationOuting {
   id: string;
   date: string | null;
+  status: OutingStatus | null;
+  effectiveStatus: EffectiveOutingStatus;
+  /** false = sem status gravado (registro anterior ou criado pelo site). */
+  statusConfirmed: boolean;
+  parentOutingId: string | null;
+  /** Viagem com vários destinos (null = saída de um destino só). */
+  trip: OutingTrip | null;
   passengers: number | null;
   courtesySeats: number | null;
   pricePerPersonCents: number | null;
@@ -68,7 +90,7 @@ export interface Destination {
 }
 
 export type DestinationInput = Pick<Destination, 'name' | 'city' | 'region' | 'category' | 'status' | 'originCity' | 'distanceKm' | 'trailLevel' | 'bestSeason' | 'notes' | 'links'>;
-export type OutingInput = Pick<DestinationOuting, 'passengers' | 'courtesySeats' | 'pricePerPersonCents' | 'transportCostCents' | 'extraCostCents' | 'supplier' | 'notes'> & { date: string | null };
+export type OutingInput = Pick<DestinationOuting, 'status' | 'passengers' | 'courtesySeats' | 'pricePerPersonCents' | 'transportCostCents' | 'extraCostCents' | 'supplier' | 'notes'> & { date: string | null };
 
 export interface DestinationFilters {
   page?: number; limit?: number; search?: string; status?: string; category?: string; trailLevel?: string; visited?: string; maxDistanceKm?: string; onMap?: string; sort?: string;
@@ -89,4 +111,7 @@ export const destinationApi = {
   addOuting: (id: string, data: OutingInput) => send<Destination>(`/${encodeURIComponent(id)}/outings`, 'POST', data),
   updateOuting: (id: string, outingId: string, data: OutingInput) => send<Destination>(`/${encodeURIComponent(id)}/outings/${encodeURIComponent(outingId)}`, 'PUT', data),
   removeOuting: (id: string, outingId: string) => send<Destination>(`/${encodeURIComponent(id)}/outings/${encodeURIComponent(outingId)}`, 'DELETE'),
+  /** Junta outra saída (ou um destino sem saída) à viagem cuja principal é outingId. */
+  addStop: (id: string, outingId: string, body: { outingId: string } | { destinationId: string }) => send<Destination>(`/${encodeURIComponent(id)}/outings/${encodeURIComponent(outingId)}/stops`, 'POST', body),
+  removeStop: (id: string, outingId: string, stopId: string) => send<Destination>(`/${encodeURIComponent(id)}/outings/${encodeURIComponent(outingId)}/stops/${encodeURIComponent(stopId)}`, 'DELETE'),
 };

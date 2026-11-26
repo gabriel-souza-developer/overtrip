@@ -1,4 +1,4 @@
-import type { Destination, DestinationCategory, DestinationInput, DestinationOuting, DestinationStatus, OutingInput, TrailLevel } from '../api/destinations';
+import type { Destination, DestinationCategory, DestinationInput, DestinationOuting, DestinationStatus, OutingInput, OutingStatus, TrailLevel } from '../api/destinations';
 import { reservationMoneyToCents } from './reservationMoney';
 
 export const formatMoney = (cents: number | null) => (cents === null ? '—' : (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }));
@@ -36,12 +36,12 @@ export function formToDestinationInput(form: DestinationForm): { data?: Destinat
   };
 }
 
-export interface OutingForm { date: string; passengers: string; courtesySeats: string; pricePerPerson: string; transportCost: string; extraCost: string; supplier: string; notes: string }
+export interface OutingForm { date: string; status: OutingStatus | ''; passengers: string; courtesySeats: string; pricePerPerson: string; transportCost: string; extraCost: string; supplier: string; notes: string }
 
-export const emptyOutingForm = (): OutingForm => ({ date: '', passengers: '', courtesySeats: '', pricePerPerson: '', transportCost: '', extraCost: '', supplier: '', notes: '' });
+export const emptyOutingForm = (): OutingForm => ({ date: '', status: '', passengers: '', courtesySeats: '', pricePerPerson: '', transportCost: '', extraCost: '', supplier: '', notes: '' });
 
 export const outingToForm = (outing: DestinationOuting): OutingForm => ({
-  date: outing.date ? outing.date.slice(0, 10) : '', passengers: outing.passengers === null ? '' : String(outing.passengers),
+  date: outing.date ? outing.date.slice(0, 10) : '', status: outing.status ?? '', passengers: outing.passengers === null ? '' : String(outing.passengers),
   courtesySeats: outing.courtesySeats === null ? '' : String(outing.courtesySeats),
   pricePerPerson: centsToInput(outing.pricePerPersonCents), transportCost: centsToInput(outing.transportCostCents), extraCost: centsToInput(outing.extraCostCents),
   supplier: outing.supplier ?? '', notes: outing.notes ?? '',
@@ -58,13 +58,14 @@ export function formToOutingInput(form: OutingForm): { data?: OutingInput; error
   const courtesy = form.courtesySeats.trim();
   if (courtesy && !/^\d{1,4}$/.test(courtesy)) return { error: 'Cortesias deve ser um número inteiro.' };
   if (courtesy && passengers && Number(courtesy) > Number(passengers)) return { error: 'Cortesias não podem passar do número de passageiros.' };
+  if (form.status === 'REALIZED' && form.date && form.date > todayInSaoPaulo()) return { error: 'Uma saída com data futura não pode estar marcada como realizada.' };
   const values = [money(form.pricePerPerson, 'Valor por pessoa'), money(form.transportCost, 'Transporte'), money(form.extraCost, 'Taxas extras')];
   const invalid = values.find((value) => typeof value === 'string');
   if (typeof invalid === 'string') return { error: invalid };
   const [pricePerPersonCents, transportCostCents, extraCostCents] = values as Array<number | null>;
   return {
     data: {
-      date: form.date || null, passengers: passengers ? Number(passengers) : null, courtesySeats: courtesy ? Number(courtesy) : null, pricePerPersonCents, transportCostCents, extraCostCents,
+      date: form.date || null, status: form.status || null, passengers: passengers ? Number(passengers) : null, courtesySeats: courtesy ? Number(courtesy) : null, pricePerPersonCents, transportCostCents, extraCostCents,
       supplier: form.supplier.trim() || null, notes: form.notes.trim() || null,
     },
   };
@@ -77,4 +78,16 @@ export function previewOuting(input: OutingInput) {
   const hasExpense = input.transportCostCents !== null || input.extraCostCents !== null;
   const expenseCents = hasExpense ? (input.transportCostCents ?? 0) + (input.extraCostCents ?? 0) : null;
   return { revenueCents, expenseCents, resultCents: revenueCents !== null && expenseCents !== null ? revenueCents - expenseCents : null };
+}
+
+const saoPauloDay = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' });
+/** AAAA-MM-DD no calendário de São Paulo (mesma regra da API). */
+export const todayInSaoPaulo = (now = new Date()) => saoPauloDay.format(now);
+
+/** Campos de viagem: numa parada, ficam só na saída principal (a API recusa). */
+export const TRIP_LEVEL_INPUT_FIELDS = ['status', 'passengers', 'courtesySeats', 'pricePerPersonCents', 'transportCostCents', 'extraCostCents', 'supplier'] as const;
+
+/** Só o que uma parada pode mudar (data e observações). */
+export function stopOnlyInput(input: OutingInput): Pick<OutingInput, 'date' | 'notes'> {
+  return { date: input.date, notes: input.notes };
 }

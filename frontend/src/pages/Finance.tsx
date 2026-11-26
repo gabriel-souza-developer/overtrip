@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { AlertTriangle, ArrowDownRight, ArrowUpRight, CalendarClock, Minus, Percent, TrendingDown, TrendingUp, Wallet, type LucideIcon } from 'lucide-react';
 import { financeApi, type FinanceSummary, type FinanceTotals } from '../api/finance';
 import { request } from '../api';
-import { destinationApi, type Destination, type OutingInput } from '../api/destinations';
+import { OUTING_STATUS_LABELS, destinationApi, type Destination, type OutingInput, type OutingStatus } from '../api/destinations';
 import { emptyOutingForm, formToOutingInput, outingToForm, previewOuting } from '../lib/destinationBank';
 import { MISSING_LABELS, MONTHS_SHORT, compactMoney, money, niceScale, percentChange, pointsChange } from '../lib/finance';
 import { formatDateBR } from '../lib/dateInput';
@@ -84,7 +84,7 @@ function RankedBars({ rows }: { rows: FinanceSummary['outings']['byDestination']
   const items = rows.filter((row) => row.completeOutings > 0).slice(0, 7);
   if (items.length === 0) return <p className="text-sm text-surface-600">Nenhuma saída com valores completos neste período.</p>;
   const largest = Math.max(...items.map((row) => Math.abs(row.resultCents)), 1);
-  return <ul className="space-y-3">{items.map((row) => <li key={row.destinationId}>
+  return <ul className="space-y-3">{items.map((row) => <li key={row.key}>
     <div className="flex items-baseline justify-between gap-3 text-sm">
       <span className="min-w-0 truncate text-surface-800" title={row.name}>{row.name}</span>
       <span className="shrink-0 font-semibold text-surface-900 tabular-nums">{money(row.resultCents)}</span>
@@ -95,6 +95,11 @@ function RankedBars({ rows }: { rows: FinanceSummary['outings']['byDestination']
     <p className="mt-0.5 text-[11px] text-surface-500">{row.outings === 1 ? '1 saída' : `${row.outings} saídas`} · margem {row.marginPct === null ? '—' : `${row.marginPct.toLocaleString('pt-BR')}%`}</p>
   </li>)}</ul>;
 }
+
+type FinanceRow = FinanceSummary['outings']['outings'][number];
+/** "A + B + C" numa viagem com vários destinos. */
+const stopsOf = (outing: FinanceRow) => outing.stops ?? []; // API anterior não envia
+const tripName = (outing: FinanceRow) => [outing.destinationName, ...stopsOf(outing).map((stop) => stop.destinationName)].join(' + ');
 
 const subline = (totals: FinanceTotals) => `${totals.completeOutings} de ${totals.outings} registros com valores · ${totals.passengers} passageiros${totals.courtesySeats ? ` (${totals.courtesySeats} cortesias)` : ''}`;
 
@@ -137,7 +142,7 @@ export default function Finance() {
       const original = formToOutingInput(form).data;
       if (!original) throw new Error('Os dados desta saída precisam ser revisados no histórico.');
       setEditForm(form); setEditError('');
-      setEditing({ destinationId: outing.destinationId, outingId: outing.id, name: outing.destinationName, original });
+      setEditing({ destinationId: outing.destinationId, outingId: outing.id, name: tripName(outing), original });
     } catch (err) { setError(err instanceof Error ? err.message : 'Não foi possível abrir a saída.'); }
     finally { setEditLoading(null); }
   };
@@ -212,7 +217,13 @@ export default function Finance() {
           <p className="mt-1 text-xs text-surface-600">Resultado ÷ receita</p>
         </KpiCard>
       </section>
-      <p className="-mt-3 text-xs text-surface-600">{subline(totals)}.{outings.incompleteOutings > 0 && ` ${outings.incompleteOutings === 1 ? '1 saída sem' : `${outings.incompleteOutings} saídas sem`} valores completos fica${outings.incompleteOutings === 1 ? '' : 'm'} fora da receita, despesa e margem.`}</p>
+      <p className="-mt-3 text-xs text-surface-600">{subline(totals)}.{outings.incompleteOutings > 0 && ` ${outings.incompleteOutings === 1 ? '1 saída sem' : `${outings.incompleteOutings} saídas sem`} valores completos fica${outings.incompleteOutings === 1 ? '' : 'm'} fora da receita, despesa e margem.`}
+        {((outings.plannedOutings ?? 0) > 0 || (outings.cancelledOutings ?? 0) > 0 || (outings.unconfirmedOutings ?? 0) > 0) && ` Fora dos totais: ${[
+          outings.unconfirmedOutings ? `${outings.unconfirmedOutings} a confirmar` : null,
+          outings.plannedOutings ? `${outings.plannedOutings} planejada${outings.plannedOutings > 1 ? 's' : ''}` : null,
+          outings.cancelledOutings ? `${outings.cancelledOutings} cancelada${outings.cancelledOutings > 1 ? 's' : ''}` : null,
+        ].filter(Boolean).join(', ')}.`}
+        {' '}Viagens com vários destinos contam uma vez.</p>
 
       <div className="grid gap-4 xl:grid-cols-3 xl:items-start">
         <section aria-labelledby="finance-chart-title" className="min-w-0 rounded-2xl border border-surface-200 bg-white p-5 shadow-sm xl:col-span-2">
@@ -283,19 +294,30 @@ export default function Finance() {
             </tr></thead>
             <tbody className="divide-y divide-surface-200">{outings.outings.map((outing) => <tr key={outing.id}>
               <td className="py-2 pr-3 whitespace-nowrap">{outing.date ? formatDateBR(outing.date) : 'Sem data'}</td>
-              <td className="py-2 pr-3"><span className="text-surface-900">{outing.destinationName}</span>
-                {outing.siteImported && <span className="block text-xs text-surface-600">Criado a partir do site · conferir realização</span>}
+              <td className="py-2 pr-3"><span className="text-surface-900">{tripName(outing)}</span>
+                {stopsOf(outing).length > 0 && <span className="block text-xs text-surface-600">Uma viagem, {stopsOf(outing).length + 1} destinos · valores registrados uma vez</span>}
+                {outing.statusConfirmed === false && <span className="block text-xs text-surface-600">Registro histórico · situação não confirmada</span>}
                 {outing.missing.length > 0 && <span className="block text-xs text-amber-800">Falta: {outing.missing.map((field) => MISSING_LABELS[field]).join(', ')}</span>}</td>
               <td className="py-2 pr-3 text-right tabular-nums">{outing.passengers ?? '—'}{outing.courtesySeats ? <span className="block text-[11px] text-surface-500">{outing.courtesySeats} cortesia{outing.courtesySeats > 1 ? 's' : ''}</span> : null}</td>
               <td className="py-2 pr-3 text-right tabular-nums">{money(outing.pricePerPersonCents)}</td>
               <td className="py-2 pr-3 text-right tabular-nums">{money(outing.revenueCents)}</td>
               <td className="py-2 pr-3 text-right tabular-nums">{money(outing.expenseCents)}</td>
               <td className={`py-2 text-right font-semibold tabular-nums ${outing.resultCents !== null && outing.resultCents < 0 ? 'text-rose-800' : 'text-surface-900'}`}>{money(outing.resultCents)}</td>
-              <td className="py-2 pl-3"><div className="flex gap-3"><button type="button" className="text-sm font-medium text-primary-700 hover:underline" disabled={editLoading !== null} onClick={() => void openEdit(outing)} aria-label={`Editar saída de ${outing.destinationName}, ${outing.date ? formatDateBR(outing.date) : 'sem data'}`}>{editLoading === outing.id ? 'Abrindo...' : 'Editar'}</button><button type="button" className="text-sm font-medium text-red-700 hover:underline" onClick={() => setRemoving(outing)} aria-label={`Excluir saída de ${outing.destinationName}, ${outing.date ? formatDateBR(outing.date) : 'sem data'}`}>Excluir</button></div></td>
+              <td className="py-2 pl-3"><div className="flex gap-3"><button type="button" className="text-sm font-medium text-primary-700 hover:underline" disabled={editLoading !== null} onClick={() => void openEdit(outing)} aria-label={`Editar saída de ${tripName(outing)}, ${outing.date ? formatDateBR(outing.date) : 'sem data'}`}>{editLoading === outing.id ? 'Abrindo...' : 'Editar'}</button><button type="button" className="text-sm font-medium text-red-700 hover:underline" onClick={() => setRemoving(outing)} aria-label={`Excluir saída de ${tripName(outing)}, ${outing.date ? formatDateBR(outing.date) : 'sem data'}`}>Excluir</button></div></td>
             </tr>)}</tbody>
           </table>
         </div>}
       </section>
+
+      {(outings.toConfirm ?? []).length > 0 && <section aria-labelledby="finance-confirm-title" className="rounded-2xl border border-amber-200 bg-amber-50/40 p-5 shadow-sm">
+        <h2 id="finance-confirm-title" className="text-base font-bold text-surface-900">A confirmar</h2>
+        <p className="text-xs text-surface-700">Registros criados a partir do site. O site não comprova que a viagem aconteceu: eles ficam fora dos totais até você marcar a situação como “Realizada” (ou “Cancelada”). Pontos do mesmo dia podem ser uma só viagem: junte-os no histórico de saídas.</p>
+        <ul className="mt-3 divide-y divide-amber-200">{outings.toConfirm.map((outing) => <li key={outing.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
+          <span className="min-w-0"><span className="font-medium text-surface-900">{tripName(outing)}</span>
+            <span className="block text-xs text-surface-600">{outing.date ? formatDateBR(outing.date) : 'Sem data'}{stopsOf(outing).length > 0 ? ` · uma viagem, ${stopsOf(outing).length + 1} destinos` : ''}</span></span>
+          <button type="button" className="text-sm font-medium text-primary-700 hover:underline" disabled={editLoading !== null} onClick={() => void openEdit(outing)} aria-label={`Confirmar saída de ${tripName(outing)}, ${outing.date ? formatDateBR(outing.date) : 'sem data'}`}>{editLoading === outing.id ? 'Abrindo...' : 'Conferir'}</button>
+        </li>)}</ul>
+      </section>}
 
       <footer className="flex flex-wrap justify-between gap-2 border-t border-surface-200 pt-3 text-xs text-surface-500">
         <span>Receita = (passageiros − cortesias) × valor por pessoa. Despesa = transporte + taxas extras.</span>
@@ -308,6 +330,11 @@ export default function Finance() {
         {editError && <div className="alert-error" role="alert">{editError}</div>}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field id="finance-edit-date" label="Data"><input id="finance-edit-date" type="date" className="input" value={editForm.date} onChange={(e) => setEditForm({ ...editForm, date: e.target.value })} /></Field>
+          <Field id="finance-edit-status" label="Situação" hint="Só saídas realizadas entram nos totais.">
+            <select id="finance-edit-status" className="select" value={editForm.status} onChange={(e) => setEditForm({ ...editForm, status: e.target.value as OutingStatus | '' })}>
+              <option value="">Não confirmada</option>{(['PLANNED', 'REALIZED', 'CANCELLED'] as OutingStatus[]).map((key) => <option key={key} value={key}>{OUTING_STATUS_LABELS[key]}</option>)}
+            </select>
+          </Field>
           <Field id="finance-edit-passengers" label="Passageiros"><input id="finance-edit-passengers" inputMode="numeric" className="input" value={editForm.passengers} onChange={(e) => setEditForm({ ...editForm, passengers: e.target.value })} /></Field>
           <Field id="finance-edit-courtesy" label="Cortesias" hint="Lugares que não pagam."><input id="finance-edit-courtesy" inputMode="numeric" className="input" value={editForm.courtesySeats} onChange={(e) => setEditForm({ ...editForm, courtesySeats: e.target.value })} /></Field>
           <Field id="finance-edit-price" label="Valor por pessoa (R$)"><input id="finance-edit-price" inputMode="decimal" className="input" value={editForm.pricePerPerson} onChange={(e) => setEditForm({ ...editForm, pricePerPerson: e.target.value })} /></Field>
@@ -323,7 +350,7 @@ export default function Finance() {
       </form>
     </Modal>
     <ConfirmDialog open={removing !== null} onOpenChange={(open) => { if (!open) setRemoving(null); }} title="Excluir esta saída?"
-      description={`A saída de ${removing?.destinationName ?? ''} será removida do histórico e dos totais. O destino permanece. Se ela veio do site, uma nova sincronização pode recriá-la.`}
+      description={`A saída de ${removing ? tripName(removing) : ''} será removida do histórico e dos totais. O destino permanece. Se ela veio do site, uma nova sincronização pode recriá-la.`}
       confirmLabel="Excluir saída" busyLabel="Excluindo..." busy={removeBusy} onConfirm={() => void removeOuting()} />
   </div>;
 }
