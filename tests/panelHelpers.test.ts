@@ -1,8 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import {
   applyTripDefaults, buildPageNumbers, countFilled, formatDateDisplay,
-  moveItem, reorderPositions, tripStatusLabel, validateTripMinimum,
+  moveItem, reorderPositions, tripStatusLabel, tripStatusTone, validateTripMinimum,
 } from '../frontend/src/lib/panelHelpers';
+
+describe('cores dos status de viagem', () => {
+  it('distingue publicação verde de rascunho neutro', () => {
+    expect(tripStatusTone('OPEN')).toBe('success');
+    expect(tripStatusTone('DRAFT')).toBe('neutral');
+  });
+});
 
 describe('formatDateDisplay', () => {
   it('escreve a data por extenso', () => {
