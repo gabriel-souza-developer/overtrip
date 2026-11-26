@@ -1,5 +1,12 @@
 # Estado da produção na Oracle
 
+## Aba Interessados oculta e limpeza de arquivos antigos (26 de novembro de 2026)
+
+- Publicado somente o painel do commit `4a08d39`; API e banco não mudaram. A rota e os dados de CRM foram preservados. `/admin/` responde 200 e o bundle de entrada servido não contém o rótulo “Interessados”. API e Caddy seguem ativos.
+- Removidos diretórios de ensaio de publicação já encerrados e cópias antigas do painel substituídas pelo retorno atual.
+- Limpeza de backups SQLite antigos: preservados o backup mais recente antes da migração atual (`pre-7ff3987-final-20261126-091320.db.gz`), o snapshot após as últimas correções financeiras (`pre-finance-values-20261126-062047.db.gz`) e o snapshot diário externo (`overtrip-20261126-073157.db.gz`). Backups anteriores a esses pontos foram removidos da VM. A cópia externa validada no computador continua em `/home/ztsu-pc/backups-overtrip/overtrip-externo-20261126-073157.tar.gz`.
+- Orientações históricas deste arquivo foram mantidas como registro dos deploys anteriores; as seções iniciais descrevem a versão atual e seus procedimentos. O Caddyfile versionado continua sendo referência histórica; a configuração efetiva da VM é a fonte para futuras alterações de rede.
+
 ## Cópia externa e ensaio de restauração (26 de novembro de 2026)
 
 - Executado com sucesso o serviço de backup existente; o banco, os uploads e a mídia social foram copiados para `/home/ztsu-pc/backups-overtrip/overtrip-externo-20261126-073157.tar.gz` (arquivo privado). SHA-256 do pacote: `77c6a7290c2632e8f0141c03d96b507f668bfc114804e7d27e37c585669e3528`.
