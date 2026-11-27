@@ -28,7 +28,7 @@ export const DEFAULT_PUBLIC_FAQ: PublicFaqEntry[] = [
   },
   {
     question: 'Precisa de experiência ou preparo físico?',
-    answer: 'Cada expedição tem um nível de intensidade. Antes da reserva, informamos se a experiência é leve, moderada ou exige mais preparo físico.',
+    answer: 'Cada vivência tem um nível de intensidade. Antes da reserva, informamos se a experiência é leve, moderada ou exige mais preparo físico.',
   },
   {
     question: 'Posso desistir? Tem reembolso?',

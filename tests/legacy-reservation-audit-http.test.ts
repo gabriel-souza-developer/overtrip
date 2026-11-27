@@ -128,6 +128,42 @@ describe('modo legado NÃO compartilhado (LEGACY_TOURISM_ORGANIZATION_ID ausente
   });
 });
 
+describe('solicitação recebida pelo WhatsApp: o sinal de 50% precede a confirmação', () => {
+  it('mantém fora do Financeiro antes do sinal, aceita 50% recebido e impede retirar o mínimo depois', async () => {
+    config.legacyTourismOrganizationId = null;
+    const created = await createLegacy(tripNullId, { totalCents: 100_000 });
+    await prisma.reservation.update({ where: { id: created.id }, data: { source: 'WHATSAPP_N8N', needsReview: true, notes: 'Valor não calculado: corrija antes de confirmar.' } });
+
+    // Apagar ou editar a nota não pode transformar preço desconhecido em TRIP grátis.
+    expect((await fetch(`${legacyBase}/${created.id}`, { method: 'PATCH', headers: auth(ownerToken), body: JSON.stringify({ totalCents: 0, notes: null }) })).status).toBe(200);
+    expect((await fetch(`${legacyBase}/${created.id}`, { method: 'PATCH', headers: auth(ownerToken), body: JSON.stringify({ status: 'CONFIRMED' }) })).status).toBe(409);
+    await fetch(`${legacyBase}/${created.id}`, { method: 'PATCH', headers: auth(ownerToken), body: JSON.stringify({ totalCents: 100_000, notes: 'Preço confirmado pela equipe.' }) });
+
+    const confirmEarly = await fetch(`${legacyBase}/${created.id}`, { method: 'PATCH', headers: auth(ownerToken), body: JSON.stringify({ status: 'CONFIRMED' }) });
+    expect(confirmEarly.status).toBe(409);
+    expect((await prisma.reservation.findUniqueOrThrow({ where: { id: created.id } })).status).toBe('PENDING');
+
+    const add = async (amountCents: number) => {
+      const response = await fetch(`${legacyBase}/${created.id}/installments`, { method: 'POST', headers: auth(ownerToken), body: JSON.stringify({ amountCents }) });
+      expect(response.status).toBe(201);
+      return await response.json() as { id: string };
+    };
+    const first = await add(49_999);
+    expect((await prisma.reservation.findUniqueOrThrow({ where: { id: created.id } })).needsReview).toBe(true);
+    const markPaid = async (id: string, paid: boolean) => fetch(`${legacyBase}/${created.id}/installments/${id}`, { method: 'PATCH', headers: auth(ownerToken), body: JSON.stringify({ paid }) });
+    expect((await markPaid(first.id, true)).status).toBe(200);
+    expect((await prisma.reservation.findUniqueOrThrow({ where: { id: created.id } })).needsReview).toBe(true);
+
+    const finalCent = await add(1);
+    expect((await markPaid(finalCent.id, true)).status).toBe(200);
+    expect((await prisma.reservation.findUniqueOrThrow({ where: { id: created.id } })).needsReview).toBe(false);
+    expect((await fetch(`${legacyBase}/${created.id}`, { method: 'PATCH', headers: auth(ownerToken), body: JSON.stringify({ status: 'CONFIRMED' }) })).status).toBe(200);
+    expect((await markPaid(first.id, false)).status).toBe(409);
+
+    await prisma.reservation.delete({ where: { id: created.id } });
+  });
+});
+
 describe('modo legado COMPARTILHADO (LEGACY_TOURISM_ORGANIZATION_ID = empresa real): grava e fecha a lacuna', () => {
   it('criar pela rota legada grava RESERVATION_CREATED com a organização configurada', async () => {
     config.legacyTourismOrganizationId = orgSharedId;

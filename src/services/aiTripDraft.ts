@@ -32,10 +32,11 @@ export type StopReason = 'end' | 'refusal' | 'max_tokens' | 'other';
 export interface AiProvider {
   name: 'gemini' | 'anthropic' | 'groq' | 'xai';
   defaultModel: string;
-  generate(input: { system: string; userText: string; model: string; schema?: z.ZodType }): Promise<{
+  generate(input: { system: string; userText: string; model: string; schema?: z.ZodType; webSearch?: boolean }): Promise<{
     object: unknown;
     stopReason: StopReason;
     usage?: { inputTokens: number; outputTokens: number };
+    sources?: { title: string; url: string }[];
   }>;
 }
 
@@ -366,16 +367,19 @@ export function createGeminiProvider(client: GeminiLikeClient): AiProvider {
   return {
     name: 'gemini',
     defaultModel: DEFAULT_GEMINI_MODEL,
-    async generate({ system, userText, model, schema }) {
-      const { $schema: _ignored, ...responseJsonSchema } = z.toJSONSchema(schema ?? aiDraftOutputSchema) as Record<string, unknown>;
+    async generate({ system, userText, model, schema, webSearch }) {
+      const structuredSchema = schema ?? (webSearch ? undefined : aiDraftOutputSchema);
+      const { $schema: _ignored, ...responseJsonSchema } = structuredSchema
+        ? z.toJSONSchema(structuredSchema) as Record<string, unknown>
+        : {};
       const r = await client.models.generateContent({
         model,
         contents: userText,
         config: {
           systemInstruction: system,
-          responseMimeType: 'application/json',
-          responseJsonSchema,
+          ...(structuredSchema ? { responseMimeType: 'application/json', responseJsonSchema } : {}),
           maxOutputTokens: 8192,
+          ...(webSearch ? { tools: [{ googleSearch: {} }] } : {}),
         },
       });
       const usage = r?.usageMetadata
@@ -387,13 +391,18 @@ export function createGeminiProvider(client: GeminiLikeClient): AiProvider {
       else if (finish === 'MAX_TOKENS') stopReason = 'max_tokens';
       let object: unknown;
       if (stopReason === 'end') {
-        try {
-          object = JSON.parse(String(r?.text ?? ''));
-        } catch {
-          object = undefined;
-        }
+        if (webSearch && !structuredSchema) object = String(r?.text ?? '');
+        else try { object = JSON.parse(String(r?.text ?? '')); } catch { object = undefined; }
       }
-      return { object, stopReason, usage };
+      const sources = (r?.candidates?.[0]?.groundingMetadata?.groundingChunks ?? []).flatMap((chunk: any) => {
+        const url = chunk?.web?.uri;
+        if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) return [];
+        let fallbackTitle = url;
+        try { fallbackTitle = new URL(url).hostname; } catch { return []; }
+        const title = typeof chunk?.web?.title === 'string' && chunk.web.title.trim() ? chunk.web.title.trim() : fallbackTitle;
+        return [{ title: title.slice(0, 180), url }];
+      });
+      return { object, stopReason, usage, ...(sources.length ? { sources } : {}) };
     },
   };
 }
@@ -472,6 +481,9 @@ export function createFallbackProvider(primary: AiProvider, fallback: AiProvider
       try {
         return await primary.generate(params);
       } catch (primaryError) {
+        // Pesquisa web precisa dos links retornados pelo provedor primário.
+        // Um fallback sem ferramenta de busca poderia produzir texto sem fontes.
+        if (params.webSearch) throw primaryError;
         try {
           return await fallback.generate({ ...params, model: fallback.defaultModel });
         } catch {

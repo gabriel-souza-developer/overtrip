@@ -1,8 +1,8 @@
-import { renderHeroNextTrip, renderTrips, renderGallery, renderTestimonials, updateYearsCount, setupLightbox, setupTestimonialTabs } from "./render.js?v=slides-20261125";
+import { renderHeroNextTrip, renderTrips, renderGallery, renderTestimonials, updateYearsCount, setupLightbox, setupTestimonialTabs } from "./render.js?v=trip-copy-pix-20261126";
 import { loadTrips } from "./data.js?v=status-finalizadas-20261110-v2";
 import { loadWhatsappNumber, setupWaLinks, setupWaTooltip } from "./whatsapp.js?v=paginas-20261110";
-import { setupNavigation, setupMarquee, setupMonthFilter, setupRevealAnimation, setupHeroExperiment, setupHeroTracking, setupUniversePanels } from "./ui.js?v=category-20261110";
-import { setupPixModal } from "./pix.js?v=pix-20261125";
+import { setupNavigation, setupMarquee, setupMonthFilter, setupRevealAnimation, setupHeroExperiment, setupHeroTracking, setupUniversePanels, setupBackToTop } from "./ui.js?v=back-to-top-20261126";
+import { setupPixModal } from "./pix.js?v=trip-copy-pix-20261126";
 
 document.body.classList.remove("no-js");
 document.body.classList.add("js");
@@ -21,6 +21,7 @@ const init = async () => {
 
   // Recursos que não dependem dos cards de trips podem iniciar sem esperar o JSON.
   setupNavigation();
+  setupBackToTop();
   setupLightbox();
   setupWaTooltip();
   setupTestimonialTabs();

@@ -8,6 +8,7 @@ interface ConfirmDialogProps {
   onOpenChange: (open: boolean) => void;
   title: string;
   description: string;
+  cancelLabel?: string;
   confirmLabel: string;
   busyLabel?: string;
   busy?: boolean;
@@ -17,7 +18,7 @@ interface ConfirmDialogProps {
 
 /** Pergunta antes de uma ação sem volta (excluir) ou com efeito no site (tirar do ar). */
 export default function ConfirmDialog({
-  open, onOpenChange, title, description, confirmLabel, busyLabel = 'Aguarde...', busy = false, danger = true, onConfirm,
+  open, onOpenChange, title, description, cancelLabel = 'Cancelar', confirmLabel, busyLabel = 'Aguarde...', busy = false, danger = true, onConfirm,
 }: ConfirmDialogProps) {
   return (
     <Dialog.Root open={open} onOpenChange={(next) => { if (!busy) onOpenChange(next); }}>
@@ -35,7 +36,7 @@ export default function ConfirmDialog({
           </div>
           <div className="mt-6 flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
             <Dialog.Close asChild>
-              <Button variant="secondary" disabled={busy}>Cancelar</Button>
+              <Button variant="secondary" disabled={busy}>{cancelLabel}</Button>
             </Dialog.Close>
             <Button variant={danger ? 'danger' : 'primary'} loading={busy} loadingText={busyLabel} onClick={onConfirm}>
               {confirmLabel}

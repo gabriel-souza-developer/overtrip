@@ -113,6 +113,27 @@ export const tripApi = {
   unpublish: (id: string) => request<Trip>(`/trips/${id}/unpublish`, { method: 'POST' }),
 };
 
+export interface TripTemplateSummary {
+  id: string;
+  name: string;
+  sourceTripTitle: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TripTemplate extends Pick<TripTemplateSummary, 'id' | 'name' | 'sourceTripTitle'> {
+  snapshot: TripFormData;
+}
+
+export const tripTemplateApi = {
+  list: () => request<{ data: TripTemplateSummary[] }>('/trip-templates'),
+  get: (id: string) => request<TripTemplate>(`/trip-templates/${encodeURIComponent(id)}`),
+  save: (sourceTripId: string, name: string) => request<TripTemplateSummary>('/trip-templates', {
+    method: 'POST', body: JSON.stringify({ sourceTripId, name }),
+  }),
+  delete: (id: string) => request<{ success: true }>(`/trip-templates/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+};
+
 export interface TripDocument {
   id: string; originalFilename: string; sizeBytes: number; retentionUntil: string;
   extractionStatus: string;
@@ -214,6 +235,13 @@ export const aiApi = {
     ),
 };
 
+export const travelInsightsApi = {
+  analyze: (input: { month: number; year: number; state: string }) =>
+    request<{ summary: string; suggestions: { title: string; reason: string; format: 'Van ou ônibus' | 'Off-road / 4x4' | 'Qualquer formato' | 'Confirmar formato'; basis: string; sources: { title: string; url: string; snippet: string; publishedAt: string | null; kind: string }[] }[]; questions: string[]; source: string }>('/ai/travel-insights', {
+      method: 'POST', body: JSON.stringify(input),
+    }),
+};
+
 /** Meses com visitas registradas, do mais recente ao mais antigo (dia civil do site). */
 export interface VisitPeriods { periods: { year: number; month: number; count: number }[]; undated: number }
 
@@ -296,6 +324,7 @@ export interface TripPresentationDefaults {
 export interface Trip {
   id: string;
   title: string;
+  tripProfile: 'STANDARD' | 'OVER_RIDERS';
   headlineDisplay: string | null;
   category: string;
   filterCategory: string | null;
@@ -361,6 +390,7 @@ export type TripStatus = 'DRAFT' | 'REVIEW' | 'OPEN' | 'COMPLETED' | 'CANCELLED'
 
 export interface TripFormData {
   title: string;
+  tripProfile?: 'STANDARD' | 'OVER_RIDERS';
   headlineDisplay?: string | null;
   category: string;
   filterCategory?: string | null;

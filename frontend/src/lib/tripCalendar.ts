@@ -1,6 +1,6 @@
 import { isoToLocalInput } from './dateInput';
 
-export type CalendarTrip = { id: string; title: string; startDateISO: string; status: string; city: string; region: string };
+export type CalendarTrip = { id: string; title: string; startDateISO: string; endDateISO?: string | null; status: string; city: string; region: string };
 
 /** Preserve datas sem horário (meia-noite UTC) e datas com horário local como no formulário. */
 export function tripDay(iso: string): string {
@@ -24,11 +24,19 @@ export function calendarDays(year: number, month: number): Array<string | null> 
 export function tripsByDay(trips: CalendarTrip[]): Map<string, CalendarTrip[]> {
   const days = new Map<string, CalendarTrip[]>();
   for (const trip of trips) {
-    const day = tripDay(trip.startDateISO);
-    if (!day) continue;
-    const entries = days.get(day) || [];
-    entries.push(trip);
-    days.set(day, entries);
+    const start = tripDay(trip.startDateISO);
+    if (!start) continue;
+    const requestedEnd = trip.endDateISO ? tripDay(trip.endDateISO) : '';
+    const end = requestedEnd >= start ? requestedEnd : start;
+    const cursor = new Date(`${start}T12:00:00`);
+    const lastDay = new Date(`${end}T12:00:00`);
+    while (cursor <= lastDay) {
+      const day = `${monthKey(cursor)}-${String(cursor.getDate()).padStart(2, '0')}`;
+      const entries = days.get(day) || [];
+      entries.push(trip);
+      days.set(day, entries);
+      cursor.setDate(cursor.getDate() + 1);
+    }
   }
   return days;
 }

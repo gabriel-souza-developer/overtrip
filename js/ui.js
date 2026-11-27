@@ -33,6 +33,28 @@ const bindHoverClass = (elements) => {
   });
 };
 
+const setupBackToTop = () => {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "back-to-top";
+  button.setAttribute("aria-label", "Voltar ao topo");
+  button.title = "Voltar ao topo";
+  button.hidden = true;
+  button.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 19V5m-6 6 6-6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  document.body.append(button);
+
+  const updateVisibility = () => {
+    button.hidden = window.scrollY < 400;
+  };
+  window.addEventListener("scroll", updateVisibility, { passive: true });
+  updateVisibility();
+
+  button.addEventListener("click", () => {
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.scrollTo({ top: 0, behavior: reducedMotion ? "auto" : "smooth" });
+  });
+};
+
 const setupNavigation = () => {
   const header = document.querySelector(".site-header");
   const menuToggle = document.querySelector(".menu-toggle");
@@ -441,4 +463,4 @@ const setupUniversePanels = () => {
   });
 };
 
-export { setupUniversePanels, setupNavigation, setupMarquee, setupMonthFilter, setupRevealAnimation, setupHeroExperiment, setupHeroTracking };
+export { setupUniversePanels, setupNavigation, setupMarquee, setupMonthFilter, setupRevealAnimation, setupHeroExperiment, setupHeroTracking, setupBackToTop };

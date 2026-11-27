@@ -244,7 +244,8 @@ export default function Finance() {
       {reservations && <section aria-labelledby="finance-reservations-title" className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div><h2 id="finance-reservations-title" className="text-base font-bold text-surface-900">Reservas e parcelas</h2>
-            <p className="text-xs text-surface-600">Reservas não canceladas, de todas as viagens</p></div>
+            <p className="text-xs text-surface-600">Reservas não canceladas, de todas as viagens</p>
+            {(reservations.awaitingReviewReservations ?? 0) > 0 && <p className="mt-1 text-xs font-medium text-amber-800">{reservations.awaitingReviewReservations === 1 ? '1 pedido do WhatsApp aguarda revisão e não entra nestes valores.' : `${reservations.awaitingReviewReservations} pedidos do WhatsApp aguardam revisão e não entram nestes valores.`}</p>}</div>
           <Link to="/reservations" className="text-sm font-medium text-primary-700 hover:underline">Abrir reservas</Link>
         </div>
         {reservations.activeReservations === 0

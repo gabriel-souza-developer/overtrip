@@ -21,6 +21,7 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
 const STATUS_BADGE: Record<DestinationStatus, string> = { IDEA: 'badge-neutral', PRIORITY: 'badge-info', DISCARDED: 'badge-warning' };
+const FILTERABLE_STATUS: DestinationStatus[] = ['PRIORITY', 'DISCARDED'];
 const OUTING_BADGE: Record<EffectiveOutingStatus, string> = { PLANNED: 'badge-info', REALIZED: 'badge-success', CANCELLED: 'badge-warning', UNCONFIRMED: 'badge-warning' };
 const outingDateLabel = (outing: DestinationOuting) => (outing.date ? formatDateBR(outing.date) : 'data não informada');
 function Summary({ destination }: { destination: Destination }) {
@@ -202,7 +203,7 @@ export default function DestinationBank({ history = false }: { history?: boolean
     <FilterBar searchLabel="Buscar destinos" searchPlaceholder="Buscar por nome ou cidade" searchValue={filters.search ?? ''} onSearch={(value) => setFilter('search', value)} hasFilters={hasFilters} onClear={() => setFilters({ sort: filters.sort })}>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:w-[44rem] lg:shrink-0">
       <select className="select w-full" aria-label="Filtrar por situação" value={filters.status ?? ''} onChange={(event) => setFilter('status', event.target.value)}>
-        <option value="">Situação: todas</option>{(Object.keys(STATUS_LABELS) as DestinationStatus[]).map((key) => <option key={key} value={key}>{STATUS_LABELS[key]}</option>)}
+        <option value="">Situação: todas</option>{FILTERABLE_STATUS.map((key) => <option key={key} value={key}>{STATUS_LABELS[key]}</option>)}
       </select>
       <select className="select w-full" aria-label="Filtrar por tipo" value={filters.category ?? ''} onChange={(event) => setFilter('category', event.target.value)}>
         <option value="">Tipo: todos</option>{DESTINATION_CATEGORIES.map((category) => <option key={category} value={category}>{category}</option>)}
@@ -243,7 +244,7 @@ export default function DestinationBank({ history = false }: { history?: boolean
             </div>
             <div className="flex items-center gap-2">
               {history && destination.site.onMap && <span className="badge-success">No mapa do site</span>}
-              <span className={STATUS_BADGE[destination.status]}>{STATUS_LABELS[destination.status]}</span>
+              {destination.status !== 'IDEA' && <span className={STATUS_BADGE[destination.status]}>{STATUS_LABELS[destination.status]}</span>}
               <Button small icon={<Pencil className="w-4 h-4" aria-hidden="true" />} onClick={() => openEdit(destination)} aria-label={`Editar ${destination.name}`}><span className="hidden sm:inline">Editar</span></Button>
               <button type="button" className="btn-icon text-red-700 hover:bg-red-50" onClick={() => { setDeleteError(''); setToDelete(destination); }} aria-label={`Excluir ${destination.name}`}><Trash2 className="w-4 h-4" aria-hidden="true" /></button>
             </div>

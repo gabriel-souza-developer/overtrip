@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { CopyPlus, Eye, EyeOff, MapPin, Pencil, Plane, Plus, Trash2 } from 'lucide-react';
-import { tripApi, Trip, Pagination as PaginationInfo } from '../api';
+import { BusFront, CopyPlus, Download, Eye, EyeOff, MapPin, Pencil, Plus, Save, Trash2 } from 'lucide-react';
+import { tripApi, tripTemplateApi, Trip, TripTemplateSummary, Pagination as PaginationInfo } from '../api';
 import { useToast } from '../hooks/useToast';
 import { useListParams } from '../hooks/useListParams';
 import { publishProblems, TRIP_STATUS_LABELS, tripListAction, tripStatusLabel, tripStatusTone } from '../lib/panelHelpers';
@@ -47,6 +47,14 @@ export default function Trips() {
   const [toUnpublish, setToUnpublish] = useState<Trip | null>(null);
   const [incomplete, setIncomplete] = useState<{ trip: Trip; problems: string[] } | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [templates, setTemplates] = useState<TripTemplateSummary[]>([]);
+  const [templatesLoading, setTemplatesLoading] = useState(true);
+  const [templatesError, setTemplatesError] = useState('');
+  const [savingTemplateId, setSavingTemplateId] = useState<string | null>(null);
+  const [downloadingTemplateId, setDownloadingTemplateId] = useState<string | null>(null);
+  const [templateToDelete, setTemplateToDelete] = useState<TripTemplateSummary | null>(null);
+  const [deletingTemplate, setDeletingTemplate] = useState(false);
+  const [draftToDelete, setDraftToDelete] = useState<Trip | null>(null);
 
   const status = list.get('status');
   const search = list.get('search');
@@ -70,6 +78,75 @@ export default function Trips() {
   useEffect(() => {
     loadTrips();
   }, [page, status, search, period]);
+
+  const loadTemplates = async () => {
+    setTemplatesLoading(true);
+    setTemplatesError('');
+    try {
+      const { data } = await tripTemplateApi.list();
+      setTemplates(data);
+    } catch (err) {
+      setTemplatesError(err instanceof Error ? err.message : 'Não foi possível carregar os modelos.');
+    } finally {
+      setTemplatesLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadTemplates();
+  }, []);
+
+  const openTemplate = (id: string) => navigate(`/trips/new?modeloSalvo=${encodeURIComponent(id)}`);
+
+  const saveTemplate = async (trip: Trip) => {
+    setSavingTemplateId(trip.id);
+    try {
+      await tripTemplateApi.save(trip.id, trip.title);
+      if (trip.status === 'DRAFT') setDraftToDelete(trip);
+      else toast.success('Modelo salvo.');
+      await loadTemplates();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Não foi possível salvar o modelo.');
+    } finally {
+      setSavingTemplateId(null);
+    }
+  };
+
+  const downloadTemplate = async (template: TripTemplateSummary) => {
+    setDownloadingTemplateId(template.id);
+    try {
+      const detail = await tripTemplateApi.get(template.id);
+      const blob = new Blob([JSON.stringify(detail.snapshot, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const filename = detail.name.toLocaleLowerCase('pt-BR').replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '');
+      link.href = url;
+      link.download = `${filename || 'modelo-de-viagem'}.json`;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Não foi possível baixar o modelo.');
+    } finally {
+      setDownloadingTemplateId(null);
+    }
+  };
+
+  const removeTemplate = async () => {
+    if (!templateToDelete) return;
+    setDeletingTemplate(true);
+    try {
+      await tripTemplateApi.delete(templateToDelete.id);
+      setTemplateToDelete(null);
+      toast.success('Modelo excluído.');
+      await loadTemplates();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Não foi possível excluir o modelo.');
+    } finally {
+      setDeletingTemplate(false);
+    }
+  };
 
   const publish = async (trip: Trip) => {
     // Mesma regra do formulário: sem foto (ou sem valor) a viagem não vai para o site.
@@ -106,12 +183,14 @@ export default function Trips() {
   };
 
   const remove = async () => {
-    if (!toDelete) return;
+    const trip = draftToDelete ?? toDelete;
+    if (!trip) return;
     setDeleting(true);
     try {
-      await tripApi.delete(toDelete.id);
-      toast.success('Viagem excluída.');
+      await tripApi.delete(trip.id);
+      toast.success(draftToDelete ? 'Rascunho excluído. Modelo mantido.' : 'Viagem excluída.');
       setToDelete(null);
+      setDraftToDelete(null);
       // Se era a última da página, volta uma página.
       if (trips.length === 1 && page > 1) list.setPage(page - 1);
       else await loadTrips();
@@ -138,6 +217,30 @@ export default function Trips() {
         description="Crie, publique e organize as viagens do site"
         actions={<Link to="/trips/new" className="btn-primary"><Plus className="w-5 h-5" aria-hidden="true" /> Nova viagem</Link>}
       />
+
+      <section className="card p-5 space-y-3" aria-labelledby="trip-templates-heading">
+        <h2 id="trip-templates-heading" className="text-lg font-semibold text-surface-900">Modelos salvos</h2>
+        {templatesLoading ? (
+          <p className="text-sm text-surface-600" role="status">Carregando modelos…</p>
+        ) : templatesError ? (
+          <ErrorState message={templatesError} onRetry={loadTemplates} />
+        ) : templates.length === 0 ? (
+          <p className="text-sm text-surface-600">Selecione “Salvar como modelo” em uma viagem para adicioná-la aqui.</p>
+        ) : (
+          <ul className="divide-y divide-surface-200">
+            {templates.map(template => (
+              <li key={template.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                <span className="font-medium text-surface-900">{template.name}</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button small onClick={() => openTemplate(template.id)} aria-label={`Usar modelo ${template.name}`}>Usar</Button>
+                  <Button small icon={<Download className="w-4 h-4" aria-hidden="true" />} onClick={() => downloadTemplate(template)} loading={downloadingTemplateId === template.id} disabled={!!downloadingTemplateId} loadingText="Baixando…" aria-label={`Baixar JSON do modelo ${template.name}`}>Baixar JSON</Button>
+                  <Button small variant="ghost" icon={<Trash2 className="w-4 h-4" aria-hidden="true" />} onClick={() => setTemplateToDelete(template)} aria-label={`Excluir modelo ${template.name}`}>Excluir</Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <div className="flex flex-wrap gap-2" role="group" aria-label="Período das viagens">
         {PERIODS.map((option) => (
@@ -181,7 +284,7 @@ export default function Trips() {
           </div>
         ) : trips.length === 0 && !error ? (
           <EmptyState
-            icon={<Plane className="w-6 h-6" />}
+            icon={<BusFront className="w-6 h-6" />}
             title={emptyCopy.title}
             text={emptyCopy.text}
             action={hasFilters
@@ -210,7 +313,7 @@ export default function Trips() {
                   return (
                     <tr key={trip.id} className={shadeDrafts && trip.status === 'DRAFT' ? 'bg-surface-200' : undefined}>
                       <td className="max-w-[16rem]">
-                        <Link to={`/trips/${trip.id}/edit`} className="font-medium text-surface-900 hover:text-primary-800 hover:underline">{trip.title}</Link>
+                        <Link to={`/trips/${trip.id}/edit`} className="font-medium text-surface-900 hover:text-primary-800 hover:underline">{trip.title}</Link>{trip.tripProfile === 'OVER_RIDERS' && <span className="ml-2 badge-info">OVER RIDERS</span>}
                         <p className="md:hidden text-xs text-surface-600 mt-0.5">{formatDate(trip.startDateISO)} · {trip.city}/{trip.region}</p>
                       </td>
                       <td><StatusBadge tone={tripStatusTone(trip.status)}>{tripStatusLabel(trip.status)}</StatusBadge></td>
@@ -219,10 +322,11 @@ export default function Trips() {
                         <span className="inline-flex items-center gap-1"><MapPin className="w-4 h-4 text-surface-500" aria-hidden="true" />{trip.city}/{trip.region}</span>
                       </td>
                       <td>
-                        <div className="flex items-center justify-end gap-1">
+                        <div className="flex flex-wrap items-center justify-end gap-1">
                           {action && (
                           <Button
                               small
+                              disabled={savingTemplateId === trip.id}
                               variant={canPublish ? 'primary' : 'secondary'}
                               loading={busy}
                               loadingText={canPublish ? 'Publicando...' : 'Tirando...'}
@@ -238,6 +342,7 @@ export default function Trips() {
                             items={[
                               { key: 'edit', label: 'Editar', icon: <Pencil className="w-4 h-4" aria-hidden="true" />, onSelect: () => { navigate(`/trips/${trip.id}/edit`); } },
                               { key: 'reuse', label: 'Usar como modelo', icon: <CopyPlus className="w-4 h-4" aria-hidden="true" />, onSelect: () => { navigate(`/trips/new?modelo=${encodeURIComponent(trip.id)}`); } },
+                              { key: 'save-template', label: 'Salvar como modelo', icon: <Save className="w-4 h-4" aria-hidden="true" />, disabled: !!savingTemplateId || busy, onSelect: () => { void saveTemplate(trip); } },
                               { key: 'delete', label: 'Excluir', danger: true, icon: <Trash2 className="w-4 h-4" aria-hidden="true" />, onSelect: () => setToDelete(trip) },
                             ]}
                           />
@@ -253,6 +358,27 @@ export default function Trips() {
         <Pagination pagination={pagination} onChange={list.setPage} />
       </div>
 
+      <ConfirmDialog
+        open={!!draftToDelete}
+        onOpenChange={(open) => { if (!open) setDraftToDelete(null); }}
+        title="Excluir o rascunho original?"
+        description="Modelo salvo no banco. Deseja excluir o rascunho original? O modelo continuará salvo."
+        cancelLabel="Manter rascunho"
+        confirmLabel="Excluir rascunho"
+        busyLabel="Excluindo…"
+        busy={deleting}
+        onConfirm={remove}
+      />
+      <ConfirmDialog
+        open={!!templateToDelete}
+        onOpenChange={(open) => { if (!open) setTemplateToDelete(null); }}
+        title="Excluir este modelo?"
+        description={`“${templateToDelete?.name ?? ''}” será removido dos modelos salvos.`}
+        confirmLabel="Excluir modelo"
+        busyLabel="Excluindo…"
+        busy={deletingTemplate}
+        onConfirm={removeTemplate}
+      />
       <ConfirmDialog
         open={!!toDelete}
         onOpenChange={(open) => { if (!open) setToDelete(null); }}

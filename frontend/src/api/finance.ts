@@ -63,6 +63,8 @@ export interface FinanceSummary {
   };
   reservations: {
     activeReservations: number;
+    /** Pedidos do WhatsApp ainda não revisados; fora dos totais. Ausente em API antiga. */
+    awaitingReviewReservations?: number;
     seats: number;
     contractedCents: number;
     receivedCents: number;

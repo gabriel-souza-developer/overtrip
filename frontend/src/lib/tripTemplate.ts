@@ -1,9 +1,16 @@
 /** Copia somente o formulário, removendo dados que dependem da edição anterior. */
 export function prepareTripTemplate<T extends {
   startDateISO: string; endDateISO: string; headlineDisplay: string; scheduleInfo: string;
+  departureTime?: string; returnTime?: string; departureTolerance?: string;
+  scheduleTBD?: boolean; departures?: unknown[];
   spotsLeft: number | null; status: string; availabilitySchema: string;
 }>(trip: T): T {
-  return { ...trip, startDateISO: '', endDateISO: '', headlineDisplay: '', scheduleInfo: '', spotsLeft: null, status: 'DRAFT', availabilitySchema: 'https://schema.org/InStock' };
+  return {
+    ...trip,
+    startDateISO: '', endDateISO: '', headlineDisplay: '',
+    departureTime: '', departureTolerance: '', returnTime: '', scheduleInfo: '', scheduleTBD: true,
+    departures: [], spotsLeft: null, status: 'DRAFT', availabilitySchema: 'https://schema.org/InStock',
+  };
 }
 
 /**

@@ -216,12 +216,6 @@
   height: 1.05rem;
   flex: 0 0 auto;
 }
-.nav-spotify .nav-external {
-  margin-left: auto;
-  font-size: 0.8rem;
-  opacity: 0.62;
-}
-
 /* OVERTRIP RIDERS no dropdown Explorar */
 .site-nav .nav-dropdown-menu a.nav-riders {
   display: flex;

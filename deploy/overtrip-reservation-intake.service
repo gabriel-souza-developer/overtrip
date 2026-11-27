@@ -1,0 +1,30 @@
+[Unit]
+Description=Entrada privada de pedidos de reserva do n8n (OVERTRIP; cria reserva pendente a revisar, não confirma nem cobra)
+After=network.target overtrip-api.service
+
+[Service]
+Type=simple
+User=overtrip
+WorkingDirectory=/srv/overtrip/app
+# Ambiente MÍNIMO e próprio (root:root, modo 600): DATABASE_URL e
+# RESERVATION_INTAKE_SECRET; PUBLIC_SITE_ORGANIZATION_IDS e
+# LEGACY_TOURISM_ORGANIZATION_ID somente se existirem no ambiente da API, com os
+# mesmos valores. NÃO carregar /etc/overtrip/env (chaves de IA, JWT, Brevo,
+# redes sociais) nem /etc/overtrip/assistant.env (credencial de leitura).
+EnvironmentFile=/etc/overtrip/reservation-intake.env
+# Sem NODE_ENV=production de propósito: as checagens de produção de
+# src/config.ts (JWT_SECRET, recuperação de senha) são da API e exigiriam
+# segredos que este processo não usa. Nada no caminho da entrada depende dele.
+Environment=RESERVATION_INTAKE_PORT=3011
+# Escuta só em 127.0.0.1:3011; acesso do n8n por transporte privado (tailnet), nunca pelo Caddy.
+ExecStart=/usr/bin/node dist/reservationIntakeServer.js
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/overtrip
+
+[Install]
+WantedBy=multi-user.target

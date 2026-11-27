@@ -54,7 +54,7 @@ export interface SeasonActivity { title: string; where: string; zone: SeasonZone
 /** Até três sugestões por mês, a principal primeiro. Nenhuma depende de data de evento. */
 const ACTIVITIES: SeasonActivity[][] = [
   [ // janeiro: leste fora da chuva
-    { title: 'Piscinas naturais do Seixas e Picãozinho', where: 'João Pessoa', zone: 'leste', why: 'Litoral fora do período chuvoso; os passeios dependem da maré baixa.', mapsQuery: 'Piscinas naturais do Seixas João Pessoa' },
+    { title: 'Piscinas naturais do Seixas e Picãozinho', where: 'João Pessoa', zone: 'leste', why: 'Litoral fora do período chuvoso; a visita depende da maré baixa.', mapsQuery: 'Piscinas naturais do Seixas João Pessoa' },
     { title: 'Praias de Coqueirinho e Tambaba', where: 'Conde', zone: 'leste', why: 'Litoral Sul com falésias, fora do período chuvoso.', mapsQuery: 'Praia de Coqueirinho Conde PB' },
   ],
   [ // fevereiro
@@ -90,11 +90,11 @@ const ACTIVITIES: SeasonActivity[][] = [
     { title: 'Mirantes do Brejo', where: 'Areia e Bananeiras', zone: 'leste', why: 'Fora do período chuvoso típico; confira a previsão antes da trilha.', mapsQuery: 'Mirante Areia PB' },
   ],
   [ // outubro
-    { title: 'Picãozinho e Areia Vermelha', where: 'João Pessoa e Cabedelo', zone: 'leste', why: 'Período seco no Litoral; passeios dependem da maré baixa.', mapsQuery: 'Piscinas naturais do Picãozinho João Pessoa' },
+    { title: 'Picãozinho e Areia Vermelha', where: 'João Pessoa e Cabedelo', zone: 'leste', why: 'Período seco no Litoral; a programação depende da maré baixa.', mapsQuery: 'Piscinas naturais do Picãozinho João Pessoa' },
     { title: 'Praias de Tambaba e Coqueirinho', where: 'Conde', zone: 'leste', why: 'Litoral Sul fora do período chuvoso.', mapsQuery: 'Praia de Tambaba Conde PB' },
   ],
   [ // novembro
-    { title: 'Praias e piscinas naturais', where: 'João Pessoa, Cabedelo e Conde', zone: 'leste', why: 'Litoral fora do período chuvoso; marque o passeio pela tábua de marés.', mapsQuery: 'Piscinas naturais do Seixas João Pessoa' },
+    { title: 'Praias e piscinas naturais', where: 'João Pessoa, Cabedelo e Conde', zone: 'leste', why: 'Litoral fora do período chuvoso; marque a vivência pela tábua de marés.', mapsQuery: 'Piscinas naturais do Seixas João Pessoa' },
     { title: 'Itacoatiaras do Ingá', where: 'Ingá', zone: 'leste', why: 'Bate-volta curto saindo de Campina Grande; vá cedo, por causa do calor.', mapsQuery: 'Pedra do Ingá' },
   ],
   [ // dezembro
@@ -118,30 +118,7 @@ export const FORECAST_SOURCES: SeasonSource[] = [
   { label: 'Marinha do Brasil — Tábuas de marés', url: 'https://www.marinha.mil.br/chm/tabuas-de-mare', supports: 'Maré baixa para piscinas naturais e Areia Vermelha (porto de Cabedelo).' },
 ];
 
-export interface VisitorFeedback { place: string; url: string; themes: string[] }
-
-/** Síntese qualitativa de comentários públicos (sem notas), consultada na data abaixo. */
-export const FEEDBACK_CHECKED_AT = '26/11/2026';
-export const VISITOR_FEEDBACK: VisitorFeedback[] = [
-  {
-    place: 'Cachoeira do Roncador (Bananeiras)',
-    url: 'https://www.tripadvisor.com/Attraction_Review-g2352095-d6740158-Reviews-Cachoeira_do_Roncador-Bananeiras_State_of_Paraiba.html',
-    themes: ['Elogios ao cenário e à água da cachoeira.', 'Relatos de lotação e som alto em domingos e feriados.'],
-  },
-  {
-    place: 'Piscinas naturais do Seixas (João Pessoa)',
-    url: 'https://www.tripadvisor.com.br/Attraction_Review-g303428-d8342655-Reviews-Piscinas_Naturais_do_Seixas-Joao_Pessoa_State_of_Paraiba.html',
-    themes: ['Maré baixa é a recomendação mais repetida.', 'Com maré alta há relatos de piscinas encobertas, pouca visibilidade e gente sem conseguir descer do barco.'],
-  },
-  {
-    place: 'Picãozinho (João Pessoa)',
-    url: 'https://www.tripadvisor.com.br/Attraction_Review-g303428-d2342321-Reviews-Picaozinho-Joao_Pessoa_State_of_Paraiba.html',
-    themes: ['Recomendação de ir na maré baixa, acompanhando a tábua de marés.', 'Relato recente de que as pedras atrapalham a caminhada nas piscinas.'],
-  },
-];
-
-export const SEASON_DISCLAIMER = 'Orientação climatológica: mostra quando as chuvas costumam se concentrar em cada região, segundo a AESA. Não é previsão do tempo, e cada ano varia. Perto da data, consulte a previsão e os avisos da AESA e do INMET, e a tábua de marés para passeios de piscina natural.';
-export const FEEDBACK_DISCLAIMER = 'Opiniões de visitantes são subjetivas, mudam com o tempo e podem não refletir as condições atuais. Resumimos temas recorrentes, sem notas.';
+export const SEASON_DISCLAIMER = 'Orientação climatológica: mostra quando as chuvas costumam se concentrar em cada região, segundo a AESA. Não é previsão do tempo, e cada ano varia. Perto da data, consulte a previsão e os avisos da AESA e do INMET, além da tábua de marés para vivências em piscinas naturais.';
 
 export const mapsSearchUrl = (query: string) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 

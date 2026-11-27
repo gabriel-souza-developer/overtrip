@@ -6,6 +6,10 @@ import { trackPixClick } from "./analytics.js";
 const PIX_KEY = "contato@overtrip.com.br";
 const PIX_MERCHANT_NAME = "OVERTRIP";
 const PIX_MERCHANT_CITY = "CAMPINA GRANDE";
+const formatCurrency = (value) => new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+}).format(value);
 
 // Campo TLV (Tag-Length-Value): id de 2 dígitos + tamanho de 2 dígitos +
 // valor. É o formato básico de todo campo do BR Code (padrão Bacen).
@@ -98,7 +102,13 @@ const setupPixModal = () => {
       titleEl.textContent = trip.title;
     }
     if (priceEl) {
-      priceEl.textContent = `Valor total: ${trip.priceDisplay} (ou o sinal de 50%, conforme política de reserva)`;
+      const total = Number(trip.priceValue);
+      if (Number.isFinite(total) && total > 0) {
+        const deposit = Math.round((total * 100) / 2) / 100;
+        priceEl.textContent = `Valor total: ${trip.priceDisplay} ${trip.priceUnit || "por pessoa"}. Sinal de 50%: ${formatCurrency(deposit)} ${trip.priceUnit || "por pessoa"}.`;
+      } else {
+        priceEl.textContent = "O sinal corresponde a 50% do valor da viagem. Consulte a equipe para confirmar o valor antes de pagar.";
+      }
     }
     if (qrImage) {
       qrImage.classList.remove("has-error");

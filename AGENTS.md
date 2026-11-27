@@ -24,6 +24,12 @@ ai-memory is the cross-harness memory of record for durable project knowledge; d
 Project rules ("always X") belong in this file; standing preferences that apply across projects belong in ai-memory's profile (`scope: "profile"`). Refresh this block with `memory_install_self_routing` or `ai-memory install-instructions --compact`; only the marked region is replaced.
 <!-- ai-memory:end -->
 
+## Linguagem da marca
+
+- Nos textos do site, no painel e nos conteúdos gerados, use **TRIP/TRIPs** e **vivência/vivências**. Não use “passeio”, “expedição”, “excursão” ou “Expeditions”.
+- Mantenha os títulos de viagens em maiúsculas e no padrão `ATIVIDADE OU DESTINO - UF`, como `TRILHA EM LUCENA - PB` e `PRAIA DE COQUEIRINHO - PB`. Para OVER RIDERS, use `OVER RIDERS: DESTINO - UF`.
+- Escreva em português simples e preserve nomes próprios e informações operacionais confirmadas.
+
 ## Delegação de tarefas
 
 - Sempre delegue ao menos uma tarefa distinta e útil a outro agente durante o trabalho. Combine subagentes do Codex e do OpenCode quando houver atividades independentes suficientes e ambos estiverem disponíveis; em tarefas pequenas, escolha o mais adequado e econômico.

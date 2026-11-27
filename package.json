@@ -27,6 +27,7 @@
     "test:watch": "vitest",
     "worker:documents": "node dist/documentWorker.js",
     "start:assistant-private": "node dist/assistantPrivateServer.js",
+    "start:reservation-intake": "node dist/reservationIntakeServer.js",
     "dev:worker:documents": "tsx src/documentWorker.ts",
     "check:sandbox-compat": "bash scripts/check-sandbox-compat.sh",
     "check:sandbox-compat:probe": "tsx scripts/check-sandbox-compat.ts"

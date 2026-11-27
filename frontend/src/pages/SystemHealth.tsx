@@ -6,10 +6,8 @@ import { systemApi } from '../api';
 import { aggregateHealthPoints, healthChartPoints, healthSummary, type HealthChartPoint, type SystemHealth, type SystemHealthHistoryPoint } from '../lib/systemHealth';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 
-// Cor própria do gráfico (não é botão/CTA): só precisa se distinguir da cor da
-// outra série. Antes acompanhava o laranja da marca (primary-500); o painel
-// agora usa verde (ver tailwind.config.js), então usa azul para não repetir o
-// verde de "Memória disponível" nas duas linhas.
+// Cores próprias do gráfico: azul e verde distinguem as séries, sem depender
+// da cor de ação da interface nem repetir o verde de "Memória disponível".
 const chartSeries = [
   { key: 'diskUsed', label: 'Disco usado', color: '#1d4ed8' },
   { key: 'memoryAvailable', label: 'Memória disponível', color: '#167a52' },

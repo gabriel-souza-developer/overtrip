@@ -7,6 +7,7 @@ const requireUploadedAlt = { message: UPLOADED_ALT_MESSAGE, path: ['alt'] };
 // Trip schemas
 export const tripCreateSchema = z.object({
   title: z.string().min(1, 'Título é obrigatório'),
+  tripProfile: z.enum(['STANDARD', 'OVER_RIDERS']).default('STANDARD'),
   headlineDisplay: z.string().optional().nullable(),
   category: z.string().min(1, 'Categoria é obrigatória'),
   filterCategory: z.string().trim().max(80).optional().nullable(),
@@ -75,6 +76,7 @@ export const tripUpdateSchema = tripCreateSchema.extend({
   includes: tripCreateSchema.shape.includes.removeDefault(),
   media: tripCreateSchema.shape.media.removeDefault(),
   status: tripCreateSchema.shape.status.removeDefault(),
+  tripProfile: tripCreateSchema.shape.tripProfile.removeDefault(),
   availabilitySchema: tripCreateSchema.shape.availabilitySchema.removeDefault(),
   departures: tripCreateSchema.shape.departures.removeDefault(),
 }).partial();

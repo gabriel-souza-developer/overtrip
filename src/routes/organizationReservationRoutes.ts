@@ -106,7 +106,7 @@ async function loadReservationForInstallmentWrite(tx: Prisma.TransactionClient, 
 /** Toda mutação de parcela também avança o updatedAt da reserva (nunca só o da própria parcela), com o mesmo compare-and-set por id+organizationId+updatedAt: qualquer mudança concorrente — na própria reserva ou em qualquer outra parcela sua — já faz count divergir de 1. */
 async function bumpReservationVersion(tx: Prisma.TransactionClient, reservationId: string, organizationId: string, previousUpdatedAt: Date) {
   const updatedAt = new Date(Math.max(Date.now(), previousUpdatedAt.getTime() + 1));
-  const { count } = await tx.reservation.updateMany({ where: { id: reservationId, organizationId, updatedAt: previousUpdatedAt }, data: { updatedAt } });
+  const { count } = await tx.reservation.updateMany({ where: { id: reservationId, organizationId, updatedAt: previousUpdatedAt }, data: { updatedAt, needsReview: false } });
   if (count !== 1) throw AppError.conflict('Esta reserva foi alterada por outra pessoa. Recarregue os dados antes de salvar.');
 }
 
@@ -198,7 +198,8 @@ router.put('/:reservationId', asyncHandler(async (req: OrganizationRequest, res:
     const updatedAt = new Date(Math.max(Date.now(), current.updatedAt.getTime() + 1));
     const { count } = await tx.reservation.updateMany({
       where: { id: reservationId, organizationId, updatedAt: current.updatedAt },
-      data: { ...data, updatedAt },
+      // Alteração humana encerra a revisão pendente de um pedido do WhatsApp.
+      data: { ...data, updatedAt, needsReview: false },
     });
     if (count !== 1) throw AppError.conflict('Esta reserva foi alterada por outra pessoa. Recarregue os dados antes de salvar.');
     await recordReservationAuditIfOwned(tx, { organizationId, actorUserId: req.user!.id, action: 'RESERVATION_UPDATED', entityType: 'Reservation', entityId: reservationId, reservationId });

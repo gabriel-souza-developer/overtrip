@@ -20,9 +20,9 @@ Site público da OVERTRIP, uma marca de experiências, turismo e comunidade que 
 A OVERTRIP não se posiciona como uma agência de turismo tradicional. A comunicação evita linguagem institucional ("excursão", "pacote") e reforça o conceito de viagem como estilo de vida — presença, conexão e memórias reais. A marca nasceu do rebranding da antiga **CG.TRIP**.
 
 Vocabulário de marca a manter em qualquer novo texto:
-- **"Expedição"**, não "excursão"
-- **"Embarque"**, **"investimento"** (não "pagamento"/"preço" isolado)
-- Pilares: **Agência** (execução) · **Experiência** (o diferencial) · **Lifestyle** (comunidade/produtos)
+- Use **TRIP/TRIPs** e **vivência/vivências**. Evite “passeio”, “expedição”, “excursão” e “Expeditions”.
+- Títulos em maiúsculas, no padrão `ATIVIDADE OU DESTINO - UF`, como `TRILHA EM LUCENA - PB`; em roteiros de veículos próprios, `OVER RIDERS: DESTINO - UF`.
+- Use **embarque** para o local de saída e mantenha valores, datas e regras operacionais claros.
 
 ## Estrutura da página (`index.html`)
 
@@ -32,16 +32,16 @@ Seções na ordem em que aparecem, numeradas nos comentários do HTML e do CSS (
 |---|---|---|
 | 3 | Header / Navegação | Menu fixo, hambúrguer no mobile |
 | 6 | Hero | Slogan, CTA principal |
-| 7 | Próxima trip | Grid de expedições (gerado via JS) |
-| 8 | Sobre + Nossa história | Origem da marca, stats, timeline |
-| 9 | Universo da marca | Expeditions / Comunidade / Store |
-| 10 | Mapa | Lugares já visitados (Leaflet) |
-| 11 | Como funciona | 3 passos + faixa "Move Different" |
-| 12 | Galeria | Memórias de viagens anteriores |
-| 13 | Vozes | Depoimentos em carrossel |
-| 14 | FAQ | Dúvidas frequentes (acordeão) |
-| 15 | CTA final | Chamada de fechamento |
-| 16 | Footer | Marca, links, contato, créditos |
+| 8 | Próximas TRIPs | Viagens disponíveis e filtros |
+| 9 | Como funciona | 3 passos + faixa "Move Different" |
+| 10 | Mapa | Rotas e lugares já visitados (Leaflet) |
+| 11 | Vozes | Depoimentos em carrossel |
+| 12 | Sobre + Nossa história | Origem da marca, stats, timeline |
+| 13 | Universo da marca | Vivências / Comunidade / Store |
+| 14 | Galeria | Memórias de viagens anteriores |
+| 15 | FAQ | Dúvidas frequentes (acordeão) |
+| 16 | CTA final | Chamada de fechamento |
+| 17 | Footer | Marca, links, contato, créditos |
 | 17 | Botão flutuante de WhatsApp | + balão de aviso |
 
 ## Tecnologia
@@ -74,7 +74,7 @@ compatibilidade com integrações privadas, que têm documentação própria.
 
 O mesmo vale para o mapa: `VISITED_PLACES` e `OVERTRIP_HUBS`, no `map.js`, alimentam tanto os pins quanto a lista lateral "Destinos & roteiros".
 
-**Para cadastrar uma expedição:** use o painel administrativo em `/admin`.
+**Para cadastrar uma TRIP ou vivência:** use o painel administrativo em `/admin`.
 Revise a prévia e os itens de publicação antes de publicar no site.
 
 ## Rodando localmente

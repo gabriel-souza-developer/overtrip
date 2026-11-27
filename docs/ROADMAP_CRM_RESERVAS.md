@@ -1,5 +1,14 @@
 # Plano de evolução do CRM e das reservas
 
+> Atualização em 26/11/2026: foi autorizada a integração de pedidos do
+> WhatsApp com a tela **Reservas**. A implementação está no branch
+> `feat/integracao-reservas-n8n`, sem publicação, migração aplicada ou alteração
+> do fluxo n8n ativo. Ela cria somente uma reserva `PENDING` marcada para
+> revisão humana; não cobra, não confirma vaga nem reduz disponibilidade. O
+> desenho e as etapas operacionais estão em `docs/INTEGRACAO_RESERVAS_N8N.md`.
+> Este trabalho não cria uma caixa de entrada nova nem reativa a aba
+> Interessados.
+
 ## Estado de partida
 
 Revisão do código local em 11/11/2026: o CRM já cadastra e edita interessados,
@@ -10,10 +19,11 @@ não cobram, não confirmam pagamento com banco e não reduzem vagas. O inventá
 registra publicação do CRM em 10/11; isso não substitui uma verificação atual da
 VM Oracle.
 
-**Decisão atual:** atendimento conectado e evolução do CRM ficam adiados. Não
-contratar serviço pago nem iniciar outra caixa de entrada neste ciclo. O foco
-volta ao fluxo essencial de viagens e à confiabilidade do site e dos dados;
-retomar este plano quando a operação comprovar essa necessidade.
+**Decisão de 11/11:** o atendimento conectado ao painel e uma nova caixa de
+entrada continuam adiados. A atualização de 26/11 limita a integração a
+registrar pedidos confirmados pelo WhatsApp na fila de Reservas existente;
+ela não altera o canal, não cria outra caixa de entrada e não automatiza
+pagamentos ou vagas.
 
 ## Fases
 

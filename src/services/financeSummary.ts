@@ -189,7 +189,7 @@ export async function summarizeReservations(client: RawClient, accessJoin: Prism
 
   const [reservation] = await client.$queryRaw<Array<{ active: bigint; contracted: bigint | null; seats: bigint | null }>>(Prisma.sql`
     SELECT COUNT(*) AS active, SUM(r."totalCents") AS contracted, SUM(r."seats") AS seats
-    ${accessJoin} WHERE ${accessWhere} AND r."status" != 'CANCELLED'
+    ${accessJoin} WHERE ${accessWhere} AND r."status" != 'CANCELLED' AND r."needsReview" = 0
   `);
   const [installments] = await client.$queryRaw<Array<{ received: bigint | null; open: bigint | null; overdue: bigint | null; overdueCount: bigint; next30: bigint | null }>>(Prisma.sql`
     SELECT
@@ -199,20 +199,25 @@ export async function summarizeReservations(client: RawClient, accessJoin: Prism
       SUM(CASE WHEN i."paidAt" IS NULL AND i."dueDate" IS NOT NULL AND i."dueDate" < ${startOfToday} THEN 1 ELSE 0 END) AS overdueCount,
       SUM(CASE WHEN i."paidAt" IS NULL AND i."dueDate" >= ${startOfToday} AND i."dueDate" < ${in30Days} THEN i."amountCents" ELSE 0 END) AS next30
     FROM "ReservationInstallment" i
-    WHERE i."reservationId" IN (SELECT r."id" ${accessJoin} WHERE ${accessWhere} AND r."status" != 'CANCELLED')
+    WHERE i."reservationId" IN (SELECT r."id" ${accessJoin} WHERE ${accessWhere} AND r."status" != 'CANCELLED' AND r."needsReview" = 0)
   `);
   const pending = await client.$queryRaw<Array<{ id: string; reservationId: string; customerName: string; tripTitle: string; amountCents: number; dueDate: number | bigint | null }>>(Prisma.sql`
     SELECT i."id" AS id, r."id" AS reservationId, r."customerName" AS customerName, t."title" AS tripTitle, i."amountCents" AS amountCents, i."dueDate" AS dueDate
     ${accessJoin} JOIN "ReservationInstallment" i ON i."reservationId" = r."id"
-    WHERE ${accessWhere} AND r."status" != 'CANCELLED' AND i."paidAt" IS NULL AND i."dueDate" IS NOT NULL AND i."dueDate" < ${in30Days}
+    WHERE ${accessWhere} AND r."status" != 'CANCELLED' AND r."needsReview" = 0 AND i."paidAt" IS NULL AND i."dueDate" IS NOT NULL AND i."dueDate" < ${in30Days}
     ORDER BY i."dueDate" ASC, i."id" ASC
     LIMIT 20
   `);
 
+  // Pedidos do WhatsApp ainda não revisados ficam fora dos totais acima; só contados.
+  const [review] = await client.$queryRaw<Array<{ awaiting: bigint }>>(Prisma.sql`
+    SELECT COUNT(*) AS awaiting ${accessJoin} WHERE ${accessWhere} AND r."status" != 'CANCELLED' AND r."needsReview" = 1
+  `);
   const contractedCents = num(reservation?.contracted);
   const receivedCents = num(installments?.received);
   return {
     activeReservations: num(reservation?.active),
+    awaitingReviewReservations: num(review?.awaiting),
     seats: num(reservation?.seats),
     contractedCents,
     receivedCents,

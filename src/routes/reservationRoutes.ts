@@ -13,6 +13,7 @@ import {
   legacyTourismOrganizationIdForNewRecord,
 } from '../services/legacyTourismScope.js';
 import { recordReservationAuditIfOwned } from '../services/reservationAudit.js';
+import { hasRequiredDeposit } from '../services/reservationDeposit.js';
 
 // A operação legada só grava auditoria quando a reserva pertence a uma
 // empresa real (LEGACY_TOURISM_ORGANIZATION_ID configurado — modo
@@ -41,6 +42,9 @@ const createSchema = z.object({ tripId: z.string().min(1).max(128), ...reservati
 const updateSchema = z.object({
   ...reservationFields,
   status: z.enum(['PENDING', 'CONFIRMED', 'CANCELLED']),
+  // Compatibilidade para revisão explícita; em pedidos do WhatsApp isso não
+  // substitui o registro de recebimento do sinal de 50%.
+  reviewed: z.literal(true),
 }).partial().strict().refine(data => Object.keys(data).length > 0, 'Informe ao menos um campo.');
 const installmentCreateSchema = z.object({ amountCents: money.min(1), dueDate: nullableDay.optional() }).strict();
 const installmentUpdateSchema = z.object({
@@ -50,11 +54,18 @@ const installmentUpdateSchema = z.object({
 }).strict().refine(data => Object.keys(data).length > 0, 'Informe ao menos um campo.');
 const dateFromDay = (value: string | null | undefined) => value ? new Date(`${value}T12:00:00.000Z`) : null;
 const idSchema = z.string().min(1).max(128);
+function depositRequirementMet(reservation: { source: string; trip: { free: boolean } }, totalCents: number, installments: { amountCents: number; paidAt: Date | null }[]) {
+  // Em TRIPs pagas cujo preço não pôde ser calculado, zero não significa
+  // gratuidade. Usamos o campo tipado da TRIP, não texto editável de notas.
+  if (reservation.source === 'WHATSAPP_N8N' && !reservation.trip.free && totalCents <= 0) return false;
+  return hasRequiredDeposit(totalCents, installments);
+}
 // As duas interfaces usam a versão da reserva para detectar mudanças em
 // parcelas. Toda escrita legada precisa avançá-la na mesma transação.
-async function bumpReservationVersion(tx: Prisma.TransactionClient, id: string, previous: Date) {
+async function bumpReservationVersion(tx: Prisma.TransactionClient, id: string, previous: Date, needsReview = false) {
   const updatedAt = new Date(Math.max(Date.now(), previous.getTime() + 1));
-  const result = await tx.reservation.updateMany({ where: { id, updatedAt: previous }, data: { updatedAt } });
+  // A flag só é atualizada com a mesma transação da mudança da parcela.
+  const result = await tx.reservation.updateMany({ where: { id, updatedAt: previous }, data: { updatedAt, needsReview } });
   if (result.count !== 1) throw AppError.conflict('Esta reserva foi alterada por outra pessoa. Recarregue os dados antes de salvar.');
 }
 async function checkLead(tx: Prisma.TransactionClient, leadId: string | null | undefined, tripId: string) {
@@ -134,17 +145,28 @@ router.post('/', asyncHandler(async (req: AuthRequest, res: Response) => {
 
 router.patch('/:id', asyncHandler(async (req: AuthRequest, res: Response) => {
   const id = idSchema.parse(req.params.id);
-  const data = updateSchema.parse(req.body);
+  const { reviewed: _reviewed, ...data } = updateSchema.parse(req.body);
   const row = await prisma.$transaction(async tx => {
     // Existência e escopo da reserva checados na mesma transação da atualização.
     const allowed = await currentReservationExistsInLegacyScope(tx, { id });
-    const reservation = allowed ? await tx.reservation.findFirst({ where: { id }, include: { installments: true } }) : null;
+    const reservation = allowed ? await tx.reservation.findFirst({ where: { id }, include: { installments: true, trip: { select: { free: true } } } }) : null;
     if (!reservation) throw AppError.notFound('Reserva não encontrada.');
     await checkLead(tx, data.leadId, reservation.tripId);
     const allocated = reservation.installments.reduce((sum, entry) => sum + entry.amountCents, 0);
     if (data.totalCents !== undefined && data.totalCents < allocated) throw AppError.conflict('O valor total não pode ser menor que a soma das parcelas.');
+    const totalCents = data.totalCents ?? reservation.totalCents;
+    const nextStatus = data.status ?? reservation.status;
+    if (reservation.source === 'WHATSAPP_N8N' && nextStatus === 'CONFIRMED' && !depositRequirementMet(reservation, totalCents, reservation.installments)) {
+      throw AppError.conflict('Para confirmar a reserva, registre primeiro pagamentos recebidos que somem pelo menos 50% do valor total.');
+    }
+    if (_reviewed && reservation.source === 'WHATSAPP_N8N' && !depositRequirementMet(reservation, totalCents, reservation.installments)) {
+      throw AppError.conflict('Este pedido só entra no Financeiro depois que a equipe registrar o recebimento de pelo menos 50% do valor total.');
+    }
+    const needsReview = reservation.source === 'WHATSAPP_N8N'
+      ? !depositRequirementMet(reservation, totalCents, reservation.installments)
+      : false;
     const updatedAt = new Date(Math.max(Date.now(), reservation.updatedAt.getTime() + 1));
-    const updated = await tx.reservation.update({ where: { id }, data: { ...data, updatedAt }, include: { installments: { orderBy: { createdAt: 'asc' } } } });
+    const updated = await tx.reservation.update({ where: { id }, data: { ...data, updatedAt, needsReview }, include: { installments: { orderBy: { createdAt: 'asc' } } } });
     await recordReservationAuditIfOwned(tx, { organizationId: reservation.organizationId, actorUserId: req.user!.id, action: 'RESERVATION_UPDATED', entityType: 'Reservation', entityId: id, reservationId: id });
     return updated;
   });
@@ -156,14 +178,16 @@ router.post('/:id/installments', asyncHandler(async (req: AuthRequest, res: Resp
   const data = installmentCreateSchema.parse(req.body);
   const row = await prisma.$transaction(async tx => {
     const allowed = await currentReservationExistsInLegacyScope(tx, { id });
-    const reservation = allowed ? await tx.reservation.findFirst({ where: { id }, include: { installments: true } }) : null;
+    const reservation = allowed ? await tx.reservation.findFirst({ where: { id }, include: { installments: true, trip: { select: { free: true } } } }) : null;
     if (!reservation) throw AppError.notFound('Reserva não encontrada.');
     if (reservation.status === 'CANCELLED') throw AppError.conflict('Não é possível adicionar parcelas a uma reserva cancelada.');
     if (reservation.installments.length >= 120) throw AppError.conflict('A reserva já atingiu o limite de 120 parcelas.');
     const allocated = reservation.installments.reduce((sum, entry) => sum + entry.amountCents, 0);
     if (allocated + data.amountCents > reservation.totalCents) throw AppError.conflict('A soma das parcelas não pode ultrapassar o total da reserva.');
     const installment = await tx.reservationInstallment.create({ data: { reservationId: id, amountCents: data.amountCents, dueDate: dateFromDay(data.dueDate) } });
-    await bumpReservationVersion(tx, id, reservation.updatedAt);
+    // Criar parcela prevista não é pagamento recebido; pedidos do WhatsApp
+    // continuam fora do Financeiro até registrar efetivamente metade do total.
+    await bumpReservationVersion(tx, id, reservation.updatedAt, reservation.source === 'WHATSAPP_N8N' ? reservation.needsReview : false);
     await recordReservationAuditIfOwned(tx, { organizationId: reservation.organizationId, actorUserId: req.user!.id, action: 'INSTALLMENT_CREATED', entityType: 'ReservationInstallment', entityId: installment.id, reservationId: id });
     return installment;
   });
@@ -176,7 +200,7 @@ router.patch('/:id/installments/:installmentId', asyncHandler(async (req: AuthRe
   const data = installmentUpdateSchema.parse(req.body);
   const row = await prisma.$transaction(async tx => {
     const allowed = await currentReservationExistsInLegacyScope(tx, { id });
-    const reservation = allowed ? await tx.reservation.findFirst({ where: { id }, include: { installments: true } }) : null;
+    const reservation = allowed ? await tx.reservation.findFirst({ where: { id }, include: { installments: true, trip: { select: { free: true } } } }) : null;
     if (!reservation) throw AppError.notFound('Reserva não encontrada.');
     if (reservation.status === 'CANCELLED') throw AppError.conflict('Não é possível alterar parcelas de uma reserva cancelada.');
     const existing = reservation.installments.find(entry => entry.id === installmentId);
@@ -186,12 +210,22 @@ router.patch('/:id/installments/:installmentId', asyncHandler(async (req: AuthRe
     }
     const allocated = reservation.installments.reduce((sum, entry) => sum + (entry.id === installmentId ? data.amountCents ?? entry.amountCents : entry.amountCents), 0);
     if (allocated > reservation.totalCents) throw AppError.conflict('A soma das parcelas não pode ultrapassar o total da reserva.');
+    const nextInstallments = reservation.installments.map(entry => entry.id !== installmentId ? entry : {
+      amountCents: data.amountCents ?? entry.amountCents,
+      paidAt: data.paid === undefined ? entry.paidAt : data.paid ? entry.paidAt ?? new Date() : null,
+    });
+    if (reservation.source === 'WHATSAPP_N8N' && reservation.status === 'CONFIRMED' && !hasRequiredDeposit(reservation.totalCents, nextInstallments)) {
+      throw AppError.conflict('Não é possível retirar o pagamento: uma reserva confirmada precisa manter o sinal recebido de pelo menos 50%.');
+    }
+    const needsReview = reservation.source === 'WHATSAPP_N8N'
+      ? !depositRequirementMet(reservation, reservation.totalCents, nextInstallments)
+      : false;
     const installment = await tx.reservationInstallment.update({ where: { id: installmentId }, data: {
       amountCents: data.amountCents,
       dueDate: data.dueDate === undefined ? undefined : dateFromDay(data.dueDate),
       paidAt: data.paid === undefined ? undefined : data.paid ? existing.paidAt ?? new Date() : null,
     } });
-    await bumpReservationVersion(tx, id, reservation.updatedAt);
+    await bumpReservationVersion(tx, id, reservation.updatedAt, needsReview);
     await recordReservationAuditIfOwned(tx, { organizationId: reservation.organizationId, actorUserId: req.user!.id, action: 'INSTALLMENT_UPDATED', entityType: 'ReservationInstallment', entityId: installmentId, reservationId: id });
     return installment;
   });
@@ -210,7 +244,7 @@ router.delete('/:id/installments/:installmentId', asyncHandler(async (req: AuthR
     if (!installment) throw AppError.notFound('Parcela não encontrada.');
     if (installment.paidAt) throw AppError.conflict('Desmarque o pagamento antes de excluir a parcela.');
     await tx.reservationInstallment.delete({ where: { id: installmentId } });
-    await bumpReservationVersion(tx, id, reservation.updatedAt);
+    await bumpReservationVersion(tx, id, reservation.updatedAt, reservation.source === 'WHATSAPP_N8N' ? reservation.needsReview : false);
     await recordReservationAuditIfOwned(tx, { organizationId: reservation.organizationId, actorUserId: req.user!.id, action: 'INSTALLMENT_DELETED', entityType: 'ReservationInstallment', entityId: installmentId, reservationId: id });
   });
   res.status(204).end();

@@ -71,6 +71,7 @@ model Trip {
 
   // Identificação
   title           String
+  tripProfile     String   @default("STANDARD") // STANDARD (excursão normal), OVER_RIDERS
   headlineDisplay String?
   category        String
   filterCategory  String? // Categoria escolhida para o filtro do site
@@ -150,6 +151,7 @@ model Trip {
   galleryEntries GalleryEntry[]
   reservations   Reservation[]
   leads          Lead[]
+  intakeRequests ReservationIntakeRequest[]
 
   // Destino do banco privado (ver Destination). Opcional; nunca exposto no
   // site (mapPublicTrip escolhe os campos um a um).
@@ -164,6 +166,20 @@ model Trip {
   @@index([categorySearch])
   @@index([organizationId])
   @@index([destinationId])
+}
+
+// Modelos persistentes independentes de viagens/rascunhos. O snapshot contém
+// os campos editáveis completos e sobrevive à exclusão da viagem de origem.
+model TripTemplate {
+  id             String   @id @default(cuid())
+  name           String
+  sourceTripId   String   @unique
+  sourceTripTitle String
+  snapshot       String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([name])
 }
 
 // Reservas são registros internos; não alteram vagas nem processam pagamentos.
@@ -181,9 +197,15 @@ model Reservation {
   status         String                   @default("PENDING")
   totalCents     Int
   notes          String?
+  // Origem: MANUAL (painel) ou WHATSAPP_N8N (solicitação do assistente).
+  // Para WhatsApp, needsReview mantém a solicitação fora do Financeiro até que
+  // recebimentos registrados alcancem 50% do valor total.
+  source         String                   @default("MANUAL")
+  needsReview    Boolean                  @default(false)
   createdAt      DateTime                 @default(now())
   updatedAt      DateTime                 @updatedAt
   installments   ReservationInstallment[]
+  intakeRequests ReservationIntakeRequest[]
 
   @@index([tripId, status])
   @@index([leadId])
@@ -893,4 +915,33 @@ model LeadEvent {
   createdAt DateTime @default(now())
 
   @@index([leadId, createdAt])
+}
+
+// Metadados dos pedidos de reserva recebidos do n8n (WhatsApp). A solicitação
+// é representada por uma Reservation PENDING com needsReview: não confirma,
+// não registra pagamento e não retém vagas. Nome e telefone ficam só na
+// Reservation; aqui ficam dados para idempotência, apagados em `expiresAt`.
+model ReservationIntakeRequest {
+  id                 String      @id @default(cuid())
+  // Mesmo escopo da reserva criada; sem relação para não ampliar Organization.
+  organizationId     String?
+  // SHA-256 da chave de idempotência enviada pelo n8n (a chave não é guardada).
+  idempotencyKeyHash String      @unique
+  // SHA-256 com sal aleatório por linha do conteúdo normalizado; detecta reuso
+  // da mesma chave com outro conteúdo sem guardar o conteúdo.
+  payloadSalt        String
+  payloadHash        String
+  tripId             String
+  trip               Trip        @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  reservationId      String
+  reservation        Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  seats              Int
+  outcome            String // CREATED (solicitação pendente nova) ou DUPLICATE (pedido já existente)
+  createdAt          DateTime    @default(now())
+  expiresAt          DateTime
+
+  @@index([reservationId])
+  @@index([tripId])
+  @@index([expiresAt])
+  @@index([organizationId])
 }

@@ -17,6 +17,8 @@ export interface ClimateZone {
   months: number[];
   periodLabel: string;
   source: ClimateSource;
+  /** AESA municipality group id, used only for the Paraíba map. */
+  aesaRegionId?: string;
 }
 
 export interface NortheastState {
@@ -59,9 +61,12 @@ export const NORTHEAST_STATES: NortheastState[] = [
     code: 'PB', name: 'Paraíba',
     forecast: source('AESA — previsão do tempo', 'https://www.aesa.pb.gov.br/previsao-do-tempo/', 'Previsão diária por região e municípios paraibanos.'),
     zones: [
-      { name: 'Alto Sertão', places: 'Sousa e Cajazeiras', months: [0, 1, 2, 3], periodLabel: 'janeiro a abril', source: source('AESA — Atlas Pluviométrico da Paraíba', 'https://www.aesa.pb.gov.br/aesa-lanca-atlas-pluviometrico-e-estabelece-nova-climatologia-da-paraiba/', 'O Atlas, com séries de 1994 a 2023, indica esta quadra para o Alto Sertão.') },
-      { name: 'Sertão, Cariri e Curimataú', places: 'Patos, Cabaceiras e Pocinhos', months: [1, 2, 3, 4], periodLabel: 'fevereiro a maio', source: source('AESA — Atlas Pluviométrico da Paraíba', 'https://www.aesa.pb.gov.br/aesa-lanca-atlas-pluviometrico-e-estabelece-nova-climatologia-da-paraiba/', 'O Atlas, com séries de 1994 a 2023, indica esta quadra para estas regiões.') },
-      { name: 'Litoral, Brejo e Agreste', places: 'João Pessoa, Conde, Areia e Campina Grande', months: [3, 4, 5, 6], periodLabel: 'abril a julho', source: source('AESA — Atlas Pluviométrico da Paraíba', 'https://www.aesa.pb.gov.br/aesa-lanca-atlas-pluviometrico-e-estabelece-nova-climatologia-da-paraiba/', 'O Atlas, com séries de 1994 a 2023, indica esta quadra para estas regiões.') },
+      { name: 'Litoral', places: 'João Pessoa, Cabedelo, Conde e costa paraibana', months: [3, 4, 5, 6], periodLabel: 'abril a julho', aesaRegionId: '5', source: source('AESA — Atlas Pluviométrico da Paraíba', 'https://www.aesa.pb.gov.br/aesa-lanca-atlas-pluviometrico-e-estabelece-nova-climatologia-da-paraiba/', 'Quadra chuvosa indicada pela climatologia da AESA para o Litoral.') },
+      { name: 'Brejo', places: 'Areia, Bananeiras e entorno', months: [3, 4, 5, 6], periodLabel: 'abril a julho', aesaRegionId: '3', source: source('AESA — Atlas Pluviométrico da Paraíba', 'https://www.aesa.pb.gov.br/aesa-lanca-atlas-pluviometrico-e-estabelece-nova-climatologia-da-paraiba/', 'Quadra chuvosa indicada pela climatologia da AESA para o Brejo.') },
+      { name: 'Agreste', places: 'Campina Grande, Esperança e entorno', months: [3, 4, 5, 6], periodLabel: 'abril a julho', aesaRegionId: '1', source: source('AESA — Atlas Pluviométrico da Paraíba', 'https://www.aesa.pb.gov.br/aesa-lanca-atlas-pluviometrico-e-estabelece-nova-climatologia-da-paraiba/', 'Quadra chuvosa indicada pela climatologia da AESA para o Agreste.') },
+      { name: 'Cariri/Curimataú', places: 'Monteiro, Cabaceiras, Picuí e entorno', months: [1, 2, 3, 4], periodLabel: 'fevereiro a maio', aesaRegionId: '4', source: source('AESA — Atlas Pluviométrico da Paraíba', 'https://www.aesa.pb.gov.br/aesa-lanca-atlas-pluviometrico-e-estabelece-nova-climatologia-da-paraiba/', 'Quadra chuvosa indicada pela climatologia da AESA para Cariri/Curimataú, grupo apresentado em conjunto pela previsão da Agência.') },
+      { name: 'Sertão', places: 'Patos, Pombal e entorno', months: [1, 2, 3, 4], periodLabel: 'fevereiro a maio', aesaRegionId: '6', source: source('AESA — Atlas Pluviométrico da Paraíba', 'https://www.aesa.pb.gov.br/aesa-lanca-atlas-pluviometrico-e-estabelece-nova-climatologia-da-paraiba/', 'Quadra chuvosa indicada pela climatologia da AESA para o Sertão.') },
+      { name: 'Alto Sertão', places: 'Cajazeiras, Sousa e entorno', months: [0, 1, 2, 3], periodLabel: 'janeiro a abril', aesaRegionId: '2', source: source('AESA — Atlas Pluviométrico da Paraíba', 'https://www.aesa.pb.gov.br/aesa-lanca-atlas-pluviometrico-e-estabelece-nova-climatologia-da-paraiba/', 'Quadra chuvosa indicada pela climatologia da AESA para o Alto Sertão.') },
     ],
   },
   {

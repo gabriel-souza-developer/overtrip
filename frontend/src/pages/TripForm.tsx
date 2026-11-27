@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Copy, Save } from 'lucide-react';
-import { tripApi, settingsApi, documentApi, TripFormData } from '../api';
+import { tripApi, tripTemplateApi, settingsApi, documentApi, TripFormData } from '../api';
 import { useToast } from '../hooks/useToast';
 import { useAuth } from '../App';
 import { CityAutocomplete, UfSelect } from '../components/LocationFields';
@@ -56,7 +56,7 @@ type AllRequired = { [K in keyof Required<TripFormData>]: NonNullable<Required<T
 type FormState = Omit<AllRequired, 'priceValue' | 'spotsLeft'> & { priceValue: number | null; spotsLeft: number | null };
 
 const emptyForm = (): FormState => ({
-  title: '', headlineDisplay: '', category: '', filterCategory: '', description: '', city: '', region: '',
+  title: '', tripProfile: 'STANDARD', headlineDisplay: '', category: '', filterCategory: '', description: '', city: '', region: '',
   startDateISO: isoToLocalInput(new Date().toISOString()).slice(0, 10), endDateISO: '',
   departureTime: '', departureTolerance: '', returnTime: '', scheduleInfo: '', scheduleTBD: false,
   priceValue: null, priceDisplay: '', priceUnit: 'por pessoa', free: false,
@@ -71,14 +71,19 @@ export default function TripForm() {
   const { id } = useParams<{ id: string }>();
   useDocumentTitle(id ? 'Editar viagem' : 'Nova viagem');
   const [searchParams] = useSearchParams();
+  const savedTemplateId = !id ? searchParams.get('modeloSalvo') : null;
   const templateId = !id ? searchParams.get('modelo') : null;
+  const isTemplate = !!(savedTemplateId || templateId);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
   const canEditStatus = canChangeTripStatus(user?.role);
   const isEditing = !!id;
-  const [loading, setLoading] = useState(isEditing || !!templateId);
+  const [loading, setLoading] = useState(isEditing || isTemplate);
   const [saving, setSaving] = useState(false);
+  const [savingTemplate, setSavingTemplate] = useState(false);
+  const [draftDeleteOpen, setDraftDeleteOpen] = useState(false);
+  const [deletingDraft, setDeletingDraft] = useState(false);
   const [photoPending, setPhotoPending] = useState(false);
   const [pendingItems, setPendingItems] = useState<Record<string, boolean>>({});
   const setPendingItem = (field: string, pending: boolean) => setPendingItems(previous => previous[field] === pending ? previous : { ...previous, [field]: pending });
@@ -140,12 +145,28 @@ export default function TripForm() {
     return () => window.removeEventListener('beforeunload', warn);
   }, [dirty]);
 
-  const loadTrip = async (sourceId: string, useAsTemplate: boolean) => {
+  const fillLoadedForm = (next: FormState, schedule?: StoredSchedule) => {
+    setInitialOptions({
+      essential: !!next.headlineDisplay.trim() || (!!next.priceDisplay.trim() && next.priceDisplay.trim() !== (next.priceValue ? formatBRL(next.priceValue) : '')),
+      departure: !!next.scheduleInfo.trim() || !!next.meetingMapsQuery.trim() || (next.meetingLat != null && next.meetingLng != null),
+      experience: !!next.includesHighlight.trim(),
+      trail: !!next.trailDistance.trim() || !!next.supportPoint.trim() || !!next.supportPointInfo.trim() || next.routeNotes.length > 0,
+    });
+    initialRef.current = JSON.stringify(schedule ? next : emptyForm());
+    originalSchedule.current = schedule ?? { startDateISO: null, departureTime: null, endDateISO: null, returnTime: null };
+    originalScheduleText.current = next.scheduleInfo;
+    setPriceText(formatPriceInput(next.priceValue));
+    setFormData(next);
+  };
+
+  const loadTrip = async (sourceId: string, useAsTemplate: boolean, isCurrent: () => boolean) => {
     try {
       const trip = await tripApi.get(sourceId);
+      if (!isCurrent()) return;
       const schedule = scheduleToFields({ startDateISO: trip.startDateISO, departureTime: trip.departureTime, endDateISO: trip.endDateISO, returnTime: trip.returnTime });
       const loaded: FormState = {
         title: trip.title,
+        tripProfile: trip.tripProfile ?? 'STANDARD',
         headlineDisplay: trip.headlineDisplay || '',
         category: trip.category,
         filterCategory: trip.filterCategory || '',
@@ -197,41 +218,51 @@ export default function TripForm() {
           orderIndex: d.orderIndex,
         })) || [],
       };
-      const next = useAsTemplate ? prepareTripTemplate(loaded) : loaded;
-      setInitialOptions({
-        essential: !!next.headlineDisplay.trim() || (!!next.priceDisplay.trim() && next.priceDisplay.trim() !== (next.priceValue ? formatBRL(next.priceValue) : '')),
-        departure: !!next.scheduleInfo.trim() || !!next.meetingMapsQuery.trim() || (next.meetingLat != null && next.meetingLng != null),
-        experience: !!next.includesHighlight.trim(),
-        trail: !!next.trailDistance.trim() || !!next.supportPoint.trim() || !!next.supportPointInfo.trim() || next.routeNotes.length > 0,
-      });
-      initialRef.current = useAsTemplate ? JSON.stringify(emptyForm()) : JSON.stringify(next);
-      originalSchedule.current = useAsTemplate ? { startDateISO: null, departureTime: null, endDateISO: null, returnTime: null } : { startDateISO: trip.startDateISO, departureTime: trip.departureTime, endDateISO: trip.endDateISO, returnTime: trip.returnTime };
-      originalScheduleText.current = next.scheduleInfo;
-      setPriceText(formatPriceInput(next.priceValue));
-      setFormData(next);
+      if (useAsTemplate) fillLoadedForm(prepareTripTemplate(loaded));
+      else fillLoadedForm(loaded, { startDateISO: trip.startDateISO, departureTime: trip.departureTime, endDateISO: trip.endDateISO, returnTime: trip.returnTime });
     } catch (err) {
+      if (!isCurrent()) return;
       toast.error(err instanceof Error ? err.message : 'Não foi possível abrir a viagem.');
       navigate('/trips');
     } finally {
-      setLoading(false);
+      if (isCurrent()) setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (id || templateId) {
+    let current = true;
+    if (savedTemplateId) {
       setLoading(true);
-      void loadTrip(id || templateId!, !id);
-    }
-    else {
+      tripTemplateApi.get(savedTemplateId)
+        .then(({ snapshot }) => {
+          if (!current) return;
+          const storedFields = Object.fromEntries(Object.entries(snapshot).filter(([, value]) => value != null));
+          const loaded = { ...emptyForm(), ...storedFields };
+          loaded.includes = mergeUnique(loaded.includes, loaded.includedServices);
+          loaded.includedServices = [];
+          fillLoadedForm(prepareTripTemplate(loaded));
+        })
+        .catch((err) => {
+          if (!current) return;
+          toast.error(err instanceof Error ? err.message : 'Não foi possível abrir o modelo.');
+          navigate('/trips');
+        })
+        .finally(() => { if (current) setLoading(false); });
+    } else if (id || templateId) {
+      setLoading(true);
+      void loadTrip(id || templateId!, !id, () => current);
+    } else {
       settingsApi.getTripPresentation()
         .then((defaults) => {
+          if (!current) return;
           setFormData(prev => ({ ...prev, ...defaults }));
           defaultsRef.current = { ...defaultsRef.current, ...defaults };
         })
         .catch(() => undefined)
-        .finally(() => setLoading(false));
+        .finally(() => { if (current) setLoading(false); });
     }
-  }, [id, templateId]);
+    return () => { current = false; };
+  }, [id, savedTemplateId, templateId]);
 
   const clearError = (name: string) => setErrors(prev => (prev[name] ? { ...prev, [name]: '' } : prev));
 
@@ -301,7 +332,7 @@ export default function TripForm() {
         ...schedule,
         startDateISO: schedule.startDateISO!,
         includedServices: [],
-        ...(templateId ? { status: 'DRAFT' as const } : {}),
+        ...(isTemplate ? { status: 'DRAFT' as const } : {}),
       };
       if (isEditing) {
         await tripApi.update(id!, payload);
@@ -336,8 +367,38 @@ export default function TripForm() {
   };
 
   const useAsModel = () => {
+    if (!id) return;
     if (dirty) { toast.error('Salve as alterações antes de reutilizar os dados desta viagem.'); return; }
-    navigate(`/trips/new?modelo=${encodeURIComponent(id!)}`);
+    navigate(`/trips/new?modelo=${encodeURIComponent(id)}`);
+  };
+
+  const saveAsModel = async () => {
+    if (!id) return;
+    if (dirty) { toast.error('Salve as alterações na viagem antes de salvá-la como modelo.'); return; }
+    setSavingTemplate(true);
+    try {
+      await tripTemplateApi.save(id, formData.title);
+      if (formData.status === 'DRAFT') setDraftDeleteOpen(true);
+      else toast.success('Modelo salvo.');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Não foi possível salvar o modelo.');
+    } finally {
+      setSavingTemplate(false);
+    }
+  };
+
+  const removeOriginalDraft = async () => {
+    if (!id) return;
+    setDeletingDraft(true);
+    try {
+      await tripApi.delete(id);
+      toast.success('Rascunho excluído. Modelo mantido.');
+      navigate('/trips');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Não foi possível excluir o rascunho.');
+    } finally {
+      setDeletingDraft(false);
+    }
   };
 
   // Leva o foco até o campo que a pendência de publicação aponta (PublicationReadinessPanel).
@@ -371,24 +432,29 @@ export default function TripForm() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 pb-24">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
         <button type="button" onClick={leave} className="btn-icon" aria-label="Voltar para a lista de viagens">
           <ArrowLeft className="w-5 h-5" aria-hidden="true" />
         </button>
         <div>
-          <h1 className="page-title">{isEditing ? 'Editar viagem' : templateId ? 'Nova viagem a partir de modelo' : 'Nova viagem'}</h1>
+          <h1 className="page-title">{isEditing ? 'Editar viagem' : isTemplate ? 'Nova viagem a partir de modelo' : 'Nova viagem'}</h1>
           <p className="page-description">{isEditing ? 'Edite os dados da viagem e salve as alterações.' : 'Comece pelos dados básicos. Você pode salvar e completar a publicação depois.'}</p>
         </div>
         </div>
         {isEditing && (
-          <Button variant="secondary" small icon={<Copy className="w-4 h-4" aria-hidden="true" />} onClick={useAsModel} title="Cria uma nova viagem com os mesmos dados; esta viagem não é alterada.">
-            Usar como modelo
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button small icon={<Copy className="w-4 h-4" aria-hidden="true" />} onClick={useAsModel} disabled={saving || savingTemplate}>
+              Usar como modelo
+            </Button>
+            <Button small onClick={saveAsModel} disabled={saving} loading={savingTemplate} loadingText="Salvando modelo…">
+              Salvar como modelo
+            </Button>
+          </div>
         )}
       </div>
 
-      {templateId && <p className="alert-info" role="note">Os dados da viagem anterior foram copiados. Informe a nova data e revise os textos, horários, preços, embarques e fotos, que podem conter informações antigas. Ao salvar, será criado um novo rascunho; a viagem original não será alterada.</p>}
+      {isTemplate && <p className="alert-info" role="note">Informe a nova data e revise os textos, preços, embarques e fotos antes de salvar a viagem como rascunho.</p>}
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(300px,380px)] xl:items-start">
       <form id="trip-form" onSubmit={handleSubmit} noValidate className="space-y-4 min-w-0">
@@ -434,6 +500,13 @@ export default function TripForm() {
 
           <Field id="title" label="Nome da viagem" required error={err('title')}>
             <input id="title" name="title" className={`input ${invalid('title')}`} value={f.title} onChange={handleChange} aria-invalid={!!errors.title} aria-describedby={errors.title ? 'title-error' : undefined} placeholder="Ex.: TRILHA DO PICO DO JABRE" autoComplete="off" />
+          </Field>
+
+          <Field id="tripProfile" label="Perfil da viagem" hint="Escolha o grupo ou marca que organiza esta vivência.">
+            <select id="tripProfile" name="tripProfile" className="select" value={f.tripProfile} onChange={handleChange}>
+              <option value="STANDARD">Excursão normal</option>
+              <option value="OVER_RIDERS">OVER RIDERS</option>
+            </select>
           </Field>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -679,7 +752,7 @@ export default function TripForm() {
 
           <PublicationReadinessPanel problems={publicationIssues} onFieldFocus={focusPublicationField} />
 
-          {canEditStatus && !templateId && (
+          {canEditStatus && !isTemplate && (
             <Field id="status" label="Situação" hint={'“Publicada” aparece no site; “Rascunho” fica só aqui.'}>
               <select id="status" name="status" className="select" value={f.status} onChange={handleChange}>
                 {Object.entries(TRIP_STATUS_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
@@ -697,7 +770,7 @@ export default function TripForm() {
             </p>
             <div className="flex gap-3 w-full sm:w-auto">
               <Button onClick={leave} disabled={saving} className="flex-1 sm:flex-none">Cancelar</Button>
-              <Button type="submit" variant="primary" disabled={photoPending} loading={saving} loadingText="Salvando..." icon={<Save className="w-5 h-5" aria-hidden="true" />} className="flex-1 sm:flex-none">
+              <Button type="submit" variant="primary" disabled={photoPending || savingTemplate} loading={saving} loadingText="Salvando..." icon={<Save className="w-5 h-5" aria-hidden="true" />} className="flex-1 sm:flex-none">
                 {isEditing ? 'Salvar alterações' : 'Salvar viagem'}
               </Button>
             </div>
@@ -711,6 +784,17 @@ export default function TripForm() {
         <TripProposalPreview trip={formData} dirty={dirty} />
       </div>
 
+      <ConfirmDialog
+        open={draftDeleteOpen}
+        onOpenChange={setDraftDeleteOpen}
+        title="Excluir o rascunho original?"
+        description="Modelo salvo no banco. Deseja excluir o rascunho original? O modelo continuará salvo."
+        cancelLabel="Manter rascunho"
+        confirmLabel="Excluir rascunho"
+        busyLabel="Excluindo…"
+        busy={deletingDraft}
+        onConfirm={removeOriginalDraft}
+      />
       <ConfirmDialog
         open={leaveOpen}
         onOpenChange={setLeaveOpen}

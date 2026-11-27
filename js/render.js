@@ -96,6 +96,7 @@ const PIX_BUTTON_ICON = `
     <path d="M14 14h3v3h-3ZM19 14h2M14 19h2M19 19h2"/>
   </svg>
 `;
+const hasPixPrice = (trip) => Number.isFinite(Number(trip.priceValue)) && Number(trip.priceValue) > 0;
 
 /* ==========================================================================
    EMBARQUE: um ou mais pontos de partida
@@ -421,13 +422,13 @@ const buildTripCardHTML = (rawTrip, tripIndex) => {
             >
               ${closedNotice ? "Avise-me da próxima" : escapeHtml(trip.buttonLabel)}
             </a>
-            ${trip.free || closedNotice ? "" : `<button
+            ${trip.free || closedNotice || !hasPixPrice(trip) ? "" : `<button
               type="button"
               class="button button-pix pix-trigger"
               data-pix-trip-index="${escapeHtml(tripIndex)}"
             >
               ${PIX_BUTTON_ICON}
-              Pagar Pix
+              Pagar por PIX
             </button>`}
           </div>
         </div>
@@ -914,8 +915,8 @@ const renderTrips = async () => {
   if (!hasTrips) {
     const failedLoad = getTripsLoadError();
     grid.innerHTML = failedLoad
-      ? '<p class="trip-empty-state">Não foi possível carregar as expedições no momento. Tente novamente em alguns instantes ou fale com a OVERTRIP pelo WhatsApp.</p>'
-      : '<p class="trip-empty-state">Nenhuma expedição com embarque agendado no momento. Acompanhe nossos canais para saber das próximas datas.</p>';
+      ? '<p class="trip-empty-state">Não foi possível carregar as vivências no momento. Tente novamente em alguns instantes ou fale com a OVERTRIP pelo WhatsApp.</p>'
+      : '<p class="trip-empty-state">Nenhuma vivência com embarque agendado no momento. Acompanhe nossos canais para saber das próximas datas.</p>';
   } else {
     grid.innerHTML = buildTripCardsHTML(listedTrips);
   }

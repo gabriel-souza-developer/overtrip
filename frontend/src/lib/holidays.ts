@@ -1,4 +1,4 @@
-export type Holiday = { date: string; name: string; scope: 'Nacional' | 'Paraíba' | 'Campina Grande' };
+export type Holiday = { date: string; name: string; scope: 'Nacional' | 'Paraíba' | 'Campina Grande' | 'Ponto facultativo federal' | 'Data móvel' };
 
 // Referências: calendário federal de 2026 https://legis.sigepe.gov.br/sigepe-bgp-ws-legis/legis-service/download/?id=0026440285-ALPDF%2F2025
 // Lei municipal 7.197/2019 https://campinagrande.pb.gov.br/wp-content/uploads/2019/06/Seman%C3%A1rio-Oficial-n%C2%BA-2.626-03-a-07-de-junho-de-2019.pdf
@@ -25,7 +25,7 @@ export function easter(year: number): Date {
   return new Date(Date.UTC(year, month - 1, day));
 }
 
-/** Feriados recorrentes para planejamento; não inclui pontos facultativos. */
+/** Feriados e datas móveis para planejamento; Carnaval fica separado dos feriados legais. */
 export function holidaysForMonth(year: number, month: number): Holiday[] {
   if (!Number.isInteger(year) || year < 1583 || year > 4099 || !Number.isInteger(month) || month < 0 || month > 11) return [];
   const key = (m: number, d: number) => `${year}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
@@ -36,6 +36,18 @@ export function holidaysForMonth(year: number, month: number): Holiday[] {
   for (const [offset, name, scope] of [[-2, 'Sexta-feira da Paixão', 'Nacional'], [60, 'Corpus Christi', 'Campina Grande']] as const) {
     const date = new Date(easterDate.getTime() + offset * 86_400_000);
     all.push({ date: key(date.getUTCMonth() + 1, date.getUTCDate()), name, scope });
+  }
+  // Em 2026, a Portaria MGI 11.460/2025 define 16 e 17/2 como ponto
+  // facultativo de Carnaval e 18/2 até 14h. Nos demais anos, mostramos as
+  // datas móveis sem presumir a classificação da portaria daquele ano.
+  const carnivalDates = [
+    [-48, year === 2026 ? 'Carnaval (ponto facultativo federal)' : 'Carnaval (data móvel)'],
+    [-47, year === 2026 ? 'Carnaval (ponto facultativo federal)' : 'Carnaval (data móvel)'],
+    [-46, year === 2026 ? 'Quarta-feira de Cinzas (ponto facultativo federal até 14h)' : 'Quarta-feira de Cinzas (data móvel)'],
+  ] as const;
+  for (const [offset, name] of carnivalDates) {
+    const date = new Date(easterDate.getTime() + offset * 86_400_000);
+    all.push({ date: key(date.getUTCMonth() + 1, date.getUTCDate()), name, scope: year === 2026 ? 'Ponto facultativo federal' : 'Data móvel' });
   }
   const prefix = `${year}-${String(month + 1).padStart(2, '0')}-`;
   return all.filter((holiday) => holiday.date.startsWith(prefix)).sort((a, b) => a.date.localeCompare(b.date));

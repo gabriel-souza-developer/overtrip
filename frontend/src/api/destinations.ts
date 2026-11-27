@@ -8,7 +8,7 @@ export type TrailLevel = 'EASY' | 'MODERATE' | 'HARD';
 export const DESTINATION_CATEGORIES = ['Cachoeira', 'Praia', 'Rio', 'Mirante', 'Trilha', 'Camping', 'Balneário', 'Gruta', 'Lagoa', 'Outro'] as const;
 export type DestinationCategory = typeof DESTINATION_CATEGORIES[number];
 
-export const STATUS_LABELS: Record<DestinationStatus, string> = { IDEA: 'Na lista', PRIORITY: 'Prioridade', DISCARDED: 'Descartado' };
+export const STATUS_LABELS: Record<DestinationStatus, string> = { IDEA: 'Padrão', PRIORITY: 'Prioridade', DISCARDED: 'Descartado' };
 export const TRAIL_LABELS: Record<TrailLevel, string> = { EASY: 'Fácil', MODERATE: 'Moderada', HARD: 'Difícil' };
 
 export interface DestinationLink { label: string; url: string }

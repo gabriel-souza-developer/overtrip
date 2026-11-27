@@ -115,7 +115,7 @@ const GALLERY = [
     ],
   },
   {
-    title: "Expedição Bonito - PE",
+    title: "TRIP BONITO - PE",
     date: "13 de setembro de 2026",
     dateISO: "2026-09-13",
     description: "Cachoeiras, piscinas naturais e aventura no Camping do Mágico.",

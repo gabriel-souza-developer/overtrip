@@ -5,6 +5,7 @@ import { errorHandler } from './middleware/errorHandler.js';
 import authRoutes from './routes/authRoutes.js';
 import profileAvatarRoutes from './routes/profileAvatarRoutes.js';
 import tripRoutes from './routes/tripRoutes.js';
+import tripTemplateRoutes from './routes/tripTemplateRoutes.js';
 import visitRoutes from './routes/visitRoutes.js';
 import galleryRoutes from './routes/galleryRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
@@ -59,6 +60,7 @@ app.get('/health', (_req, res) => {
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/trips', legacyGate, tripRoutes);
+app.use('/api/trip-templates', legacyGate, tripTemplateRoutes);
 app.use('/api/leads', legacyGate, leadRoutes);
 app.use('/api/reservations', legacyGate, reservationRoutes);
 app.use('/api/social-posts', legacyGate, socialPostRoutes);
