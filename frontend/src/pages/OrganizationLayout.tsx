@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { Building2, House, Images, MapPinned, Plane, Settings as SettingsIcon, Share2, Ticket } from 'lucide-react';
+import { Building2, BusFront, House, Images, MapPinned, Settings as SettingsIcon, Share2, Ticket } from 'lucide-react';
 import { organizationApi, type OrganizationContext } from '../api/organizations';
 import { useAuth } from '../App';
 import { useToast } from '../hooks/useToast';
@@ -81,7 +81,7 @@ export default function OrganizationLayout() {
       label: 'Operação',
       items: [
         { path: 'dashboard', label: 'Início', icon: House },
-        { path: 'trips', label: 'Viagens', icon: Plane },
+        { path: 'trips', label: 'Viagens', icon: BusFront },
         { path: 'visits', label: 'Destinos visitados', icon: MapPinned },
         ...(canViewPrivateData ? [
           { path: 'reservations', label: 'Reservas', icon: Ticket },

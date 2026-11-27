@@ -151,6 +151,8 @@ export function buildConfig(env: NodeJS.ProcessEnv) {
     corsOrigin,
     publicSiteOrganizationIds,
     legacyTourismOrganizationId,
+    // Cifra campos de passageiros; ausente mantém a função desativada até o deploy configurar uma chave própria.
+    passengerDataEncryptionKey: env.PASSENGER_DATA_ENCRYPTION_KEY || null,
     brevoApiKey,
     brevoSenderEmail,
     brevoSenderName,

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useOutletContext, useSearchParams } from 'react-router-dom';
-import { CopyPlus, Pencil, Plane, Plus, Trash2, X } from 'lucide-react';
+import { BusFront, CopyPlus, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { organizationApi, type OrgTrip, type OrgTripDetail, type OrgTripEssentials, type OrgTripIntensity } from '../api/organizations';
 import { createOrganizationDocumentApi } from '../api/organizationTripDocuments';
 import { TRIP_STATUS_LABELS, tripStatusLabel, tripStatusTone, parsePriceInput, formatPriceInput } from '../lib/panelHelpers';
@@ -438,7 +438,7 @@ export default function OrganizationTrips() {
         <p role="status" className="text-sm text-surface-600">Carregando viagens...</p>
       ) : !error && trips.length === 0 ? (
         <EmptyState
-          icon={<Plane />}
+          icon={<BusFront />}
           title="Nenhuma viagem cadastrada"
           text={canManage ? 'Crie a primeira viagem desta empresa.' : 'Esta empresa ainda não tem viagens registradas.'}
           action={canManage ? <Button variant="primary" onClick={openCreate}>Nova viagem</Button> : undefined}

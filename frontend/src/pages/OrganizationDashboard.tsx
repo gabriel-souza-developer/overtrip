@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useOutletContext } from 'react-router-dom';
-import { ArrowRight, CheckCircle2, Pencil, Plane, Ticket, UsersRound, type LucideIcon } from 'lucide-react';
+import { ArrowRight, BusFront, CheckCircle2, Pencil, Ticket, UsersRound, type LucideIcon } from 'lucide-react';
 import { organizationApi, type OrganizationDashboardSummary } from '../api/organizations';
 import type { OrganizationOutletContext } from './OrganizationLayout';
 import ErrorState from '../components/ErrorState';
@@ -32,13 +32,13 @@ export default function OrganizationDashboard() {
 
   const today = capitalizeFirst(new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date()));
   const cards: { label: string; value: number | undefined; detail: string; icon: LucideIcon; tone: string; to: string }[] = [
-    { label: 'Próximas viagens', value: summary?.trips.upcoming, detail: 'De hoje em diante', icon: Plane, tone: 'bg-primary-50 text-primary-800', to: `${base}/trips?period=upcoming` },
+    { label: 'Próximas viagens', value: summary?.trips.upcoming, detail: 'De hoje em diante', icon: BusFront, tone: 'bg-primary-50 text-primary-800', to: `${base}/trips?period=upcoming` },
     { label: 'Viagens abertas', value: summary?.trips.open, detail: 'Inclui datas passadas', icon: CheckCircle2, tone: 'bg-emerald-50 text-emerald-700', to: `${base}/trips?status=OPEN&period=all` },
     { label: 'Rascunhos', value: summary?.trips.drafts, detail: 'Viagens em preparação', icon: Pencil, tone: 'bg-amber-50 text-amber-700', to: `${base}/trips?status=DRAFT&period=all` },
-    { label: 'Total de viagens', value: summary?.trips.total, detail: 'Todas as viagens da empresa', icon: Plane, tone: 'bg-surface-100 text-surface-700', to: `${base}/trips?period=all` },
+    { label: 'Total de viagens', value: summary?.trips.total, detail: 'Todas as viagens da empresa', icon: BusFront, tone: 'bg-surface-100 text-surface-700', to: `${base}/trips?period=all` },
   ];
   const actions = [
-    { to: `${base}/trips`, icon: Plane, text: 'Organizar viagens', sub: canManage ? 'Crie e acompanhe seus rascunhos' : 'Consulte suas viagens' },
+    { to: `${base}/trips`, icon: BusFront, text: 'Organizar viagens', sub: canManage ? 'Crie e acompanhe seus rascunhos' : 'Consulte suas viagens' },
     ...(canManage ? [
       { to: `${base}/leads`, icon: UsersRound, text: 'Acompanhar interessados', sub: summary?.leads === undefined ? 'Consulte seus contatos' : `${summary.leads} ${summary.leads === 1 ? 'interessado' : 'interessados'}` },
       { to: `${base}/reservations`, icon: Ticket, text: 'Gerenciar reservas', sub: summary?.reservations === undefined ? 'Consulte suas reservas' : `${summary.reservations} ${summary.reservations === 1 ? 'reserva' : 'reservas'}` },
@@ -49,7 +49,7 @@ export default function OrganizationDashboard() {
     <header className="relative overflow-hidden rounded-2xl bg-primary-600 px-5 py-6 text-white shadow-sm sm:px-7 sm:py-7">
       <div className="relative flex flex-wrap items-end justify-between gap-5">
         <div><p className="text-xs font-bold uppercase tracking-[0.16em]">Painel {organization.name}</p><h1 className="mt-1 text-3xl font-bold tracking-tight">Visão geral</h1><p className="mt-1 text-sm">{today}</p></div>
-        <Link to={`${base}/trips`} className="btn min-h-11 bg-white text-primary-800 hover:bg-primary-50"><Plane className="h-4 w-4" aria-hidden="true" /> Ver viagens</Link>
+        <Link to={`${base}/trips`} className="btn min-h-11 bg-white text-primary-800 hover:bg-primary-50"><BusFront className="h-4 w-4" aria-hidden="true" /> Ver viagens</Link>
       </div>
     </header>
     {error && <ErrorState message={error} onRetry={() => void load()} />}

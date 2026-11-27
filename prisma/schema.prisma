@@ -150,6 +150,7 @@ model Trip {
   visits         Visit[]
   galleryEntries GalleryEntry[]
   reservations   Reservation[]
+  passengerTrips PassengerTrip[]
   leads          Lead[]
   intakeRequests ReservationIntakeRequest[]
 
@@ -210,6 +211,69 @@ model Reservation {
   @@index([tripId, status])
   @@index([leadId])
   @@index([organizationId])
+}
+
+// Cadastro de clientes e presença/pagamento por viagem. Dados pessoais ficam
+// cifrados pela aplicação; as chaves de busca são HMAC e não permitem busca
+// reversa sem PASSENGER_DATA_ENCRYPTION_KEY.
+model PassengerProfile {
+  id                String          @id @default(cuid())
+  organizationId    String?
+  nameCipher        String
+  nameLookup        String
+  phoneCipher       String?
+  phoneNameLookup   String?          @unique
+  documentCipher    String?
+  documentLookup    String?
+  importIdentityLookup String?       @unique
+  emergencyCipher   String?
+  emailCipher       String?
+  hasTravelHistory  Boolean         @default(false)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  tripRecords       PassengerTrip[]
+
+  @@index([organizationId])
+  @@index([nameLookup])
+  @@index([documentLookup])
+}
+
+// tripId nulo só é usado em legado importado sem destino/viagem identificável.
+// Esses registros ficam numa fila de associação, nunca entram numa lista de
+// embarque até a equipe escolher uma TRIP.
+model PassengerTrip {
+  id                 String           @id @default(cuid())
+  profileId          String
+  profile            PassengerProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  tripId             String?
+  trip               Trip?            @relation(fields: [tripId], references: [id], onDelete: SetNull)
+  legacyTripTitle    String?
+  paymentStatus      String?
+  paymentLabel       String?
+  amountCents        Int?
+  attended           Boolean?
+  source             String           @default("MANUAL")
+  legacyImportKey    String?          @unique
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  @@index([tripId, createdAt])
+  @@index([profileId])
+  @@unique([tripId, profileId])
+}
+
+// Registra operações sem copiar dados pessoais nem o arquivo exportado.
+model PassengerAuditLog {
+  id            String   @id @default(cuid())
+  actorUserId   String
+  action        String
+  tripId        String?
+  passengerTripId String?
+  rowCount      Int?
+  createdAt     DateTime @default(now())
+
+  @@index([tripId, createdAt])
+  @@index([passengerTripId])
 }
 
 model ReservationInstallment {

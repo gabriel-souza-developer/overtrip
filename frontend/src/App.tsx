@@ -19,6 +19,7 @@ const TripForm = React.lazy(() => import('./pages/TripForm'));
 const Visits = React.lazy(() => import('./pages/Visits'));
 const Leads = React.lazy(() => import('./pages/Leads'));
 const Reservations = React.lazy(() => import('./pages/Reservations'));
+const Passengers = React.lazy(() => import('./pages/Passengers'));
 const DestinationBank = React.lazy(() => import('./pages/DestinationBank'));
 const Finance = React.lazy(() => import('./pages/Finance'));
 const SystemHealthPage = React.lazy(() => import('./pages/SystemHealth'));
@@ -192,6 +193,7 @@ const AppRoutes = () => platformMode ? (
           <Route element={<AdminRoute />}>
             <Route path="/leads" element={<Leads />} />
             <Route path="/reservations" element={<Reservations />} />
+            <Route path="/passengers" element={<Passengers />} />
             <Route path="/destination-bank" element={<DestinationBank key="planning" />} />
             <Route path="/destination-history" element={<DestinationBank key="history" history />} />
             <Route path="/finance" element={<Finance />} />
