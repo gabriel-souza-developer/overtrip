@@ -45,7 +45,9 @@ export default function Passengers() {
     setLoading(true); setError('');
     try {
       const [tripList, profileList, unassignedList] = await Promise.all([
-        tripApi.list({ page: 1, limit: 100, period: 'all' } as Record<string, string | number>),
+        // Sem `period`, a API retorna TRIPs futuras e anteriores (o filtro aceita
+        // apenas `upcoming` ou `past`; “todas” é representado pela ausência do campo).
+        tripApi.list({ page: 1, limit: 100 }),
         passengerApi.profiles(search), passengerApi.unassigned(),
       ]);
       setTrips(tripList.data); setProfiles(profileList.data); setUnassigned(unassignedList.data);
