@@ -1,5 +1,11 @@
 # Estado da produção na Oracle
 
+## Filtro da lista de TRIPs em Passageiros (27 de novembro de 2026)
+
+- Corrigido o carregamento da tela Passageiros: a chamada enviava `period=all`, valor que a API não aceita. A listagem de todas as TRIPs agora omite esse filtro; `upcoming` e `past` continuam disponíveis nas telas que os usam.
+- Publicado somente o painel do commit `5126fb8`; a API e o banco não foram alterados nem reiniciados. Pacote do painel SHA-256 `b39ecca463b3d2ea893a112539b8e121c874c9d69a18b3a219e61d4cb984e14c`. Cópia anterior preservada em `/srv/overtrip/retorno-period-filter-20261127/{admin-live-original,admin-before-fix}`.
+- Typecheck e build de produção do frontend passaram. `/`, `/admin/` e `/health` responderam 200; o módulo Passageiros novo respondeu 200; a rota privada sem sessão respondeu 401. API e Caddy permaneceram ativos.
+
 ## Cadastro de passageiros e ícone de ônibus (27 de novembro de 2026)
 
 - Publicado API e painel do commit `e5b8c39` na branch `feat/integracao-reservas-n8n`. Pacote de fonte SHA-256 `6898e145124dd19559edf445f0895241e39b1dd15b59b4f835f59507694cf614`; build, typecheck do painel e build de produção foram executados na VM Oracle ARM64. `npm audit --omit=dev` retornou zero vulnerabilidades; a instalação completa reportou seis vulnerabilidades em dependências de desenvolvimento.
