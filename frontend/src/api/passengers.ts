@@ -15,11 +15,9 @@ const passengerRequest = <T>(path: string, method = 'GET', body?: unknown) => re
 export const passengerApi = {
   profiles: (search = '') => passengerRequest<Page<PassengerProfile>>(`/profiles?page=1&limit=200${search ? `&search=${encodeURIComponent(search)}` : ''}`),
   trip: (tripId: string) => passengerRequest<{ trip: { id: string; title: string; startDateISO: string }; data: PassengerTripRow[] }>(`/trips/${encodeURIComponent(tripId)}`),
-  unassigned: () => passengerRequest<{ data: PassengerTripRow[] }>('/unassigned'),
   add: (tripId: string, data: { profileId: string } | { fullName: string; phone?: string | null; document?: string | null; emergencyContact?: string | null; email?: string | null }) => passengerRequest<PassengerTripRow>(`/trips/${encodeURIComponent(tripId)}`, 'POST', data),
   privateDetails: (tripId: string, rowId: string) => passengerRequest<{ document: string | null; emergencyContact: string | null; email: string | null }>(`/trips/${encodeURIComponent(tripId)}/${encodeURIComponent(rowId)}/private-details`),
   update: (tripId: string, rowId: string, data: Partial<Pick<PassengerTripRow, 'paymentStatus' | 'amountCents' | 'attended'>>) => passengerRequest<PassengerTripRow>(`/trips/${encodeURIComponent(tripId)}/${encodeURIComponent(rowId)}`, 'PATCH', data),
-  assign: (rowId: string, tripId: string) => passengerRequest<{ id: string }>(`/unassigned/${encodeURIComponent(rowId)}/assign`, 'POST', { tripId }),
   importWorkbook: async (file: File) => {
     const response = await fetch('/api/passengers/import-workbook', {
       method: 'POST', credentials: 'same-origin',

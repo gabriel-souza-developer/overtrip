@@ -13,9 +13,10 @@ O arquivo não é salvo no servidor. A API valida as abas esperadas e limita o t
 ## Como os dados são organizados
 
 - Respostas do formulário formam o cadastro de clientes. Como a planilha contém clientes que já viajaram, esses perfis ficam marcados com histórico de viagem.
-- As linhas da antiga lista são preservadas com pagamento, valor anotado e presença. A planilha não informa qual foi a TRIP; por isso elas entram em **Registros antigos sem TRIP associada** e só aparecem na lista de embarque depois que um administrador escolher a viagem correta.
-- Reimportar uma cópia atualizada reconcilia a mesma pessoa/linha e atualiza os dados operacionais sem apagar uma associação de TRIP feita pela equipe.
+- As linhas da antiga lista são preservadas com pagamento, valor anotado e presença somente como arquivo histórico. Como a planilha não informa a TRIP, elas nunca são associadas a uma TRIP nem aparecem na lista de embarque.
+- Os perfis dos passageiros antigos ficam disponíveis no campo **Cliente existente**. Ao adicionar alguém a uma nova TRIP, é criado um vínculo novo com pagamento e presença em branco; os valores da lista antiga não são reaproveitados.
+- Reimportar uma cópia atualizada reconcilia as mesmas pessoas e linhas sem criar vínculos com TRIPs.
 - O acompanhamento de pagamento nesta tela é operacional e não altera nem soma valores ao Financeiro.
 - A exportação do motorista é um CSV gerado sob demanda com nome e telefone. CPF/RG, e-mail e contato de emergência são mostrados separadamente à equipe, apenas após ação explícita.
 
-Não importe a planilha manualmente no banco nem associe os registros antigos a uma TRIP por suposição. A associação deve ser feita pela equipe após identificar a viagem correta.
+Não importe a planilha manualmente no banco nem associe as linhas antigas a uma TRIP. Para uma nova TRIP, escolha o perfil do passageiro no cadastro; isso cria um registro operacional novo sem alterar o histórico arquivado.

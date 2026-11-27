@@ -393,18 +393,6 @@ export async function listTripPassengers(tripId: string) {
   })) };
 }
 
-export async function listUnassignedPassengers() {
-  assertPassengerEncryptionReady();
-  const profiles = await prisma.passengerTrip.findMany({
-    where: { tripId: null, source: 'LEGACY_IMPORT', profile: passengerOrganizationWhere() },
-    include: { profile: true }, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }], take: 500,
-  });
-  return profiles.map(row => ({
-    id: row.id, source: row.source, paymentStatus: row.paymentStatus, paymentLabel: row.paymentLabel,
-    amountCents: row.amountCents, attended: row.attended, profile: profileSummary(row.profile),
-  }));
-}
-
 export async function addPassengerToTrip(tripId: string, input: PassengerInput, actorUserId: string) {
   assertPassengerEncryptionReady();
   await requireTrip(tripId);
@@ -466,19 +454,6 @@ export async function updateTripPassenger(tripId: string, passengerTripId: strin
     return row;
   });
   return { id: updated.id, profile: profileSummary(existing.profile), paymentStatus: updated.paymentStatus, paymentLabel: updated.paymentLabel, amountCents: updated.amountCents, attended: updated.attended, source: updated.source };
-}
-
-export async function assignUnassignedPassenger(passengerTripId: string, tripId: string, actorUserId: string) {
-  await requireTrip(tripId);
-  return prisma.$transaction(async tx => {
-    const row = await tx.passengerTrip.findFirst({ where: { id: passengerTripId, tripId: null, source: 'LEGACY_IMPORT', profile: passengerOrganizationWhere() }, include: { profile: true } });
-    if (!row) throw new PassengerDataError('PROFILE_NOT_FOUND');
-    const duplicate = await tx.passengerTrip.findFirst({ where: { tripId, profileId: row.profileId } });
-    if (duplicate) throw new PassengerDataError('DUPLICATE_PASSENGER');
-    const updated = await tx.passengerTrip.update({ where: { id: row.id }, data: { tripId, legacyTripTitle: null } });
-    await tx.passengerAuditLog.create({ data: { actorUserId, action: 'LEGACY_PASSENGER_ASSIGNED', tripId, passengerTripId } });
-    return { id: updated.id };
-  });
 }
 
 function safeCsv(value: string | null) {

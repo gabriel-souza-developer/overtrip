@@ -5,12 +5,10 @@ import { asyncHandler, AppError } from '../middleware/errorHandler.js';
 import {
   addPassengerToTrip,
   addExistingPassengerToTrip,
-  assignUnassignedPassenger,
   driverPassengerCsv,
   importPassengerWorkbook,
   listPassengerProfiles,
   listTripPassengers,
-  listUnassignedPassengers,
   privatePassengerDetails,
   PassengerDataError,
   PassengerDataUnavailable,
@@ -43,10 +41,6 @@ router.get('/profiles', asyncHandler(async (req: Request, res: Response) => {
   res.json(await listPassengerProfiles(query));
 }));
 
-router.get('/unassigned', asyncHandler(async (_req: Request, res: Response) => {
-  res.json({ data: await listUnassignedPassengers() });
-}));
-
 router.post('/import-workbook', express.raw({ type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', limit: '5mb' }), asyncHandler(async (req: AuthRequest, res: Response) => {
   if (!Buffer.isBuffer(req.body)) { res.status(415).json({ error: 'UNSUPPORTED_MEDIA_TYPE' }); return; }
   const result = await importPassengerWorkbook(req.body, req.user!.id);
@@ -74,12 +68,6 @@ router.patch('/trips/:tripId/:passengerTripId', asyncHandler(async (req: AuthReq
   const passengerTripId = id.parse(req.params.passengerTripId);
   const data = updateSchema.parse(req.body);
   res.json(await updateTripPassenger(tripId, passengerTripId, data, req.user!.id));
-}));
-
-router.post('/unassigned/:passengerTripId/assign', asyncHandler(async (req: AuthRequest, res: Response) => {
-  const passengerTripId = id.parse(req.params.passengerTripId);
-  const body = z.object({ tripId: id }).strict().parse(req.body);
-  res.json(await assignUnassignedPassenger(passengerTripId, body.tripId, req.user!.id));
 }));
 
 router.get('/trips/:tripId/driver-list.csv', asyncHandler(async (req: AuthRequest, res: Response) => {

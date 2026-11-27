@@ -25,8 +25,6 @@ export default function Passengers() {
   const [tripId, setTripId] = useState('');
   const [rows, setRows] = useState<PassengerTripRow[]>([]);
   const [profiles, setProfiles] = useState<PassengerProfile[]>([]);
-  const [unassigned, setUnassigned] = useState<PassengerTripRow[]>([]);
-  const [assignTrip, setAssignTrip] = useState<Record<string, string>>({});
   const [search, setSearch] = useState('');
   const [form, setForm] = useState<PassengerForm>(emptyForm);
   const [privateDetails, setPrivateDetails] = useState<Record<string, { document: string | null; emergencyContact: string | null; email: string | null }>>({});
@@ -44,13 +42,13 @@ export default function Passengers() {
   const loadDirectory = useCallback(async () => {
     setLoading(true); setError('');
     try {
-      const [tripList, profileList, unassignedList] = await Promise.all([
+      const [tripList, profileList] = await Promise.all([
         // Sem `period`, a API retorna TRIPs futuras e anteriores (o filtro aceita
         // apenas `upcoming` ou `past`; “todas” é representado pela ausência do campo).
         tripApi.list({ page: 1, limit: 100 }),
-        passengerApi.profiles(search), passengerApi.unassigned(),
+        passengerApi.profiles(search),
       ]);
-      setTrips(tripList.data); setProfiles(profileList.data); setUnassigned(unassignedList.data);
+      setTrips(tripList.data); setProfiles(profileList.data);
       if (!tripId && tripList.data.length) setTripId(tripList.data[0].id);
     } catch (err) { setError(err instanceof Error ? err.message : 'Não foi possível carregar a área de passageiros.'); }
     finally { setLoading(false); }
@@ -64,7 +62,7 @@ export default function Passengers() {
     setBusy(true);
     try {
       const result = await passengerApi.importWorkbook(file);
-      toast.success(`Importação concluída: ${result.profilesCreated} novos cadastros, ${result.profilesMerged} atualizados e ${result.legacyRowsAdded} registros antigos preservados.`);
+      toast.success(`Importação concluída: ${result.profilesCreated + result.profilesMerged} perfis processados e ${result.legacyRowsRead} linhas antigas guardadas somente como histórico, sem vínculo a TRIP.`);
       setFile(null);
       await loadDirectory();
     } catch (err) { toast.error(err instanceof Error ? err.message : 'Não foi possível importar a planilha.'); }
@@ -98,15 +96,6 @@ export default function Passengers() {
     catch (err) { toast.error(err instanceof Error ? err.message : 'Não foi possível carregar os dados protegidos.'); }
   };
 
-  const linkLegacyRow = async (rowId: string) => {
-    const targetTripId = assignTrip[rowId];
-    if (!targetTripId) return;
-    setBusy(true);
-    try { await passengerApi.assign(rowId, targetTripId); toast.success('Registro associado à TRIP.'); await loadDirectory(); if (targetTripId === tripId) await loadTripData(); }
-    catch (err) { toast.error(err instanceof Error ? err.message : 'Não foi possível associar o registro.'); }
-    finally { setBusy(false); }
-  };
-
   const exportDriverList = async () => {
     if (!tripId) return;
     setBusy(true);
@@ -123,19 +112,14 @@ export default function Passengers() {
 
   if (loading) return <div className="space-y-6"><PageHeader title="Passageiros" /><p role="status" className="text-sm text-surface-600">Carregando cadastros...</p></div>;
   return <div className="space-y-6">
-    <PageHeader title="Passageiros" description="Cadastro de viajantes, lista por TRIP e acompanhamento de pagamento e presença." />
+    <PageHeader title="Passageiros" description="Cadastros reutilizáveis, lista por TRIP e acompanhamento de pagamento e presença." />
     {error && <ErrorState message={error} onRetry={() => { void loadDirectory(); void loadTripData(); }} />}
 
     <section className="card p-5 space-y-3" aria-labelledby="passenger-import-title">
-      <div className="flex items-start gap-3"><FileSpreadsheet className="mt-1 h-5 w-5 text-primary-700" aria-hidden="true" /><div><h2 id="passenger-import-title" className="font-semibold text-surface-900">Importar histórico da planilha</h2><p className="mt-1 text-sm text-surface-600">Escolha “Forms de passageiros CG TRIP.xlsx”. Os dados são cifrados ao salvar. A importação pode ser repetida sem duplicar as mesmas linhas.</p></div></div>
+      <div className="flex items-start gap-3"><FileSpreadsheet className="mt-1 h-5 w-5 text-primary-700" aria-hidden="true" /><div><h2 id="passenger-import-title" className="font-semibold text-surface-900">Importar cadastros da planilha</h2><p className="mt-1 text-sm text-surface-600">Escolha “Forms de passageiros CG TRIP.xlsx”. Os perfis ficam disponíveis para novas TRIPs. Pagamentos e presenças da lista antiga são guardados somente como histórico, sem associação a nenhuma TRIP.</p></div></div>
       <div className="flex flex-wrap items-end gap-3"><Field id="passenger-workbook" label="Planilha de passageiros" hint="O arquivo é processado sem ser guardado no servidor."><input id="passenger-workbook" className="input" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" onChange={event => setFile(event.target.files?.[0] ?? null)} /></Field><Button variant="primary" disabled={!file || busy} loading={busy} loadingText="Importando..." onClick={() => void importWorkbook()}>Importar cadastros</Button></div>
       <p className="text-xs text-surface-500">CPF/RG, telefone, e-mail e contato de emergência ficam cifrados no banco e visíveis apenas a administradores. A lista do motorista contém somente nome e telefone.</p>
     </section>
-
-    {unassigned.length > 0 && <section className="card p-5 space-y-4" aria-labelledby="unassigned-title">
-      <div><h2 id="unassigned-title" className="font-semibold text-surface-900">Registros antigos sem TRIP associada <span className="ml-1 rounded-full bg-surface-100 px-2 py-0.5 text-xs">{unassigned.length}</span></h2><p className="mt-1 text-sm text-surface-600">A planilha antiga não identifica a viagem dessas linhas. Associe cada registro à TRIP correta; enquanto isso, ele não aparece em listas de embarque.</p></div>
-      <div className="space-y-2">{unassigned.map(row => <div key={row.id} className="grid gap-3 rounded-lg border border-surface-200 p-3 md:grid-cols-[minmax(0,1fr)_minmax(220px,0.8fr)_auto] md:items-center"><div><strong className="text-sm">{row.profile.fullName}</strong><p className="text-xs text-surface-600">{row.paymentLabel || 'Pagamento sem registro'} · {row.attended === null ? 'Presença não informada' : row.attended ? 'Presente' : 'Ausência marcada'}{row.amountCents !== null ? ` · valor anotado ${money(row.amountCents)}` : ''}</p></div><select className="input" aria-label={`TRIP de ${row.profile.fullName}`} value={assignTrip[row.id] || ''} onChange={event => setAssignTrip({ ...assignTrip, [row.id]: event.target.value })}><option value="">Selecione a TRIP correta</option>{trips.map(trip => <option key={trip.id} value={trip.id}>{trip.title} · {dateLabel(trip.startDateISO)}</option>)}</select><Button small disabled={busy || !assignTrip[row.id]} onClick={() => void linkLegacyRow(row.id)}>Associar</Button></div>)}</div>
-    </section>}
 
     <section className="card p-5 space-y-4" aria-labelledby="trip-roster-title">
       <div className="flex flex-wrap items-end justify-between gap-3"><div><h2 id="trip-roster-title" className="font-semibold text-surface-900">Lista de passageiros por TRIP</h2><p className="mt-1 text-sm text-surface-600">A lista é operacional; valores/status daqui não são somados ao Financeiro.</p></div><div className="flex flex-wrap items-end gap-2"><Field id="passenger-trip-select" label="TRIP"><select id="passenger-trip-select" className="input min-w-64" value={tripId} onChange={event => setTripId(event.target.value)}><option value="">Selecione a TRIP</option>{trips.map(trip => <option key={trip.id} value={trip.id}>{trip.title} · {dateLabel(trip.startDateISO)}</option>)}</select></Field><Button icon={<Download className="h-4 w-4" aria-hidden="true" />} disabled={!tripId || busy || rows.length === 0} onClick={() => void exportDriverList()}>Lista do motorista</Button></div></div>
@@ -143,7 +127,7 @@ export default function Passengers() {
     </section>
 
     <section className="card p-5 space-y-4" aria-labelledby="add-passenger-title">
-      <div><h2 id="add-passenger-title" className="font-semibold text-surface-900">Adicionar passageiro à TRIP</h2><p className="mt-1 text-sm text-surface-600">Selecione um cliente já cadastrado ou preencha os dados de uma nova pessoa.</p></div>
+      <div><h2 id="add-passenger-title" className="font-semibold text-surface-900">Adicionar passageiro à TRIP</h2><p className="mt-1 text-sm text-surface-600">Busque o cadastro de alguém que já viajou ou preencha os dados de uma nova pessoa. A entrada nesta TRIP começa com pagamento e presença em branco.</p></div>
       <div className="grid gap-4 sm:grid-cols-2"><Field id="passenger-search" label="Buscar cliente no cadastro"><input id="passenger-search" className="input" value={search} onChange={event => setSearch(event.target.value)} placeholder="Nome do passageiro" /></Field><Field id="passenger-profile" label="Cliente existente"><select id="passenger-profile" className="input" value={form.profileId} onChange={event => { const selected = profiles.find(profile => profile.id === event.target.value); setForm(selected ? { ...emptyForm, profileId: selected.id, fullName: selected.fullName, phone: selected.phone || '' } : emptyForm); }}><option value="">Cadastrar uma nova pessoa</option>{profiles.map(profile => <option key={profile.id} value={profile.id}>{profile.fullName}{profile.phone ? ` · ${profile.phone}` : ''}</option>)}</select></Field></div>
       <form className="space-y-4" onSubmit={event => void addPassenger(event)}><div className="grid gap-4 sm:grid-cols-2"><Field id="passenger-name" label="Nome completo" required><input id="passenger-name" className="input" required maxLength={150} value={form.fullName} disabled={!!form.profileId} onChange={event => setForm({ ...form, fullName: event.target.value })} /></Field><Field id="passenger-phone" label="Telefone"><input id="passenger-phone" className="input" type="tel" value={form.phone} disabled={!!form.profileId} onChange={event => setForm({ ...form, phone: event.target.value })} /></Field><Field id="passenger-document" label="CPF ou RG"><input id="passenger-document" className="input" value={form.document} disabled={!!form.profileId} onChange={event => setForm({ ...form, document: event.target.value })} /></Field><Field id="passenger-emergency" label="Contato de emergência"><input id="passenger-emergency" className="input" value={form.emergencyContact} disabled={!!form.profileId} onChange={event => setForm({ ...form, emergencyContact: event.target.value })} /></Field></div><Button type="submit" variant="primary" disabled={!tripId || busy} loading={busy} icon={<Plus className="h-4 w-4" aria-hidden="true" />}>Adicionar à TRIP</Button></form>
     </section>
