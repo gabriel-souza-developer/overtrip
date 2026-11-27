@@ -1,7 +1,7 @@
 # Integração de pedidos de reserva: WhatsApp (n8n) → OVERTRIP
 
 Estado: implementado no código local (branch `feat/integracao-reservas-n8n`).
-**Não publicado, migração não aplicada, workflow do n8n não alterado.**
+**API e painel publicados em 27/11/2026; migrations aplicadas. O serviço privado de entrada não foi instalado nem iniciado e o workflow do n8n não foi alterado.**
 
 ## O que é e o que não é
 
@@ -190,7 +190,7 @@ que a pessoa confirmou o pedido. Não usar telefone, JID ou nome na chave.
   política a automatizar. A integração usa só o preço cadastrado na TRIP e não
   aplica cortesia, desconto, sinal nem caixa.
 
-## Configuração operacional (quando autorizado publicar)
+## Configuração operacional (para ativar o recebimento pelo n8n)
 
 1. Criar o ambiente **mínimo e separado** `/etc/overtrip/reservation-intake.env`
    (root:root, modo 600). Ele substitui `/etc/overtrip/env` para este processo,
@@ -216,12 +216,10 @@ que a pessoa confirmou o pedido. Não usar telefone, JID ou nome na chave.
    `NODE_ENV=production` de propósito: as checagens de produção de
    `src/config.ts` (JWT, recuperação de senha) são da API e exigiriam segredos
    que este processo não usa. O pacote publicado não contém `.env`.
-2. Backup do SQLite e aplicar a migração `20261129040000_reservation_intake_requests`
-   dentro do procedimento de `deploy/ORACLE_STATUS.md`. Atenção: `prisma migrate
-   deploy` aplica **todas** as pendentes; hoje o worktree também tem
-   `20261129020000_trip_profile` e `20261129030000_trip_templates`, de outra
-   tarefa. Publicar a partir de um commit cujo conjunto de migrações esteja
-   revisado, conferindo `prisma migrate status` antes.
+2. A migration `20261129040000_reservation_intake_requests` foi aplicada em
+   27/11/2026 junto da migration do cadastro de passageiros. Antes de qualquer
+   nova publicação, confira `prisma migrate status`: `prisma migrate deploy`
+   aplica todas as migrations pendentes.
    Retorno (serviço de entrada parado, backup feito):
    1. Antes, revisar ou cancelar no painel os pedidos `WHATSAPP_N8N` ainda “a
       revisar”: o código anterior não conhece `needsReview` e passaria a somar

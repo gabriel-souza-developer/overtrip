@@ -1,5 +1,15 @@
 # Estado da produção na Oracle
 
+## Cadastro de passageiros e ícone de ônibus (27 de novembro de 2026)
+
+- Publicado API e painel do commit `e5b8c39` na branch `feat/integracao-reservas-n8n`. Pacote de fonte SHA-256 `6898e145124dd19559edf445f0895241e39b1dd15b59b4f835f59507694cf614`; build, typecheck do painel e build de produção foram executados na VM Oracle ARM64. `npm audit --omit=dev` retornou zero vulnerabilidades; a instalação completa reportou seis vulnerabilidades em dependências de desenvolvimento.
+- Antes da publicação, backup consistente `/var/backups/overtrip/overtrip-20261127-062232.db.gz`, conferido também em `/home/ztsu-pc/backups-overtrip/pre-passenger-20261127.db.gz` (SHA-256 `a304e45659728a3c5ca7d301058776ab2b0095ce118dfec214ae7fc3199af55c`). A migration foi ensaiada nessa cópia, com `integrity_check: ok` e nenhuma violação de chave estrangeira.
+- Aplicadas as migrations `20261129040000_reservation_intake_requests` e `20261130010000_passenger_registry`; `prisma migrate status` ficou atualizado. A API foi parada durante a aplicação. O banco passou por `integrity_check` e `foreign_key_check` sem erros. Código anterior e painel anterior preservados em `/srv/overtrip/retorno-e5b8c39-20261127/{app,admin-before-swap,admin-live-original}`.
+- Configurada `PASSENGER_DATA_ENCRYPTION_KEY` em `/etc/overtrip/env`, com permissões root:root 600. O valor não está no repositório nem nos logs; uma cópia local restrita foi mantida fora do projeto. A chave precisa ser preservada em gerenciador seguro separado dos backups do banco.
+- Importada a planilha de passageiros por fluxo de memória, sem gravar o arquivo no servidor: 86 respostas processadas, 84 perfis criados diretamente e 2 mesclados; as 19 linhas da lista antiga foram mantidas sem TRIP associada. No banco ficaram 86 perfis com nome cifrado, 19 registros antigos sem associação e zero associações automáticas. Pagamentos e presença históricos não são somados ao Financeiro.
+- O menu e cartões de viagens agora usam ícone de ônibus. Verificação após publicação: site, `/admin/`, `/health` e o módulo de Passageiros responderam 200; a API privada de Passageiros sem sessão respondeu 401. Teste local da chave no processo publicado confirmou cifragem e decifragem. API e Caddy ativos.
+- O serviço privado de entrada de reservas não foi instalado nem iniciado e o fluxo do n8n não foi alterado. As migrations de reserva foram aplicadas como parte do branch; o endpoint privado continua inativo até uma configuração própria.
+
 ## Legenda climática compacta e novos destinos (26 de novembro de 2026)
 
 - No painel, mapa e legenda das regiões da Paraíba agora ficam no mesmo quadro; as seis descrições repetidas foram resumidas a status e janela típica, com uma nota curta sobre previsão, acesso, maré e balneabilidade. Fontes e créditos também foram compactados. O layout mantém o mapa acima da legenda em telas estreitas e lado a lado em telas maiores.
