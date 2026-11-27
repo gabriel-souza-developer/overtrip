@@ -1,5 +1,12 @@
 # Estado da produção na Oracle
 
+## Reutilização do cadastro, sem associar linhas antigas (27 de novembro de 2026)
+
+- Ajustado o fluxo de Passageiros após esclarecimento: os perfis antigos permanecem no campo **Cliente existente** para serem usados em novas TRIPs; linhas antigas de pagamento e presença ficam arquivadas e nunca são associadas. A inclusão de um perfil numa nova TRIP cria um vínculo operacional separado, com pagamento e presença em branco.
+- Removidas da interface e da API a fila de registros antigos e a ação/rota para associá-los. O banco permanece inalterado: 86 perfis, 19 registros de histórico sem TRIP e zero vínculos antigos.
+- Publicados API e painel do commit `55409e9`; build, typecheck do frontend e build de produção passaram na Oracle. Pacote-fonte SHA-256 `91e1eca2e43a2a5c5d6c647a79c6051a275b9c522e27f2b5b14cf9d45d4dc1a4`. Código e painel anteriores preservados em `/srv/overtrip/retorno-55409e9-20261127/{app,admin-before-change,admin-live-original}`. Nenhuma migration ou alteração de banco nesta atualização.
+- Após publicar, `/admin/` e `/health` responderam 200; o módulo Passageiros respondeu 200; a rota privada sem sessão respondeu 401. API e Caddy ativos; `integrity_check: ok`, sem violações de chave estrangeira.
+
 ## Filtro da lista de TRIPs em Passageiros (27 de novembro de 2026)
 
 - Corrigido o carregamento da tela Passageiros: a chamada enviava `period=all`, valor que a API não aceita. A listagem de todas as TRIPs agora omite esse filtro; `upcoming` e `past` continuam disponíveis nas telas que os usam.
