@@ -1,5 +1,11 @@
 # Estado da produção na Oracle
 
+## Tela Viagens menos carregada (27 de novembro de 2026)
+
+- Publicado somente o painel do commit `97aeda8`. Modelos salvos ficam recolhidos por padrão; período, busca e situação foram agrupados num único bloco de filtros, e o controle dos rascunhos agora tem um rótulo mais claro.
+- Typecheck e build de produção do painel passaram. Cópia da tela anterior em `/srv/overtrip/backup-20261128-trips-ui/admin-before`; a API e o banco não mudaram nem foram reiniciados.
+- `/admin/` e o bundle de Viagens responderam 200; o bundle servido contém os novos rótulos. API e Caddy continuam ativos.
+
 ## Limpeza de cópias antigas e estado do assistente (27 de novembro de 2026)
 
 - Removidas cópias antigas de release `retorno-*` e snapshots de banco anteriores/redundantes; foram liberados cerca de 3,9 GB em cópias de código. Mantidos o rollback do release atual `/srv/overtrip/backup-20261127-d9d8f52`, os dois backups diários mais recentes do banco e os diretórios de backup de uploads e redes sociais.
