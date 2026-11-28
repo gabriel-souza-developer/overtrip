@@ -1,5 +1,12 @@
 # Estado da produção na Oracle
 
+## Restrição do listener Ollama (28 de novembro de 2026)
+
+- Os nós `Qwen conversa NOX` da NOX v39 e `Classifica assunto com Qwen` da OVERTRIP v35 foram atualizados pela API n8n suportada, mantendo os mesmos IDs e `active=true`; agora usam `http://100.99.26.96:11434/api/chat`. A rota via Tailscale Serve em 443 retornava 403 e deixou de ser dependência desses nós.
+- `OLLAMA_HOST` foi restringido ao IPv4 Tailscale `100.99.26.96:11434` em `/etc/systemd/system/ollama.service.d/override.conf`; serviço ativo após restart. `ss` confirmou só esse listener e GET `/api/version` retornou 200 no host Oracle, Debian e container n8n. POST sintético direto ao modelo Qwen pelo container n8n respondeu HTTP 200 (`done=true`, 13,2 s); sem execução de workflow ou mensagem WhatsApp.
+- Rollback imediatamente anterior (listener loopback): `/etc/systemd/system/ollama.service.d/override.conf.pre-tailscale-interface-20261128.bak`, SHA-256 `3327ad92e93ba47c5adb719965761f7cfb434d367997cb1f627a6f3fb88663a9`. Snapshot anterior wildcard: `/etc/systemd/system/ollama.service.d/override.conf.pre-tailnet-bind-20261128.bak`, SHA-256 `309637a240d37b68a055c4dfed8ede41798d56c33626c95626f57e92091038f7`.
+- Antes das atualizações, foram exportados os workflows publicados para `/tmp/n8n-qwen-rollback-20261128/` (diretório 700, JSONs 600): NOX v39 SHA-256 `90cd4802b5a194c09713004489574bfdb7b57bc34132a42c1b6dae901046378b`; OVERTRIP v35 SHA-256 `913da8640f541033dc071192ec5a503a536415900b929ff54a51e5f417dac9a8`. A API key usada só em memória pertence a uma conta `global:owner`, audience `public-api` e possui 86 escopos; nenhum consumidor local foi localizado, mas externos não foram mapeados. Ela não foi rotacionada; provisionar antes uma substituta de escopo mínimo e atualizar todos os consumidores.
+
 ## Formulário de TRIP mais enxuto (28 de novembro de 2026)
 
 - Publicado somente o painel do commit `a3b5b74`. Detalhes opcionais começam recolhidos e indicam quando já têm conteúdo; dicas repetidas foram removidas e as ações de modelo ficam no menu de três pontos.
