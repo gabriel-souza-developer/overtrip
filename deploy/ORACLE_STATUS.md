@@ -1,5 +1,11 @@
 # Estado da produção na Oracle
 
+## Limpeza de cópias antigas e estado do assistente (27 de novembro de 2026)
+
+- Removidas cópias antigas de release `retorno-*` e snapshots de banco anteriores/redundantes; foram liberados cerca de 3,9 GB em cópias de código. Mantidos o rollback do release atual `/srv/overtrip/backup-20261127-d9d8f52`, os dois backups diários mais recentes do banco e os diretórios de backup de uploads e redes sociais.
+- A v35 ativa do n8n foi mantida como fluxo único. Gemini responde primeiro; quando falha e as verificações de segurança permitem, Groq é tentado. Qwen é somente classificador, com respostas fixas como último recurso; o fluxo de captura automática de reservas continua desativado.
+- `/health` respondeu 200 e API/Caddy permaneceram ativos após a limpeza. A avaliação sintética do Qwen não indicou ganho ao trocar para Qwen3 4B; especificações de hardware do host Ollama ainda não foram confirmadas.
+
 ## Consolidação de helpers e ajustes do painel sazonal (27 de novembro de 2026)
 
 - Publicado API e painel do commit `d9d8f52` (`feat/integracao-reservas-n8n`). O pacote de fontes transferido teve SHA-256 `673503207e8f109c4ecd1a854ab052cc92383efb88f30360b17d9d1ad2226e4d`.

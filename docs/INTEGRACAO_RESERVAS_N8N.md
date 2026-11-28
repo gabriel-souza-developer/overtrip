@@ -1,7 +1,16 @@
 # Integração de pedidos de reserva: WhatsApp (n8n) → OVERTRIP
 
-Estado: implementado no código local (branch `feat/integracao-reservas-n8n`).
-**API e painel publicados em 27/11/2026; migrations aplicadas. O serviço privado de entrada não foi instalado nem iniciado e o workflow do n8n não foi alterado.**
+Estado em 27/11/2026: API e painel publicados na Oracle; migrations aplicadas.
+**O serviço privado de entrada de reservas não está instalado nem iniciado, e a captura automática de pedidos do WhatsApp ainda não está ativa.**
+
+O workflow de atendimento WhatsApp v35 continua ativo no n8n. Ele usa Gemini para gerar a resposta, tenta Groq como fallback somente quando Gemini não entrega texto e as verificações de segurança permitem; o Qwen local apenas classifica a intenção e seleciona uma resposta fixa de reserva quando os modelos de texto falham. O v35 não envia solicitações ao endpoint de reservas. O fallback e a classificação foram validados com mensagens sintéticas; nenhuma mensagem real foi enviada.
+
+Avaliação local do classificador (11 mensagens sintéticas, 27/11/2026):
+`qwen2.5:3b-instruct-q4_K_M` e `qwen3:4b-instruct-2507-q4_K_M` acertaram
+10/11 cada, sem JSON inválido; o Qwen3 foi cerca de 26% mais lento. O
+`qwen3.5:4b` não gerou JSON utilizável com os limites atuais. Mantido o modelo
+atual, sem alteração do workflow. As especificações da VM que hospeda o Ollama
+não foram confirmadas por SSH; não presumir capacidade para modelos maiores.
 
 ## O que é e o que não é
 
@@ -356,8 +365,11 @@ que a pessoa confirmou o pedido. Não usar telefone, JID ou nome na chave.
 
 ## Pendências
 
-- Aplicar a migração e publicar (exige autorização e plano).
-- Configurar URL e credencial do v36, testar em cópia isolada e só então trocar a v35.
+- Instalar e configurar o serviço privado de entrada na VM, com segredo próprio
+  e transporte privado até a porta 3011; a API/painel e as migrations já foram
+  publicados/aplicados.
+- Configurar URL e credencial do fluxo de reservas v36, testar em cópia isolada
+  e só então decidir se ele substitui a v35 de atendimento.
 - Definir o transporte privado do n8n até a porta 3011.
 - Executar `tests/reservation-intake.test.ts` (escrito, não executado) e a
   suíte de reservas/financeiro, já que rotas e resumo financeiro mudaram.

@@ -1,13 +1,12 @@
 # Plano de evolução do CRM e das reservas
 
-> Atualização em 26/11/2026: foi autorizada a integração de pedidos do
-> WhatsApp com a tela **Reservas**. A implementação está no branch
-> `feat/integracao-reservas-n8n`, sem publicação, migração aplicada ou alteração
-> do fluxo n8n ativo. Ela cria somente uma reserva `PENDING` marcada para
-> revisão humana; não cobra, não confirma vaga nem reduz disponibilidade. O
-> desenho e as etapas operacionais estão em `docs/INTEGRACAO_RESERVAS_N8N.md`.
-> Este trabalho não cria uma caixa de entrada nova nem reativa a aba
-> Interessados.
+> Estado atualizado em 27/11/2026: API e painel da integração foram publicados
+> na Oracle e as migrations foram aplicadas. O processo privado de entrada e a
+> gravação automática de pedidos pelo WhatsApp ainda não estão ativos; a v35
+> atual do n8n continua sendo o assistente de texto, com Gemini, fallback Groq
+> e Qwen usado somente para classificar assunto e selecionar respostas fixas.
+> Não reativa a aba Interessados nem cria uma caixa de entrada. Consulte
+> `docs/INTEGRACAO_RESERVAS_N8N.md` para estado e pré-requisitos operacionais.
 
 ## Estado de partida
 
