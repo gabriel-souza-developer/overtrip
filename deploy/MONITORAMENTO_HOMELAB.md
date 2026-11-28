@@ -45,7 +45,7 @@ O hostname do Oracle é `vnic-ia-automacao`, acessado por `ubuntu@136.248.78.185
 
 ## Pontas soltas encontradas na auditoria do n8n
 
-- `NOX Medicamentos e Cuidado v13` executa cinco verificações escalonadas em intervalos de dez segundos. As falhas recentes vêm dos nós `Reserva plano` e `Materializa ocorrências`, com `NodeOperationError` categorizado como permissão PostgreSQL. Não alterar grants sem confirmar a role e o escopo correto do banco de dados de saúde.
+- `NOX Medicamentos e Cuidado v13` executa verificações escalonadas. As falhas nos nós `Reserva plano` e `Materializa ocorrências` eram `permission denied for table recipient_settings` para a role `nox_n8n`, no banco `nox`, tabela `medication.recipient_settings` (owner `nox_db_owner`). Os dois CTEs leem somente `chat_id` e `reminders_enabled`, filtrando por igualdade em `chat_id`; não escrevem nessa tabela. A role não tinha grants na tabela, e a tabela não tem RLS/policies. Foi aplicado apenas `GRANT SELECT (chat_id, reminders_enabled)` à role `nox_n8n`; a validação confirmou privilégios nessas colunas, sem SELECT de tabela inteira. O procedimento `medication.apply_chat_command` também referencia a tabela e é `SECURITY DEFINER` do owner; os nós, porém, fazem leitura direta que explica a falha reportada. Execuções agendadas posteriores passaram; a última, às 05:49:20 UTC, executou apenas `Reserva plano` e `Verifica plano do dia`, sem nó de entrega WhatsApp. Nenhuma execução manual foi feita.
 - `n8n` e WAHA estão publicados em todas as interfaces do Debian; `N8N_SECURE_COOKIE=false`. A exposição externa depende do firewall/roteador, que não pôde ser verificado nesta auditoria. Manter autenticação e limitar o acesso de rede até confirmar esse perímetro.
 
 ## Referências de operação
