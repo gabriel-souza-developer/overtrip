@@ -439,7 +439,6 @@ export default function TripForm() {
         </button>
         <div>
           <h1 className="page-title">{isEditing ? 'Editar viagem' : isTemplate ? 'Nova viagem a partir de modelo' : 'Nova viagem'}</h1>
-          <p className="page-description">{isEditing ? 'Edite os dados da viagem e salve as alterações.' : 'Comece pelos dados básicos. Você pode salvar e completar a publicação depois.'}</p>
         </div>
         </div>
         {isEditing && (
@@ -477,8 +476,6 @@ export default function TripForm() {
         <fieldset className="card p-5 space-y-4">
           <legend className="sr-only">Preencher automaticamente</legend>
           <h2 className="text-lg font-semibold text-surface-900">Preencher automaticamente</h2>
-          <p className="text-xs text-surface-500">Tudo aqui é opcional. Você também pode preencher cada campo manualmente nos blocos abaixo.</p>
-
           {user?.role === 'admin' && (
             <details className={nestedBlockClass}>
               <summary className="cursor-pointer font-semibold text-surface-900">Sugerir preenchimento com PDF e IA (opcional)</summary>
@@ -496,13 +493,11 @@ export default function TripForm() {
         <fieldset className="card p-5 space-y-5">
           <legend className="sr-only">Informações principais</legend>
           <h2 className="text-lg font-semibold text-surface-900">Informações principais</h2>
-          <p className="text-xs text-surface-500">Comece por aqui. Os campos necessários para publicar ficam indicados.</p>
-
           <Field id="title" label="Nome da viagem" required error={err('title')}>
             <input id="title" name="title" className={`input ${invalid('title')}`} value={f.title} onChange={handleChange} aria-invalid={!!errors.title} aria-describedby={errors.title ? 'title-error' : undefined} placeholder="Ex.: TRILHA DO PICO DO JABRE" autoComplete="off" />
           </Field>
 
-          <Field id="tripProfile" label="Perfil da viagem" hint="Escolha o grupo ou marca que organiza esta vivência.">
+          <Field id="tripProfile" label="Perfil da viagem">
             <select id="tripProfile" name="tripProfile" className="select" value={f.tripProfile} onChange={handleChange}>
               <option value="STANDARD">TRIP regular</option>
               <option value="OVER_RIDERS">OVER RIDERS</option>
@@ -551,12 +546,12 @@ export default function TripForm() {
                 <span className="text-sm text-surface-700">Viagem gratuita</span>
               </label>
             </div>
-            <Field id="spotsLeft" label="Vagas restantes" hint="Só número inteiro. Aparece no site quando for maior que zero.">
+            <Field id="spotsLeft" label="Vagas restantes" hint="Aparece no site quando for maior que zero.">
               <input id="spotsLeft" name="spotsLeft" type="text" inputMode="numeric" pattern="[0-9]*" className="input" value={f.spotsLeft ?? ''} onChange={(e) => setFormData(prev => ({ ...prev, spotsLeft: parseWholeNumber(e.target.value) }))} autoComplete="off" />
             </Field>
           </div>
 
-          <Field id="filterCategory" label="Categoria da viagem" hint="Esta categoria aparece nos filtros do site. Se não escolher uma, a viagem ficará em Todas as categorias.">
+          <Field id="filterCategory" label="Categoria da viagem" hint="Usada nos filtros do site.">
             <select id="filterCategory" name="filterCategory" className="select" value={f.filterCategory} onChange={handleChange}>
               <option value="">Selecione uma categoria</option>
               {f.filterCategory && !FILTER_CATEGORY_OPTIONS.some(option => option.toLocaleLowerCase('pt-BR') === f.filterCategory.trim().toLocaleLowerCase('pt-BR')) && <option value={f.filterCategory}>{f.filterCategory} (personalizada)</option>}
@@ -565,9 +560,9 @@ export default function TripForm() {
           </Field>
 
           <details className={nestedBlockClass} open={essentialMoreOpen}>
-            <summary className="cursor-pointer text-sm font-semibold text-surface-700">Mais opções</summary>
+            <summary className="cursor-pointer text-sm font-semibold text-surface-700">Textos exibidos no site</summary>
             <div className="pt-4 space-y-5">
-              <Field id="headlineDisplay" label="Título para outros canais (opcional)" hint="O site usa o nome da viagem.">
+              <Field id="headlineDisplay" label="Título para outros canais (opcional)" hint="O site continua usando o nome da viagem.">
                 <input id="headlineDisplay" name="headlineDisplay" className="input" value={f.headlineDisplay} onChange={handleChange} />
               </Field>
               <Field id="priceDisplay" label="Texto do valor no site (opcional)" hint="Se preenchido, aparece no lugar do valor numérico.">
@@ -582,14 +577,14 @@ export default function TripForm() {
           <legend className="sr-only">Embarque e horários</legend>
           <h2 className="text-lg font-semibold text-surface-900">Embarque e horários</h2>
 
-          <Field id="scheduleInfo" label="Horário da viagem" hint="Informe o horário como deve aparecer no site.">
+          <Field id="scheduleInfo" label="Horário da viagem">
             <input id="scheduleInfo" name="scheduleInfo" className="input" value={f.scheduleInfo} onChange={handleChange} placeholder="Ex.: 05h às 17h" />
           </Field>
           <label htmlFor="scheduleTBD" className="checkbox-label min-h-[32px]"><input id="scheduleTBD" name="scheduleTBD" type="checkbox" className="checkbox-input" checked={f.scheduleTBD} onChange={handleChange} /><span className="text-sm text-surface-700">Horário ainda não definido</span></label>
 
           <div>
             <span className="label">Embarque</span>
-            <p className="hint mb-3">Para um único embarque, preencha cidade e local. Se ainda não sabe, marque "a confirmar".</p>
+            <p className="hint mb-3">Informe cidade e local. Se ainda não souber, marque “a confirmar”.</p>
             <div className="flex flex-wrap gap-2 mb-3" role="group" aria-label="Embarques frequentes">
               {DEPARTURE_PRESETS.map(preset => (
                 <button key={preset.label} type="button" className="btn-secondary btn-sm" onClick={() => applyDeparturePreset(preset)}>
@@ -613,7 +608,7 @@ export default function TripForm() {
             <details className="mt-3" open={f.departures.length > 0 || !!errors.departure || undefined}>
               <summary className="cursor-pointer font-semibold text-sm">Adicionar vários pontos de embarque</summary>
               <div className="mt-3 space-y-2">
-                <p className="hint">Ao usar esta lista, somente os pontos adicionados aqui aparecem no site. Adicione cada embarque com seu horário.</p>
+                <p className="hint">Com vários pontos, só esta lista aparece no site. Informe o horário de cada um.</p>
                 {f.meetingCity.trim() && f.meetingPoint.trim() && !f.departures.some(point => point.city.trim().toLocaleLowerCase('pt-BR') === f.meetingCity.trim().toLocaleLowerCase('pt-BR') && point.place.trim().toLocaleLowerCase('pt-BR') === f.meetingPoint.trim().toLocaleLowerCase('pt-BR')) && (
                   <button type="button" className="btn-secondary btn-sm" disabled={!!pendingItems.embarque} onClick={() => setDepartureSeed({ city: f.meetingCity, place: f.meetingPoint, mapsQuery: f.meetingMapsQuery, lat: f.meetingLat, lng: f.meetingLng, requestId: Date.now() })}>
                     Usar embarque preenchido acima
@@ -633,14 +628,14 @@ export default function TripForm() {
           </Field>
 
           <details ref={departureMoreRef} className={nestedBlockClass} open={departureMoreOpen}>
-            <summary className="cursor-pointer text-sm font-semibold text-surface-700">Mais opções</summary>
+            <summary className="cursor-pointer text-sm font-semibold text-surface-700">Mapa do embarque</summary>
             <div className="pt-4 space-y-5">
-              <Field id="meetingMapsQuery" label="Localização do embarque no mapa (opcional)" hint="Endereço usado para gerar o link do mapa. Ao usar um embarque frequente acima, já vem preenchido — confirme a localização certa na busca abaixo.">
+              <Field id="meetingMapsQuery" label="Endereço para o mapa (opcional)" hint="Confirme o local sugerido antes de salvar.">
                 <input id="meetingMapsQuery" name="meetingMapsQuery" className="input" value={f.meetingMapsQuery} onChange={handleChange} placeholder="Rua, bairro, cidade/UF" />
               </Field>
               <div className="form-group">
                 <span className="label">Coordenadas confirmadas do embarque (opcional)</span>
-                <p className="hint mb-2">Confirme a coordenada para o site mostrar um mapa junto do embarque. Ela será removida se você alterar cidade, local ou endereço.</p>
+                <p className="hint mb-2">A coordenada mostra o mapa no site e é removida se cidade, local ou endereço mudar.</p>
                 <LocationPicker key={JSON.stringify([f.meetingCity, f.meetingPoint, f.meetingMapsQuery])} coords={f.meetingLat !== null && f.meetingLng !== null ? { lat: f.meetingLat, lng: f.meetingLng } : null} onConfirm={(result) => setFormData(prev => ({ ...prev, meetingLat: result.lat, meetingLng: result.lng }))} onClear={() => setFormData(prev => ({ ...prev, meetingLat: null, meetingLng: null }))} />
               </div>
             </div>
@@ -652,13 +647,13 @@ export default function TripForm() {
           <legend className="sr-only">Como é a experiência</legend>
           <h2 className="text-lg font-semibold text-surface-900">Como é a experiência</h2>
 
-          <Field id="description" label="Resumo da experiência" required={f.status === 'OPEN'} error={err('description')} hint="Necessário para publicar. Em uma frase curta, conte o que os viajantes vão viver.">
+          <Field id="description" label="Resumo da experiência" required={f.status === 'OPEN'} error={err('description')} hint="Necessário para publicar. Resuma o que os viajantes vão viver.">
             <textarea id="description" name="description" className={`input ${invalid('description')}`} value={f.description} onChange={handleChange} rows={4} aria-invalid={!!errors.description} placeholder="Conte o que torna essa viagem especial..." />
           </Field>
 
           <div className="form-group">
             <span className="label" id="media-label">Fotos da viagem</span>
-            <p className="hint mb-2">A primeira foto é a capa. Precisa de pelo menos uma para publicar.</p>
+            <p className="hint mb-2">A primeira foto é a capa; inclua ao menos uma para publicar.</p>
             <MediaInput
               inputId="media-link"
               value={f.media}
@@ -669,7 +664,7 @@ export default function TripForm() {
             {errors.media && <p className="field-error" role="alert">{errors.media}</p>}
           </div>
 
-          <Field id="category" label="Texto de destaque no card" hint="Aparece acima do nome da viagem, como “Trilha, natureza e patrimônio”.">
+          <Field id="category" label="Texto de destaque no card" hint="Exibido acima do nome da viagem.">
             <input id="category" name="category" className="input" value={f.category} onChange={handleChange} placeholder="Ex.: Trilha, natureza e patrimônio" />
           </Field>
 
@@ -703,9 +698,9 @@ export default function TripForm() {
           </Field>
 
           <details className={nestedBlockClass} open={experienceMoreOpen}>
-            <summary className="cursor-pointer text-sm font-semibold text-surface-700">Adicionar frase de destaque (opcional)</summary>
+            <summary className="cursor-pointer text-sm font-semibold text-surface-700">Frase extra (opcional)</summary>
             <div className="pt-4 space-y-5">
-              <Field id="includesHighlight" label="Frase de destaque" hint="Aparece em destaque abaixo da lista ‘O que inclui’ no site. Deixe vazio se não precisar de uma frase extra."><input id="includesHighlight" name="includesHighlight" className="input" value={f.includesHighlight} onChange={handleChange} aria-describedby="includesHighlight-hint" placeholder="Ex.: Seguro viagem incluso" /></Field>
+              <Field id="includesHighlight" label="Frase de destaque" hint="Aparece abaixo de “O que inclui”."><input id="includesHighlight" name="includesHighlight" className="input" value={f.includesHighlight} onChange={handleChange} aria-describedby="includesHighlight-hint" placeholder="Ex.: Seguro viagem incluso" /></Field>
             </div>
           </details>
         </fieldset>
@@ -720,7 +715,7 @@ export default function TripForm() {
           </Field>
 
           <Field id="important-info-input" label="Informações importantes">
-            <p className="hint mb-2">Marque apenas as orientações que valem para esta viagem. Você também pode adicionar uma informação própria.</p>
+            <p className="hint mb-2">Marque as orientações desta viagem ou adicione outra abaixo.</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4" role="group" aria-label="Orientações sugeridas">
               {IMPORTANT_INFO_PRESETS.map(item => <label key={item} className="checkbox-label min-h-[44px] items-start rounded-lg border border-surface-200 px-3 py-2.5 leading-snug">
                 <input type="checkbox" className="checkbox-input mt-0.5" checked={hasImportantInfoPreset(f.importantInfo, item)} onChange={() => setList('importantInfo', toggleImportantInfoPreset(f.importantInfo, item))} />

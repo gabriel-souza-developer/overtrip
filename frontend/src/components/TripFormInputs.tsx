@@ -51,7 +51,7 @@ export function LocationPicker({ coords, onConfirm, onClear }: { coords: { lat: 
 
   return (
     <div className="space-y-2 rounded-lg border border-surface-200 p-3">
-      <p className="text-xs text-surface-600">Pesquisar local no mapa (opcional). A pesquisa envia o texto digitado ao Photon, serviço de terceiro fora da OVERTRIP.</p>
+      <p className="text-xs text-surface-600">Busca opcional; o texto digitado é enviado ao Photon, serviço externo à OVERTRIP.</p>
       <div className="flex flex-col sm:flex-row gap-2">
         <input
           type="text"
@@ -165,9 +165,9 @@ export function MediaInput({ value, onChange, inputId, onPendingChange, onLinkPe
           <span className="hidden sm:inline">Adicionar foto ou vídeo</span><span className="sm:hidden">Adicionar</span>
         </Button>
       </div>
-      <p className="hint">Envie um vídeo MP4 H.264 de até 15 MiB e 5 minutos, ou adicione o link direto de um arquivo MP4, WebM ou MOV.</p>
+      <p className="hint">Vídeo: MP4 H.264, até 15 MiB e 5 minutos. Links MP4, WebM ou MOV também são aceitos.</p>
       {value.length === 0 ? (
-        <p className="text-sm text-surface-600">Nenhuma foto ainda. A primeira que você adicionar vira a capa.</p>
+        <p className="text-sm text-surface-600">Nenhuma foto ou vídeo adicionado.</p>
       ) : (
         <ul className="space-y-2">
           {value.map((item, index) => (
@@ -197,13 +197,13 @@ export function MediaInput({ value, onChange, inputId, onPendingChange, onLinkPe
                 <div className="mt-1 ml-14 text-sm">
                   <label className="label" htmlFor={`${inputId}-alt-${index}`}>O que aparece {item.type === 'video' ? 'neste vídeo' : 'nesta foto'}? <span className="text-red-700">(obrigatório)</span></label>
                   <input id={`${inputId}-alt-${index}`} type="text" className={`input ${item.alt.trim() ? '' : 'border-red-500'}`} value={item.alt} aria-required="true" aria-invalid={!item.alt.trim()} onChange={(e) => update(index, { alt: e.target.value })} placeholder="Ex.: Grupo atravessando o rio na trilha" aria-label={`O que aparece ${item.type === 'video' ? 'no vídeo' : 'na foto'} ${index + 1}? (obrigatório)`} />
-                  <p className="hint mt-1">Ajuda pessoas que usam leitor de tela a entender a imagem.</p>
+                  <p className="hint mt-1">Ajuda leitores de tela a descrever a imagem.</p>
                 </div>
               ) : (
               <div className="mt-2 ml-14 text-sm">
                 <label className="label" htmlFor={`${inputId}-alt-${index}`}>O que aparece {item.type === 'video' ? 'neste vídeo' : 'nesta foto'}? <span className="font-normal text-surface-500">(opcional)</span></label>
                 <input id={`${inputId}-alt-${index}`} type="text" className="input" value={item.alt} onChange={(e) => update(index, { alt: e.target.value })} placeholder="Ex.: Rio cercado por árvores" aria-label={`O que aparece ${item.type === 'video' ? 'no vídeo' : 'na foto'} ${index + 1}? (opcional)`} />
-                <p className="hint mt-1">Se deixar em branco, o site usa o nome da viagem para descrever a imagem.</p>
+                <p className="hint mt-1">Sem descrição, o site usa o nome da viagem.</p>
                 {item.focus !== undefined && (
                   <input type="text" className="input mt-2" value={item.focus} onChange={(e) => update(index, { focus: e.target.value })} placeholder="Parte da foto em destaque" aria-label={`Parte da foto ${index + 1} em destaque`} />
                 )}
