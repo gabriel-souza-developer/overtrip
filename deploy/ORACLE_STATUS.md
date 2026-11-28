@@ -1,5 +1,11 @@
 # Estado da produção na Oracle
 
+## Formulário de TRIP mais enxuto (28 de novembro de 2026)
+
+- Publicado somente o painel do commit `a3b5b74`. Detalhes opcionais começam recolhidos e indicam quando já têm conteúdo; dicas repetidas foram removidas e as ações de modelo ficam no menu de três pontos.
+- Build de produção do frontend concluído. `/admin/` e `/health` responderam 200; `overtrip-api` e Caddy seguem ativos. API e banco não foram alterados nem reiniciados.
+- Cópia anterior do painel em `/srv/overtrip/backup-20261128-trip-form-cleanup/admin-before`.
+
 ## Tela Viagens menos carregada (27 de novembro de 2026)
 
 - Publicado somente o painel do commit `97aeda8`. Modelos salvos ficam recolhidos por padrão; período, busca e situação foram agrupados num único bloco de filtros, e o controle dos rascunhos agora tem um rótulo mais claro.
