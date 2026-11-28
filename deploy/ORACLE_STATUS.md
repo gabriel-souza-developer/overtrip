@@ -1,5 +1,13 @@
 # Estado da produção na Oracle
 
+## Consolidação de helpers e ajustes do painel sazonal (27 de novembro de 2026)
+
+- Publicado API e painel do commit `d9d8f52` (`feat/integracao-reservas-n8n`). O pacote de fontes transferido teve SHA-256 `673503207e8f109c4ecd1a854ab052cc92383efb88f30360b17d9d1ad2226e4d`.
+- A atualização consolida formatação de moeda e fuso horário, corrige a leitura de datas no painel sazonal, evita resultados de IA obsoletos após trocar mês/estado e reduz repetição de fontes. Também remove código sem uso e padroniza textos de viagem como TRIP.
+- `npm ci`, geração do Prisma Client, build da API e build do painel passaram na Oracle ARM64. A instalação reportou seis vulnerabilidades em dependências (3 moderadas, 1 alta e 2 críticas); nenhuma correção automática foi aplicada nesta publicação.
+- API e painel foram trocados após preparar o build; nenhum schema ou dado do banco foi alterado. Cópias anteriores estão em `/srv/overtrip/backup-20261127-d9d8f52/{app,admin-before}`.
+- Após a publicação, API e Caddy estão ativos. `/health`, `/admin/` e `/api/public/trips` responderam 200; `/api/trip-templates` sem sessão respondeu 401. A resposta privada permanece protegida.
+
 ## Reutilização do cadastro, sem associar linhas antigas (27 de novembro de 2026)
 
 - Ajustado o fluxo de Passageiros após esclarecimento: os perfis antigos permanecem no campo **Cliente existente** para serem usados em novas TRIPs; linhas antigas de pagamento e presença ficam arquivadas e nunca são associadas. A inclusão de um perfil numa nova TRIP cria um vínculo operacional separado, com pagamento e presença em branco.
