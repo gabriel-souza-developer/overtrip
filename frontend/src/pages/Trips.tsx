@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { BusFront, CopyPlus, Download, Eye, EyeOff, MapPin, Pencil, Plus, Save, Trash2 } from 'lucide-react';
+import { BusFront, CopyPlus, Download, Eye, EyeOff, MapPin, Pencil, Plus, Save, Search, Trash2 } from 'lucide-react';
 import { tripApi, tripTemplateApi, Trip, TripTemplateSummary, Pagination as PaginationInfo } from '../api';
 import { useToast } from '../hooks/useToast';
 import { useListParams } from '../hooks/useListParams';
@@ -9,7 +9,6 @@ import { canChangeTripStatus } from '../lib/permissions';
 import { useAuth } from '../App';
 import { formatDateBR } from '../lib/dateInput';
 import PageHeader from '../components/PageHeader';
-import FilterBar from '../components/FilterBar';
 import EmptyState from '../components/EmptyState';
 import ErrorState from '../components/ErrorState';
 import Pagination from '../components/Pagination';
@@ -218,62 +217,82 @@ export default function Trips() {
         actions={<Link to="/trips/new" className="btn-primary"><Plus className="w-5 h-5" aria-hidden="true" /> Nova viagem</Link>}
       />
 
-      <section className="card p-5 space-y-3" aria-labelledby="trip-templates-heading">
-        <h2 id="trip-templates-heading" className="text-lg font-semibold text-surface-900">Modelos salvos</h2>
-        {templatesLoading ? (
-          <p className="text-sm text-surface-600" role="status">Carregando modelos…</p>
-        ) : templatesError ? (
-          <ErrorState message={templatesError} onRetry={loadTemplates} />
-        ) : templates.length === 0 ? (
-          <p className="text-sm text-surface-600">Selecione “Salvar como modelo” em uma viagem para adicioná-la aqui.</p>
-        ) : (
-          <ul className="divide-y divide-surface-200">
-            {templates.map(template => (
-              <li key={template.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-                <span className="font-medium text-surface-900">{template.name}</span>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Button small onClick={() => openTemplate(template.id)} aria-label={`Usar modelo ${template.name}`}>Usar</Button>
-                  <Button small icon={<Download className="w-4 h-4" aria-hidden="true" />} onClick={() => downloadTemplate(template)} loading={downloadingTemplateId === template.id} disabled={!!downloadingTemplateId} loadingText="Baixando…" aria-label={`Baixar JSON do modelo ${template.name}`}>Baixar JSON</Button>
-                  <Button small variant="ghost" icon={<Trash2 className="w-4 h-4" aria-hidden="true" />} onClick={() => setTemplateToDelete(template)} aria-label={`Excluir modelo ${template.name}`}>Excluir</Button>
-                </div>
-              </li>
+      <details className="card group">
+        <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-5 py-3 [&::-webkit-details-marker]:hidden">
+          <span className="min-w-0">
+            <span id="trip-templates-heading" className="font-semibold text-surface-900">Modelos salvos</span>
+            <span className="ml-2 text-sm text-surface-600">{templatesLoading ? 'Carregando…' : `${templates.length} ${templates.length === 1 ? 'modelo' : 'modelos'}`}</span>
+          </span>
+          <span className="text-sm font-medium text-primary-800 group-open:hidden">Mostrar</span>
+          <span className="hidden text-sm font-medium text-primary-800 group-open:inline">Ocultar</span>
+        </summary>
+        <div className="space-y-3 border-t border-surface-200 px-5 py-4">
+          {templatesLoading ? (
+            <p className="text-sm text-surface-600" role="status">Carregando modelos…</p>
+          ) : templatesError ? (
+            <ErrorState message={templatesError} onRetry={loadTemplates} />
+          ) : templates.length === 0 ? (
+            <p className="text-sm text-surface-600">Selecione “Salvar como modelo” em uma viagem para adicioná-la aqui.</p>
+          ) : (
+            <ul className="divide-y divide-surface-200">
+              {templates.map(template => (
+                <li key={template.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                  <span className="font-medium text-surface-900">{template.name}</span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button small onClick={() => openTemplate(template.id)} aria-label={`Usar modelo ${template.name}`}>Usar</Button>
+                    <Button small icon={<Download className="w-4 h-4" aria-hidden="true" />} onClick={() => downloadTemplate(template)} loading={downloadingTemplateId === template.id} disabled={!!downloadingTemplateId} loadingText="Baixando…" aria-label={`Baixar JSON do modelo ${template.name}`}>Baixar JSON</Button>
+                    <Button small variant="ghost" icon={<Trash2 className="w-4 h-4" aria-hidden="true" />} onClick={() => setTemplateToDelete(template)} aria-label={`Excluir modelo ${template.name}`}>Excluir</Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </details>
+
+      <section className="card space-y-4 p-4" aria-label="Filtros de viagens">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <h2 className="text-sm font-semibold text-surface-800">Mostrar</h2>
+          <div className="inline-flex w-full rounded-xl bg-surface-100 p-1 sm:w-auto" role="group" aria-label="Período das viagens">
+            {PERIODS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                aria-pressed={period === option.value}
+                title={option.hint}
+                onClick={() => list.setFilter('period', option.value === 'upcoming' ? '' : option.value)}
+                className={`min-h-10 flex-1 rounded-lg px-4 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary-600 sm:flex-none ${period === option.value ? 'bg-white text-primary-900 shadow-sm' : 'text-surface-700 hover:text-surface-900'}`}
+              >
+                {option.label}
+              </button>
             ))}
-          </ul>
-        )}
-      </section>
-
-      <div className="flex flex-wrap gap-2" role="group" aria-label="Período das viagens">
-        {PERIODS.map((option) => (
-          <button
-            key={option.value}
-            type="button"
-            aria-pressed={period === option.value}
-            title={option.hint}
-            onClick={() => list.setFilter('period', option.value === 'upcoming' ? '' : option.value)}
-            className={`min-h-[40px] rounded-full border px-4 text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary-600 ${period === option.value ? 'border-primary-600 bg-primary-600 text-white' : 'border-surface-300 bg-white text-surface-800 hover:border-primary-300'}`}
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
-
-      <FilterBar
-        searchLabel="Buscar viagens"
-        searchPlaceholder="Buscar por nome, cidade ou categoria"
-        searchValue={search}
-        onSearch={(value) => list.setFilter('search', value)}
-        onClear={() => list.clear(['period'])}
-        hasFilters={hasFilters}
-      >
-        <select className="select w-full lg:w-52" value={status} onChange={(e) => list.setFilter('status', e.target.value)} aria-label="Filtrar por situação">
-          <option value="">Todas as situações</option>
-          {Object.entries(TRIP_STATUS_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-        </select>
-        <label className="inline-flex min-h-10 items-center gap-2 text-sm text-surface-800">
+          </div>
+        </div>
+        <form
+          key={search}
+          role="search"
+          className="grid gap-3 lg:grid-cols-[minmax(16rem,1fr)_14rem_auto_auto] lg:items-center"
+          onSubmit={(event) => {
+            event.preventDefault();
+            list.setFilter('search', String(new FormData(event.currentTarget).get('search') ?? '').trim());
+          }}
+        >
+          <div className="relative min-w-0">
+            <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-surface-500" aria-hidden="true" />
+            <input type="search" name="search" className="input !pl-10" placeholder="Nome, cidade ou categoria" defaultValue={search} aria-label="Buscar viagens" />
+          </div>
+          <select className="select w-full" value={status} onChange={(event) => list.setFilter('status', event.target.value)} aria-label="Filtrar por situação">
+            <option value="">Todas as situações</option>
+            {Object.entries(TRIP_STATUS_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </select>
+          <Button type="submit" variant="primary" className="w-full lg:w-auto">Buscar</Button>
+          {hasFilters ? <Button onClick={() => list.clear(['period'])} className="w-full lg:w-auto">Limpar</Button> : null}
+        </form>
+        <label className="inline-flex min-h-8 items-center gap-2 text-sm text-surface-600">
           <input type="checkbox" checked={shadeDrafts} onChange={event => setShadeDrafts(event.target.checked)} />
-          Escurecer rascunhos
+          Destacar rascunhos na lista
         </label>
-      </FilterBar>
+      </section>
 
       {error ? <ErrorState message={error} onRetry={loadTrips} /> : null}
 
