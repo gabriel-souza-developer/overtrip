@@ -30,7 +30,7 @@ Não copiar credenciais do n8n para outro host nem considerar uma execução bem
 
 ## Requisitos para ativar alertas
 
-1. Confirmar o endereço e a identidade de `vm-oracle` e obter acesso administrativo somente leitura para inventariar seus serviços.
+1. Definir um nome estável para o host Oracle no monitor: `vnic-ia-automacao` foi confirmado por SSH no IP `136.248.78.185`, mas o alias `vm-oracle` não resolve.
 2. Escolher um monitor que continue ativo se qualquer um dos dois hosts cair, ou estabelecer um monitor externo que receba heartbeat de ambos.
 3. Disponibilizar nesse monitor um canal de notificação independente do Debian/WAHA, com credencial criada e armazenada no host apropriado. Sem esse canal, não prometer alerta de indisponibilidade do Debian.
 4. Validar apenas com eventos sintéticos, sem enviar WhatsApp real, antes de ativar notificações.
