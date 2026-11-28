@@ -1,0 +1,275 @@
+{
+  "name": "NOX Monitor de hosts Debian e vm-oracle",
+  "nodes": [
+    {
+      "id": "monitor-schedule",
+      "name": "A cada minuto",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 * * * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "monitor-debian",
+      "name": "Coleta Debian",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        220,
+        -100
+      ],
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "url": "http://100.111.0.47:9100/metrics",
+        "options": {
+          "timeout": 8000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "monitor-oracle",
+      "name": "Coleta Oracle",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        440,
+        -100
+      ],
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "url": "http://100.99.26.96:9100/metrics",
+        "options": {
+          "timeout": 8000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "monitor-evaluate",
+      "name": "Avalia limites",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        -100
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "'use strict';\n\nconst HOSTS = {\n  debian: { label: 'Debian homelab' },\n  oracle: { label: 'vm-oracle' },\n};\nconst COOLDOWN_MS = 60 * 60 * 1000;\nconst SAMPLE_GAP_MS = 2 * 60 * 1000;\n\nfunction parsePrometheus(text) {\n  const rows = [];\n  for (const line of String(text || '').split(/\\r?\\n/)) {\n    if (!line || line[0] === '#') continue;\n    const m = line.match(/^([a-zA-Z_:][a-zA-Z0-9_:]*)(?:\\{(.*)\\})?\\s+([^\\s]+)/);\n    if (!m) continue;\n    const labels = {};\n    if (m[2]) {\n      for (const pair of m[2].matchAll(/([a-zA-Z_][a-zA-Z0-9_]*)=\"((?:\\\\.|[^\"])*)\"/g)) {\n        labels[pair[1]] = pair[2].replace(/\\\\\"/g, '\"').replace(/\\\\\\\\/g, '\\\\');\n      }\n    }\n    const value = Number(m[3]);\n    if (Number.isFinite(value)) rows.push({ name: m[1], labels, value });\n  }\n  return rows;\n}\n\nfunction getSample(input) {\n  if (!input || input.error) return { ok: false, reason: 'falha de conexão' };\n  const status = Number(input.statusCode ?? input.status ?? 200);\n  const body = input.body ?? input.metrics ?? input.data ?? '';\n  if (status < 200 || status >= 300 || typeof body !== 'string' || !body.includes('node_')) {\n    return { ok: false, reason: status ? `HTTP ${status}` : 'resposta inválida' };\n  }\n  return { ok: true, rows: parsePrometheus(body) };\n}\n\nfunction metric(rows, name, predicate = () => true) {\n  return rows.filter(r => r.name === name && predicate(r.labels));\n}\n\nfunction formatLocal(date) {\n  return new Intl.DateTimeFormat('pt-BR', {\n    timeZone: 'America/Sao_Paulo', dateStyle: 'short', timeStyle: 'medium',\n  }).format(date);\n}\n\nfunction duration(ms) {\n  const mins = Math.max(0, Math.floor(ms / 60000));\n  const hrs = Math.floor(mins / 60);\n  const days = Math.floor(hrs / 24);\n  if (days) return `${days}d ${hrs % 24}h`;\n  if (hrs) return `${hrs}h ${mins % 60}min`;\n  return `${mins}min`;\n}\n\nfunction evaluate(samples, state, now = new Date()) {\n  const nowMs = now instanceof Date ? now.getTime() : Number(now);\n  state.hosts ||= {};\n  const messages = [];\n\n  function emit(host, key, incident, status, severity, value, impact, action) {\n    const firstAt = new Date(incident.startedAt).getTime();\n    const stateName = status === 'RECUPERADO' ? 'RECUPERADO' : 'ATIVO';\n    const stamp = new Date(nowMs);\n    messages.push({\n      host,\n      severity,\n      state: stateName,\n      metric: key,\n      value,\n      startedAt: new Date(firstAt).toISOString(),\n      duration: duration(nowMs - firstAt),\n      impact,\n      action,\n      text: [\n        `*${severity} · ${stateName}*`,\n        `Host: ${host}`,\n        `Métrica: ${key} — ${value}`,\n        `Início: ${formatLocal(new Date(firstAt))} (São Paulo)`,\n        `Duração: ${duration(nowMs - firstAt)}`,\n        `Impacto: ${impact}`,\n        `Ação: ${action}`,\n        `Atualizado: ${formatLocal(stamp)} (São Paulo) · ${stamp.toISOString()}`,\n      ].join('\\n'),\n    });\n  }\n\n  function incident(host, key, condition, recoverCondition, waitMs, severity, value, impact, action) {\n    const incidents = state.hosts[host].incidents ||= {};\n    const x = incidents[key] ||= { since: null, active: false, lastSent: 0, recoveryCount: 0 };\n    if (condition) {\n      x.recoveryCount = 0;\n      if (!x.active) {\n        if (x.since == null || nowMs - x.lastSeen > SAMPLE_GAP_MS) x.since = nowMs;\n        x.lastSeen = nowMs;\n        if (nowMs - x.since >= waitMs) {\n          x.active = true;\n          x.firstStartedAt = x.since;\n          x.lastSent = nowMs;\n          emit(host, key, { startedAt: x.firstStartedAt }, 'ATIVO', severity, value, impact, action);\n        }\n      } else {\n        x.lastSeen = nowMs;\n        if (nowMs - x.lastSent >= COOLDOWN_MS) {\n          x.lastSent = nowMs;\n          emit(host, key, { startedAt: x.firstStartedAt }, 'ATIVO', severity, value, impact, action);\n        }\n      }\n    } else {\n      if (x.active && recoverCondition) {\n        x.recoveryCount += 1;\n        if (x.recoveryCount >= 2) {\n          emit(host, key, { startedAt: x.firstStartedAt ?? nowMs }, 'RECUPERADO', severity, value, impact, 'Acompanhar por mais uma coleta.');\n          x.active = false;\n          x.recoveryCount = 0;\n          x.since = null;\n          x.lastSeen = null;\n          x.firstStartedAt = null;\n        }\n      } else if (x.active) {\n        x.recoveryCount = 0;\n      } else {\n        x.since = null;\n        x.lastSeen = null;\n      }\n    }\n  }\n\n  for (const [id, meta] of Object.entries(HOSTS)) {\n    const host = state.hosts[id] ||= { failures: 0, downSince: null, downActive: false, lastSuccess: null, cpu: null, incidents: {} };\n    state.hosts[meta.label] = host;\n    const sample = getSample(samples[id]);\n    if (!sample.ok) {\n      host.failures += 1;\n      host.cpu = null;\n      host.lastSuccess ??= null;\n      host.downSince ??= nowMs;\n      if (!host.downActive && host.failures >= 3 && nowMs - host.downSince >= 180000) {\n        host.downActive = true;\n        host.downStartedAt = host.downSince;\n        host.downSentAt = nowMs;\n        emit(meta.label, 'Disponibilidade', { startedAt: host.downSince }, 'ATIVO', 'CRÍTICO', sample.reason, 'Sem métricas do host; monitoramento local interrompido.', 'Verificar conectividade Tailscale, host e serviço node_exporter.');\n      } else if (host.downActive && nowMs - host.downSentAt >= COOLDOWN_MS) {\n        host.downSentAt = nowMs;\n        emit(meta.label, 'Disponibilidade', { startedAt: host.downSince }, 'ATIVO', 'CRÍTICO', sample.reason, 'Sem métricas do host; monitoramento local interrompido.', 'Verificar conectividade Tailscale, host e serviço node_exporter.');\n      }\n      continue;\n    }\n\n    const wasDown = host.downActive;\n    host.failures = 0;\n    host.downSince = null;\n    host.lastSuccess = nowMs;\n    if (wasDown) {\n      host.recoveryCount = (host.recoveryCount || 0) + 1;\n      if (host.recoveryCount >= 2) {\n        emit(meta.label, 'Disponibilidade', { startedAt: host.downStartedAt || nowMs }, 'RECUPERADO', 'CRÍTICO', 'endpoint respondendo', 'Coleta de métricas restabelecida.', 'Acompanhar a próxima coleta.');\n        host.downActive = false;\n        host.recoveryCount = 0;\n        host.downStartedAt = null;\n      }\n    } else host.recoveryCount = 0;\n    if (host.downActive) continue;\n\n    const cpuRows = metric(sample.rows, 'node_cpu_seconds_total');\n    const cpuTotal = cpuRows.reduce((sum, r) => sum + r.value, 0);\n    const cpuIdle = cpuRows.filter(r => r.labels.mode === 'idle').reduce((sum, r) => sum + r.value, 0);\n    let cpuPct = null;\n    if (host.cpu && cpuTotal > host.cpu.total && nowMs - host.cpu.at <= SAMPLE_GAP_MS) {\n      const dt = cpuTotal - host.cpu.total;\n      const di = cpuIdle - host.cpu.idle;\n      if (dt > 0 && di >= 0) cpuPct = Math.max(0, Math.min(100, 100 * (1 - di / dt)));\n    }\n    host.cpu = { total: cpuTotal, idle: cpuIdle, at: nowMs };\n    if (cpuPct != null) {\n      const warning = host.incidents['CPU alta ≥85% por 10 min'];\n      if (cpuPct >= 95 && warning?.active) {\n        warning.active = false;\n        warning.since = null;\n        warning.lastSeen = null;\n        warning.firstStartedAt = null;\n        warning.recoveryCount = 0;\n      }\n      incident(meta.label, 'CPU crítico ≥95% por 5 min', cpuPct >= 95, cpuPct < 90, 300000, 'CRÍTICO', `${cpuPct.toFixed(1)}%`, 'CPU sustentada em faixa crítica.', 'Verificar processos ativos e reduzir carga desnecessária.');\n      incident(meta.label, 'CPU alta ≥85% por 10 min', cpuPct >= 85 && cpuPct < 95, cpuPct < 80, 600000, 'AVISO', `${cpuPct.toFixed(1)}%`, 'CPU sustentada acima do limite de atenção.', 'Verificar processos ativos e acompanhar tendência.');\n    }\n\n    const memTotal = metric(sample.rows, 'node_memory_MemTotal_bytes')[0]?.value;\n    const memAvail = metric(sample.rows, 'node_memory_MemAvailable_bytes')[0]?.value;\n    if (memTotal > 0 && Number.isFinite(memAvail)) {\n      const memPct = 100 * memAvail / memTotal;\n      incident(meta.label, 'Memória disponível <10% por 5 min', memPct < 10, memPct >= 12, 300000, 'AVISO', `${memPct.toFixed(1)}% disponível`, 'Pouca memória disponível pode reduzir a resposta dos serviços.', 'Verificar consumo de memória e serviços em execução.');\n    }\n\n    const roots = metric(sample.rows, 'node_filesystem_avail_bytes', l => l.mountpoint === '/' && !/tmpfs|overlay/.test(l.fstype || ''));\n    const sizes = metric(sample.rows, 'node_filesystem_size_bytes', l => l.mountpoint === '/' && !/tmpfs|overlay/.test(l.fstype || ''));\n    const diskAvail = roots[0]?.value;\n    const diskSize = sizes[0]?.value;\n    if (diskSize > 0 && Number.isFinite(diskAvail)) {\n      const freePct = 100 * diskAvail / diskSize;\n      const freeGb = diskAvail / 1e9;\n      const low = freePct < 15 || freeGb < 5;\n      const recovered = freePct > 18 && freeGb > 8;\n      incident(meta.label, 'Disco livre <15% ou <5 GB por 5 min', low, recovered, 300000, 'AVISO', `${freePct.toFixed(1)}% · ${freeGb.toFixed(1)} GB livres`, 'Pouco espaço pode impedir gravações e atualizações.', 'Liberar arquivos temporários e revisar crescimento dos dados.');\n    }\n  }\n  return messages;\n}\n\nconst state = $getWorkflowStaticData('global');\nconst samples = { debian: $('Coleta Debian').first().json, oracle: $('Coleta Oracle').first().json };\nreturn evaluate(samples, state, new Date()).map(alert => ({ json: alert }));"
+      }
+    },
+    {
+      "id": "monitor-group",
+      "name": "Agrupa avisos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        -100
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const rows = $input.all().map(item => item.json);\nif (!rows.length) return [];\nreturn [{ json: { chatId: '__OVERTRIP_INTERNAL_TEAM_GROUP_ID__', text: rows.map(row => row.text).join('\\n\\n') } }];"
+      }
+    },
+    {
+      "id": "monitor-waha-sessions",
+      "name": "Consulta sessão do Nox",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1100,
+        -100
+      ],
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "url": "http://192.168.18.150:3100/api/sessions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 10000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "__WAHA_HTTP_HEADER_CREDENTIAL_ID__",
+          "name": "WAHA API Key Session"
+        }
+      }
+    },
+    {
+      "id": "monitor-prepare-send",
+      "name": "Prepara envio interno",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        -100
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "'use strict';\n\nfunction selectWahaSession(sessions, expectedName = 'nox') {\n  const matches = sessions.filter(session => session.name === expectedName && String(session.status || '').toUpperCase() === 'WORKING');\n  if (matches.length !== 1) {\n    throw new Error(`Sessão WAHA \"${expectedName}\" não está WORKING; envio cancelado.`);\n  }\n  return matches[0].name;\n}\n\nconst response = $input.first()?.json || {};\nconst body = response.body;\nconst sessions = Array.isArray(body) ? body : Array.isArray(body?.sessions) ? body.sessions : [];\nconst selectedSession = selectWahaSession(sessions, 'nox');\nconst notice = $('Agrupa avisos').first().json;\nreturn [{ json: { session: selectedSession, chatId: notice.chatId, text: notice.text } }];"
+      }
+    },
+    {
+      "id": "monitor-send-waha",
+      "name": "Envia alerta ao grupo interno",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1540,
+        -100
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://192.168.18.150:3100/api/sendText",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "session",
+              "value": "={{ $json.session }}"
+            },
+            {
+              "name": "chatId",
+              "value": "={{ $json.chatId }}"
+            },
+            {
+              "name": "text",
+              "value": "={{ $json.text }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 20000
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "__WAHA_HTTP_HEADER_CREDENTIAL_ID__",
+          "name": "WAHA API Key Session"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "A cada minuto": {
+      "main": [
+        [
+          {
+            "node": "Coleta Debian",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Coleta Debian": {
+      "main": [
+        [
+          {
+            "node": "Coleta Oracle",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Coleta Oracle": {
+      "main": [
+        [
+          {
+            "node": "Avalia limites",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Avalia limites": {
+      "main": [
+        [
+          {
+            "node": "Agrupa avisos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agrupa avisos": {
+      "main": [
+        [
+          {
+            "node": "Consulta sessão do Nox",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consulta sessão do Nox": {
+      "main": [
+        [
+          {
+            "node": "Prepara envio interno",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepara envio interno": {
+      "main": [
+        [
+          {
+            "node": "Envia alerta ao grupo interno",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo",
+    "saveExecutionProgress": false,
+    "saveManualExecutions": false
+  },
+  "staticData": null
+}
