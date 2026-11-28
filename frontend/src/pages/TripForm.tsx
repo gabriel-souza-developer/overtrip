@@ -23,6 +23,7 @@ import TripDocuments from '../components/TripDocuments';
 import PublicationReadinessPanel from '../components/PublicationReadinessPanel';
 import TripCardPreview from '../components/TripCardPreview';
 import TripProposalPreview from '../components/TripProposalPreview';
+import RowMenu from '../components/RowMenu';
 import { applySuggestions, type DraftKey, type TripDraft } from '../lib/aiDraft';
 import { ArrayInput, DeparturesInput, LocationPicker, MediaInput } from '../components/TripFormInputs';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
@@ -93,8 +94,6 @@ export default function TripForm() {
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [priceText, setPriceText] = useState('');
   const [departureSeed, setDepartureSeed] = useState<{ place: string; city: string; mapsQuery: string; lat: number | null; lng: number | null; requestId: number } | null>(null);
-  // Abertura inicial apenas ao carregar uma viagem; depois o usuário controla os detalhes.
-  const [initialOptions, setInitialOptions] = useState({ essential: false, departure: false, experience: false, trail: false });
   // Datas como vieram da API: se a pessoa não mexe na data, o valor guardado não muda.
   const originalSchedule = useRef<StoredSchedule>({ startDateISO: null, departureTime: null, endDateISO: null, returnTime: null });
   const originalScheduleText = useRef('');
@@ -146,12 +145,6 @@ export default function TripForm() {
   }, [dirty]);
 
   const fillLoadedForm = (next: FormState, schedule?: StoredSchedule) => {
-    setInitialOptions({
-      essential: !!next.headlineDisplay.trim() || (!!next.priceDisplay.trim() && next.priceDisplay.trim() !== (next.priceValue ? formatBRL(next.priceValue) : '')),
-      departure: !!next.scheduleInfo.trim() || !!next.meetingMapsQuery.trim() || (next.meetingLat != null && next.meetingLng != null),
-      experience: !!next.includesHighlight.trim(),
-      trail: !!next.trailDistance.trim() || !!next.supportPoint.trim() || !!next.supportPointInfo.trim() || next.routeNotes.length > 0,
-    });
     initialRef.current = JSON.stringify(schedule ? next : emptyForm());
     originalSchedule.current = schedule ?? { startDateISO: null, departureTime: null, endDateISO: null, returnTime: null };
     originalScheduleText.current = next.scheduleInfo;
@@ -425,10 +418,10 @@ export default function TripForm() {
   const err = (name: string) => errors[name] || undefined;
   const invalid = (name: string) => (errors[name] ? 'input-error' : '');
   const nestedBlockClass = 'rounded-lg border border-surface-200 p-4';
-  const essentialMoreOpen = initialOptions.essential;
-  const departureMoreOpen = initialOptions.departure;
-  const experienceMoreOpen = initialOptions.experience;
-  const trailOpen = initialOptions.trail;
+  const hasSiteTexts = !!f.headlineDisplay.trim() || (!!f.priceDisplay.trim() && f.priceDisplay.trim() !== (f.priceValue ? formatBRL(f.priceValue) : ''));
+  const hasMapDetails = !!f.meetingMapsQuery.trim() || (f.meetingLat != null && f.meetingLng != null);
+  const hasExtraPhrase = !!f.includesHighlight.trim();
+  const hasTrailDetails = !!f.trailDistance.trim() || !!f.supportPoint.trim() || !!f.supportPointInfo.trim() || f.routeNotes.length > 0;
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 pb-24">
@@ -441,16 +434,10 @@ export default function TripForm() {
           <h1 className="page-title">{isEditing ? 'Editar viagem' : isTemplate ? 'Nova viagem a partir de modelo' : 'Nova viagem'}</h1>
         </div>
         </div>
-        {isEditing && (
-          <div className="flex flex-wrap gap-2">
-            <Button small icon={<Copy className="w-4 h-4" aria-hidden="true" />} onClick={useAsModel} disabled={saving || savingTemplate}>
-              Usar como modelo
-            </Button>
-            <Button small onClick={saveAsModel} disabled={saving} loading={savingTemplate} loadingText="Salvando modelo…">
-              Salvar como modelo
-            </Button>
-          </div>
-        )}
+        {isEditing && <RowMenu label="Mais opções da viagem" items={[
+          { key: 'reuse', label: 'Usar como modelo', icon: <Copy className="w-4 h-4" aria-hidden="true" />, disabled: saving || savingTemplate, onSelect: useAsModel },
+          { key: 'save-template', label: savingTemplate ? 'Salvando modelo…' : 'Salvar como modelo', icon: <Save className="w-4 h-4" aria-hidden="true" />, disabled: saving || savingTemplate, onSelect: () => { void saveAsModel(); } },
+        ]} />}
       </div>
 
       {isTemplate && <p className="alert-info" role="note">Informe a nova data e revise os textos, preços, embarques e fotos antes de salvar a viagem como rascunho.</p>}
@@ -473,9 +460,8 @@ export default function TripForm() {
         )}
 
         {/* Bloco 0: atalhos para preencher o formulário sem digitar tudo manualmente. */}
-        <fieldset className="card p-5 space-y-4">
-          <legend className="sr-only">Preencher automaticamente</legend>
-          <h2 className="text-lg font-semibold text-surface-900">Preencher automaticamente</h2>
+        <details className="card p-5 space-y-4">
+          <summary className="cursor-pointer text-lg font-semibold text-surface-900">Preencher automaticamente <span className="text-sm font-normal text-surface-500">(opcional)</span></summary>
           {user?.role === 'admin' && (
             <details className={nestedBlockClass}>
               <summary className="cursor-pointer font-semibold text-surface-900">Sugerir preenchimento com PDF e IA (opcional)</summary>
@@ -487,7 +473,7 @@ export default function TripForm() {
           )}
 
           <AiDraftBlock form={formData as Record<string, unknown>} defaults={defaultsRef.current} onApply={applyAiDraft} showUnavailable />
-        </fieldset>
+        </details>
 
         {/* Bloco 1: o mínimo para a viagem existir e aparecer na lista/filtro. */}
         <fieldset className="card p-5 space-y-5">
@@ -517,7 +503,7 @@ export default function TripForm() {
                 }}
               />
             </Field>
-            <Field id="city" label="Cidade" required error={err('city')} hint="Escolha o estado primeiro.">
+            <Field id="city" label="Cidade" required error={err('city')}>
               <CityAutocomplete
                 id="city"
                 name="city"
@@ -538,7 +524,7 @@ export default function TripForm() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <Field id="priceValue" label="Valor (R$)" required={f.status === 'OPEN' && !f.free} error={err('priceValue')} hint={f.free ? 'Viagem gratuita: sem valor.' : 'Necessário para publicar. Ex.: 109,99 ou 1.250,00'}>
+              <Field id="priceValue" label="Valor (R$)" required={f.status === 'OPEN' && !f.free} error={err('priceValue')}>
                 <input id="priceValue" name="priceValue" type="text" inputMode="decimal" className={`input ${invalid('priceValue')}`} value={priceText} onChange={handlePriceChange} placeholder="109,99" disabled={f.free} aria-invalid={!!errors.priceValue} autoComplete="off" />
               </Field>
               <label htmlFor="free" className="checkbox-label mt-2 min-h-[32px]">
@@ -546,7 +532,7 @@ export default function TripForm() {
                 <span className="text-sm text-surface-700">Viagem gratuita</span>
               </label>
             </div>
-            <Field id="spotsLeft" label="Vagas restantes" hint="Aparece no site quando for maior que zero.">
+            <Field id="spotsLeft" label="Vagas restantes">
               <input id="spotsLeft" name="spotsLeft" type="text" inputMode="numeric" pattern="[0-9]*" className="input" value={f.spotsLeft ?? ''} onChange={(e) => setFormData(prev => ({ ...prev, spotsLeft: parseWholeNumber(e.target.value) }))} autoComplete="off" />
             </Field>
           </div>
@@ -559,8 +545,8 @@ export default function TripForm() {
             </select>
           </Field>
 
-          <details className={nestedBlockClass} open={essentialMoreOpen}>
-            <summary className="cursor-pointer text-sm font-semibold text-surface-700">Textos exibidos no site</summary>
+          <details className={nestedBlockClass}>
+            <summary className="cursor-pointer text-sm font-semibold text-surface-700">Textos exibidos no site{hasSiteTexts && <span className="ml-2 font-normal text-surface-500">• preenchido</span>}</summary>
             <div className="pt-4 space-y-5">
               <Field id="headlineDisplay" label="Título para outros canais (opcional)" hint="O site continua usando o nome da viagem.">
                 <input id="headlineDisplay" name="headlineDisplay" className="input" value={f.headlineDisplay} onChange={handleChange} />
@@ -627,8 +613,8 @@ export default function TripForm() {
             <input id="departureTolerance" name="departureTolerance" className="input" value={f.departureTolerance} onChange={handleChange} placeholder="30 minutos" />
           </Field>
 
-          <details ref={departureMoreRef} className={nestedBlockClass} open={departureMoreOpen}>
-            <summary className="cursor-pointer text-sm font-semibold text-surface-700">Mapa do embarque</summary>
+          <details ref={departureMoreRef} className={nestedBlockClass}>
+            <summary className="cursor-pointer text-sm font-semibold text-surface-700">Mapa do embarque{hasMapDetails && <span className="ml-2 font-normal text-surface-500">• preenchido</span>}</summary>
             <div className="pt-4 space-y-5">
               <Field id="meetingMapsQuery" label="Endereço para o mapa (opcional)" hint="Confirme o local sugerido antes de salvar.">
                 <input id="meetingMapsQuery" name="meetingMapsQuery" className="input" value={f.meetingMapsQuery} onChange={handleChange} placeholder="Rua, bairro, cidade/UF" />
@@ -647,13 +633,13 @@ export default function TripForm() {
           <legend className="sr-only">Como é a experiência</legend>
           <h2 className="text-lg font-semibold text-surface-900">Como é a experiência</h2>
 
-          <Field id="description" label="Resumo da experiência" required={f.status === 'OPEN'} error={err('description')} hint="Necessário para publicar. Resuma o que os viajantes vão viver.">
+          <Field id="description" label="Resumo da experiência" required={f.status === 'OPEN'} error={err('description')}>
             <textarea id="description" name="description" className={`input ${invalid('description')}`} value={f.description} onChange={handleChange} rows={4} aria-invalid={!!errors.description} placeholder="Conte o que torna essa viagem especial..." />
           </Field>
 
           <div className="form-group">
             <span className="label" id="media-label">Fotos da viagem</span>
-            <p className="hint mb-2">A primeira foto é a capa; inclua ao menos uma para publicar.</p>
+            <p className="hint mb-2">A primeira imagem será a capa.</p>
             <MediaInput
               inputId="media-link"
               value={f.media}
@@ -697,8 +683,8 @@ export default function TripForm() {
             />
           </Field>
 
-          <details className={nestedBlockClass} open={experienceMoreOpen}>
-            <summary className="cursor-pointer text-sm font-semibold text-surface-700">Frase extra (opcional)</summary>
+          <details className={nestedBlockClass}>
+            <summary className="cursor-pointer text-sm font-semibold text-surface-700">Frase extra (opcional){hasExtraPhrase && <span className="ml-2 font-normal text-surface-500">• preenchido</span>}</summary>
             <div className="pt-4 space-y-5">
               <Field id="includesHighlight" label="Frase de destaque" hint="Aparece abaixo de “O que inclui”."><input id="includesHighlight" name="includesHighlight" className="input" value={f.includesHighlight} onChange={handleChange} aria-describedby="includesHighlight-hint" placeholder="Ex.: Seguro viagem incluso" /></Field>
             </div>
@@ -715,7 +701,6 @@ export default function TripForm() {
           </Field>
 
           <Field id="important-info-input" label="Informações importantes">
-            <p className="hint mb-2">Marque as orientações desta viagem ou adicione outra abaixo.</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4" role="group" aria-label="Orientações sugeridas">
               {IMPORTANT_INFO_PRESETS.map(item => <label key={item} className="checkbox-label min-h-[44px] items-start rounded-lg border border-surface-200 px-3 py-2.5 leading-snug">
                 <input type="checkbox" className="checkbox-input mt-0.5" checked={hasImportantInfoPreset(f.importantInfo, item)} onChange={() => setList('importantInfo', toggleImportantInfoPreset(f.importantInfo, item))} />
@@ -725,8 +710,8 @@ export default function TripForm() {
             <ArrayInput id="important-info-input" value={customImportantInfo(f.importantInfo)} onPendingChange={(pending) => setPendingItem('informações', pending)} onChange={(items) => setList('importantInfo', mergeUnique(IMPORTANT_INFO_PRESETS.filter(item => hasImportantInfoPreset(f.importantInfo, item)), items))} placeholder="Ex.: O pagamento final vence 48 horas antes" />
           </Field>
 
-          <details className={nestedBlockClass} open={trailOpen}>
-            <summary className="cursor-pointer text-sm font-semibold text-surface-700">Trilha (quando houver)</summary>
+          <details className={nestedBlockClass}>
+            <summary className="cursor-pointer text-sm font-semibold text-surface-700">Trilha (quando houver){hasTrailDetails && <span className="ml-2 font-normal text-surface-500">• preenchido</span>}</summary>
             <div className="pt-4 space-y-5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field id="trailDistance" label="Distância do percurso"><input id="trailDistance" name="trailDistance" className="input" value={f.trailDistance} onChange={handleChange} placeholder="Ex.: aproximadamente 6 km" /></Field>
