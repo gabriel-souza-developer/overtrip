@@ -24,3 +24,6 @@ src/**/.pdf-image-decode-driver.generated.cjs
 
 # Fluxos n8n reais (IPs internos, IDs de grupo e credenciais); o repositório só tem as versões com marcadores.
 docs/local/
+
+# Perfis temporários de agentes de outros projetos.
+TEMP_PROJETOS/
