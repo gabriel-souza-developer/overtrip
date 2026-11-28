@@ -5,7 +5,6 @@ import {
   visitUpdateSchema, 
   visitQuerySchema 
 } from '../validators/index.js';
-import { AppError } from '../middleware/errorHandler.js';
 
 export const visitController = {
   async findAll(req: Request, res: Response) {

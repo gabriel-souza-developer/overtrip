@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Copy, FileText } from 'lucide-react';
 import { useToast } from '../hooks/useToast';
 import { buildTripProposal, tripProposalText, type TripProposalInput } from '../lib/tripProposal';

@@ -9,8 +9,9 @@ import Field from '../components/Field';
 import EmptyState from '../components/EmptyState';
 import ErrorState from '../components/ErrorState';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
+import { formatBRL } from '../lib/currency';
 
-const money = (cents: number) => (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const money = formatBRL;
 const dateLabel = (value: string) => {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? '' : new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeZone: 'America/Sao_Paulo' }).format(date);

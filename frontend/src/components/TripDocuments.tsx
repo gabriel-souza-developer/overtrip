@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import type { DocumentApi, ExtractedDocumentImage, TripDocument, UploadedMedia } from '../api';
 import Button from './Button';
 import ConfirmDialog from './ConfirmDialog';

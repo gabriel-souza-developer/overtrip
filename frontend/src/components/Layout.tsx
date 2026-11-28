@@ -1,4 +1,3 @@
-import React from 'react';
 import { brandUrl } from '../lib/basePath';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Activity, BusFront, Compass, House, Wallet, Images, MapPinned, Settings as SettingsIcon, Share2, Ticket, UserCog, UsersRound } from 'lucide-react';

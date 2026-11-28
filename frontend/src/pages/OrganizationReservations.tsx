@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { CalendarCheck, History, Pencil, Plus, ShieldAlert, Trash2 } from 'lucide-react';
 import {
@@ -7,6 +7,7 @@ import {
 } from '../api/organizations';
 import { formatDateBR } from '../lib/dateInput';
 import { reservationMoneyToCents } from '../lib/reservationMoney';
+import { formatBRL } from '../lib/currency';
 import type { OrganizationOutletContext } from './OrganizationLayout';
 import PageHeader from '../components/PageHeader';
 import EmptyState from '../components/EmptyState';
@@ -23,7 +24,7 @@ const STATUS_LABELS: Record<OrgReservationStatus, string> = { PENDING: 'Pendente
 // Mesma lógica de pages/Trips.tsx: cores fixas por estado, nunca derivadas da marca.
 const STATUS_TONE: Record<OrgReservationStatus, StatusTone> = { PENDING: 'warning', CONFIRMED: 'success', CANCELLED: 'danger' };
 const STATUS_OPTIONS = Object.keys(STATUS_LABELS) as OrgReservationStatus[];
-const formatMoney = (cents: number) => (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const formatMoney = formatBRL;
 const textFromCents = (cents: number) => (cents / 100).toFixed(2).replace('.', ',');
 const dayFromIso = (iso: string | null) => iso ? iso.slice(0, 10) : '';
 

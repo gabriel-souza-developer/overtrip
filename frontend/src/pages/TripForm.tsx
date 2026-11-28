@@ -504,7 +504,7 @@ export default function TripForm() {
 
           <Field id="tripProfile" label="Perfil da viagem" hint="Escolha o grupo ou marca que organiza esta vivência.">
             <select id="tripProfile" name="tripProfile" className="select" value={f.tripProfile} onChange={handleChange}>
-              <option value="STANDARD">Excursão normal</option>
+              <option value="STANDARD">TRIP regular</option>
               <option value="OVER_RIDERS">OVER RIDERS</option>
             </select>
           </Field>

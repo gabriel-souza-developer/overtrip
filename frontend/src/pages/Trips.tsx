@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { BusFront, CopyPlus, Download, Eye, EyeOff, MapPin, Pencil, Plus, Save, Trash2 } from 'lucide-react';
 import { tripApi, tripTemplateApi, Trip, TripTemplateSummary, Pagination as PaginationInfo } from '../api';

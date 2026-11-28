@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ArrowDownLeft, ArrowUpRight, BedDouble, CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, Compass, LayoutDashboard, LogOut, Menu, MoreHorizontal, Search, Sparkles, UsersRound, UtensilsCrossed, X } from 'lucide-react';
+import { useState } from 'react';
+import { ArrowDownLeft, ArrowUpRight, BedDouble, CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, Compass, LayoutDashboard, LogOut, Menu, MoreHorizontal, Sparkles, UtensilsCrossed, X } from 'lucide-react';
 import './prototype.css';
 import ReservationDemo, { type DemoReservation } from './ReservationDemo';
 

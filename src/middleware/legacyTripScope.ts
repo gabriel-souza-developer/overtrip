@@ -21,7 +21,7 @@ import { currentLegacyTourismFilter } from '../services/legacyTourismScope.js';
  * ciclo de requisições HTTP); se isso mudar, esta checagem deixa de ser
  * suficiente e precisa ser revisitada.
  */
-export const requireLegacyTripScope = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+export const requireLegacyTripScope = async (req: AuthRequest, _res: Response, next: NextFunction): Promise<void> => {
   const tripId = req.params.tripId;
   if (!tripId) { next(AppError.badRequest('tripId é obrigatório')); return; }
   try {

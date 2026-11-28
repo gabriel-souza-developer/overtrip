@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BedDouble, CalendarDays, ChevronRight, Compass, LayoutDashboard, LogOut, Menu, UtensilsCrossed, X } from 'lucide-react';
 import { request } from '../api';
 import { useAuth } from '../App';

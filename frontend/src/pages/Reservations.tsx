@@ -4,6 +4,7 @@ import { request, tripApi, type Pagination as PaginationInfo } from '../api';
 import { useAuth } from '../App';
 import { useToast } from '../hooks/useToast';
 import { reservationMoneyToCents } from '../lib/reservationMoney';
+import { formatBRL } from '../lib/currency';
 import PageHeader from '../components/PageHeader';
 import Button from '../components/Button';
 import Modal from '../components/Modal';
@@ -21,7 +22,7 @@ interface Reservation {
   trip: { id: string; title: string; startDateISO: string }; lead?: { id: string; name: string } | null; installments: Installment[];
 }
 const labels: Record<ReservationStatus, string> = { PENDING: 'Pendente', CONFIRMED: 'Confirmada', CANCELLED: 'Cancelada' };
-const formatMoney = (cents: number) => (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const formatMoney = formatBRL;
 const paidCents = (row: Reservation) => row.installments.reduce((sum, item) => sum + (item.paidAt ? item.amountCents : 0), 0);
 const depositCents = (row: Reservation) => Math.ceil(row.totalCents / 2);
 

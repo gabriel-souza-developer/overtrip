@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ApiRequestError, request } from '../api';
+import { formatIsoDayBR } from '../lib/dateInput';
 import Button from '../components/Button';
 import Field from '../components/Field';
 
@@ -7,7 +8,7 @@ type Unit = { id: string; name: string };
 type Block = { id: string; unitId: string; start: string; end: string; reason: string | null; status: string; unit: Unit };
 type Pagination = { page: number; totalPages: number; total: number };
 const emptyPagination: Pagination = { page: 1, totalPages: 0, total: 0 };
-const labelDate = (date: string) => date.slice(0, 10).split('-').reverse().join('/');
+const labelDate = formatIsoDayBR;
 
 /** Bloqueios usam a mesma ocupação das reservas; o servidor decide conflitos. */
 export default function WorkspaceBlocks({ organizationId, version: externalVersion = 0, onAccessDenied, onChanged }: {

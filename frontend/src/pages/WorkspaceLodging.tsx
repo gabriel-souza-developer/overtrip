@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ApiRequestError, request } from '../api';
+import { formatIsoDayBR } from '../lib/dateInput';
 import Button from '../components/Button';
 import Field from '../components/Field';
 import WorkspaceCalendar, { businessToday } from './WorkspaceCalendar';
@@ -154,7 +155,7 @@ export default function WorkspaceLodging({ organizationId }: { organizationId: s
     catch (err) { fail(err, 'Não foi possível atualizar a estadia.'); }
     finally { setBusy(false); }
   };
-  const dateLabel = (date: string) => date.slice(0, 10).split('-').reverse().join('/');
+  const dateLabel = formatIsoDayBR;
   const statusLabel: Record<string, string> = { CONFIRMED: 'Confirmada', CHECKED_IN: 'Hóspede presente', CHECKED_OUT: 'Estadia encerrada', CANCELLED: 'Cancelada' };
   const { arrivals, departures, overdueArrivals, overdueDepartures } = movement;
   const unitOptions = selectedUnit && !units.some(unit => unit.id === selectedUnit.id) ? [selectedUnit, ...units] : units;

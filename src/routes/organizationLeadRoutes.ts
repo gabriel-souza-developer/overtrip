@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
 import { asyncHandler, AppError } from '../middleware/errorHandler.js';
 import { assertOrganizationWriteAccess, requireOrganizationMembership, type OrganizationRequest } from '../middleware/organizationContext.js';
+import { startOfTomorrowInBusinessZone } from '../lib/businessTime.js';
 
 // Parent router authenticates and sets no-store. Global account roles are not
 // consulted: private contact data requires an owner/admin membership here.
@@ -34,22 +35,6 @@ const filters = z.object({
   followUp: z.enum(['due']).optional(),
 }).strict();
 
-// Mesmo limite do CRM legado: até o fim do dia corrente em São Paulo.
-function startOfTomorrowInBusinessZone(now = new Date()): Date {
-  const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' });
-  const parts = Object.fromEntries(formatter.formatToParts(now).map(part => [part.type, part.value]));
-  const target = Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day) + 1);
-  const detailed = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' });
-  let instant = target;
-  for (let i = 0; i < 3; i++) {
-    const p = Object.fromEntries(detailed.formatToParts(new Date(instant)).map(part => [part.type, part.value]));
-    const rendered = Date.UTC(Number(p.year), Number(p.month) - 1, Number(p.day), Number(p.hour), Number(p.minute), Number(p.second));
-    const adjusted = target - (rendered - instant);
-    if (adjusted === instant) break;
-    instant = adjusted;
-  }
-  return new Date(instant);
-}
 const nullableText = (max: number) => z.string().trim().max(max).nullable().optional();
 // Dados de contato e acompanhamento — nunca organizationId, tripId ou qualquer
 // campo fora dessa lista, que o .strict() rejeita. Vincular a uma viagem

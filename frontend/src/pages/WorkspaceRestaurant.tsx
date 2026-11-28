@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ApiRequestError, request } from '../api';
+import { formatIsoDayBR } from '../lib/dateInput';
 import Button from '../components/Button';
 import Field from '../components/Field';
 import { businessToday } from './WorkspaceCalendar';
@@ -147,7 +148,7 @@ export default function WorkspaceRestaurant({ organizationId }: { organizationId
     catch (err) { fail(err, 'Não foi possível atualizar a reserva.'); }
     finally { setBusy(false); }
   };
-  const dateLabel = (date: string) => date.slice(0, 10).split('-').reverse().join('/');
+  const dateLabel = formatIsoDayBR;
   const { expected, arrived, overdue } = movement;
   const tableOptions = selectedTable && !tables.some(table => table.id === selectedTable.id) ? [selectedTable, ...tables] : tables;
 

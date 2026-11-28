@@ -7,6 +7,14 @@
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
+/** Formata uma data ISO pelo dia escrito na string, sem conversão de fuso. */
+export function formatIsoDayBR(value: string | null | undefined): string {
+  if (!value) return '—';
+  const day = value.slice(0, 10);
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day);
+  return match ? `${match[3]}/${match[2]}/${match[1]}` : '—';
+}
+
 /** true se o instante é exatamente 00:00:00.000 UTC (data sem hora). */
 export function isDateOnlyIso(iso: string | null | undefined): boolean {
   if (!iso) return false;

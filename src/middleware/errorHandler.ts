@@ -50,7 +50,7 @@ const isUnexpectedError = (err: Error): boolean =>
 
 export const errorHandler = (
   err: Error,
-  req: Request,
+  _req: Request,
   res: Response,
   _next: NextFunction
 ): void => {

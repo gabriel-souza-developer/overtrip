@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ChevronDown, ChevronUp, Compass, ExternalLink, Link2, Pencil, Plus, Trash2, Unlink, X } from 'lucide-react';
 import {
   DESTINATION_CATEGORIES, OUTING_STATUS_LABELS, STATUS_LABELS, TRAIL_LABELS, destinationApi,

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { Images, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { createOrganizationGalleryEntry, deleteOrganizationGalleryEntry, listOrganizationGallery, updateOrganizationGalleryEntry, type OrganizationGalleryEntry, type OrganizationGalleryEssentials } from '../api/organizationGallery';

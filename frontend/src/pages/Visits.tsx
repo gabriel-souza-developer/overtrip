@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AlertTriangle, CheckCircle2, MapPin, Pencil, Plus, Trash2 } from 'lucide-react';
 import { visitApi, Visit, VisitPeriods, Pagination as PaginationInfo } from '../api';
 import { formatDateBR, localInputToIso } from '../lib/dateInput';

@@ -56,7 +56,7 @@ router.use((_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); 
 // assertOrganizationWriteAccess abaixo), fechando a janela para mutações;
 // para GET, esta checagem por requisição já é a mesma garantia usada pelas
 // demais rotas de leitura do painel de empresa.
-const requireOrgTripScope = asyncHandler(async (req: OrganizationRequest, res: Response, next: NextFunction) => {
+const requireOrgTripScope = asyncHandler(async (req: OrganizationRequest, _res: Response, next: NextFunction) => {
   const organizationId = req.organizationContext!.organization.id;
   const tripId = req.params.tripId;
   const trip = await prisma.trip.findFirst({ where: { id: tripId, organizationId }, select: { id: true } });

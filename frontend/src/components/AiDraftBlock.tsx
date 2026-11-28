@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Sparkles } from 'lucide-react';
 import { aiApi } from '../api';
 import { buildSuggestionRows, DRAFT_KEYS, type DraftKey, type SuggestionRow, type TripDraft } from '../lib/aiDraft';

@@ -5,8 +5,8 @@ export const FILTER_CATEGORY_OPTIONS = ['Trilha', 'Experiência', 'Praia', 'Aven
 export const DEFAULT_IMPORTANT_INFO = [
   'Leve água, protetor solar e itens pessoais para o percurso.',
   'Obrigatório apresentar documento original com foto para a reserva/viagem (normas da ANTT)',
-  'Restante do pagamento até 48 horas antes da excursão.',
-  'Excursão será realizada com mínimo de 13 pessoas.',
+  'Restante do pagamento até 48 horas antes da TRIP.',
+  'A TRIP será realizada com mínimo de 13 pessoas.',
   'Transportes utilizados: Van, Micro-ônibus ou Ônibus.',
 ] as const;
 

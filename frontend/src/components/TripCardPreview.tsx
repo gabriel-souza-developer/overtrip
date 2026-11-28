@@ -1,5 +1,5 @@
 import { CalendarDays, CircleCheck, Clock3, MapPin, ShieldCheck } from 'lucide-react';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { formatDateBR } from '../lib/dateInput';
 import { formatBRL } from '../lib/formHelpers';
 import { resolveAssetSrc } from '../lib/assetUrl';
