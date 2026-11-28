@@ -6,6 +6,12 @@
 - Typecheck e build de produção do painel passaram. Cópia da tela anterior em `/srv/overtrip/backup-20261128-trips-ui/admin-before`; a API e o banco não mudaram nem foram reiniciados.
 - `/admin/` e o bundle de Viagens responderam 200; o bundle servido contém os novos rótulos. API e Caddy continuam ativos.
 
+## Formulário de TRIP com menos textos auxiliares (28 de novembro de 2026)
+
+- Publicado somente o painel do commit `bc50ed7`. Dicas repetitivas foram removidas ou encurtadas em criar/editar viagem, mantendo avisos de publicação, embarque, privacidade da IA, coordenadas e acessibilidade das fotos.
+- Typecheck e build de produção passaram. A página `/admin/` e os bundles do formulário responderam 200; `/health` respondeu 200. API e banco não mudaram nem foram reiniciados.
+- Cópia imediatamente anterior do painel em `/srv/overtrip/backup-20261128-trip-form/admin-before`.
+
 ## Limpeza de cópias antigas e estado do assistente (27 de novembro de 2026)
 
 - Removidas cópias antigas de release `retorno-*` e snapshots de banco anteriores/redundantes; foram liberados cerca de 3,9 GB em cópias de código. Mantidos o rollback do release atual `/srv/overtrip/backup-20261127-d9d8f52`, os dois backups diários mais recentes do banco e os diretórios de backup de uploads e redes sociais.
